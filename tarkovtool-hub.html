@@ -5,354 +5,275 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tarkov Tool Hub</title>
   <link rel="stylesheet" href="tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Хаб", "description": "Все инструменты Tarkov в одном месте."}
+  </script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{min-height:100vh;padding:24px 16px 48px}
-    .container{max-width:min(1100px,92vw);margin:0 auto}
-    h1{font-size:1.7rem;margin-bottom:6px}
+    .container{max-width:min(1100px,94vw);margin:0 auto}
+    h1{font-size:1.75rem;margin-bottom:6px}
     .sub{color:var(--muted);margin-bottom:18px;line-height:1.45}
     .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:14px}
-    .btn{background:var(--accent);color:#111;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;margin-right:8px;margin-bottom:8px}
-    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:10px 14px;font-weight:600;cursor:pointer;margin-right:8px;margin-bottom:8px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    input[type=search]{
+      flex:1;min-width:200px;background:var(--input-bg);border:1px solid var(--border);
+      border-radius:8px;padding:12px 14px;color:var(--text);font-size:1rem;outline:none;
+    }
+    .grid{
+      display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;
+    }
     .tool{
       display:block;text-decoration:none;color:inherit;
       background:var(--input-bg);border:1px solid var(--border);border-radius:12px;
       padding:14px 16px;transition:border-color .15s, transform .12s;
     }
     .tool:hover{border-color:var(--accent);transform:translateY(-1px)}
-    .tool-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:8px}
+    .tool-head{display:flex;gap:12px;align-items:flex-start}
     .tool-ico{
       flex-shrink:0;width:48px;height:48px;border-radius:12px;
       background:rgba(201,162,39,.12);border:1px solid rgba(201,162,39,.25);
-      display:flex;align-items:center;justify-content:center;
-      font-size:1.55rem;line-height:1;
+      display:flex;align-items:center;justify-content:center;font-size:1.55rem;line-height:1;
     }
     .tool h2{font-size:1.05rem;margin-bottom:4px;color:var(--accent)}
     .tool p{font-size:.9rem;color:var(--muted);line-height:1.4}
     .tool .file{font-size:.75rem;color:var(--muted);margin-top:8px;opacity:.75}
-    .status{font-size:.92rem;color:var(--muted);margin-top:10px}
-    .status.ok{color:var(--green)}.status.err{color:var(--red)}.status.warn{color:var(--orange)}
-    input[type=search]{
-      width:100%;background:var(--input-bg);border:1px solid var(--border);
-      border-radius:8px;padding:12px 14px;color:var(--text);font-size:1rem;margin-bottom:12px;
+    .meta{font-size:.85rem;color:var(--muted)}
+    .badge{
+      display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:10px;
+      background:rgba(61,214,140,.12);color:var(--green);margin-left:6px;
     }
-    code{background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;font-size:.88em}
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Tarkov Tool Hub</h1>
-    <p class="sub">
-      Подхватывает все <code>tarkovtool-*.html</code> рядом с собой.
-      Описание читается из <code>&lt;script id="tarkovtool-meta"&gt;</code> в каждом файле — манифест не нужен.
-    </p>
+    <h1>Tarkov Tools <span class="badge">hosted</span></h1>
+    <p class="sub">Статический хаб для GitHub Pages / любого хостинга. Кликни карточку — откроется инструмент.</p>
 
     <div class="card">
-      <button type="button" class="btn" id="btnRescan">Сканировать снова</button>
-      <button type="button" class="btn-ghost" id="btnFolder">Выбрать папку вручную</button>
-      <p class="status" id="status">Сканирую…</p>
+      <div class="row">
+        <input type="search" id="q" placeholder="Поиск: бартер, скиллы, квесты…" autocomplete="off">
+      </div>
+      <p class="meta" id="count" style="margin-top:8px"></p>
     </div>
 
-    <input type="search" id="q" placeholder="Фильтр: бартер, броня, стимул…">
     <div class="grid" id="grid"></div>
   </div>
-
   <script>
+    // Каталог зашит при сборке (Pages не отдаёт листинг папки).
+    // При добавлении нового tarkovtool-*.html — обновить этот массив или пересобрать хаб.
+    const CATALOG = [
+  {
+    "file": "tarkovtool-ammo.html",
+    "title": "Патроны",
+    "description": "Таблица пробития по калибрам, класс брони, урон, цена."
+  },
+  {
+    "file": "tarkovtool-armor.html",
+    "title": "Броня",
+    "description": "Рейтинг брони по классу, зонам, плитам, без упора в цену."
+  },
+  {
+    "file": "tarkovtool-barter-calc.html",
+    "title": "Бартер (ручной)",
+    "description": "Калькулятор выгодности бартера: компоненты, комиссия flea."
+  },
+  {
+    "file": "tarkovtool-barter-live.html",
+    "title": "Бартер (live)",
+    "description": "Бартер с ценами барахолки через API, пресеты трейдов."
+  },
+  {
+    "file": "tarkovtool-bosses.html",
+    "title": "Боссы и гуны",
+    "description": "Шансы боссов, таймеры карт, текущая локация гунов."
+  },
+  {
+    "file": "tarkovtool-compare.html",
+    "title": "Сравнение",
+    "description": "Сравнение нескольких предметов одной категории, моды под ствол."
+  },
+  {
+    "file": "tarkovtool-containers.html",
+    "title": "Разгрузки и рюкзаки",
+    "description": "Рейтинг контейнеров: слоты, вес, сегменты."
+  },
+  {
+    "file": "tarkovtool-crafts.html",
+    "title": "Крафты убежища",
+    "description": "ROI крафтов hideout, цены, время."
+  },
+  {
+    "file": "tarkovtool-drip.html",
+    "title": "Дрип по цветам",
+    "description": "Экип по цветам (песок, чёрный, MC…) + score статов."
+  },
+  {
+    "file": "tarkovtool-gun-budget.html",
+    "title": "Сборка за N ₽",
+    "description": "Оружие под бюджет: максимум статов, схема модов, прицел."
+  },
+  {
+    "file": "tarkovtool-gun-builder.html",
+    "title": "Gun Builder",
+    "description": "Сборка оружия по слотам: статы, цена, flea/торговец/квест."
+  },
+  {
+    "file": "tarkovtool-hideout-mgmt.html",
+    "title": "Качатель Hideout Management",
+    "description": "Какой крафт крутить на каждой станции за минимум ₽ за цикл скилла."
+  },
+  {
+    "file": "tarkovtool-hideout.html",
+    "title": "Трекер убежища",
+    "description": "Уровни станций, шоплист апгрейдов, цены."
+  },
+  {
+    "file": "tarkovtool-item-use.html",
+    "title": "Что с предметом",
+    "description": "Ввёл предмет — продажа, крафт, убежище, квесты, бартер."
+  },
+  {
+    "file": "tarkovtool-keys.html",
+    "title": "Ключи",
+    "description": "Ключи по локациям, цена и рейтинг."
+  },
+  {
+    "file": "tarkovtool-lang-search.html",
+    "title": "EN ↔ RU поиск",
+    "description": "Предметы и квесты: двойной поиск EN/RU."
+  },
+  {
+    "file": "tarkovtool-loot-slot.html",
+    "title": "Лут ₽/слот",
+    "description": "Цена за клетку: flea и торговец, пометка квеста."
+  },
+  {
+    "file": "tarkovtool-mags.html",
+    "title": "Магазины",
+    "description": "Магазины по калибрам: ёмкость, эрга, отдача."
+  },
+  {
+    "file": "tarkovtool-medkits.html",
+    "title": "Аптечки",
+    "description": "HP на клетку, скорость применения, ₽/HP. Аптечки и таблетки."
+  },
+  {
+    "file": "tarkovtool-mods.html",
+    "title": "Моды",
+    "description": "Рейтинг обвесов по статам и совместимости."
+  },
+  {
+    "file": "tarkovtool-plates.html",
+    "title": "Плиты",
+    "description": "Эффективность плит: класс, вес, прочность, стоимость ремонта."
+  },
+  {
+    "file": "tarkovtool-quest-items.html",
+    "title": "Квест-предметы",
+    "description": "FIR-предметы для квестов, трекинг."
+  },
+  {
+    "file": "tarkovtool-quests.html",
+    "title": "Квесты · карты",
+    "description": "Глоссарий квестов: реальные карты вместо «любая локация», цели по шагам, требования."
+  },
+  {
+    "file": "tarkovtool-raid-checklist.html",
+    "title": "Чек-лист рейда",
+    "description": "Сборки под карты, DnD списка, В РЕЙД → сброс галочек через 20 мин."
+  },
+  {
+    "file": "tarkovtool-restock.html",
+    "title": "Таймер рестока",
+    "description": "Обновление торговцев, пилик, история."
+  },
+  {
+    "file": "tarkovtool-scopes.html",
+    "title": "Прицелы",
+    "description": "Рейтинг оптики: кратность, ПНВ, community tier."
+  },
+  {
+    "file": "tarkovtool-shortname.html",
+    "title": "Короткие имена",
+    "description": "Поиск по short name + цена торговца/flea."
+  },
+  {
+    "file": "tarkovtool-skills.html",
+    "title": "Скиллы + чизы",
+    "description": "Трекер уровней, софт-кап усталости навыка, чиз-страты 1.0+."
+  },
+  {
+    "file": "tarkovtool-stim-combos.html",
+    "title": "Комбо стимуляторов",
+    "description": "Связки вроде Meldonin+SJ1, SJ6+Trimadol, Propital+MULE. Иконки и копир."
+  },
+  {
+    "file": "tarkovtool-stims.html",
+    "title": "Стимуляторы",
+    "description": "Рейтинг инъекторов: бой, выносливость, отхил, вес. Эффекты из API."
+  },
+  {
+    "file": "tarkovtool-streamer-flip.html",
+    "title": "Стример-флип",
+    "description": "Стримерские предметы vs Терапевт."
+  },
+  {
+    "file": "tarkovtool-trader-flip.html",
+    "title": "Трейдер-флип",
+    "description": "Перепродажа от торговца на барахолку с УЛ и квестами."
+  }
+];
 
-    const TOOL_ICONS = [
-      { re: /ammo/i, emoji: '🔫', label: 'ammo' },
-      { re: /armor/i, emoji: '🛡️', label: 'armor' },
-      { re: /barter-calc/i, emoji: '🧮', label: 'barter' },
-      { re: /barter-live/i, emoji: '💱', label: 'barter live' },
-      { re: /boss/i, emoji: '👹', label: 'bosses' },
-      { re: /compare/i, emoji: '⚖️', label: 'compare' },
-      { re: /container/i, emoji: '🎒', label: 'containers' },
-      { re: /craft/i, emoji: '🔧', label: 'crafts' },
-      { re: /drip/i, emoji: '🕶️', label: 'drip' },
-      { re: /gun-budget/i, emoji: '💰', label: 'gun budget' },
-      { re: /gun-builder/i, emoji: '🛠️', label: 'gun builder' },
-      { re: /hideout-mgmt/i, emoji: '🏠', label: 'hideout mgmt' },
-      { re: /hideout/i, emoji: '🏗️', label: 'hideout' },
-      { re: /key/i, emoji: '🔑', label: 'keys' },
-      { re: /lang/i, emoji: '🌐', label: 'lang' },
-      { re: /loot-slot/i, emoji: '📦', label: 'loot slot' },
-      { re: /item-use/i, emoji: '💡', label: 'item use' },
-      { re: /mag/i, emoji: '📟', label: 'mags' },
-      { re: /medkit/i, emoji: '💊', label: 'medkits' },
-      { re: /mod(?!s)/i, emoji: '🔩', label: 'mods' },
-      { re: /mods/i, emoji: '🔩', label: 'mods' },
-      { re: /plate/i, emoji: '🧱', label: 'plates' },
-      { re: /quest/i, emoji: '📋', label: 'quests' },
-      { re: /restock/i, emoji: '⏰', label: 'restock' },
-      { re: /scope/i, emoji: '🔭', label: 'scopes' },
-      { re: /shortname/i, emoji: '🏷️', label: 'shortname' },
-      { re: /skill/i, emoji: '📈', label: 'skills' },
-      { re: /stim-combo/i, emoji: '💉', label: 'stim combos' },
-      { re: /stim/i, emoji: '💉', label: 'stims' },
-      { re: /streamer/i, emoji: '📺', label: 'streamer' },
-      { re: /trader-flip/i, emoji: '🏪', label: 'trader flip' },
-      { re: /hub/i, emoji: '🗂️', label: 'hub' }
+    const ICONS = [
+      [/ammo/i, '🔫'], [/armor/i, '🛡️'], [/barter/i, '🧮'], [/boss/i, '👹'],
+      [/compare/i, '⚖️'], [/container/i, '🎒'], [/craft/i, '🔧'], [/drip/i, '🕶️'],
+      [/gun-budget/i, '💰'], [/gun-builder/i, '🛠️'], [/hideout-mgmt/i, '🏠'],
+      [/hideout/i, '🏗️'], [/key/i, '🔑'], [/lang/i, '🌐'], [/loot/i, '📦'],
+      [/item-use/i, '💡'], [/mag/i, '📟'], [/medkit/i, '💊'], [/mods/i, '🔩'],
+      [/plate/i, '🧱'], [/quest-item/i, '📋'], [/quest/i, '📜'], [/raid/i, '✅'],
+      [/restock/i, '⏰'], [/scope/i, '🔭'], [/shortname/i, '🏷️'], [/skill/i, '📈'],
+      [/stim-combo/i, '💉'], [/stim/i, '💉'], [/streamer/i, '📺'], [/trader/i, '🏪']
     ];
 
     function iconFor(file, title) {
-      const hay = (file || '') + ' ' + (title || '');
-      for (const row of TOOL_ICONS) {
-        if (row.re.test(hay)) return row.emoji2 || row.emoji;
-      }
+      const hay = file + ' ' + title;
+      for (const [re, emo] of ICONS) if (re.test(hay)) return emo;
       return '📎';
     }
-
-    let tools = [];
-
     function esc(s) {
-      return String(s || '')
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
     function render() {
       const q = (document.getElementById('q').value || '').toLowerCase().trim();
+      let list = CATALOG;
+      if (q) {
+        list = CATALOG.filter(t =>
+          (t.title || '').toLowerCase().includes(q) ||
+          (t.description || '').toLowerCase().includes(q) ||
+          (t.file || '').toLowerCase().includes(q)
+        );
+      }
+      document.getElementById('count').textContent = list.length + ' / ' + CATALOG.length;
       const grid = document.getElementById('grid');
-      grid.innerHTML = '';
-      tools
-        .filter(t => {
-          if (!q) return true;
-          const hay = ((t.title || '') + ' ' + (t.description || '') + ' ' + (t.file || '')).toLowerCase();
-          return hay.includes(q);
-        })
-        .sort((a, b) => (a.title || '').localeCompare(b.title || '', 'ru'))
-        .forEach(t => {
-          const a = document.createElement('a');
-          a.className = 'tool';
-          a.href = t.file;
-          const ico = iconFor(t.file, t.title);
-          a.innerHTML = `<div class="tool-head">
-              <div class="tool-ico" aria-hidden="true">${ico}</div>
-              <div>
-                <h2>${esc(t.title || t.file)}</h2>
-                <p>${esc(t.description || '—')}</p>
-              </div>
+      grid.innerHTML = list.map(t => {
+        const ico = iconFor(t.file, t.title);
+        return `<a class="tool" href="${esc(t.file)}">
+          <div class="tool-head">
+            <div class="tool-ico" aria-hidden="true">${ico}</div>
+            <div>
+              <h2>${esc(t.title || t.file)}</h2>
+              <p>${esc(t.description || '—')}</p>
             </div>
-            <div class="file">${esc(t.file)}</div>`;
-          grid.appendChild(a);
-        });
+          </div>
+          <div class="file">${esc(t.file)}</div>
+        </a>`;
+      }).join('');
     }
 
-    function parseMeta(html, fileName) {
-      const m = html.match(/id=["']tarkovtool-meta["']>\s*(\{[\s\S]*?\})\s*<\/script>/i);
-      let meta = {
-        file: fileName,
-        title: fileName.replace(/^tarkovtool-/, '').replace(/\.html$/i, '').replace(/-/g, ' '),
-        description: ''
-      };
-      if (m) {
-        try {
-          const j = JSON.parse(m[1]);
-          if (j.title) meta.title = j.title;
-          if (j.description) meta.description = j.description;
-          if (j.file) meta.file = j.file;
-        } catch (e) {}
-      }
-      // fallback: HTML comment <!-- tarkovtool: Title | description -->
-      if (!m) {
-        const c = html.match(/<!--\s*tarkovtool:\s*([^|]+)\|\s*([^-]+?)\s*-->/i);
-        if (c) {
-          meta.title = c[1].trim();
-          meta.description = c[2].trim();
-        }
-      }
-      meta.file = fileName;
-      return meta;
-    }
-
-    /** Parse Apache/Python http.server style directory listing */
-    function filesFromListing(html) {
-      const names = new Set();
-      const re = /href=["']([^"']+)["']/gi;
-      let match;
-      while ((match = re.exec(html))) {
-        let href = match[1].split('?')[0].split('#')[0];
-        try { href = decodeURIComponent(href); } catch (e) {}
-        href = href.replace(/^\.\//, '');
-        if (href.includes('/')) continue; // only same folder
-        if (/^tarkovtool.+\.html$/i.test(href) && !/tarkovtool-hub\.html$/i.test(href)) {
-          names.add(href);
-        }
-      }
-      return [...names];
-    }
-
-    async function loadMetaForFiles(fileNames) {
-      const out = [];
-      await Promise.all(fileNames.map(async (name) => {
-        try {
-          const res = await fetch(name, { cache: 'no-store' });
-          if (!res.ok) return;
-          const html = await res.text();
-          out.push(parseMeta(html, name));
-        } catch (e) {}
-      }));
-      return out;
-    }
-
-    async function scanViaHttpListing() {
-      // When opened as http://localhost:PORT/tarkovtool-hub.html
-      // fetch directory index of current folder
-      const bases = ['./', '.', './index.html'];
-      // also try parent path of hub
-      const path = location.pathname || '';
-      if (path.endsWith('.html')) {
-        const dir = path.replace(/[^/]+$/, '');
-        bases.unshift(dir || './');
-      }
-
-      for (const base of bases) {
-        try {
-          const res = await fetch(base, { cache: 'no-store' });
-          if (!res.ok) continue;
-          const ct = (res.headers.get('content-type') || '').toLowerCase();
-          const text = await res.text();
-          // directory listing is usually text/html with many hrefs to .html
-          const files = filesFromListing(text);
-          if (files.length) {
-            return await loadMetaForFiles(files);
-          }
-        } catch (e) {}
-      }
-      return null;
-    }
-
-    async function scanViaFolderPicker() {
-      if (!window.showDirectoryPicker) {
-        throw new Error('Браузер не умеет выбирать папку (нужен Chrome/Edge) или открой через локальный сервер');
-      }
-      const dir = await showDirectoryPicker();
-      // optionally persist handle
-      try {
-        const root = await navigator.storage.getDirectory();
-        // can't easily store native handle in OPFS; use IndexedDB
-        if (window.indexedDB) {
-          await saveDirHandle(dir);
-        }
-      } catch (e) {}
-
-      const found = [];
-      for await (const [name, handle] of dir.entries()) {
-        if (handle.kind !== 'file') continue;
-        if (!/^tarkovtool.+\.html$/i.test(name)) continue;
-        if (/tarkovtool-hub\.html$/i.test(name)) continue;
-        const file = await handle.getFile();
-        const text = await file.text();
-        found.push(parseMeta(text, name));
-      }
-      return found;
-    }
-
-    function idb() {
-      return new Promise((resolve, reject) => {
-        const req = indexedDB.open('tarkovtool-hub', 1);
-        req.onupgradeneeded = () => req.result.createObjectStore('handles');
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
-    }
-
-    async function saveDirHandle(handle) {
-      const db = await idb();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction('handles', 'readwrite');
-        tx.objectStore('handles').put(handle, 'toolsDir');
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
-    }
-
-    async function loadDirHandle() {
-      try {
-        const db = await idb();
-        return new Promise((resolve, reject) => {
-          const tx = db.transaction('handles', 'readonly');
-          const req = tx.objectStore('handles').get('toolsDir');
-          req.onsuccess = () => resolve(req.result || null);
-          req.onerror = () => reject(req.error);
-        });
-      } catch (e) {
-        return null;
-      }
-    }
-
-    async function scanViaStoredHandle() {
-      const dir = await loadDirHandle();
-      if (!dir) return null;
-      const perm = await dir.queryPermission({ mode: 'read' });
-      if (perm !== 'granted') {
-        const req = await dir.requestPermission({ mode: 'read' });
-        if (req !== 'granted') return null;
-      }
-      const found = [];
-      for await (const [name, handle] of dir.entries()) {
-        if (handle.kind !== 'file') continue;
-        if (!/^tarkovtool.+\.html$/i.test(name)) continue;
-        if (/tarkovtool-hub\.html$/i.test(name)) continue;
-        const file = await handle.getFile();
-        found.push(parseMeta(await file.text(), name));
-      }
-      return found;
-    }
-
-    async function fullScan() {
-      const status = document.getElementById('status');
-      status.className = 'status';
-      status.textContent = 'Сканирую…';
-
-      // 1) HTTP directory listing (python -m http.server и т.п.)
-      let found = await scanViaHttpListing();
-      if (found && found.length) {
-        tools = found;
-        status.className = 'status ok';
-        status.textContent = 'Найдено ' + tools.length + ' (листинг папки). Добавил файл — жми «Сканировать снова».';
-        render();
-        return;
-      }
-
-      // 2) previously granted folder
-      try {
-        found = await scanViaStoredHandle();
-        if (found && found.length) {
-          tools = found;
-          status.className = 'status ok';
-          status.textContent = 'Найдено ' + tools.length + ' (сохранённая папка).';
-          render();
-          return;
-        }
-      } catch (e) {}
-
-      // 3) file:// or no listing — need manual pick once
-      status.className = 'status warn';
-      status.textContent = 'Авто-скан недоступен (file:// или сервер без листинга). Жми «Выбрать папку» один раз — запомнится. Или: python -m http.server в этой папке.';
-      tools = [];
-      render();
-    }
-
-    document.getElementById('btnRescan').onclick = fullScan;
-    document.getElementById('btnFolder').onclick = async () => {
-      const status = document.getElementById('status');
-      try {
-        const found = await scanViaFolderPicker();
-        tools = found || [];
-        status.className = 'status ok';
-        status.textContent = 'Найдено ' + tools.length + ' (папка выбрана, handle сохранён).';
-        render();
-      } catch (e) {
-        if (e.name === 'AbortError') return;
-        status.className = 'status err';
-        status.textContent = e.message || String(e);
-      }
-    };
-    document.getElementById('q').oninput = render;
-
-    fullScan();
+    document.getElementById('q').addEventListener('input', render);
+    render();
   </script>
 </body>
 </html>
