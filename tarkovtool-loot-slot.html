@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Профит за слот — Tarkov</title>
+  <link rel="stylesheet" href="tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Лут ₽/слот", "description": "Цена за клетку: flea и торговец, пометка квеста."}
+  </script>
+
+
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;padding:20px 14px 48px}
+    .container{max-width:min(1600px,92vw);margin:0 auto}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+    .card-title{font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;font-weight:600}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+    .field{flex:1;min-width:160px}
+    .field label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
+    select,input,textarea{background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);outline:none;font-size:1rem;width:100%}
+    .btn{background:var(--accent);color:#111;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer}
+    .btn:disabled{opacity:.45}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 12px;cursor:pointer}
+    .status{font-size:.95rem;color:var(--muted);margin-top:8px}
+    .status.ok{color:var(--green)}.status.err{color:var(--red)}
+    .tag{display:inline-block;font-size:.72rem;padding:2px 7px;border-radius:4px;margin:2px;background:rgba(255,255,255,.06);color:var(--muted)}
+    .tag.good{background:rgba(61,214,140,.15);color:var(--green)}
+    .tag.bad{background:rgba(240,113,120,.15);color:var(--red)}
+    .tag.quest{background:rgba(201,162,39,.2);color:var(--accent)}
+    .tag.trader{background:rgba(100,160,255,.15);color:#7ec8ff}
+    .name-cell{display:flex;align-items:center;gap:10px}
+    .ico{width:48px;height:48px;object-fit:contain;border-radius:6px;background:#0a0c10}
+    .ico-lg{width:64px;height:64px;object-fit:contain;border-radius:8px;background:#0a0c10}
+    .name{font-weight:600}.meta{font-size:.82rem;color:var(--muted)}
+    .table-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px;max-height:55vh}
+    table{width:100%;border-collapse:collapse;font-size:.92rem;font-variant-numeric:tabular-nums}
+    th{position:sticky;top:0;background:var(--input-bg);text-align:left;padding:10px;color:var(--muted);font-size:.75rem;text-transform:uppercase;z-index:1}
+    td{padding:10px;border-top:1px solid var(--border);vertical-align:middle}
+    .suggest{border:1px solid var(--border);border-radius:8px;max-height:220px;overflow:auto;background:var(--input-bg);display:none}
+    .suggest div{padding:8px 12px;cursor:pointer;display:flex;gap:8px;align-items:center}
+    .suggest div:hover{background:rgba(255,255,255,.05)}
+    .hint{font-size:.88rem;color:var(--muted);margin-top:10px}
+    .section{margin-bottom:14px}
+    .section h3{font-size:1rem;margin-bottom:8px;color:var(--accent)}
+    .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+    .stat{background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px}
+    .stat .v{font-size:1.2rem;font-weight:800;color:var(--accent)}
+    .stat .l{font-size:.75rem;color:var(--muted)}
+    /* gun schematic */
+    .schematic{
+      display:grid;
+      grid-template-columns: 90px 90px 120px 110px 90px 90px;
+      grid-template-rows: auto auto auto auto auto;
+      gap:8px;
+      align-items:center;
+      justify-items:center;
+      padding:12px;
+      overflow:auto;
+    }
+    .slot-box{
+      width:100%; min-height:88px;
+      border:1px dashed var(--border); border-radius:10px;
+      background:rgba(0,0,0,.25);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:6px; text-align:center; cursor:pointer;
+      position:relative;
+    }
+    .slot-box.has{border-style:solid;border-color:rgba(201,162,39,.45)}
+    .slot-box.empty:hover{border-color:var(--accent)}
+    .slot-box .slot-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+    .slot-box img{width:52px;height:52px;object-fit:contain}
+    .slot-box .mod-name{font-size:.7rem;color:var(--text);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .slot-box.weapon-core{border-color:var(--accent);background:rgba(201,162,39,.08);cursor:default;min-height:110px}
+    .slot-box.weapon-core img{width:72px;height:72px}
+    .g-muzzle{grid-column:1;grid-row:3}
+    .g-barrel{grid-column:2;grid-row:3}
+    .g-weapon{grid-column:3;grid-row:3}
+    .g-receiver{grid-column:3;grid-row:2}
+    .g-charge{grid-column:4;grid-row:2}
+    .g-stock{grid-column:5;grid-row:3}
+    .g-stock2{grid-column:6;grid-row:3}
+    .g-scope{grid-column:3;grid-row:1}
+    .g-handguard{grid-column:2;grid-row:4}
+    .g-foregrip{grid-column:2;grid-row:5}
+    .g-tactical{grid-column:1;grid-row:4}
+    .g-mag{grid-column:3;grid-row:4}
+    .g-grip{grid-column:4;grid-row:4}
+    .g-other{grid-column:5 / span 2;grid-row:4 / span 2}
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+    .modal-bg.show{display:flex}
+    .modal{background:var(--card);border:1px solid var(--border);border-radius:12px;max-width:720px;width:100%;max-height:80vh;overflow:auto;padding:16px}
+    .modal h3{margin-bottom:10px}
+    .mod-pick{display:flex;gap:8px;align-items:center;padding:8px;border-radius:8px;cursor:pointer}
+    .mod-pick:hover{background:rgba(255,255,255,.05)}
+  </style>
+
+</head>
+<body>
+  <div class="container">
+    <h1>Профит лута · ₽ / слот</h1>
+    <p class="sub">Быстро: flea и скупщик за клетку + нужен ли для квеста</p>
+    <div class="card">
+      <div class="row">
+
+        <div class="field"><label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+      </div>
+      <p class="status" id="status"></p>
+    </div>
+    <div class="card" id="ui" style="display:none">
+      <div class="field">
+        <label>Предмет</label>
+        <input type="text" id="q" placeholder="gpu, toothpast, LEDX…" autocomplete="off">
+        <div class="suggest" id="suggest"></div>
+      </div>
+      <div id="out" style="margin-top:14px"></div>
+      <p class="hint">Можно вводить несколько через запятую — таблица сравнения.</p>
+    </div>
+  </div>
+  <script>
+    let items=[], byId={}, questItemIds=new Set();
+    function humanize(s){return s?String(s).replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):'?'}
+    function formatNum(n){return n==null||Number.isNaN(n)?'—':Math.round(n).toLocaleString('ru-RU')}
+    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+    document.getElementById('loadBtn').onclick=async()=>{
+      const st=document.getElementById('status'); st.textContent='Гружу…';
+      try{
+        const mode=document.getElementById('gameMode').value||'pve';
+        const [ji,jt]=await Promise.all([
+          fetch('https://json.tarkov.dev/'+mode+'/items').then(r=>r.json()),
+          fetch('https://json.tarkov.dev/'+mode+'/tasks').then(r=>r.json())
+        ]);
+        let raw=ji?.data?.items; items=Array.isArray(raw)?raw:Object.values(raw||{});
+        byId={}; items.forEach(i=>byId[i.id]=i);
+        questItemIds=new Set();
+        let tk=jt?.data?.tasks??jt?.data??jt; tk=Array.isArray(tk)?tk:Object.values(tk||{});
+        tk.forEach(t=>(t.objectives||[]).forEach(o=>{
+          (o.items||[]).forEach(id=>questItemIds.add(id));
+          if(o.item) questItemIds.add(o.item);
+        }));
+        st.className='status ok'; st.textContent='OK · quest items: '+questItemIds.size;
+        document.getElementById('ui').style.display='block';
+      }catch(e){st.className='status err'; st.textContent=e.message}
+    };
+
+    function findItems(q){
+      const parts=q.split(/[,;]+/).map(s=>s.trim().toLowerCase()).filter(Boolean);
+      if(!parts.length) return [];
+      const out=[];
+      parts.forEach(p=>{
+        const hit=items.find(i=>(i.normalizedName||'').toLowerCase()===p)
+          || items.find(i=>(i.normalizedName||'').toLowerCase().includes(p));
+        if(hit) out.push(hit);
+      });
+      return out;
+    }
+
+    function bestTraderSell(it){
+      const arr=it.sellToTrader||[];
+      let best=null;
+      arr.forEach(s=>{
+        const price=Number(s.price)||0;
+        if(!best||price>best.price) best={price, trader:s.trader?.name||s.trader?.normalizedName||s.trader||'?'};
+      });
+      return best;
+    }
+
+    function render(){
+      const list=findItems(document.getElementById('q').value);
+      const el=document.getElementById('out');
+      if(!list.length){el.innerHTML=''; return}
+      let html=`<div class="table-wrap"><table><thead><tr>
+        <th></th><th>Предмет</th><th>Слоты</th><th>Flea</th><th>₽/слот flea</th><th>Торговец</th><th>₽/слот trader</th><th>Квест</th>
+      </tr></thead><tbody>`;
+      list.forEach(it=>{
+        const cells=Math.max(1,(Number(it.width)||1)*(Number(it.height)||1));
+        const avg=Number(it.avg24hPrice)||0;
+        const tr=bestTraderSell(it);
+        const quest=questItemIds.has(it.id);
+        html+=`<tr>
+          <td>${it.iconLink?`<img class="ico" src="${esc(it.iconLink)}" alt="">`:''}</td>
+          <td><div class="name">${esc(humanize(it.normalizedName))}</div><div class="meta">${esc(it.normalizedName)}</div></td>
+          <td>${cells}</td>
+          <td>${avg?formatNum(avg):'—'}</td>
+          <td><b>${avg?formatNum(avg/cells):'—'}</b></td>
+          <td>${tr?formatNum(tr.price)+' ('+esc(String(tr.trader))+')':'—'}</td>
+          <td>${tr?formatNum(tr.price/cells):'—'}</td>
+          <td>${quest?'<span class="tag quest">квест</span>':'—'}</td>
+        </tr>`;
+      });
+      html+=`</tbody></table></div>`;
+      el.innerHTML=html;
+    }
+    document.getElementById('q').addEventListener('input', ()=>{
+      // suggest single
+      const q=document.getElementById('q').value;
+      if(q.includes(',')) {render(); document.getElementById('suggest').style.display='none'; return}
+      const qq=q.toLowerCase().trim();
+      const box=document.getElementById('suggest');
+      if(qq.length<2){box.style.display='none'; render(); return}
+      const list=items.filter(i=>(i.normalizedName||'').toLowerCase().includes(qq)).slice(0,15);
+      box.style.display=list.length?'block':'none';
+      box.innerHTML=list.map(i=>`<div data-n="${esc(i.normalizedName)}">${i.iconLink?`<img class="ico" src="${esc(i.iconLink)}">`:''}<span>${esc(humanize(i.normalizedName))}</span></div>`).join('');
+      box.querySelectorAll('div').forEach(d=>d.onclick=()=>{
+        document.getElementById('q').value=d.dataset.n;
+        box.style.display='none';
+        render();
+      });
+      render();
+    });
+  </script>
+
+<script>
+(function(){
+  const KEY='tarkovPreferredGameMode';
+  const def=localStorage.getItem(KEY)||'pve';
+  document.querySelectorAll('select#gameMode').forEach(sel=>{
+    if([...sel.options].some(o=>o.value===def)) sel.value=def;
+    sel.addEventListener('change',()=>{try{localStorage.setItem(KEY,sel.value)}catch(e){}});
+  });
+})();
+</script>
+
+</body>
+</html>

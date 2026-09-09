@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Крафты убежища ROI — Tarkov</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #1a1d24;
+      --border: #2a2f3a;
+      --text: #e8eaed;
+      --muted: #9aa0a6;
+      --accent: #c9a227;
+      --green: #3dd68c;
+      --red: #f07178;
+      --input-bg: #12151b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px 14px 40px;
+      line-height: 1.4;
+    }
+    .container { max-width: min(1600px, 92vw); margin: 0 auto; }
+    h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: 4px; }
+    .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 18px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { min-width: 110px; }
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    input, select {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+      width: 100%;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    .btn {
+      background: var(--accent);
+      color: #111;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .status { font-size: 0.82rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green); }
+    .status.err { color: var(--red); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .chip {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 4px 11px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+    .chip.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(201,162,39,0.12);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 68vh;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+      font-variant-numeric: tabular-nums;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      background: var(--input-bg);
+      text-align: left;
+      padding: 9px 10px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      z-index: 1;
+    }
+    th:hover { color: var(--text); }
+    th .s { opacity: 0.35; margin-left: 3px; }
+    th.sorted .s { opacity: 1; color: var(--accent); }
+    td {
+      padding: 8px 10px;
+      border-top: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .pos { color: var(--green); font-weight: 600; }
+    .neg { color: var(--red); }
+    .muted { color: var(--muted); }
+    .name { font-weight: 600; }
+    .detail {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 3px;
+      max-width: 320px;
+    }
+    .quest { color: var(--red); font-size: 0.72rem; }
+    .hint { font-size: 0.78rem; color: var(--muted); margin-top: 10px; }
+    .meta { font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
+  
+    .copy-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 6px; padding: 2px 6px; font-size: 0.68rem; cursor: pointer; margin-left: 6px;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .ico {
+      width: 40px; height: 40px;
+      object-fit: contain;
+      background: #0a0c10;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+    .ico-sm { width: 32px; height: 32px; }
+    .name-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .name-cell .txt { min-width: 0; }
+</style>
+  <link rel="stylesheet" href="tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"id": "tarkovtool-crafts.html", "title": "Крафты убежища", "description": "ROI крафтов hideout, цены, время.", "file": "tarkovtool-crafts.html"}
+  </script>
+
+</head>
+<body>
+  <div class="container">
+    <h1>Крафты убежища — ROI</h1>
+    <p class="sub">json.tarkov.dev · стоимость входов vs цена выхода · профит / час</p>
+
+    <div class="card">
+      <div class="card-title">Данные</div>
+      <div class="row">
+        <div class="field">
+          <label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Цена входов</label>
+          <select id="priceIn">
+            <option value="avg24h" selected>avg 24ч</option>
+            <option value="lastLow">min сейчас</option>
+            <option value="max">max(avg,min)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Цена выхода</label>
+          <select id="priceOut">
+            <option value="avg24h" selected>avg 24ч</option>
+            <option value="lastLow">min сейчас</option>
+            <option value="max">max(avg,min)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>РЦ 3</label>
+          <select id="intel3"><option value="0">Нет</option><option value="1">Да</option></select>
+        </div>
+        <div class="field">
+          <label>HM lvl</label>
+          <input type="number" id="hmLvl" min="0" max="50" value="0">
+        </div>
+        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+      </div>
+      <p class="status" id="status">Инструменты (tool) в стоимость крафта не входят</p>
+    </div>
+
+    <div class="card" id="resultsCard" style="display:none;">
+      <div class="card-title">Фильтры</div>
+      <div class="chips" id="stationChips"></div>
+      <div class="row" style="margin-bottom:10px;">
+        <div class="field">
+          <label>Мин. профит, ₽</label>
+          <input type="number" id="minProfit" value="0" step="1000">
+        </div>
+        <div class="field">
+          <label>Мин. ₽/час</label>
+          <input type="number" id="minPerHour" value="0" step="1000">
+        </div>
+        <div class="field" style="flex:1;min-width:160px;">
+          <label>Поиск</label>
+          <input type="text" id="search" placeholder="патроны, bitcoin, workbench…">
+        </div>
+        <div class="field" style="min-width:auto;padding-bottom:2px;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;padding-top:18px;">
+            <input type="checkbox" id="hideQuest" checked>
+            Скрыть за квестом
+          </label>
+        </div>
+        <div class="field" style="min-width:auto;padding-bottom:2px;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;padding-top:18px;">
+            <input type="checkbox" id="onlyProfit">
+            Только плюс
+          </label>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="thead"></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <p class="meta" id="meta"></p>
+      <p class="hint">
+        Профит = (цена выхода × кол-во − комиссия) − сумма входов (без tool).
+        ₽/час = профит / (duration/3600). Цены барахолки — ориентир, не гарантия ликвидности.
+      </p>
+    </div>
+  </div>
+
+  <script>
+
+    function fleaTax(basePrice, offerPrice, count, opts) {
+      opts = opts || {};
+      const bp = Number(basePrice) || 0;
+      const op = Number(offerPrice) || 0;
+      const n = Math.max(1, Number(count) || 1);
+      if (bp <= 0 || op <= 0) return 0;
+      const Ti = 0.05, Tr = 0.05;
+      let PO = Math.log10(bp / op);
+      let PR = Math.log10(op / bp);
+      if (op < bp) PO = Math.pow(PO, 1.08);
+      if (op >= bp) PR = Math.pow(PR, 1.08);
+      let tax = (bp * Ti * Math.pow(4, PO) + op * Tr * Math.pow(4, PR)) * n;
+      if (opts.intelCenter3) {
+        const hm = Math.max(0, Math.min(50, Number(opts.hmLvl) || 0));
+        const reduction = Math.min(0.45, 0.30 + hm * 0.003);
+        tax *= (1 - reduction);
+      }
+      return Math.max(0, Math.ceil(tax));
+    }
+    function fleaNet(basePrice, offerPrice, count, opts) {
+      const gross = (Number(offerPrice) || 0) * (Number(count) || 1);
+      return gross - fleaTax(basePrice, offerPrice, count, opts);
+    }
+
+    function loadSettings(key, defaults) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return Object.assign({}, defaults);
+        return Object.assign({}, defaults, JSON.parse(raw));
+      } catch (e) { return Object.assign({}, defaults); }
+    }
+    function saveSettings(key, obj) {
+      try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {}
+    }
+
+    const STATION_RU = {
+      'vostok-water-collector': 'Водосборник',
+      'water-collector': 'Водосборник',
+      'security': 'Безопасность',
+      'lavatory': 'Санузел',
+      'stashes': 'Схрон',
+      'stash': 'Схрон',
+      'generator': 'Генератор',
+      'heating': 'Обогрев',
+      'ventilation': 'Вентиляция',
+      'medstation': 'Медблок',
+      'nutrition-unit': 'Пищеблок',
+      'rest-space': 'Комната отдыха',
+      'workbench': 'Верстак',
+      'intelligence-center': 'Разведцентр',
+      'shooting-range': 'Тир',
+      'library': 'Библиотека',
+      'scav-case': 'Scav Case',
+      'illumination': 'Освещение',
+      'air-filtering-unit': 'Фильтр воздуха',
+      'solar-power': 'Солнечная энергия',
+      'booze-generator': 'Самогонный аппарат',
+      'bitcoin-farm': 'Биткоин-ферма',
+      'christmas-tree': 'Ёлка',
+      'defective-wall': 'Стена',
+      'gym': 'Спортзал',
+      'weapon-rack': 'Оружейная стойка',
+      'gear-rack': 'Стойка снаряжения',
+      'cultist-circle': 'Круг культистов',
+      'hall-of-fame': 'Зал славы'
+    };
+
+    const COLS = [
+      { key: 'product', label: 'Продукт', sort: true },
+      { key: 'station', label: 'Станция', sort: true },
+      { key: 'level', label: 'Ур.', sort: true },
+      { key: 'duration', label: 'Время', sort: true },
+      { key: 'cost', label: 'Входы', sort: true },
+      { key: 'revenue', label: 'Выход', sort: true },
+      { key: 'profit', label: 'Профит', sort: true },
+      { key: 'perHour', label: '₽/час', sort: true },
+      { key: 'roi', label: 'ROI %', sort: true }
+    ];
+
+    let rows = [];
+    let stationsMap = {};
+    let itemsMap = {};
+    let activeStations = new Set();
+    let sortKey = 'perHour';
+    let sortDir = -1;
+
+    const statusEl = document.getElementById('status');
+
+    function formatNum(n) {
+      if (n == null || Number.isNaN(n)) return '—';
+      return Math.round(n).toLocaleString('ru-RU');
+    }
+    function formatDur(sec) {
+      sec = Number(sec) || 0;
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      if (h > 0) return h + 'ч ' + m + 'м';
+      return m + 'м';
+    }
+    function humanize(slug) {
+      if (!slug) return '?';
+      return String(slug).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+    function stationName(idOrSlug) {
+      const s = stationsMap[idOrSlug];
+      const slug = (s && s.normalizedName) || idOrSlug;
+      return STATION_RU[slug] || humanize(slug);
+    }
+    function itemName(id) {
+      const it = itemsMap[id];
+      if (!it) return id.slice(0, 8) + '…';
+      return humanize(it.normalizedName || it.id);
+    }
+    function pickPrice(it, mode) {
+      if (!it) return 0;
+      const avg = Number(it.avg24hPrice) || 0;
+      const low = Number(it.lastLowPrice) || 0;
+      if (mode === 'lastLow') return low || avg || 0;
+      if (mode === 'max') return Math.max(avg, low) || 0;
+      return avg || low || 0;
+    }
+
+    async function fetchJson(url) {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ' · ' + url);
+      return res.json();
+    }
+
+    document.getElementById('loadBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('loadBtn');
+      btn.disabled = true;
+      statusEl.className = 'status';
+      const mode = document.getElementById('gameMode').value || 'regular';
+      statusEl.textContent = 'Гружу crafts + items + hideout…';
+
+      try {
+        const [craftsJ, itemsJ, hideoutJ] = await Promise.all([
+          fetchJson(`https://json.tarkov.dev/${mode}/crafts`),
+          fetchJson(`https://json.tarkov.dev/${mode}/items`),
+          fetchJson(`https://json.tarkov.dev/${mode}/hideout`)
+        ]);
+
+        let crafts = craftsJ.data;
+        if (crafts && crafts.crafts) crafts = crafts.crafts;
+        if (!Array.isArray(crafts)) crafts = Object.values(crafts || {});
+
+        let items = itemsJ.data?.items || itemsJ.data;
+        if (!Array.isArray(items)) items = Object.values(items || {});
+        itemsMap = {};
+        items.forEach(it => { itemsMap[it.id] = it; });
+
+        stationsMap = hideoutJ.data || {};
+        if (stationsMap.stations) stationsMap = stationsMap.stations;
+
+        const priceIn = document.getElementById('priceIn').value;
+        const priceOut = document.getElementById('priceOut').value;
+        const taxOpts = { intelCenter3: document.getElementById('intel3').value === '1', hmLvl: Number(document.getElementById('hmLvl').value) || 0 };
+
+        rows = crafts.map(c => {
+          const reqs = c.requiredItems || [];
+          const inputs = [];
+          let cost = 0;
+          let missing = false;
+          reqs.forEach(r => {
+            const isTool = !!(r.attributes && (r.attributes.tool === true || r.attributes.tool === 'true'));
+            const it = itemsMap[r.item];
+            const unit = pickPrice(it, priceIn);
+            const count = Number(r.count) || 0;
+            if (!isTool) {
+              if (!unit) missing = true;
+              cost += unit * count;
+            }
+            inputs.push({
+              id: r.item,
+              name: itemName(r.item),
+              count,
+              unit,
+              isTool,
+              sub: isTool ? 0 : unit * count
+            });
+          });
+
+          const prod = c.productItem || {};
+          const prodId = prod.item;
+          const prodCount = Number(prod.count) || 1;
+          const prodItem = itemsMap[prodId];
+          const unitOut = pickPrice(prodItem, priceOut);
+          const baseOut = Number(prodItem && prodItem.basePrice) || 0;
+          const gross = unitOut * prodCount;
+          const tax = fleaTax(baseOut, unitOut, prodCount, taxOpts);
+          const revenue = gross - tax;
+          const profit = revenue - cost;
+          const dur = Number(c.duration) || 0;
+          const perHour = dur > 0 ? profit / (dur / 3600) : 0;
+          const roi = cost > 0 ? (profit / cost) * 100 : 0;
+          const stId = c.station;
+          const stSlug = (stationsMap[stId] && stationsMap[stId].normalizedName) || stId;
+
+          return {
+            id: c.id,
+            product: itemName(prodId),
+            productSlug: (prodItem && prodItem.normalizedName) || '',
+            productIcon: (prodItem && (prodItem.iconLink || prodItem.gridImageLink)) || '',
+            productId: prodId,
+            prodCount,
+            station: stationName(stId),
+            stationSlug: stSlug,
+            stationId: stId,
+            level: Number(c.level) || 0,
+            duration: dur,
+            cost,
+            revenue,
+            profit,
+            perHour,
+            roi,
+            inputs,
+            missing,
+            quest: !!(c.taskUnlock),
+            questId: c.taskUnlock || null,
+            unitOut
+          };
+        });
+
+        activeStations = new Set(rows.map(r => r.stationSlug));
+        document.getElementById('resultsCard').style.display = 'block';
+        renderStationChips();
+        renderTable();
+        statusEl.className = 'status ok';
+        statusEl.textContent = `Крафтов: ${rows.length} · предметов: ${items.length}`;
+      } catch (e) {
+        console.error(e);
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Ошибка: ' + e.message;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // recalculate prices without re-fetch when mode changes
+    function reprice() {
+      if (!rows.length) return;
+      const priceIn = document.getElementById('priceIn').value;
+      const priceOut = document.getElementById('priceOut').value;
+      const taxOpts = { intelCenter3: document.getElementById('intel3').value === '1', hmLvl: Number(document.getElementById('hmLvl').value) || 0 };
+      rows.forEach(r => {
+        let cost = 0;
+        let missing = false;
+        r.inputs.forEach(inp => {
+          const it = itemsMap[inp.id];
+          const unit = pickPrice(it, priceIn);
+          inp.unit = unit;
+          inp.sub = inp.isTool ? 0 : unit * inp.count;
+          if (!inp.isTool) {
+            if (!unit) missing = true;
+            cost += inp.sub;
+          }
+        });
+        const prodItem = itemsMap[r.productId];
+        const unitOut = pickPrice(prodItem, priceOut);
+        const baseOut = Number(prodItem && prodItem.basePrice) || 0;
+        r.unitOut = unitOut;
+        r.cost = cost;
+        const tax = fleaTax(baseOut, unitOut, r.prodCount, taxOpts);
+        r.revenue = unitOut * r.prodCount - tax;
+        r.profit = r.revenue - r.cost;
+        r.perHour = r.duration > 0 ? r.profit / (r.duration / 3600) : 0;
+        r.roi = r.cost > 0 ? (r.profit / r.cost) * 100 : 0;
+        r.missing = missing;
+      });
+      renderTable();
+    }
+
+    ['priceIn', 'priceOut', 'intel3', 'hmLvl'].forEach(id => {
+      document.getElementById(id).addEventListener('change', reprice);
+      document.getElementById(id).addEventListener('input', reprice);
+    });
+
+    function renderStationChips() {
+      const el = document.getElementById('stationChips');
+      const all = [...new Set(rows.map(r => r.stationSlug))].sort();
+      activeStations = new Set(all);
+      el.innerHTML = '';
+      const allBtn = document.createElement('span');
+      allBtn.className = 'chip active';
+      allBtn.textContent = 'Все';
+      allBtn.onclick = () => {
+        activeStations = new Set(all);
+        el.querySelectorAll('.chip').forEach(c => c.classList.add('active'));
+        renderTable();
+      };
+      el.appendChild(allBtn);
+      all.forEach(slug => {
+        const chip = document.createElement('span');
+        chip.className = 'chip active';
+        chip.textContent = STATION_RU[slug] || humanize(slug);
+        chip.onclick = () => {
+          if (activeStations.has(slug)) {
+            activeStations.delete(slug);
+            chip.classList.remove('active');
+          } else {
+            activeStations.add(slug);
+            chip.classList.add('active');
+          }
+          renderTable();
+        };
+        el.appendChild(chip);
+      });
+    }
+
+    function getFiltered() {
+      const minP = Number(document.getElementById('minProfit').value) || 0;
+      const minH = Number(document.getElementById('minPerHour').value) || 0;
+      const q = (document.getElementById('search').value || '').toLowerCase().trim();
+      const hideQuest = document.getElementById('hideQuest').checked;
+      const onlyProfit = document.getElementById('onlyProfit').checked;
+
+      let list = rows.filter(r => {
+        if (!activeStations.has(r.stationSlug)) return false;
+        if (r.profit < minP) return false;
+        if (r.perHour < minH) return false;
+        if (hideQuest && r.quest) return false;
+        if (onlyProfit && r.profit <= 0) return false;
+        if (q) {
+          const hay = (r.product + ' ' + r.productSlug + ' ' + r.station + ' ' + r.stationSlug + ' ' +
+            r.inputs.map(i => i.name).join(' ')).toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      list.sort((a, b) => {
+        let va = a[sortKey], vb = b[sortKey];
+        if (typeof va === 'string') {
+          va = va.toLowerCase(); vb = (vb || '').toLowerCase();
+          return sortDir * (va < vb ? -1 : va > vb ? 1 : 0);
+        }
+        return sortDir * ((va ?? -Infinity) - (vb ?? -Infinity));
+      });
+      return list;
+    }
+
+    function renderTable() {
+      const thead = document.getElementById('thead');
+      thead.innerHTML = '';
+      COLS.forEach(col => {
+        const th = document.createElement('th');
+        th.innerHTML = col.label + (col.sort ? '<span class="s">↕</span>' : '');
+        if (col.key === sortKey) th.classList.add('sorted');
+        if (col.sort) {
+          th.onclick = () => {
+            if (sortKey === col.key) sortDir *= -1;
+            else {
+              sortKey = col.key;
+              sortDir = (col.key === 'product' || col.key === 'station') ? 1 : -1;
+            }
+            renderTable();
+          };
+        }
+        thead.appendChild(th);
+      });
+
+      const list = getFiltered();
+      const tbody = document.getElementById('tbody');
+      tbody.innerHTML = '';
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="${COLS.length}" class="muted" style="text-align:center;padding:28px;">Пусто</td></tr>`;
+        document.getElementById('meta').textContent = '';
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      list.forEach(r => {
+        const tr = document.createElement('tr');
+        const inputsStr = r.inputs.map(i =>
+          `${i.count}× ${i.name}${i.isTool ? ' (tool)' : ''}`
+        ).join(', ');
+        tr.innerHTML = `
+          <td>
+            <div class="name-cell">${r.productIcon?`<img class="ico ico-sm" src="${esc(r.productIcon)}" loading="lazy" alt="">`:''}<div class="txt"><div class="name">${esc(r.product)}${r.prodCount > 1 ? ' ×' + r.prodCount : ''} <button type="button" class="copy-btn" data-name="${esc(r.productSlug || r.product)}">копир.</button></div></div></div>
+            <div class="detail">${esc(inputsStr)}</div>
+            ${r.quest ? '<div class="quest">нужен квест</div>' : ''}
+            ${r.missing ? '<div class="quest">нет цены на вход</div>' : ''}
+          </td>
+          <td>${esc(r.station)}</td>
+          <td>${r.level}</td>
+          <td>${formatDur(r.duration)}</td>
+          <td>${formatNum(r.cost)}</td>
+          <td>${formatNum(r.revenue)}</td>
+          <td class="${r.profit >= 0 ? 'pos' : 'neg'}">${r.profit >= 0 ? '+' : ''}${formatNum(r.profit)}</td>
+          <td class="${r.perHour >= 0 ? 'pos' : 'neg'}">${formatNum(r.perHour)}</td>
+          <td class="${r.roi >= 0 ? 'pos' : 'neg'}">${r.roi.toFixed(0)}%</td>
+        `;
+        frag.appendChild(tr);
+      });
+      tbody.appendChild(frag);
+      tbody.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          navigator.clipboard.writeText(btn.dataset.name || '').then(() => {
+            const o = btn.textContent; btn.textContent = '✓';
+            setTimeout(() => { btn.textContent = o; }, 700);
+          }).catch(() => {});
+        });
+      });
+      document.getElementById('meta').textContent =
+        `Показано ${list.length} из ${rows.length} · сортировка: ${sortKey} ${sortDir < 0 ? '↓' : '↑'}`;
+    }
+
+    function esc(s) {
+      return String(s || '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    ['minProfit', 'minPerHour', 'search', 'hideQuest', 'onlyProfit'].forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener('input', renderTable);
+      el.addEventListener('change', renderTable);
+    });
+  
+    (function() {
+      const SKEY = 'tarkovCraftsSettings';
+      const s = loadSettings(SKEY, { gameMode: 'regular', priceIn: 'avg24h', priceOut: 'avg24h', intel3: '0', hmLvl: 0, hideQuest: true, onlyProfit: false });
+      const set = (id, v, chk) => { const el = document.getElementById(id); if (!el) return; if (chk) el.checked = !!v; else el.value = v; };
+      set('gameMode', s.gameMode);
+      set('priceIn', s.priceIn);
+      set('priceOut', s.priceOut);
+      set('intel3', s.intel3);
+      set('hmLvl', s.hmLvl);
+      set('hideQuest', s.hideQuest, true);
+      set('onlyProfit', s.onlyProfit, true);
+      function persist() {
+        saveSettings(SKEY, {
+          gameMode: document.getElementById('gameMode')?.value,
+          priceIn: document.getElementById('priceIn')?.value,
+          priceOut: document.getElementById('priceOut')?.value,
+          intel3: document.getElementById('intel3')?.value,
+          hmLvl: Number(document.getElementById('hmLvl')?.value) || 0,
+          hideQuest: document.getElementById('hideQuest')?.checked,
+          onlyProfit: document.getElementById('onlyProfit')?.checked
+        });
+      }
+      ['gameMode','priceIn','priceOut','intel3','hmLvl','hideQuest','onlyProfit'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', persist);
+      });
+    })();
+  </script>
+
+<script>
+(function(){
+  const KEY = 'tarkovPreferredGameMode';
+  const def = localStorage.getItem(KEY) || 'pve';
+  document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
+    if ([...sel.options].some(o => o.value === def)) sel.value = def;
+    sel.addEventListener('change', () => {
+      try { localStorage.setItem(KEY, sel.value); } catch(e) {}
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

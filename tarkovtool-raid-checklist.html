@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Чек-лист перед рейдом — Tarkov</title>
+  <link rel="stylesheet" href="tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Чек-лист рейда", "description": "Сборки под карты, DnD списка, В РЕЙД → сброс галочек через 20 мин."}
+  </script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;padding:20px 14px 48px}
+    .container{max-width:min(760px,94vw);margin:0 auto}
+    h1{margin-bottom:6px}
+    .sub{color:var(--muted);margin-bottom:16px;line-height:1.4}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+    .card-title{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;font-weight:600}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+    input[type=text],input[type=number],select{
+      background:var(--input-bg);border:1px solid var(--border);border-radius:8px;
+      padding:10px 12px;color:var(--text);outline:none;font-size:1rem;
+    }
+    input[type=text]{flex:1;min-width:140px}
+    input[type=number]{width:72px}
+    select{min-width:160px}
+    .btn{
+      background:var(--accent);color:#111;border:none;border-radius:8px;
+      padding:10px 16px;font-weight:700;cursor:pointer;font-size:1rem;
+    }
+    .btn:disabled{opacity:.45;cursor:default}
+    .btn-ghost{
+      background:transparent;border:1px solid var(--border);color:var(--muted);
+      border-radius:8px;padding:8px 12px;cursor:pointer;font-size:.9rem;
+    }
+    .btn-raid{
+      width:100%;padding:22px 16px;font-size:1.45rem;font-weight:800;
+      letter-spacing:.04em;border-radius:12px;margin-top:4px;
+      background:linear-gradient(180deg,#e0b84a,#c9a227);color:#111;
+      border:none;cursor:pointer;
+    }
+    .btn-raid.active{background:linear-gradient(180deg,#5a6a7a,#3d4a56);color:#ddd}
+    .maps{display:flex;flex-wrap:wrap;gap:6px}
+    .map-chip{
+      border:1px solid var(--border);background:var(--input-bg);color:var(--muted);
+      border-radius:16px;padding:7px 14px;font-size:.9rem;cursor:pointer;user-select:none;
+    }
+    .map-chip.active{border-color:var(--accent);color:var(--accent);background:rgba(201,162,39,.12)}
+    .item{
+      display:flex;align-items:center;gap:10px;padding:12px 10px;
+      border-bottom:1px solid var(--border);background:transparent;
+      transition:background .12s, opacity .12s;
+    }
+    .item:last-child{border-bottom:none}
+    .item.dragging{opacity:.45}
+    .item.drag-over{background:rgba(201,162,39,.1);border-radius:8px}
+    .handle{
+      cursor:grab;color:var(--muted);font-size:1.1rem;padding:4px 2px;
+      user-select:none;line-height:1;
+    }
+    .handle:active{cursor:grabbing}
+    .item input[type=checkbox]{
+      width:22px;height:22px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;
+    }
+    .item.done .label{opacity:.45;text-decoration:line-through}
+    .label{flex:1;font-size:1.05rem}
+    .qty{color:var(--muted);font-variant-numeric:tabular-nums;min-width:2.5em;text-align:right}
+    .del{
+      background:transparent;border:none;color:var(--muted);cursor:pointer;
+      font-size:1.1rem;padding:4px 8px;border-radius:6px;
+    }
+    .del:hover{color:var(--red);background:rgba(240,113,120,.1)}
+    .timer-wrap{text-align:center;padding:8px 0 4px}
+    .timer{
+      font-size:2.6rem;font-weight:800;font-variant-numeric:tabular-nums;
+      color:var(--accent);letter-spacing:.06em;
+    }
+    .timer.idle{color:var(--muted);font-size:1.1rem;font-weight:600}
+    .meta{font-size:.85rem;color:var(--muted);margin-top:6px}
+    .hint{font-size:.88rem;color:var(--muted);margin-top:10px;line-height:1.45}
+    .progress{height:6px;background:var(--input-bg);border-radius:4px;overflow:hidden;margin-top:10px}
+    .progress > div{height:100%;background:var(--accent);width:0%;transition:width .4s linear}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Чек-лист перед рейдом</h1>
+    <p class="sub">Сборка под карту · drag-and-drop · «В РЕЙД» сбросит галочки через 20 мин</p>
+
+    <div class="card">
+      <div class="card-title">Карта / сборка</div>
+      <div class="maps" id="maps"></div>
+      <div class="row" style="margin-top:10px">
+        <input type="text" id="newMap" placeholder="Новая карта / пресет…">
+        <button type="button" class="btn-ghost" id="addMapBtn">+ карта</button>
+        <button type="button" class="btn-ghost" id="delMapBtn">Удалить карту</button>
+        <button type="button" class="btn-ghost" id="copyMapBtn">Копировать в…</button>
+      </div>
+      <p class="meta" id="mapMeta">У каждой карты свой список. Паракорд — только на Reserve и т.п.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Добавить в текущую сборку</div>
+      <div class="row">
+        <input type="text" id="name" placeholder="паракорд / Ф-1 / мельдонин…" autocomplete="off">
+        <input type="number" id="qty" min="1" value="1" title="Количество">
+        <button type="button" class="btn" id="addBtn">+</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Список · тяни за ⋮⋮</div>
+      <div id="list"></div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" class="btn-ghost" id="uncheckAll">Снять галочки</button>
+        <button type="button" class="btn-ghost" id="checkAll">Отметить все</button>
+        <button type="button" class="btn-ghost" id="clearList">Очистить список</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="timer-wrap">
+        <div class="timer idle" id="timer">20:00 · готов</div>
+        <div class="progress"><div id="bar"></div></div>
+        <p class="meta" id="timerMeta">Таймер не запущен</p>
+      </div>
+      <button type="button" class="btn-raid" id="raidBtn">В РЕЙД</button>
+      <p class="hint">Галочки общие на таймер (сброс через 20 мин). Списки предметов — раздельно по картам.</p>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE = 'tarkovRaidChecklistV2';
+    const DURATION_MS = 20 * 60 * 1000;
+
+    const DEFAULT_MAPS = {
+      'Factory': [
+        { name: 'Граната Ф-1', qty: 2 },
+        { name: 'Аптечка', qty: 1 }
+      ],
+      'Reserve': [
+        { name: 'Паракорд', qty: 1 },
+        { name: 'Красная карта / ключи', qty: 1 },
+        { name: 'Граната Ф-1', qty: 3 }
+      ],
+      'Labs': [
+        { name: 'Ключ-карты', qty: 1 },
+        { name: 'Мельдонин', qty: 1 }
+      ],
+      'Customs': [
+        { name: 'Ключница', qty: 1 },
+        { name: 'Граната Ф-1', qty: 2 }
+      ],
+      'Woods': [
+        { name: 'Граната Ф-1', qty: 2 },
+        { name: 'Еда / вода', qty: 1 }
+      ],
+      'Interchange': [
+        { name: 'Ключница', qty: 1 },
+        { name: 'Рюкзак под лут', qty: 1 }
+      ],
+      'Shoreline': [
+        { name: 'Ключи санатория', qty: 1 },
+        { name: 'Еда / вода', qty: 1 }
+      ],
+      'Streets': [
+        { name: 'Ключница', qty: 1 },
+        { name: 'Мельдонин', qty: 1 }
+      ],
+      'Lighthouse': [
+        { name: 'Вода', qty: 1 },
+        { name: 'Граната Ф-1', qty: 2 }
+      ],
+      'Ground Zero': [
+        { name: 'Аптечка', qty: 1 }
+      ],
+      'Общий': []
+    };
+
+    let state = {
+      maps: {},          // name -> [{id,name,qty,checked}]
+      current: 'Reserve',
+      endsAt: null
+    };
+    let tickTimer = null;
+    let dragId = null;
+
+    function uid() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    }
+
+    function ensureItemShape(it) {
+      return {
+        id: it.id || uid(),
+        name: it.name || '?',
+        qty: Number(it.qty) || 1,
+        checked: !!it.checked
+      };
+    }
+
+    function load() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(STORAGE) || 'null');
+        if (raw && raw.maps) {
+          state.maps = raw.maps;
+          state.current = raw.current || Object.keys(state.maps)[0] || 'Общий';
+          // migrate checked
+          Object.keys(state.maps).forEach(k => {
+            state.maps[k] = (state.maps[k] || []).map(ensureItemShape);
+          });
+          if (raw.endsAt && raw.endsAt > Date.now()) state.endsAt = raw.endsAt;
+          else if (raw.endsAt && raw.endsAt <= Date.now()) {
+            clearAllChecks();
+            state.endsAt = null;
+          }
+          return;
+        }
+      } catch (e) {}
+      // defaults
+      state.maps = {};
+      Object.entries(DEFAULT_MAPS).forEach(([k, list]) => {
+        state.maps[k] = list.map(x => ensureItemShape({ ...x, checked: false }));
+      });
+      state.current = 'Reserve';
+    }
+
+    function save() {
+      try {
+        localStorage.setItem(STORAGE, JSON.stringify({
+          maps: state.maps,
+          current: state.current,
+          endsAt: state.endsAt
+        }));
+      } catch (e) {}
+    }
+
+    function currentList() {
+      if (!state.maps[state.current]) state.maps[state.current] = [];
+      return state.maps[state.current];
+    }
+
+    function clearAllChecks() {
+      Object.keys(state.maps).forEach(k => {
+        (state.maps[k] || []).forEach(it => { it.checked = false; });
+      });
+    }
+
+    function clearCurrentChecks() {
+      currentList().forEach(it => { it.checked = false; });
+    }
+
+    function renderMaps() {
+      const el = document.getElementById('maps');
+      const names = Object.keys(state.maps).sort((a, b) => a.localeCompare(b, 'ru'));
+      el.innerHTML = names.map(n =>
+        `<span class="map-chip ${n === state.current ? 'active' : ''}" data-m="${escapeAttr(n)}">${escapeHtml(n)}</span>`
+      ).join('');
+      el.querySelectorAll('.map-chip').forEach(chip => {
+        chip.onclick = () => {
+          state.current = chip.dataset.m;
+          save();
+          renderMaps();
+          renderList();
+        };
+      });
+      document.getElementById('mapMeta').textContent =
+        'Сейчас: ' + state.current + ' · ' + currentList().length + ' позиций';
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    function escapeAttr(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+    }
+
+    function renderList() {
+      const list = currentList();
+      const el = document.getElementById('list');
+      if (!list.length) {
+        el.innerHTML = '<p class="meta">Пусто для этой карты — добавь паракорд, ключи, гранаты…</p>';
+        return;
+      }
+      el.innerHTML = list.map(it => `
+        <div class="item ${it.checked ? 'done' : ''}" draggable="true" data-id="${escapeAttr(it.id)}">
+          <span class="handle" title="перетащить">⋮⋮</span>
+          <input type="checkbox" ${it.checked ? 'checked' : ''}>
+          <span class="label">${escapeHtml(it.name)}</span>
+          <span class="qty">×${it.qty}</span>
+          <button type="button" class="del" title="удалить">✕</button>
+        </div>
+      `).join('');
+
+      el.querySelectorAll('.item').forEach(row => {
+        const id = row.dataset.id;
+        const it = list.find(x => x.id === id);
+        if (!it) return;
+
+        row.querySelector('input[type=checkbox]').onchange = (e) => {
+          it.checked = !!e.target.checked;
+          save();
+          row.classList.toggle('done', it.checked);
+        };
+        row.querySelector('.del').onclick = () => {
+          state.maps[state.current] = list.filter(x => x.id !== id);
+          save();
+          renderList();
+          renderMaps();
+        };
+
+        row.addEventListener('dragstart', e => {
+          dragId = id;
+          row.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          try { e.dataTransfer.setData('text/plain', id); } catch (err) {}
+        });
+        row.addEventListener('dragend', () => {
+          dragId = null;
+          row.classList.remove('dragging');
+          el.querySelectorAll('.item').forEach(x => x.classList.remove('drag-over'));
+        });
+        row.addEventListener('dragover', e => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          el.querySelectorAll('.item').forEach(x => x.classList.remove('drag-over'));
+          row.classList.add('drag-over');
+        });
+        row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+        row.addEventListener('drop', e => {
+          e.preventDefault();
+          row.classList.remove('drag-over');
+          const fromId = dragId || (e.dataTransfer && e.dataTransfer.getData('text/plain'));
+          const toId = id;
+          if (!fromId || fromId === toId) return;
+          const arr = currentList();
+          const fromIdx = arr.findIndex(x => x.id === fromId);
+          const toIdx = arr.findIndex(x => x.id === toId);
+          if (fromIdx < 0 || toIdx < 0) return;
+          const [moved] = arr.splice(fromIdx, 1);
+          arr.splice(toIdx, 0, moved);
+          save();
+          renderList();
+        });
+      });
+    }
+
+    function formatRemain(ms) {
+      if (ms < 0) ms = 0;
+      const s = Math.ceil(ms / 1000);
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return String(m).padStart(2, '0') + ':' + String(r).padStart(2, '0');
+    }
+
+    function renderTimer() {
+      const timerEl = document.getElementById('timer');
+      const meta = document.getElementById('timerMeta');
+      const bar = document.getElementById('bar');
+      const btn = document.getElementById('raidBtn');
+
+      if (!state.endsAt) {
+        timerEl.className = 'timer idle';
+        timerEl.textContent = '20:00 · готов';
+        meta.textContent = 'Таймер не запущен';
+        bar.style.width = '0%';
+        btn.textContent = 'В РЕЙД';
+        btn.classList.remove('active');
+        return;
+      }
+
+      const left = state.endsAt - Date.now();
+      if (left <= 0) {
+        state.endsAt = null;
+        clearAllChecks();
+        save();
+        renderList();
+        timerEl.className = 'timer idle';
+        timerEl.textContent = '00:00 · сброс';
+        meta.textContent = '20 минут — галочки сняты на всех картах';
+        bar.style.width = '100%';
+        btn.textContent = 'В РЕЙД';
+        btn.classList.remove('active');
+        if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
+        return;
+      }
+
+      timerEl.className = 'timer';
+      timerEl.textContent = formatRemain(left);
+      bar.style.width = Math.min(100, ((DURATION_MS - left) / DURATION_MS) * 100) + '%';
+      meta.textContent = 'До сброса галочек';
+      btn.textContent = 'ОТМЕНИТЬ ТАЙМЕР';
+      btn.classList.add('active');
+    }
+
+    function startTick() {
+      if (tickTimer) clearInterval(tickTimer);
+      tickTimer = setInterval(renderTimer, 500);
+      renderTimer();
+    }
+
+    document.getElementById('addBtn').onclick = addItem;
+    document.getElementById('name').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addItem();
+    });
+
+    function addItem() {
+      const name = document.getElementById('name').value.trim();
+      let qty = parseInt(document.getElementById('qty').value, 10);
+      if (!name) return;
+      if (!qty || qty < 1) qty = 1;
+      const list = currentList();
+      const existing = list.find(x => x.name.toLowerCase() === name.toLowerCase());
+      if (existing) existing.qty += qty;
+      else list.push(ensureItemShape({ name, qty, checked: false }));
+      document.getElementById('name').value = '';
+      document.getElementById('qty').value = 1;
+      save();
+      renderList();
+      renderMaps();
+      document.getElementById('name').focus();
+    }
+
+    document.getElementById('addMapBtn').onclick = () => {
+      const n = document.getElementById('newMap').value.trim();
+      if (!n) return;
+      if (state.maps[n]) { alert('Уже есть'); return; }
+      state.maps[n] = [];
+      state.current = n;
+      document.getElementById('newMap').value = '';
+      save();
+      renderMaps();
+      renderList();
+    };
+
+    document.getElementById('delMapBtn').onclick = () => {
+      if (Object.keys(state.maps).length <= 1) { alert('Нужна хотя бы одна карта'); return; }
+      if (!confirm('Удалить сборку «' + state.current + '»?')) return;
+      delete state.maps[state.current];
+      state.current = Object.keys(state.maps)[0];
+      save();
+      renderMaps();
+      renderList();
+    };
+
+    document.getElementById('copyMapBtn').onclick = () => {
+      const to = prompt('Копировать список «' + state.current + '» в карту (имя):');
+      if (!to || !to.trim()) return;
+      const name = to.trim();
+      const clone = currentList().map(it => ensureItemShape({
+        name: it.name, qty: it.qty, checked: false
+      }));
+      state.maps[name] = clone;
+      state.current = name;
+      save();
+      renderMaps();
+      renderList();
+    };
+
+    document.getElementById('uncheckAll').onclick = () => {
+      clearCurrentChecks();
+      save();
+      renderList();
+    };
+    document.getElementById('checkAll').onclick = () => {
+      currentList().forEach(it => { it.checked = true; });
+      save();
+      renderList();
+    };
+    document.getElementById('clearList').onclick = () => {
+      if (!currentList().length) return;
+      if (!confirm('Очистить список карты «' + state.current + '»?')) return;
+      state.maps[state.current] = [];
+      save();
+      renderList();
+      renderMaps();
+    };
+
+    document.getElementById('raidBtn').onclick = () => {
+      if (state.endsAt) {
+        state.endsAt = null;
+        save();
+        if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
+        renderTimer();
+        return;
+      }
+      state.endsAt = Date.now() + DURATION_MS;
+      save();
+      startTick();
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) renderTimer();
+    });
+
+    load();
+    renderMaps();
+    renderList();
+    if (state.endsAt) startTick();
+    else renderTimer();
+  </script>
+</body>
+</html>

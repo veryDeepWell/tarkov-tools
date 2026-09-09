@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Комбо стимуляторов — Tarkov</title>
+  <link rel="stylesheet" href="tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"id": "tarkovtool-stim-combos.html", "title": "Комбо стимуляторов", "description": "Связки вроде Meldonin+SJ1, SJ6+Trimadol, Propital+MULE. Иконки и копир.", "file": "tarkovtool-stim-combos.html"}
+  </script>
+
+
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;padding:20px 14px 48px}
+    .container{max-width:min(1600px,92vw);margin:0 auto}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+    .card-title{font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;font-weight:600}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+    .field label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
+    select,input{background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);outline:none;font-size:1rem}
+    .btn{background:var(--accent);color:#111;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer}
+    .btn:disabled{opacity:.45}
+    .status{font-size:.95rem;color:var(--muted);margin-top:8px}
+    .status.ok{color:var(--green)}.status.err{color:var(--red)}
+    .chips{display:flex;flex-wrap:wrap;gap:6px}
+    .chip{background:var(--input-bg);border:1px solid var(--border);border-radius:16px;padding:5px 12px;font-size:.85rem;color:var(--muted);cursor:pointer}
+    .chip.active{border-color:var(--accent);color:var(--accent)}
+    .table-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px;max-height:70vh}
+    table{width:100%;border-collapse:collapse;font-size:.92rem;font-variant-numeric:tabular-nums}
+    th{position:sticky;top:0;background:var(--input-bg);text-align:left;padding:10px;color:var(--muted);font-size:.75rem;text-transform:uppercase;z-index:1}
+    td{padding:10px;border-top:1px solid var(--border);vertical-align:top}
+    .name-cell{display:flex;align-items:center;gap:10px}
+    .ico{width:48px;height:48px;object-fit:contain;border-radius:6px;background:#0a0c10}
+    .name{font-weight:600}.meta{font-size:.82rem;color:var(--muted)}
+    .score{font-weight:800;color:var(--accent)}
+    .tag{display:inline-block;font-size:.7rem;padding:2px 6px;border-radius:4px;margin:1px;background:rgba(255,255,255,.06);color:var(--muted)}
+    .tag.good{background:rgba(61,214,140,.15);color:var(--green)}
+    .tag.bad{background:rgba(240,113,120,.15);color:var(--red)}
+    .combo{background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+    .combo h3{font-size:1rem;margin-bottom:6px;color:var(--accent)}
+    .copy-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 8px;font-size:.75rem;cursor:pointer}
+    .hint{font-size:.88rem;color:var(--muted);margin-top:10px}
+    .skill-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+    .skill-row input[type=number]{width:70px}
+  </style>
+
+</head>
+<body>
+  <div class="container">
+    <h1>Комбо стимуляторов</h1>
+    <p class="sub">Community-связки · загрузи items для иконок</p>
+    <div class="card"><div class="row">
+        <div class="field">
+          <label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+<button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button></div>
+    <p class="status" id="status"></p></div>
+    <div class="card" id="comboList"></div>
+    <p class="hint">Дебаффы стакаются — следи за едой/водой. Не закон физики, а консенсус гайдов.</p>
+  </div>
+  <script>
+    const COMBOS = [
+      {name:'Мельдонин + SJ1 — элитная сила', items:['meldonin-injector','sj1-tglabs-combat-stimulant-injector'], role:'Бой / вес', why:'Долгий Str/End + короткий жирный буст SJ1.'},
+      {name:'SJ6 + Meldonin — беговая', items:['sj6-tglabs-combat-stimulant-injector','meldonin-injector'], role:'Выносливость', why:'Max stam + долгий Endurance.'},
+      {name:'SJ6 + Trimadol', items:['sj6-tglabs-combat-stimulant-injector','trimadol-stimulant-injector'], role:'Выносливость', why:'Сильная связка на перебежки; жрёт еду/воду.'},
+      {name:'Propital', items:['propital-regenerative-stimulant-injector'], role:'Универсал', why:'Обезбол + реген. База кейса.'},
+      {name:'Propital + MULE', items:['propital-regenerative-stimulant-injector','mule-stimulant-injector'], role:'Лут', why:'Вес от MULE, реген частично гасит drain HP.'},
+      {name:'eTG — паника', items:['etg-change-regenerative-stimulant-injector'], role:'Отхил', why:'Жирный реген на минуту, потом жесткий дебафф.'},
+      {name:'Zagustin', items:['zagustin-hemostatic-drug-injector'], role:'Кровь', why:'Стоп всех кровотечений.'},
+      {name:'Кейс новичка', items:['propital-regenerative-stimulant-injector','sj6-tglabs-combat-stimulant-injector','trimadol-stimulant-injector','zagustin-hemostatic-drug-injector'], role:'Набор', why:'Старт кейса: хил, бег, кровь.'}
+    ];
+    let bySlug={};
+    function humanize(s){return s?String(s).replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):'?'}
+    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+    document.getElementById('loadBtn').onclick=async()=>{
+      const status=document.getElementById('status');
+      status.textContent='Гружу…';
+      try{
+        const mode=document.getElementById('gameMode').value||'pve';
+        const res=await fetch('https://json.tarkov.dev/'+mode+'/items',{cache:'no-store'});
+        const json=await res.json();
+        let items=json?.data?.items; if(!Array.isArray(items)) items=Object.values(items||{});
+        bySlug={}; items.forEach(it=>{if(it.normalizedName) bySlug[it.normalizedName]=it});
+        status.className='status ok'; status.textContent='OK';
+        const el=document.getElementById('comboList'); el.innerHTML='';
+        COMBOS.forEach(c=>{
+          const div=document.createElement('div'); div.className='combo';
+          const icons=c.items.map(slug=>{
+            const it=bySlug[slug]; const icon=it?(it.iconLink||it.gridImageLink):'';
+            return `<span style="display:inline-flex;align-items:center;gap:6px;margin:4px 8px 4px 0">${icon?`<img src="${esc(icon)}" width="36" height="36" style="object-fit:contain;background:#0a0c10;border-radius:4px">`:''}<span>${esc(humanize(slug))}</span><button type="button" class="copy-btn" data-n="${esc(slug)}">копир.</button></span>`;
+          }).join('');
+          div.innerHTML=`<h3>${esc(c.name)}</h3><div class="meta">${esc(c.role)}</div><div>${icons}</div><p class="meta" style="margin-top:8px">${esc(c.why)}</p>`;
+          el.appendChild(div);
+        });
+        el.querySelectorAll('.copy-btn').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(b.dataset.n||''));
+      }catch(e){status.className='status err'; status.textContent=e.message}
+    };
+  </script>
+
+<script>
+(function(){
+  const KEY = 'tarkovPreferredGameMode';
+  const def = localStorage.getItem(KEY) || 'pve';
+  document.querySelectorAll('select#gameMode').forEach(sel => {
+    if ([...sel.options].some(o => o.value === def)) sel.value = def;
+    sel.addEventListener('change', () => { try { localStorage.setItem(KEY, sel.value); } catch(e) {} });
+  });
+})();
+</script>
+
+</body>
+</html>

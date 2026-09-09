@@ -1,0 +1,82 @@
+/* Tarkov tools — общий масштаб и базовые стили */
+:root {
+  --bg: #0f1115;
+  --card: #1a1d24;
+  --border: #2a2f3a;
+  --text: #e8eaed;
+  --muted: #9aa0a6;
+  --accent: #c9a227;
+  --green: #3dd68c;
+  --red: #f07178;
+  --orange: #e6a23c;
+  --input-bg: #12151b;
+  --font: 16px;
+  --icon: 52px;
+  --icon-sm: 40px;
+  --icon-lg: 72px;
+}
+
+html { font-size: var(--font); }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.container {
+  max-width: min(1600px, 92vw) !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+h1 { font-size: 1.6rem !important; }
+.sub, .hint, .meta, .status { font-size: 0.95rem !important; }
+.card-title { font-size: 0.85rem !important; }
+
+/* Иконки — крупнее */
+.ico, .icon, .item-icon {
+  width: var(--icon) !important;
+  height: var(--icon) !important;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #0a0c10;
+  flex-shrink: 0;
+}
+.ico-sm, .icon-sm, .item-icon.sm {
+  width: var(--icon-sm) !important;
+  height: var(--icon-sm) !important;
+}
+.ico-lg {
+  width: var(--icon-lg) !important;
+  height: var(--icon-lg) !important;
+}
+
+.name-cell {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+}
+.name-cell .txt { min-width: 0; }
+.name { font-size: 1rem !important; font-weight: 600; }
+
+table { font-size: 0.95rem !important; }
+th { font-size: 0.8rem !important; }
+td { padding: 10px 12px !important; }
+
+.chip {
+  font-size: 0.9rem !important;
+  padding: 6px 14px !important;
+}
+.btn, .btn-ghost {
+  font-size: 0.95rem !important;
+  padding: 10px 16px !important;
+}
+input, select {
+  font-size: 1rem !important;
+  padding: 10px 12px !important;
+}
+.copy-btn {
+  font-size: 0.8rem !important;
+  padding: 4px 10px !important;
+}

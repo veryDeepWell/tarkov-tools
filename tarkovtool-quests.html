@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Квесты — карты и цели — Tarkov</title>
+  <link rel="stylesheet" href="tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Квесты · карты", "description": "Глоссарий квестов: реальные карты вместо «любая локация», цели по шагам, требования."}
+  </script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;padding:20px 14px 48px}
+    .container{max-width:min(1100px,94vw);margin:0 auto}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+    .card-title{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;font-weight:600}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+    .field{flex:1;min-width:140px}
+    .field label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px}
+    input,select{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:1rem}
+    .btn{background:var(--accent);color:#111;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer}
+    .status{font-size:.9rem;color:var(--muted);margin-top:8px}
+    .status.ok{color:var(--green)}.status.err{color:var(--red)}
+    .qcard{border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;background:var(--input-bg)}
+    .qcard h2{font-size:1.1rem;color:var(--accent);margin-bottom:6px}
+    .meta{font-size:.82rem;color:var(--muted)}
+    .tag{display:inline-block;font-size:.72rem;padding:2px 7px;border-radius:4px;margin:2px;background:rgba(255,255,255,.07);color:var(--muted)}
+    .tag.map{background:rgba(100,160,255,.15);color:#7ec8ff}
+    .tag.opt{background:rgba(201,162,39,.15);color:var(--accent)}
+    .tag.lock{background:rgba(240,113,120,.12);color:var(--red)}
+    .obj{padding:8px 0 8px 12px;border-left:2px solid var(--border);margin:6px 0}
+    .obj .step{font-size:.72rem;color:var(--muted);text-transform:uppercase}
+    .obj .type{font-weight:700}
+    .hint{font-size:.88rem;color:var(--muted);margin-top:8px;line-height:1.4}
+    a{color:#7ec8ff}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Квесты · нормальные карты</h1>
+    <p class="sub" style="color:var(--muted);margin-bottom:14px">Не «любая локация», а список карт по каждой цели · шаги по порядку · что открывается после прошлого квеста</p>
+
+    <div class="card">
+      <div class="row">
+        <div class="field" style="flex:0;min-width:130px">
+          <label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+      </div>
+      <p class="status" id="status">tasks + maps + локали EN/RU</p>
+    </div>
+
+    <div class="card" id="ui" style="display:none">
+      <div class="row">
+        <div class="field">
+          <label>Поиск (EN / RU / slug)</label>
+          <input type="text" id="q" placeholder="first in line, недостача, chemical…">
+        </div>
+        <div class="field" style="flex:0;min-width:140px">
+          <label>Карта</label>
+          <select id="mapFilter"><option value="">Все</option></select>
+        </div>
+        <div class="field" style="flex:0;min-width:140px">
+          <label>Торговец</label>
+          <select id="traderFilter"><option value="">Все</option></select>
+        </div>
+      </div>
+      <p class="meta" id="count" style="margin-top:8px"></p>
+      <div id="list" style="margin-top:12px"></div>
+      <p class="hint">Шаги внутри квеста — в порядке API (как в цепочке целей). «После квеста X» — taskRequirements. Цели с type taskStatus — явный лок на другой таск.</p>
+    </div>
+  </div>
+  <script>
+    const LOCALE_EN = 'https://raw.githubusercontent.com/carlsmei/tarkovdata/main/languages/en.json';
+    const LOCALE_RU = 'https://raw.githubusercontent.com/carlsmei/tarkovdata/main/languages/ru.json';
+
+    let tasks = [], byId = {}, mapName = {}, traderName = {}, enLoc = {}, ruLoc = {};
+
+    function humanize(s) {
+      return s ? String(s).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '?';
+    }
+    function esc(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function tName(id, slug) {
+      return enLoc[id + ' name'] || enLoc[id + ' Name'] || humanize(slug) || id;
+    }
+    function tNameRu(id, slug) {
+      return ruLoc[id + ' name'] || ruLoc[id + ' Name'] || '';
+    }
+    function mapsOfObj(o) {
+      const ids = new Set();
+      (o.maps || []).forEach(m => ids.add(typeof m === 'string' ? m : m.id || m));
+      (o.zones || []).forEach(z => {
+        if (z && z.map) ids.add(typeof z.map === 'string' ? z.map : z.map.id);
+      });
+      (o.possibleLocations || []).forEach(m => ids.add(typeof m === 'string' ? m : m.id || m));
+      return [...ids].map(id => mapName[id] || humanize(id)).filter(Boolean);
+    }
+    function mapsOfTask(t) {
+      const ids = new Set();
+      if (t.map) ids.add(typeof t.map === 'string' ? t.map : t.map.id);
+      (t.objectives || []).forEach(o => {
+        mapsOfObj(o).forEach(n => {}); // collect via ids
+        (o.maps || []).forEach(m => ids.add(typeof m === 'string' ? m : m.id || m));
+        (o.zones || []).forEach(z => { if (z && z.map) ids.add(typeof z.map === 'string' ? z.map : z.map.id); });
+        (o.possibleLocations || []).forEach(m => ids.add(typeof m === 'string' ? m : m.id || m));
+      });
+      return [...ids].map(id => mapName[id] || null).filter(Boolean);
+    }
+    function typeLabel(ty) {
+      const m = {
+        giveItem: 'Сдать предмет',
+        findItem: 'Найти предмет',
+        findQuestItem: 'Найти квест-предмет',
+        giveQuestItem: 'Сдать квест-предмет',
+        visit: 'Посетить / зона',
+        shoot: 'Убить',
+        plantItem: 'Установить предмет',
+        plantQuestItem: 'Установить квест-предмет',
+        extract: 'Выйти',
+        mark: 'Отметить',
+        buildWeapon: 'Собрать оружие',
+        taskStatus: 'Статус другого квеста',
+        traderLevel: 'Уровень торговца',
+        skill: 'Скилл',
+        sellItem: 'Продать',
+        useItem: 'Использовать',
+        experience: 'Опыт',
+        dialogue: 'Диалог'
+      };
+      return m[ty] || ty || '?';
+    }
+
+    document.getElementById('loadBtn').onclick = async () => {
+      const st = document.getElementById('status');
+      st.className = 'status'; st.textContent = 'Гружу…';
+      try {
+        const mode = document.getElementById('gameMode').value || 'pve';
+        const [jt, jm, en, ru] = await Promise.all([
+          fetch('https://json.tarkov.dev/' + mode + '/tasks', { cache: 'no-store' }).then(r => r.json()),
+          fetch('https://json.tarkov.dev/' + mode + '/maps', { cache: 'no-store' }).then(r => r.json()),
+          fetch(LOCALE_EN, { cache: 'no-store' }).then(r => r.json()),
+          fetch(LOCALE_RU, { cache: 'no-store' }).then(r => r.json())
+        ]);
+        enLoc = en; ruLoc = ru;
+        mapName = {};
+        const mapsRaw = jm?.data?.maps || {};
+        Object.values(mapsRaw).forEach(m => {
+          if (m && m.id) mapName[m.id] = humanize(m.normalizedName || m.nameId || m.id);
+        });
+        // traders from tasks
+        let raw = jt?.data?.tasks;
+        tasks = Array.isArray(raw) ? raw : Object.values(raw || {});
+        byId = {};
+        tasks.forEach(t => { byId[t.id] = t; });
+
+        // trader names from locale if possible — use id slice
+        const traders = new Set();
+        tasks.forEach(t => { if (t.trader) traders.add(t.trader); });
+        traderName = {};
+        // known traders ids often in locale
+        traders.forEach(id => {
+          traderName[id] = enLoc[id + ' Nickname'] || enLoc[id + ' name'] || id.slice(0, 6);
+        });
+
+        const mf = document.getElementById('mapFilter');
+        mf.innerHTML = '<option value="">Все</option>' +
+          Object.values(mapName).filter((v,i,a)=>a.indexOf(v)===i).sort().map(n =>
+            `<option value="${esc(n)}">${esc(n)}</option>`
+          ).join('');
+
+        const tf = document.getElementById('traderFilter');
+        const tnames = [...traders].map(id => ({ id, n: traderName[id] || id }));
+        tnames.sort((a,b) => a.n.localeCompare(b.n));
+        tf.innerHTML = '<option value="">Все</option>' +
+          tnames.map(t => `<option value="${esc(t.id)}">${esc(t.n)}</option>`).join('');
+
+        document.getElementById('ui').style.display = 'block';
+        st.className = 'status ok';
+        st.textContent = 'Квестов: ' + tasks.length;
+        render();
+      } catch (e) {
+        st.className = 'status err';
+        st.textContent = e.message;
+      }
+    };
+
+    function render() {
+      const q = (document.getElementById('q').value || '').toLowerCase().trim();
+      const mapF = document.getElementById('mapFilter').value;
+      const trF = document.getElementById('traderFilter').value;
+      let list = tasks.filter(t => {
+        if (trF && t.trader !== trF) return false;
+        const maps = mapsOfTask(t);
+        if (mapF && !maps.some(m => m === mapF)) return false;
+        if (!q) return true;
+        const en = tName(t.id, t.normalizedName).toLowerCase();
+        const ru = tNameRu(t.id, t.normalizedName).toLowerCase();
+        const slug = (t.normalizedName || '').toLowerCase();
+        return en.includes(q) || ru.includes(q) || slug.includes(q);
+      });
+      list = list.slice(0, 80);
+      document.getElementById('count').textContent = 'Показано: ' + list.length + (list.length >= 80 ? ' (лимит 80, уточни поиск)' : '');
+      const el = document.getElementById('list');
+      el.innerHTML = list.map(t => {
+        const en = tName(t.id, t.normalizedName);
+        const ru = tNameRu(t.id, t.normalizedName);
+        const maps = mapsOfTask(t);
+        const mapTags = maps.length
+          ? maps.map(m => `<span class="tag map">${esc(m)}</span>`).join('')
+          : '<span class="tag">карта не указана в данных</span>';
+        const reqs = (t.taskRequirements || []).map(r => {
+          const tid = r.task || r.taskId;
+          const prev = byId[tid];
+          const pn = prev ? tName(prev.id, prev.normalizedName) : tid;
+          const st = (r.status || []).join('/') || 'complete';
+          return `<span class="tag lock">после: ${esc(pn)} (${esc(st)})</span>`;
+        }).join(' ');
+        const objs = (t.objectives || []).map((o, i) => {
+          const om = mapsOfObj(o);
+          const mapStr = om.length ? om.map(m => `<span class="tag map">${esc(m)}</span>`).join('') : '<span class="tag">any / не в API</span>';
+          let extra = '';
+          if (o.type === 'taskStatus' && o.task) {
+            const prev = byId[o.task];
+            extra = `<div class="meta">Нужен квест: <b>${esc(prev ? tName(prev.id, prev.normalizedName) : o.task)}</b> [${esc((o.status||[]).join(','))}]</div>`;
+          }
+          if (o.count) extra += `<div class="meta">×${o.count}${o.foundInRaid ? ' FIR' : ''}</div>`;
+          return `<div class="obj">
+            <div class="step">Шаг ${i + 1}${o.optional ? ' · optional' : ''}</div>
+            <div class="type">${esc(typeLabel(o.type))}</div>
+            <div>${mapStr}${o.optional ? ' <span class="tag opt">optional</span>' : ''}</div>
+            ${extra}
+          </div>`;
+        }).join('');
+        return `<div class="qcard">
+          <h2>${esc(en)}</h2>
+          ${ru ? `<div class="meta">${esc(ru)}</div>` : ''}
+          <div class="meta">${esc(t.normalizedName || '')} · lvl ${t.minPlayerLevel ?? '?'} · ${esc(traderName[t.trader] || '')}</div>
+          <div style="margin:6px 0">${mapTags}</div>
+          <div>${reqs}</div>
+          ${t.wikiLink ? `<div class="meta"><a href="${esc(t.wikiLink)}" target="_blank" rel="noopener">wiki</a></div>` : ''}
+          <div style="margin-top:8px">${objs || '<span class="meta">Нет objectives</span>'}</div>
+        </div>`;
+      }).join('');
+    }
+
+    document.getElementById('q').oninput = render;
+    document.getElementById('mapFilter').onchange = render;
+    document.getElementById('traderFilter').onchange = render;
+
+    (function () {
+      const KEY = 'tarkovPreferredGameMode';
+      const def = localStorage.getItem(KEY) || 'pve';
+      document.querySelectorAll('select#gameMode').forEach(sel => {
+        if ([...sel.options].some(o => o.value === def)) sel.value = def;
+        sel.addEventListener('change', () => { try { localStorage.setItem(KEY, sel.value); } catch (e) {} });
+      });
+    })();
+  </script>
+</body>
+</html>
