@@ -38,7 +38,7 @@ html, body {
 a { color: var(--accent); }
 h1 { font-size: 1.55rem; font-weight: 700; margin: 0 0 6px; color: var(--text) !important; }
 .sub, .meta, .hint, p.sub { color: var(--muted) !important; }
-.container { max-width: min(1100px, 94vw); margin: 0 auto; padding: 12px 14px 64px; }
+.container { max-width: min(1600px, 92vw) !important; width: 100%; margin: 0 auto; padding: 12px 14px 64px; }
 .card, .qcard {
   background: var(--card) !important;
   border: 1px solid var(--border) !important;
@@ -156,7 +156,7 @@ th.sorted-desc::after { content: " ▼"; }
 .tt-table-tools input { flex: 1; min-width: 160px; min-height: 36px !important; }
 .tt-bar {
   display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-  max-width: min(1100px, 94vw); margin: 0 auto; padding: 12px 14px 0;
+  max-width: min(1600px, 92vw); margin: 0 auto; padding: 12px 14px 0;
 }
 .tt-bar .spacer { flex: 1; }
 .tt-bar button, .tt-bar a.btn-ghost {
@@ -180,3 +180,12 @@ th.sorted-desc::after { content: " ▼"; }
 .good { color: var(--green) !important; }
 .bad { color: var(--red) !important; }
 .ico, img.ico { width: 48px; height: 48px; object-fit: contain; border-radius: 6px; background: var(--input-bg); }
+
+
+/* width parity — same working area as gun builder */
+.container,
+div.container,
+body > .container {
+  max-width: min(1600px, 92vw) !important;
+  width: 100% !important;
+}
