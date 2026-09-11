@@ -23,6 +23,23 @@
       display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
     }
     .tool h2 { font-size: 1.05rem; margin: 0 0 6px; color: var(--accent); }
+    .tool-pin {
+      position: absolute; top: 10px; right: 10px;
+      width: 36px; height: 36px; min-width: 36px !important; min-height: 36px !important;
+      border-radius: 8px !important; padding: 0 !important;
+      background: transparent !important; border: 1px solid var(--border) !important;
+      color: var(--muted) !important; font-size: 1.1rem !important; cursor: pointer;
+      display: flex !important; align-items: center; justify-content: center;
+    }
+    .tool-pin:hover, .tool-pin.on {
+      border-color: var(--accent) !important; color: var(--accent) !important;
+      background: rgba(201,162,39,.12) !important;
+    }
+    .tool { position: relative; }
+    .pins-label {
+      font-size: .78rem; text-transform: uppercase; letter-spacing: .05em;
+      color: var(--muted); margin: 4px 0 8px; font-weight: 600;
+    }
     .tool p { font-size: .9rem; color: var(--muted); margin: 0; line-height: 1.4; }
   </style>
 </head>
@@ -58,22 +75,115 @@
     function esc(s) {
       return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
     }
+    const PINS_KEY = 'tarkovHubPins';
+    function loadPins() {
+      try { return JSON.parse(localStorage.getItem(PINS_KEY) || '[]'); } catch (e) { return []; }
+    }
+    function savePins(pins) {
+      try { localStorage.setItem(PINS_KEY, JSON.stringify(pins)); } catch (e) {}
+    }
+    function togglePin(file, ev) {
+      if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+      let pins = loadPins();
+      if (pins.includes(file)) pins = pins.filter(f => f !== file);
+      else pins.push(file);
+      savePins(pins);
+      if (window.TarkovTools && TarkovTools.beep) TarkovTools.beep('ok');
+      render();
+    }
+    function displayTitle(t) {
+      const en = (window.TarkovToolsTranslate && TarkovToolsTranslate.META_EN || {})[t.title];
+      if (window.TarkovTools && TarkovTools.lang() === 'en' && en) return en[0];
+      return t.title;
+    }
+    function displayDesc(t) {
+      const en = (window.TarkovToolsTranslate && TarkovToolsTranslate.META_EN || {})[t.title];
+      if (window.TarkovTools && TarkovTools.lang() === 'en' && en) return en[1];
+      return t.description || '';
+    }
+    function cardHtml(t, pinned) {
+      const pinTitle = (window.TarkovTools && TarkovTools.lang() === 'en')
+        ? (pinned ? 'Unpin' : 'Pin')
+        : (pinned ? 'Открепить' : 'Закрепить');
+      return `<a class="tool" href="${esc(t.file)}">
+        <button type="button" class="tool-pin ${pinned ? 'on' : ''}" data-pin="${esc(t.file)}" title="${pinTitle}">${pinned ? '📌' : '📍'}</button>
+        <div class="tool-head">
+          <div class="tool-ico">${iconFor(t.file, t.title)}</div>
+          <div style="padding-right:28px">
+            <h2>${esc(displayTitle(t))}</h2>
+            <p>${esc(displayDesc(t))}</p>
+          </div>
+        </div>
+      </a>`;
+    }
     function render() {
       const q = (document.getElementById("q").value || "").toLowerCase().trim();
-      let list = CATALOG;
-      if (q) list = CATALOG.filter(t => (t.title||"").toLowerCase().includes(q) || (t.description||"").toLowerCase().includes(q));
+      const pins = loadPins();
+      let list = CATALOG.slice();
+      if (q) {
+        list = list.filter(t => {
+          const title = displayTitle(t).toLowerCase();
+          const desc = displayDesc(t).toLowerCase();
+          return title.includes(q) || desc.includes(q) || (t.title || '').toLowerCase().includes(q);
+        });
+      }
+      const pinned = list.filter(t => pins.includes(t.file));
+      const rest = list.filter(t => !pins.includes(t.file));
+      // keep pin order as in pins array
+      pinned.sort((a, b) => pins.indexOf(a.file) - pins.indexOf(b.file));
+
       document.getElementById("count").textContent = list.length + " / " + CATALOG.length;
-      document.getElementById("grid").innerHTML = list.map(t => {
-        return `<a class="tool" href="${esc(t.file)}"><div class="tool-head"><div class="tool-ico">${iconFor(t.file,t.title)}</div><div><h2>${esc(t.title)}</h2><p>${esc(t.description||"")}</p></div></div></a>`;
-      }).join("");
+      const en = window.TarkovTools && TarkovTools.lang() === 'en';
+      let html = '';
+      if (pinned.length) {
+        html += `<div class="pins-label" style="grid-column:1/-1">${en ? 'Pinned' : 'Закреплённые'}</div>`;
+        html += pinned.map(t => cardHtml(t, true)).join('');
+        if (rest.length) html += `<div class="pins-label" style="grid-column:1/-1">${en ? 'All tools' : 'Все инструменты'}</div>`;
+      }
+      html += rest.map(t => cardHtml(t, false)).join('');
+      document.getElementById("grid").innerHTML = html;
+      document.querySelectorAll('.tool-pin').forEach(btn => {
+        btn.onclick = (e) => togglePin(btn.getAttribute('data-pin'), e);
+      });
     }
     function renderChangelog() {
-      document.getElementById("changelog").innerHTML = "<h3>Что изменилось</h3>" + CHANGELOG.map(b =>
-        `<div style="margin-bottom:12px"><strong>${esc(b.date)}</strong><ul>${b.items.map(i=>`<li>${esc(i)}</li>`).join("")}</ul></div>`
+      const en = window.TarkovTools && TarkovTools.lang() === 'en';
+      const title = en ? 'Changelog' : 'Что изменилось';
+      const itemsEn = {
+        'Единый дизайн: кнопки одной высоты, карточки, таблицы': 'Unified design: equal buttons, cards, tables',
+        'Автосортировка и поиск по всем таблицам': 'Auto sort and search on all tables',
+        'Тема светлая/тёмная, RU/EN шапка, звук, импорт/экспорт': 'Light/dark theme, RU/EN bar, sound, import/export',
+        'Хаб без имён файлов + патчноут': 'Hub without filenames + changelog',
+        'Биткоин-ферма с графиками': 'Bitcoin farm with charts',
+        'Квесты с картами, EN↔RU квесты': 'Quests with maps, EN↔RU quests',
+        'Чек-лист рейда: карты + DnD': 'Raid checklist: maps + DnD',
+        'Хаб для GitHub Pages': 'Hub for GitHub Pages',
+        'Единый дизайн: кнопки, карточки, таблицы, светлая/тёмная тема': 'Unified design, light/dark theme',
+        'Общие настройки, звук, импорт/экспорт, RU/EN шапка': 'Shared settings, sound, import/export',
+        'Калькулятор биткоин-фермы': 'Bitcoin farm calculator',
+        'Патчноут внизу хаба': 'Changelog at hub bottom',
+        'Глоссарий квестов с картами по целям': 'Quest glossary with per-objective maps',
+        'EN↔RU поиск: вкладка квестов': 'EN↔RU search: quests tab',
+        'Чек-лист рейда: пресеты карт + drag-and-drop': 'Raid checklist: map presets + DnD',
+        'Хаб под GitHub Pages': 'Hub for GitHub Pages',
+        'Калькулятор биткоин-фермы с графиками': 'Bitcoin farm calculator with charts'
+      };
+      document.getElementById("changelog").innerHTML = "<h3>" + title + "</h3>" + CHANGELOG.map(b =>
+        `<div style="margin-bottom:12px"><strong>${esc(b.date)}</strong><ul>${b.items.map(i=>`<li>${esc(en ? (itemsEn[i]||i) : i)}</li>`).join("")}</ul></div>`
       ).join("");
     }
     document.getElementById("q").addEventListener("input", render);
     render(); renderChangelog();
+    const _paint = window.TarkovTools && TarkovTools._paintBar;
+    // re-render hub when language toggled
+    const langBtn = document.getElementById('tt-bar-lang');
+    if (langBtn) {
+      langBtn.addEventListener('click', () => setTimeout(() => { render(); renderChangelog(); }, 0));
+    }
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'tt-bar-lang') setTimeout(() => { render(); renderChangelog(); }, 0);
+      if (e.target && e.target.id === 'tt-apply') setTimeout(() => { render(); renderChangelog(); }, 0);
+    });
   </script>
 </body>
 </html>

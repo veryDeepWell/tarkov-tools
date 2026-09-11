@@ -143,7 +143,7 @@
         set(KEYS.mode, document.getElementById("tt-mode").value);
         set(KEYS.seen, "1"); applyTheme(); wireGameModeSelects(); beep("ok"); bg.classList.remove("show");
         if (global.TarkovTools._paintBar) global.TarkovTools._paintBar();
-        document.querySelectorAll(".tt-table-tools input").forEach(inp => { inp.placeholder = t("search"); });
+        translatePage();
       };
       document.getElementById("tt-export").onclick = exportAll;
       document.getElementById("tt-import").onclick = () => document.getElementById("tt-import-file").click();
@@ -182,10 +182,444 @@
     paint(); global.TarkovTools._paintBar = paint;
     document.getElementById("tt-bar-settings").onclick = openSettings;
     document.getElementById("tt-bar-theme").onclick = () => { set(KEYS.theme, get(KEYS.theme, "dark") === "light" ? "dark" : "light"); applyTheme(); paint(); beep("ok"); };
-    document.getElementById("tt-bar-lang").onclick = () => { set(KEYS.lang, lang() === "ru" ? "en" : "ru"); paint(); beep("ok"); document.querySelectorAll(".tt-table-tools input").forEach(inp => { inp.placeholder = t("search"); }); };
+    document.getElementById("tt-bar-lang").onclick = () => { set(KEYS.lang, lang() === "ru" ? "en" : "ru"); paint(); beep("ok"); translatePage(); };
   }
+
+  const RU_EN = {
+  "Настройки": "Settings",
+  "Тёмная": "Dark",
+  "Светлая": "Light",
+  "Язык": "Language",
+  "Звук": "Sound",
+  "Вкл": "On",
+  "Выкл": "Off",
+  "Режим по умолчанию": "Default mode",
+  "Закрыть": "Close",
+  "Экспорт": "Export",
+  "Импорт": "Import",
+  "Применить": "Apply",
+  "Хаб": "Hub",
+  "Поиск по таблице…": "Filter table…",
+  "Поиск…": "Search…",
+  "Поиск": "Search",
+  "Что изменилось": "Changelog",
+  "Загрузить": "Load",
+  "ЗАГРУЗИТЬ": "LOAD",
+  "ЗАГРУЗИТЬ ДАННЫЕ": "LOAD DATA",
+  "Пересчитать": "Recalculate",
+  "Сохранить": "Save",
+  "Сбросить": "Reset",
+  "Очистить": "Clear",
+  "Очистить список": "Clear list",
+  "Копировать": "Copy",
+  "копир.": "copy",
+  "В рейд": "Into raid",
+  "В РЕЙД": "INTO RAID",
+  "Отменить": "Cancel",
+  "ОТМЕНИТЬ ТАЙМЕР": "CANCEL TIMER",
+  "Цены с барахолки": "Flea prices",
+  "Снять галочки": "Uncheck all",
+  "Отметить все": "Check all",
+  "Снять все галочки": "Uncheck all",
+  "+ карта": "+ map",
+  "Удалить карту": "Delete map",
+  "Копировать в…": "Copy to…",
+  "+ Добавить предмет": "+ Add item",
+  "Сбросить моды": "Clear mods",
+  "Копировать список": "Copy list",
+  "Режим": "Mode",
+  "Режим API": "API mode",
+  "Данные": "Data",
+  "Торговец": "Trader",
+  "Название": "Name",
+  "Квест": "Quest",
+  "квест": "quest",
+  "Предмет": "Item",
+  "Предметы": "Items",
+  "Список": "List",
+  "Тип": "Type",
+  "Пусто": "Empty",
+  "Слот": "Slot",
+  "Слоты": "Slots",
+  "Вес": "Weight",
+  "Эрга": "Ergo",
+  "Отдача": "Recoil",
+  "Оружие": "Weapon",
+  "Сортировка": "Sort",
+  "Станции": "Stations",
+  "Калибр": "Caliber",
+  "Калибры": "Calibers",
+  "Таблица": "Table",
+  "Патрон": "Ammo",
+  "Урон": "Damage",
+  "Крафт": "Craft",
+  "Рейтинг": "Rating",
+  "Магазины": "Magazines",
+  "Русский": "Russian",
+  "Цена продажи, ₽": "Sell price, ₽",
+  "Предметы для бартера": "Barter ingredients",
+  "Расчёт": "Calculation",
+  "Стоимость компонентов": "Components cost",
+  "После комиссии": "After fee",
+  "Прибыль": "Profit",
+  "Кол-во": "Qty",
+  "Да": "Yes",
+  "Нет": "No",
+  "да": "yes",
+  "нет": "no",
+  "Все": "All",
+  "Карта": "Map",
+  "Карта / сборка": "Map / loadout",
+  "Добавить": "Add",
+  "Добавить в текущую сборку": "Add to current loadout",
+  "Перед рейдом": "Pre-raid",
+  "Список · тяни за ⋮⋮": "List · drag ⋮⋮",
+  "Параметры": "Parameters",
+  "Текущая конфигурация": "Current setup",
+  "Графики по числу GPU": "Charts by GPU count",
+  "Таблица 1…50 GPU": "Table 1…50 GPUs",
+  "Видеокарты (1–50)": "GPUs (1–50)",
+  "Уровень фермы (слоты)": "Farm level (slots)",
+  "Цена BTC (₽, Терапевт/барахолка)": "BTC price (₽)",
+  "Цена 1 GPU (₽)": "GPU price (₽)",
+  "Цена канистры (металл, ₽)": "Metal fuel can (₽)",
+  "Солнечная батарея (−50% расход топлива)": "Solar power (−50% fuel)",
+  "Топливо у Егеря (фиксированная цена канистры выше)": "Jaeger fuel (price above)",
+  "Нетто ₽ / сутки": "Net ₽ / day",
+  "Окупаемость GPU (дни)": "GPU payback (days)",
+  "Время на 1 BTC": "Time per BTC",
+  "BTC / сутки": "BTC / day",
+  "Валовая ₽/сут": "Gross ₽/day",
+  "Нетто ₽/сут": "Net ₽/day",
+  "Топливо ₽/сут": "Fuel ₽/day",
+  "1 канистра хватает": "1 can lasts",
+  "ROI GPU (дни)": "GPU ROI (days)",
+  "Сумма GPU": "GPU total cost",
+  "не влияет на BTC": "does not affect BTC",
+  "Шаг": "Step",
+  "после:": "after:",
+  "оружие": "weapon",
+  "пусто": "empty",
+  "Скрыть за квестом": "Hide quest-locked",
+  "Скрыть квест": "Hide quest",
+  "Отметь предметы слева": "Select items on the left",
+  "Жми ЗАГРУЗИТЬ": "Press LOAD",
+  "Загрузи данные, потом выбери калибр": "Load data, then pick a caliber",
+  "Патроны — класс пробития": "Ammo — penetration class",
+  "Чек-лист перед рейдом": "Pre-raid checklist",
+  "Сборка под карту · drag-and-drop · «В РЕЙД» сбросит галочки через 20 мин": "Per-map loadout · drag-and-drop · INTO RAID clears checks in 20 min",
+  "Сборка под карту": "Per-map loadout",
+  "Новая карта / пресет…": "New map / preset…",
+  "паракорд / Ф-1 / мельдонин…": "paracord / F-1 / meldonin…",
+  "Ф-1 / мельдонин / ключница…": "F-1 / meldonin / keytool…",
+  "Таймер не запущен": "Timer not running",
+  "До сброса галочек": "Until checks reset",
+  "20 минут — галочки сняты на всех картах": "20 min — checks cleared on all maps",
+  "Галочки общие на таймер (сброс через 20 мин). Списки предметов — раздельно по картам.": "Checks reset after 20 min. Item lists are per map.",
+  "Биткоин-ферма": "Bitcoin farm",
+  "Квесты · карты": "Quests · maps",
+  "Квесты · нормальные карты": "Quests · real maps",
+  "Не «любая локация», а список карт по каждой цели · шаги по порядку · что открывается после прошлого квеста": "Not “any location” — maps per objective · ordered steps · previous quest locks",
+  "Поиск (EN / RU / slug)": "Search (EN / RU / slug)",
+  "Показано:": "Shown:",
+  "Квестов:": "Quests:",
+  "Предметов:": "Items:",
+  "квестов:": "quests:",
+  "English": "English",
+  "Квесты": "Quests",
+  "EN ↔ RU поиск": "EN ↔ RU search",
+  "Предметы и квесты · обе строки сразу": "Items and quests · both fields at once",
+  "Введи EN или RU": "Type EN or RU",
+  "Найдено:": "Found:",
+  "Скиллы · чизы · софт-кап": "Skills · cheese · soft-cap",
+  "Патч 1.0+ · трекер + как качать эффективно, не в молоко": "Patch 1.0+ · tracker + efficient leveling",
+  "Усталость навыка (софт-кап в рейде)": "Skill fatigue (soft-cap per raid)",
+  "Трекер (localStorage)": "Tracker (localStorage)",
+  "Сбросить уровни": "Reset levels",
+  "Чиз:": "Cheese:",
+  "Софт-кап:": "Soft-cap:",
+  "Качатель Hideout Management": "Hideout Management grinder",
+  "Станция": "Station",
+  "Макс. уровень станции": "Max station level",
+  "Нетто/цикл": "Net/cycle",
+  "Нетто/час": "Net/hour",
+  "Продукт": "Product",
+  "Вход (₽)": "Input (₽)",
+  "Выход (₽)": "Output (₽)",
+  "Время": "Time",
+  "Ингредиенты": "Ingredients",
+  "убыток": "loss",
+  "профит": "profit",
+  "Gun Builder": "Gun Builder",
+  "Схема слотов · клик = выбрать мод · повторный клик по заполненному = снять": "Slot layout · click to pick mod · click again to remove",
+  "Выбери ствол → кликай слоты → статы и цена без игры. Схема: глушитель–ствол–оружие–приклад": "Pick a gun → click slots → stats and price. Layout: muzzle–barrel–gun–stock",
+  "Что делать с предметом?": "What to do with an item?",
+  "Лампочка, болты, GPU… — куда сдать / скрафтить / вложить": "Bulb, bolts, GPU… — sell / craft / hideout",
+  "Продажа": "Selling",
+  "Купить у торговца": "Buy from trader",
+  "Крафт (как ингредиент)": "Craft (as input)",
+  "Крафт (на выходе)": "Craft (as output)",
+  "Убежище": "Hideout",
+  "Профит лута · ₽ / слот": "Loot profit · ₽ / slot",
+  "Быстро: flea и скупщик за клетку + нужен ли для квеста": "Flea and trader per cell + quest flag",
+  "Можно вводить несколько через запятую — таблица сравнения.": "Comma-separated for comparison table.",
+  "Flea": "Flea",
+  "₽/слот flea": "₽/slot flea",
+  "₽/слот trader": "₽/slot trader",
+  "optional": "optional",
+  "карта не указана в данных": "map not in data",
+  "any / не в API": "any / not in API",
+  "Нет objectives": "No objectives",
+  "Нужен квест:": "Requires quest:",
+  "wiki": "wiki",
+  "Сейчас:": "Current:",
+  "позиций": "items",
+  "Пусто для этой карты — добавь паракорд, ключи, гранаты…": "Empty for this map — add paracord, keys, nades…",
+  "Список пуст — добавь гранаты, стимы, ключи…": "List empty — add nades, stims, keys…",
+  "Enter тоже добавляет. Список сохраняется в браузере.": "Enter also adds. List is saved in the browser.",
+  "Количество": "Quantity",
+  "удалить": "delete",
+  "перетащить": "drag",
+  "взял": "taken",
+  "готов": "ready",
+  "сброс": "reset",
+  "Оружий": "Weapons",
+  "модов": "mods",
+  "Эргономика": "Ergonomics",
+  "Отдача верт.": "Vert. recoil",
+  "Отдача гориз.": "Horiz. recoil",
+  "Вес кг": "Weight kg",
+  "≈ цена ₽": "≈ price ₽",
+  "Снять мод": "Remove mod",
+  "Нет совместимых модов в данных API": "No compatible mods in API data",
+  "фильтр…": "filter…",
+  "adar, m4a1, ak-74n…": "adar, m4a1, ak-74n…",
+  "Крафтов:": "Crafts:",
+  "станций:": "stations:",
+  "Tools не считаются в себестоимости (multitool и т.п.)": "Tools are excluded from cost (multitool etc.)",
+  "Нетто ₽ / цикл (дешевле)": "Net ₽ / cycle (cheaper)",
+  "Нетто ₽ / час": "Net ₽ / hour",
+  "Себестоимость входа": "Input cost",
+  "Длительность": "Duration",
+  "Профит (больше)": "Profit (higher)",
+  "Сохранено": "Saved",
+  "Сбросить все уровни в трекере?": "Reset all skill levels?",
+  "Удалить весь список?": "Delete entire list?",
+  "Удалить сборку": "Delete loadout",
+  "Очистить список карты": "Clear map list",
+  "Уже есть": "Already exists",
+  "Нужна хотя бы одна карта": "Need at least one map",
+  "в карту (имя):": "to map (name):",
+  "Цены обновлены": "Prices updated",
+  "Тяну prices…": "Fetching prices…",
+  "Гружу…": "Loading…",
+  "Гружу items…": "Loading items…",
+  "Гружу crafts + items + hideout…": "Loading crafts + items + hideout…",
+  "Нужны items + crafts + hideout + tasks": "Needs items + crafts + hideout + tasks",
+  "OK": "OK",
+  "HTTP": "HTTP"
+};
+  const EN_RU = {};
+  Object.keys(RU_EN).forEach(k => { EN_RU[RU_EN[k]] = k; });
+  const META_EN = {
+  "Патроны": [
+    "Ammo",
+    "Penetration class by caliber."
+  ],
+  "Броня": [
+    "Armor",
+    "Armor rating and plates."
+  ],
+  "Бартер (ручной)": [
+    "Barter (manual)",
+    "Manual barter profit calculator."
+  ],
+  "Бартер (live)": [
+    "Barter (live)",
+    "Barter with live flea prices."
+  ],
+  "Боссы и гуны": [
+    "Bosses & goons",
+    "Boss rotations and goon reports."
+  ],
+  "Сравнение": [
+    "Compare",
+    "Compare multiple items."
+  ],
+  "Разгрузки и рюкзаки": [
+    "Rigs & backpacks",
+    "Container rating."
+  ],
+  "Крафты убежища": [
+    "Hideout crafts",
+    "Craft ROI."
+  ],
+  "Дрип по цветам": [
+    "Drip by color",
+    "Clothing color search."
+  ],
+  "Сборка за N ₽": [
+    "Budget build",
+    "Gun under budget."
+  ],
+  "Gun Builder": [
+    "Gun Builder",
+    "Manual modding with slot layout."
+  ],
+  "Качатель Hideout Management": [
+    "Hideout Management",
+    "Cheapest crafts per station for skill XP."
+  ],
+  "Трекер убежища": [
+    "Hideout tracker",
+    "Station levels and shopping list."
+  ],
+  "Что с предметом": [
+    "Item usage",
+    "Sell, craft, hideout, quests."
+  ],
+  "Ключи": [
+    "Keys",
+    "Keys by map and rating."
+  ],
+  "EN ↔ RU поиск": [
+    "EN ↔ RU search",
+    "Items and quests dual search."
+  ],
+  "Лут ₽/слот": [
+    "Loot ₽/slot",
+    "Value per inventory cell."
+  ],
+  "Магазины": [
+    "Magazines",
+    "Mag capacity and stats."
+  ],
+  "Аптечки": [
+    "Medkits",
+    "Heal efficiency."
+  ],
+  "Моды": [
+    "Mods",
+    "Mod ratings."
+  ],
+  "Плиты": [
+    "Plates",
+    "Armor plates."
+  ],
+  "Квест-предметы": [
+    "Quest items",
+    "Items needed for quests."
+  ],
+  "Квесты · карты": [
+    "Quests · maps",
+    "Objectives and real maps."
+  ],
+  "Чек-лист рейда": [
+    "Raid checklist",
+    "Per-map loadout and 20-min timer."
+  ],
+  "Таймер рестока": [
+    "Restock timer",
+    "Trader restock countdown."
+  ],
+  "Прицелы": [
+    "Scopes",
+    "Scope ratings."
+  ],
+  "Короткие имена": [
+    "Short names",
+    "Inventory short name search."
+  ],
+  "Скиллы + чизы": [
+    "Skills + cheese",
+    "Tracker, soft-cap, leveling tips."
+  ],
+  "Комбо стимуляторов": [
+    "Stim combos",
+    "Stimulant combinations."
+  ],
+  "Стимуляторы": [
+    "Stims",
+    "Stimulant ratings."
+  ],
+  "Стример-флип": [
+    "Streamer flip",
+    "Streamer items vs Therapist."
+  ],
+  "Трейдер-флип": [
+    "Trader flip",
+    "Buy trader, sell flea."
+  ],
+  "Биткоин-ферма": [
+    "Bitcoin farm",
+    "GPU mining ROI with fuel and charts."
+  ],
+  "Хаб": [
+    "Hub",
+    "All Tarkov tools in one place."
+  ]
+};
+
+  function translateString(s, toEn) {
+    if (!s) return s;
+    const t = s.trim();
+    if (toEn) return RU_EN[t] || RU_EN[s] || s;
+    return EN_RU[t] || EN_RU[s] || s;
+  }
+
+  function translateNode(node, toEn) {
+    if (!node) return;
+    if (node.nodeType === 3) {
+      const raw = node.nodeValue;
+      if (!raw || !raw.trim()) return;
+      // only full-trim match for safety
+      const lead = raw.match(/^\s*/)[0];
+      const trail = raw.match(/\s*$/)[0];
+      const core = raw.slice(lead.length, raw.length - trail.length);
+      const mapped = toEn ? (RU_EN[core] || null) : (EN_RU[core] || null);
+      if (mapped != null) node.nodeValue = lead + mapped + trail;
+      return;
+    }
+    if (node.nodeType !== 1) return;
+    const tag = node.tagName;
+    if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'CODE') return;
+    if (node.id === 'tt-settings-modal' || (node.closest && node.closest('#tt-settings-modal'))) {
+      // settings handled separately via t()
+    }
+    ['placeholder', 'title', 'aria-label'].forEach(attr => {
+      if (!node.hasAttribute || !node.hasAttribute(attr)) return;
+      const v = node.getAttribute(attr);
+      const m = toEn ? RU_EN[v] : EN_RU[v];
+      if (m) node.setAttribute(attr, m);
+    });
+    // skip inputs with user values except buttons
+    if (tag === 'INPUT' && node.type !== 'button' && node.type !== 'submit') {
+      if (node.type === 'button' || node.type === 'submit') {
+        const m = toEn ? RU_EN[node.value] : EN_RU[node.value];
+        if (m) node.value = m;
+      }
+      return;
+    }
+    if (tag === 'TEXTAREA') return;
+    Array.from(node.childNodes || []).forEach(ch => translateNode(ch, toEn));
+  }
+
+  function translatePage() {
+    const toEn = lang() === 'en';
+    translateNode(document.body, toEn);
+    // hub catalog cards re-rendered by hub itself if present
+    document.querySelectorAll('.tt-table-tools input').forEach(inp => {
+      inp.placeholder = t('search');
+    });
+    if (global.TarkovTools._paintBar) global.TarkovTools._paintBar();
+  }
+
+  // expose for hub
+  global.TarkovToolsTranslate = { RU_EN, META_EN, translatePage, translateString };
+
   function init() {
     applyTheme(); injectBar(); wireGameModeSelects(); normalizeButtons(); enhanceAllTables(); observeTables();
+    translatePage();
     if (get(KEYS.seen, "") !== "1") setTimeout(openSettings, 250);
   }
   global.TarkovTools = { t, lang, beep, exportAll, importAll, openSettings, preferredMode, soundEnabled, enhanceTable, applyTheme, KEYS, _paintBar: null };
