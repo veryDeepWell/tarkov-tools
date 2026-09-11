@@ -1,279 +1,79 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tarkov Tool Hub</title>
+  <title>Tarkov Tools</title>
   <link rel="stylesheet" href="tarkov-common.css">
   <script type="application/json" id="tarkovtool-meta">
   {"title": "Хаб", "description": "Все инструменты Tarkov в одном месте."}
   </script>
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{min-height:100vh;padding:24px 16px 48px}
-    .container{max-width:min(1100px,94vw);margin:0 auto}
-    h1{font-size:1.75rem;margin-bottom:6px}
-    .sub{color:var(--muted);margin-bottom:18px;line-height:1.45}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:14px}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    input[type=search]{
-      flex:1;min-width:200px;background:var(--input-bg);border:1px solid var(--border);
-      border-radius:8px;padding:12px 14px;color:var(--text);font-size:1rem;outline:none;
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .tool {
+      display: flex; flex-direction: column; text-decoration: none; color: inherit;
+      background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; min-height: 120px; transition: border-color .15s, transform .12s;
     }
-    .grid{
-      display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;
+    .tool:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .tool-head { display: flex; gap: 12px; align-items: flex-start; flex: 1; }
+    .tool-ico {
+      flex-shrink: 0; width: 48px; height: 48px; border-radius: 12px;
+      background: rgba(201,162,39,.12); border: 1px solid rgba(201,162,39,.25);
+      display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
     }
-    .tool{
-      display:block;text-decoration:none;color:inherit;
-      background:var(--input-bg);border:1px solid var(--border);border-radius:12px;
-      padding:14px 16px;transition:border-color .15s, transform .12s;
-    }
-    .tool:hover{border-color:var(--accent);transform:translateY(-1px)}
-    .tool-head{display:flex;gap:12px;align-items:flex-start}
-    .tool-ico{
-      flex-shrink:0;width:48px;height:48px;border-radius:12px;
-      background:rgba(201,162,39,.12);border:1px solid rgba(201,162,39,.25);
-      display:flex;align-items:center;justify-content:center;font-size:1.55rem;line-height:1;
-    }
-    .tool h2{font-size:1.05rem;margin-bottom:4px;color:var(--accent)}
-    .tool p{font-size:.9rem;color:var(--muted);line-height:1.4}
-    .tool .file{font-size:.75rem;color:var(--muted);margin-top:8px;opacity:.75}
-    .meta{font-size:.85rem;color:var(--muted)}
-    .badge{
-      display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:10px;
-      background:rgba(61,214,140,.12);color:var(--green);margin-left:6px;
-    }
+    .tool h2 { font-size: 1.05rem; margin: 0 0 6px; color: var(--accent); }
+    .tool p { font-size: .9rem; color: var(--muted); margin: 0; line-height: 1.4; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Tarkov Tools <span class="badge">hosted</span></h1>
-    <p class="sub">Статический хаб для GitHub Pages / любого хостинга. Кликни карточку — откроется инструмент.</p>
-
-    <div class="card">
-      <div class="row">
-        <input type="search" id="q" placeholder="Поиск: бартер, скиллы, квесты…" autocomplete="off">
-      </div>
+    <h1>Tarkov Tools</h1>
+    <div class="card" style="margin-top:12px">
+      <div class="row"><input type="search" id="q" placeholder="Поиск…" autocomplete="off"></div>
       <p class="meta" id="count" style="margin-top:8px"></p>
     </div>
-
     <div class="grid" id="grid"></div>
+    <div class="changelog" id="changelog"></div>
   </div>
+  <script src="tarkov-common.js"></script>
   <script>
-    // Каталог зашит при сборке (Pages не отдаёт листинг папки).
-    // При добавлении нового tarkovtool-*.html — обновить этот массив или пересобрать хаб.
-    const CATALOG = [
-  {
-    "file": "tarkovtool-ammo.html",
-    "title": "Патроны",
-    "description": "Таблица пробития по калибрам, класс брони, урон, цена."
-  },
-  {
-    "file": "tarkovtool-armor.html",
-    "title": "Броня",
-    "description": "Рейтинг брони по классу, зонам, плитам, без упора в цену."
-  },
-  {
-    "file": "tarkovtool-barter-calc.html",
-    "title": "Бартер (ручной)",
-    "description": "Калькулятор выгодности бартера: компоненты, комиссия flea."
-  },
-  {
-    "file": "tarkovtool-barter-live.html",
-    "title": "Бартер (live)",
-    "description": "Бартер с ценами барахолки через API, пресеты трейдов."
-  },
-  {
-    "file": "tarkovtool-bosses.html",
-    "title": "Боссы и гуны",
-    "description": "Шансы боссов, таймеры карт, текущая локация гунов."
-  },
-  {
-    "file": "tarkovtool-compare.html",
-    "title": "Сравнение",
-    "description": "Сравнение нескольких предметов одной категории, моды под ствол."
-  },
-  {
-    "file": "tarkovtool-containers.html",
-    "title": "Разгрузки и рюкзаки",
-    "description": "Рейтинг контейнеров: слоты, вес, сегменты."
-  },
-  {
-    "file": "tarkovtool-crafts.html",
-    "title": "Крафты убежища",
-    "description": "ROI крафтов hideout, цены, время."
-  },
-  {
-    "file": "tarkovtool-drip.html",
-    "title": "Дрип по цветам",
-    "description": "Экип по цветам (песок, чёрный, MC…) + score статов."
-  },
-  {
-    "file": "tarkovtool-gun-budget.html",
-    "title": "Сборка за N ₽",
-    "description": "Оружие под бюджет: максимум статов, схема модов, прицел."
-  },
-  {
-    "file": "tarkovtool-gun-builder.html",
-    "title": "Gun Builder",
-    "description": "Сборка оружия по слотам: статы, цена, flea/торговец/квест."
-  },
-  {
-    "file": "tarkovtool-hideout-mgmt.html",
-    "title": "Качатель Hideout Management",
-    "description": "Какой крафт крутить на каждой станции за минимум ₽ за цикл скилла."
-  },
-  {
-    "file": "tarkovtool-hideout.html",
-    "title": "Трекер убежища",
-    "description": "Уровни станций, шоплист апгрейдов, цены."
-  },
-  {
-    "file": "tarkovtool-item-use.html",
-    "title": "Что с предметом",
-    "description": "Ввёл предмет — продажа, крафт, убежище, квесты, бартер."
-  },
-  {
-    "file": "tarkovtool-keys.html",
-    "title": "Ключи",
-    "description": "Ключи по локациям, цена и рейтинг."
-  },
-  {
-    "file": "tarkovtool-lang-search.html",
-    "title": "EN ↔ RU поиск",
-    "description": "Предметы и квесты: двойной поиск EN/RU."
-  },
-  {
-    "file": "tarkovtool-loot-slot.html",
-    "title": "Лут ₽/слот",
-    "description": "Цена за клетку: flea и торговец, пометка квеста."
-  },
-  {
-    "file": "tarkovtool-mags.html",
-    "title": "Магазины",
-    "description": "Магазины по калибрам: ёмкость, эрга, отдача."
-  },
-  {
-    "file": "tarkovtool-medkits.html",
-    "title": "Аптечки",
-    "description": "HP на клетку, скорость применения, ₽/HP. Аптечки и таблетки."
-  },
-  {
-    "file": "tarkovtool-mods.html",
-    "title": "Моды",
-    "description": "Рейтинг обвесов по статам и совместимости."
-  },
-  {
-    "file": "tarkovtool-plates.html",
-    "title": "Плиты",
-    "description": "Эффективность плит: класс, вес, прочность, стоимость ремонта."
-  },
-  {
-    "file": "tarkovtool-quest-items.html",
-    "title": "Квест-предметы",
-    "description": "FIR-предметы для квестов, трекинг."
-  },
-  {
-    "file": "tarkovtool-quests.html",
-    "title": "Квесты · карты",
-    "description": "Глоссарий квестов: реальные карты вместо «любая локация», цели по шагам, требования."
-  },
-  {
-    "file": "tarkovtool-raid-checklist.html",
-    "title": "Чек-лист рейда",
-    "description": "Сборки под карты, DnD списка, В РЕЙД → сброс галочек через 20 мин."
-  },
-  {
-    "file": "tarkovtool-restock.html",
-    "title": "Таймер рестока",
-    "description": "Обновление торговцев, пилик, история."
-  },
-  {
-    "file": "tarkovtool-scopes.html",
-    "title": "Прицелы",
-    "description": "Рейтинг оптики: кратность, ПНВ, community tier."
-  },
-  {
-    "file": "tarkovtool-shortname.html",
-    "title": "Короткие имена",
-    "description": "Поиск по short name + цена торговца/flea."
-  },
-  {
-    "file": "tarkovtool-skills.html",
-    "title": "Скиллы + чизы",
-    "description": "Трекер уровней, софт-кап усталости навыка, чиз-страты 1.0+."
-  },
-  {
-    "file": "tarkovtool-stim-combos.html",
-    "title": "Комбо стимуляторов",
-    "description": "Связки вроде Meldonin+SJ1, SJ6+Trimadol, Propital+MULE. Иконки и копир."
-  },
-  {
-    "file": "tarkovtool-stims.html",
-    "title": "Стимуляторы",
-    "description": "Рейтинг инъекторов: бой, выносливость, отхил, вес. Эффекты из API."
-  },
-  {
-    "file": "tarkovtool-streamer-flip.html",
-    "title": "Стример-флип",
-    "description": "Стримерские предметы vs Терапевт."
-  },
-  {
-    "file": "tarkovtool-trader-flip.html",
-    "title": "Трейдер-флип",
-    "description": "Перепродажа от торговца на барахолку с УЛ и квестами."
-  }
-];
-
+    const CATALOG = [{"file": "tarkovtool-ammo.html", "title": "Патроны", "description": "Таблица пробития по калибрам, класс брони, урон, цена."}, {"file": "tarkovtool-armor.html", "title": "Броня", "description": "Рейтинг брони по классу, зонам, плитам, без упора в цену."}, {"file": "tarkovtool-barter-calc.html", "title": "Бартер (ручной)", "description": "Калькулятор выгодности бартера: компоненты, комиссия flea."}, {"file": "tarkovtool-barter-live.html", "title": "Бартер (live)", "description": "Бартер с ценами барахолки через API, пресеты трейдов."}, {"file": "tarkovtool-bosses.html", "title": "Боссы и гуны", "description": "Шансы боссов, таймеры карт, текущая локация гунов."}, {"file": "tarkovtool-btc-farm.html", "title": "Биткоин-ферма", "description": "ROI майнинга: GPU, топливо, солнечная, Hideout Management, графики."}, {"file": "tarkovtool-compare.html", "title": "Сравнение", "description": "Сравнение нескольких предметов одной категории, моды под ствол."}, {"file": "tarkovtool-containers.html", "title": "Разгрузки и рюкзаки", "description": "Рейтинг контейнеров: слоты, вес, сегменты."}, {"file": "tarkovtool-crafts.html", "title": "Крафты убежища", "description": "ROI крафтов hideout, цены, время."}, {"file": "tarkovtool-drip.html", "title": "Дрип по цветам", "description": "Экип по цветам (песок, чёрный, MC…) + score статов."}, {"file": "tarkovtool-gun-budget.html", "title": "Сборка за N ₽", "description": "Оружие под бюджет: максимум статов, схема модов, прицел."}, {"file": "tarkovtool-gun-builder.html", "title": "Gun Builder", "description": "Сборка оружия по слотам: статы, цена, flea/торговец/квест."}, {"file": "tarkovtool-hideout-mgmt.html", "title": "Качатель Hideout Management", "description": "Какой крафт крутить на каждой станции за минимум ₽ за цикл скилла."}, {"file": "tarkovtool-hideout.html", "title": "Трекер убежища", "description": "Уровни станций, шоплист апгрейдов, цены."}, {"file": "tarkovtool-item-use.html", "title": "Что с предметом", "description": "Ввёл предмет — продажа, крафт, убежище, квесты, бартер."}, {"file": "tarkovtool-keys.html", "title": "Ключи", "description": "Ключи по локациям, цена и рейтинг."}, {"file": "tarkovtool-lang-search.html", "title": "EN ↔ RU поиск", "description": "Предметы и квесты: двойной поиск EN/RU."}, {"file": "tarkovtool-loot-slot.html", "title": "Лут ₽/слот", "description": "Цена за клетку: flea и торговец, пометка квеста."}, {"file": "tarkovtool-mags.html", "title": "Магазины", "description": "Магазины по калибрам: ёмкость, эрга, отдача."}, {"file": "tarkovtool-medkits.html", "title": "Аптечки", "description": "HP на клетку, скорость применения, ₽/HP. Аптечки и таблетки."}, {"file": "tarkovtool-mods.html", "title": "Моды", "description": "Рейтинг обвесов по статам и совместимости."}, {"file": "tarkovtool-plates.html", "title": "Плиты", "description": "Эффективность плит: класс, вес, прочность, стоимость ремонта."}, {"file": "tarkovtool-quest-items.html", "title": "Квест-предметы", "description": "FIR-предметы для квестов, трекинг."}, {"file": "tarkovtool-quests.html", "title": "Квесты · карты", "description": "Глоссарий квестов: реальные карты вместо «любая локация», цели по шагам, требования."}, {"file": "tarkovtool-raid-checklist.html", "title": "Чек-лист рейда", "description": "Сборки под карты, DnD списка, В РЕЙД → сброс галочек через 20 мин."}, {"file": "tarkovtool-restock.html", "title": "Таймер рестока", "description": "Обновление торговцев, пилик, история."}, {"file": "tarkovtool-scopes.html", "title": "Прицелы", "description": "Рейтинг оптики: кратность, ПНВ, community tier."}, {"file": "tarkovtool-shortname.html", "title": "Короткие имена", "description": "Поиск по short name + цена торговца/flea."}, {"file": "tarkovtool-skills.html", "title": "Скиллы + чизы", "description": "Трекер уровней, софт-кап усталости навыка, чиз-страты 1.0+."}, {"file": "tarkovtool-stim-combos.html", "title": "Комбо стимуляторов", "description": "Связки вроде Meldonin+SJ1, SJ6+Trimadol, Propital+MULE. Иконки и копир."}, {"file": "tarkovtool-stims.html", "title": "Стимуляторы", "description": "Рейтинг инъекторов: бой, выносливость, отхил, вес. Эффекты из API."}, {"file": "tarkovtool-streamer-flip.html", "title": "Стример-флип", "description": "Стримерские предметы vs Терапевт."}, {"file": "tarkovtool-trader-flip.html", "title": "Трейдер-флип", "description": "Перепродажа от торговца на барахолку с УЛ и квестами."}];
+    const CHANGELOG = [{"date": "2026-09-11", "items": ["Единый дизайн: кнопки одной высоты, карточки, таблицы", "Автосортировка и поиск по всем таблицам", "Тема светлая/тёмная, RU/EN шапка, звук, импорт/экспорт", "Хаб без имён файлов + патчноут", "Биткоин-ферма с графиками"]}, {"date": "2026-09-09", "items": ["Квесты с картами, EN↔RU квесты", "Чек-лист рейда: карты + DnD", "Хаб для GitHub Pages"]}];
     const ICONS = [
-      [/ammo/i, '🔫'], [/armor/i, '🛡️'], [/barter/i, '🧮'], [/boss/i, '👹'],
-      [/compare/i, '⚖️'], [/container/i, '🎒'], [/craft/i, '🔧'], [/drip/i, '🕶️'],
-      [/gun-budget/i, '💰'], [/gun-builder/i, '🛠️'], [/hideout-mgmt/i, '🏠'],
-      [/hideout/i, '🏗️'], [/key/i, '🔑'], [/lang/i, '🌐'], [/loot/i, '📦'],
-      [/item-use/i, '💡'], [/mag/i, '📟'], [/medkit/i, '💊'], [/mods/i, '🔩'],
-      [/plate/i, '🧱'], [/quest-item/i, '📋'], [/quest/i, '📜'], [/raid/i, '✅'],
-      [/restock/i, '⏰'], [/scope/i, '🔭'], [/shortname/i, '🏷️'], [/skill/i, '📈'],
-      [/stim-combo/i, '💉'], [/stim/i, '💉'], [/streamer/i, '📺'], [/trader/i, '🏪']
+      [/btc|bitcoin/i, "₿"], [/ammo/i, "🔫"], [/armor/i, "🛡️"], [/barter/i, "🧮"],
+      [/boss/i, "👹"], [/compare/i, "⚖️"], [/container/i, "🎒"], [/craft/i, "🔧"],
+      [/drip/i, "🕶️"], [/gun-budget/i, "💰"], [/gun-builder/i, "🛠️"],
+      [/hideout-mgmt/i, "🏠"], [/hideout/i, "🏗️"], [/key/i, "🔑"], [/lang/i, "🌐"],
+      [/loot/i, "📦"], [/item-use/i, "💡"], [/mag/i, "📟"], [/medkit/i, "💊"],
+      [/mods/i, "🔩"], [/plate/i, "🧱"], [/quest-item/i, "📋"], [/quest/i, "📜"],
+      [/raid/i, "✅"], [/restock/i, "⏰"], [/scope/i, "🔭"], [/shortname/i, "🏷️"],
+      [/skill/i, "📈"], [/stim/i, "💉"], [/streamer/i, "📺"], [/trader/i, "🏪"]
     ];
-
     function iconFor(file, title) {
-      const hay = file + ' ' + title;
+      const hay = file + " " + title;
       for (const [re, emo] of ICONS) if (re.test(hay)) return emo;
-      return '📎';
+      return "📎";
     }
     function esc(s) {
-      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
     }
-
     function render() {
-      const q = (document.getElementById('q').value || '').toLowerCase().trim();
+      const q = (document.getElementById("q").value || "").toLowerCase().trim();
       let list = CATALOG;
-      if (q) {
-        list = CATALOG.filter(t =>
-          (t.title || '').toLowerCase().includes(q) ||
-          (t.description || '').toLowerCase().includes(q) ||
-          (t.file || '').toLowerCase().includes(q)
-        );
-      }
-      document.getElementById('count').textContent = list.length + ' / ' + CATALOG.length;
-      const grid = document.getElementById('grid');
-      grid.innerHTML = list.map(t => {
-        const ico = iconFor(t.file, t.title);
-        return `<a class="tool" href="${esc(t.file)}">
-          <div class="tool-head">
-            <div class="tool-ico" aria-hidden="true">${ico}</div>
-            <div>
-              <h2>${esc(t.title || t.file)}</h2>
-              <p>${esc(t.description || '—')}</p>
-            </div>
-          </div>
-          <div class="file">${esc(t.file)}</div>
-        </a>`;
-      }).join('');
+      if (q) list = CATALOG.filter(t => (t.title||"").toLowerCase().includes(q) || (t.description||"").toLowerCase().includes(q));
+      document.getElementById("count").textContent = list.length + " / " + CATALOG.length;
+      document.getElementById("grid").innerHTML = list.map(t => {
+        return `<a class="tool" href="${esc(t.file)}"><div class="tool-head"><div class="tool-ico">${iconFor(t.file,t.title)}</div><div><h2>${esc(t.title)}</h2><p>${esc(t.description||"")}</p></div></div></a>`;
+      }).join("");
     }
-
-    document.getElementById('q').addEventListener('input', render);
-    render();
+    function renderChangelog() {
+      document.getElementById("changelog").innerHTML = "<h3>Что изменилось</h3>" + CHANGELOG.map(b =>
+        `<div style="margin-bottom:12px"><strong>${esc(b.date)}</strong><ul>${b.items.map(i=>`<li>${esc(i)}</li>`).join("")}</ul></div>`
+      ).join("");
+    }
+    document.getElementById("q").addEventListener("input", render);
+    render(); renderChangelog();
   </script>
 </body>
 </html>

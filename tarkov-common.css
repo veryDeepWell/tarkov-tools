@@ -1,82 +1,182 @@
-/* Tarkov tools — общий масштаб и базовые стили */
-:root {
+/* Tarkov Tools — unified design system */
+:root, [data-theme="dark"] {
   --bg: #0f1115;
-  --card: #1a1d24;
+  --card: #171a21;
+  --input-bg: #12151b;
   --border: #2a2f3a;
   --text: #e8eaed;
-  --muted: #9aa0a6;
+  --muted: #8b919a;
   --accent: #c9a227;
   --green: #3dd68c;
   --red: #f07178;
-  --orange: #e6a23c;
-  --input-bg: #12151b;
-  --font: 16px;
-  --icon: 52px;
-  --icon-sm: 40px;
-  --icon-lg: 72px;
+  --orange: #e0a458;
+  --btn-h: 42px;
+  --btn-min-w: 128px;
+  --radius: 10px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
-
-html { font-size: var(--font); }
-body {
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  background: var(--bg);
+[data-theme="light"] {
+  --bg: #f0f2f5;
+  --card: #ffffff;
+  --input-bg: #e8ebf0;
+  --border: #cdd2db;
+  --text: #1a1d24;
+  --muted: #5c6570;
+  --accent: #9a7b18;
+  --green: #178f52;
+  --red: #c43c44;
+  --orange: #c47a20;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  margin: 0; min-height: 100%;
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  font-family: var(--font) !important;
+  font-size: 16px; line-height: 1.45;
+}
+a { color: var(--accent); }
+h1 { font-size: 1.55rem; font-weight: 700; margin: 0 0 6px; color: var(--text) !important; }
+.sub, .meta, .hint, p.sub { color: var(--muted) !important; }
+.container { max-width: min(1100px, 94vw); margin: 0 auto; padding: 12px 14px 64px; }
+.card, .qcard {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  padding: 16px 18px !important;
+  margin-bottom: 12px !important;
   color: var(--text);
-  line-height: 1.45;
 }
-
-.container {
-  max-width: min(1600px, 92vw) !important;
-  margin-left: auto;
-  margin-right: auto;
+.card-title {
+  font-size: .78rem; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--muted) !important; margin-bottom: 10px; font-weight: 600;
 }
-
-h1 { font-size: 1.6rem !important; }
-.sub, .hint, .meta, .status { font-size: 0.95rem !important; }
-.card-title { font-size: 0.85rem !important; }
-
-/* Иконки — крупнее */
-.ico, .icon, .item-icon {
-  width: var(--icon) !important;
-  height: var(--icon) !important;
-  object-fit: contain;
-  border-radius: 6px;
-  background: #0a0c10;
-  flex-shrink: 0;
-}
-.ico-sm, .icon-sm, .item-icon.sm {
-  width: var(--icon-sm) !important;
-  height: var(--icon-sm) !important;
-}
-.ico-lg {
-  width: var(--icon-lg) !important;
-  height: var(--icon-lg) !important;
-}
-
-.name-cell {
-  display: flex !important;
-  align-items: center;
-  gap: 10px;
-}
-.name-cell .txt { min-width: 0; }
-.name { font-size: 1rem !important; font-weight: 600; }
-
-table { font-size: 0.95rem !important; }
-th { font-size: 0.8rem !important; }
-td { padding: 10px 12px !important; }
-
-.chip {
-  font-size: 0.9rem !important;
-  padding: 6px 14px !important;
-}
-.btn, .btn-ghost {
-  font-size: 0.95rem !important;
-  padding: 10px 16px !important;
-}
-input, select {
-  font-size: 1rem !important;
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.field { flex: 1; min-width: 140px; }
+.field label, label { font-size: .8rem; color: var(--muted); }
+input:not([type=checkbox]):not([type=radio]):not([type=file]),
+select, textarea {
+  width: 100%;
+  background: var(--input-bg) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
   padding: 10px 12px !important;
+  color: var(--text) !important;
+  font-size: 1rem !important;
+  outline: none;
+  min-height: var(--btn-h);
+  font-family: inherit;
 }
-.copy-btn {
-  font-size: 0.8rem !important;
-  padding: 4px 10px !important;
+input[type=checkbox], input[type=radio] { width: auto; min-height: auto; accent-color: var(--accent); }
+button,
+.btn, .btn-ghost, .btn-raid, .btn-primary,
+input[type=button], input[type=submit] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: var(--btn-h) !important;
+  min-width: var(--btn-min-w) !important;
+  padding: 0 16px !important;
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+  font-size: .92rem !important;
+  font-family: inherit !important;
+  line-height: 1.2 !important;
+  cursor: pointer;
+  box-sizing: border-box !important;
+  border: 1px solid transparent;
+  text-decoration: none;
+  white-space: nowrap;
 }
+button:not(.btn-ghost):not(.del):not(.copy-btn):not(.map-chip):not(.chip):not(.tab):not(.handle),
+.btn, .btn-raid, .btn-primary,
+input[type=button], input[type=submit] {
+  background: var(--accent) !important;
+  color: #111 !important;
+  border-color: var(--accent) !important;
+}
+button.btn-ghost, .btn-ghost, a.btn-ghost {
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  color: var(--muted) !important;
+  min-width: var(--btn-min-w) !important;
+}
+button.btn-ghost:hover, .btn-ghost:hover {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+button:disabled, .btn:disabled { opacity: .45 !important; cursor: default !important; }
+.copy-btn, .del, button.del {
+  min-width: auto !important;
+  min-height: 32px !important;
+  padding: 0 10px !important;
+  font-size: .8rem !important;
+  font-weight: 600 !important;
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  color: var(--muted) !important;
+  border-radius: 6px !important;
+}
+.chip, .map-chip, .tab {
+  min-width: auto !important;
+  min-height: 34px !important;
+  padding: 0 12px !important;
+  border-radius: 16px !important;
+  background: var(--input-bg) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--muted) !important;
+  font-weight: 600 !important;
+  font-size: .85rem !important;
+  cursor: pointer;
+}
+.chip.active, .map-chip.active, .tab.active {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  background: rgba(201,162,39,.12) !important;
+}
+.status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+.status.ok { color: var(--green) !important; }
+.status.err { color: var(--red) !important; }
+.tag {
+  display: inline-block; font-size: .72rem; padding: 2px 7px; border-radius: 4px;
+  margin: 1px 2px; background: rgba(127,127,127,.12); color: var(--muted);
+}
+.table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--card); }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; color: var(--text); }
+th, td { padding: 10px 12px; border-top: 1px solid var(--border); text-align: left; vertical-align: middle; }
+th {
+  position: sticky; top: 0; background: var(--input-bg) !important;
+  color: var(--muted) !important; font-size: .72rem; text-transform: uppercase;
+  z-index: 1; cursor: pointer; user-select: none;
+}
+th:hover { color: var(--accent) !important; }
+th.sorted-asc::after { content: " ▲"; }
+th.sorted-desc::after { content: " ▼"; }
+.tt-table-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; align-items: center; }
+.tt-table-tools input { flex: 1; min-width: 160px; min-height: 36px !important; }
+.tt-bar {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  max-width: min(1100px, 94vw); margin: 0 auto; padding: 12px 14px 0;
+}
+.tt-bar .spacer { flex: 1; }
+.tt-bar button, .tt-bar a.btn-ghost {
+  min-width: 72px !important; min-height: 34px !important; font-size: .82rem !important;
+}
+.changelog {
+  margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--border);
+  font-size: .85rem; color: var(--muted);
+}
+.changelog h3 { color: var(--text); font-size: .95rem; margin-bottom: 8px; }
+.changelog ul { margin: 0 0 12px 18px; }
+.modal-bg {
+  position: fixed; inset: 0; background: rgba(0,0,0,.55);
+  display: none; align-items: center; justify-content: center; z-index: 100; padding: 16px;
+}
+.modal-bg.show { display: flex; }
+.modal {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  max-width: 480px; width: 100%; padding: 20px; max-height: 90vh; overflow: auto; color: var(--text);
+}
+.good { color: var(--green) !important; }
+.bad { color: var(--red) !important; }
+.ico, img.ico { width: 48px; height: 48px; object-fit: contain; border-radius: 6px; background: var(--input-bg); }
