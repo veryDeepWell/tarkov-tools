@@ -56,6 +56,9 @@
     list.unshift(item);
     write(NOTIF, list.slice(0, 150));
     emit('notification', item);
+    try {
+      window.dispatchEvent(new StorageEvent('storage', { key: NOTIF }));
+    } catch (e) {}
     return item;
   }
   function markRead(id) {
