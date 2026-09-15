@@ -1,8 +1,8 @@
-/** Tarkov shared local state + notifications (localStorage). */
+/** Tarkov shared local state + mini-tabs + notifications */
 (function (global) {
   const ROOT = 'tarkovState.v1';
   const NOTIF = 'tarkovNotifications.v1';
-  const OPEN_TABS = 'tarkovDeskTabs.v1';
+  const MINI = 'tarkovMiniTabs.v1';
 
   function read(key, fallback) {
     try {
@@ -50,21 +50,45 @@
     const item = Object.assign({
       id: 'n' + Date.now() + Math.random().toString(36).slice(2, 6),
       ts: Date.now(),
-      read: false
+      read: false,
+      tool: n.tool || ''
     }, n);
     list.unshift(item);
-    write(NOTIF, list.slice(0, 100));
+    write(NOTIF, list.slice(0, 150));
     emit('notification', item);
     return item;
   }
   function markRead(id) {
     const list = getNotifications().map(x => x.id === id ? Object.assign({}, x, { read: true }) : x);
     write(NOTIF, list);
+    emit('notification', null);
   }
-  function clearNotifications() { write(NOTIF, []); }
+  function markToolRead(tool) {
+    const list = getNotifications().map(x =>
+      (x.tool === tool && !x.read) ? Object.assign({}, x, { read: true }) : x
+    );
+    write(NOTIF, list);
+    emit('notification', null);
+  }
+  function clearNotifications() { write(NOTIF, []); emit('notification', null); }
+  function unreadForTool(tool) {
+    return getNotifications().filter(x => x.tool === tool && !x.read);
+  }
 
-  function getOpenTabs() { return read(OPEN_TABS, []); }
-  function setOpenTabs(tabs) { write(OPEN_TABS, tabs); emit('tabs', tabs); }
+  function getMiniTabs() { return read(MINI, []); }
+  function setMiniTabs(tabs) {
+    write(MINI, tabs);
+    emit('mini', tabs);
+  }
+  function addMiniTab(tab) {
+    const tabs = getMiniTabs().filter(t => t.file !== tab.file);
+    tabs.push({ file: tab.file, title: tab.title || tab.file });
+    setMiniTabs(tabs);
+    return tabs;
+  }
+  function removeMiniTab(file) {
+    setMiniTabs(getMiniTabs().filter(t => t.file !== file));
+  }
 
   const listeners = {};
   function on(ev, fn) {
@@ -84,9 +108,13 @@
     notifications: getNotifications,
     notify: pushNotification,
     markRead,
+    markToolRead,
     clearNotifications,
-    getOpenTabs,
-    setOpenTabs,
+    unreadForTool,
+    getMiniTabs,
+    setMiniTabs,
+    addMiniTab,
+    removeMiniTab,
     on
   };
 })(window);
