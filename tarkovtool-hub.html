@@ -122,7 +122,7 @@
       {"file":"tarkovtool-trader-flip.html","title":"Трейдер-флип","description":"Перепродажа от торговца."}
     ];
     const CHANGELOG = [
-      {"date":"2026-09-15","items":["Мини-табы в хабе + кнопка МИНИ","Notify() с бейджами","Культисты"]},
+      {"date":"2026-09-15","items":["Мини-табы: панель не перекрывается expand","Persist open tabs","Notify() + hover popup"]},
       {"date":"2026-09-11","items":["Единый дизайн","Тема / RU-EN","Импорт-экспорт"]},
       {"date":"2026-09-09","items":["Хаб для GitHub Pages"]}
     ];
@@ -212,14 +212,23 @@
     function hideTip() { document.getElementById('miniTip').style.display = 'none'; }
 
     function expandTab(file) {
+      if (expanded && expanded !== file && frames[expanded]) {
+        const prev = frames[expanded];
+        document.getElementById('framePool').appendChild(prev);
+        prev.style.width = '0';
+        prev.style.height = '0';
+        prev.style.position = '';
+      }
       ensureFrame(file);
       expanded = file;
       TarkovState.markToolRead(file);
       const host = document.getElementById('expandHost');
-      host.innerHTML = '';
       const ifr = frames[file];
       host.appendChild(ifr);
-      ifr.style.cssText = 'border:0;width:100%;height:100%;position:absolute;inset:0;background:var(--bg)';
+      ifr.style.width = '100%';
+      ifr.style.height = '100%';
+      ifr.style.position = 'absolute';
+      ifr.style.inset = '0';
       document.getElementById('hubExpand').classList.add('open');
       document.getElementById('expandTitle').textContent = titleOf(file);
       renderMiniList();
@@ -230,7 +239,9 @@
       const ifr = frames[expanded];
       if (ifr) {
         document.getElementById('framePool').appendChild(ifr);
-        ifr.style.cssText = 'border:0;width:0;height:0;overflow:hidden';
+        ifr.style.width = '0';
+        ifr.style.height = '0';
+        ifr.style.position = '';
       }
       expanded = null;
       document.getElementById('hubExpand').classList.remove('open');
