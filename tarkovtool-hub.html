@@ -117,7 +117,11 @@
       return "📎";
     }
     function esc(s) {
-      return String(s || "").replace(/&/g,"&").replace(/</g,"<").replace(/>/g,">").replace(/"/g,""");
+      return String(s || "")
+        .replace(/&/g, "\u0026amp;")
+        .replace(/</g, "\u0026lt;")
+        .replace(/>/g, "\u0026gt;")
+        .replace(/"/g, "\u0026quot;");
     }
     const PINS_KEY = 'tarkovHubPins';
     function loadPins() {
@@ -149,16 +153,16 @@
       const pinTitle = (window.TarkovTools && TarkovTools.lang() === 'en')
         ? (pinned ? 'Unpin' : 'Pin')
         : (pinned ? 'Открепить' : 'Закрепить');
-      return `<a class="tool" href="${esc(t.file)}">
-        <button type="button" class="tool-pin ${pinned ? 'on' : ''}" data-pin="${esc(t.file)}" title="${pinTitle}">${pinned ? '📌' : '📍'}</button>
-        <div class="tool-head">
-          <div class="tool-ico">${iconFor(t.file, t.title)}</div>
-          <div style="padding-right:28px">
-            <h2>${esc(displayTitle(t))}</h2>
-            <p>${esc(displayDesc(t))}</p>
-          </div>
-        </div>
-      </a>`;
+      return '<a class="tool" href="' + esc(t.file) + '">' +
+        '<button type="button" class="tool-pin ' + (pinned ? 'on' : '') + '" data-pin="' + esc(t.file) + '" title="' + pinTitle + '">' + (pinned ? '📌' : '📍') + '</button>' +
+        '<div class="tool-head">' +
+          '<div class="tool-ico">' + iconFor(t.file, t.title) + '</div>' +
+          '<div style="padding-right:28px">' +
+            '<h2>' + esc(displayTitle(t)) + '</h2>' +
+            '<p>' + esc(displayDesc(t)) + '</p>' +
+          '</div>' +
+        '</div>' +
+      '</a>';
     }
     function render() {
       const q = (document.getElementById("q").value || "").toLowerCase().trim();
@@ -179,9 +183,9 @@
       const en = window.TarkovTools && TarkovTools.lang() === 'en';
       let html = '';
       if (pinned.length) {
-        html += `<div class="pins-label" style="grid-column:1/-1">${en ? 'Pinned' : 'Закреплённые'}</div>`;
+        html += '<div class="pins-label" style="grid-column:1/-1">' + (en ? 'Pinned' : 'Закреплённые') + '</div>';
         html += pinned.map(t => cardHtml(t, true)).join('');
-        if (rest.length) html += `<div class="pins-label" style="grid-column:1/-1">${en ? 'All tools' : 'Все инструменты'}</div>`;
+        if (rest.length) html += '<div class="pins-label" style="grid-column:1/-1">' + (en ? 'All tools' : 'Все инструменты') + '</div>';
       }
       html += rest.map(t => cardHtml(t, false)).join('');
       document.getElementById("grid").innerHTML = html;
@@ -193,7 +197,7 @@
       const en = window.TarkovTools && TarkovTools.lang() === 'en';
       const title = en ? 'Changelog' : 'Что изменилось';
       document.getElementById("changelog").innerHTML = "<h3>" + title + "</h3>" + CHANGELOG.map(b =>
-        `<div style="margin-bottom:12px"><strong>${esc(b.date)}</strong><ul>${b.items.map(i=>`<li>${esc(i)}</li>`).join("")}</ul></div>`
+        '<div style="margin-bottom:12px"><strong>' + esc(b.date) + '</strong><ul>' + b.items.map(i=>'<li>' + esc(i) + '</li>').join("") + '</ul></div>'
       ).join("");
     }
     document.getElementById("q").addEventListener("input", render);
