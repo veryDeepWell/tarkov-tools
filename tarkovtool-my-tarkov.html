@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Tarkov — dashboard</title>
+  <link rel="stylesheet" href="tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "My Tarkov", "description": "Дашборд над общим локальным состоянием: убежище, квесты, алерты."}
+  </script>
+  <style>
+    .container{max-width:min(1600px,92vw)!important;margin:0 auto;padding:12px 14px 64px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+    .stat-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:12px}
+    .stat{background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:12px}
+    .stat .v{font-size:1.3rem;font-weight:800;color:var(--accent)}
+    .stat .l{font-size:.75rem;color:var(--muted)}
+    .card h3{margin:0 0 10px;font-size:1rem;color:var(--accent)}
+    .link{color:var(--accent);text-decoration:none}
+    .link:hover{text-decoration:underline}
+    .field{margin-bottom:8px}
+    .field label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px}
+    textarea{width:100%;min-height:80px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>My Tarkov</h1>
+    <p class="sub" style="color:var(--muted);margin-bottom:14px">Локальный дашборд. Не заменяет инструменты — только сводка состояния.</p>
+
+    <div class="stat-row" id="stats"></div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Профиль</h3>
+        <div class="field"><label>Уровень PMC</label>
+          <input type="number" id="level" min="1" max="79" value="1">
+        </div>
+        <div class="field"><label>Режим</label>
+          <select id="gameMode">
+            <option value="pve">pve</option>
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="saveProfile">Сохранить</button>
+      </div>
+
+      <div class="card">
+        <h3>Убежище</h3>
+        <p class="meta" id="hideoutSum">Данные из трекера убежища (если пользовался).</p>
+        <a class="link" href="tarkovtool-hideout.html">Открыть трекер →</a>
+        <div class="field" style="margin-top:10px"><label>Заметки</label>
+          <textarea id="hideoutNotes" placeholder="Что качать дальше…"></textarea>
+        </div>
+        <button type="button" class="btn-ghost" id="saveNotes">Сохранить заметки</button>
+      </div>
+
+      <div class="card">
+        <h3>Алерты цен</h3>
+        <div class="row">
+          <input type="text" id="alertSlug" placeholder="normalized-name или id" style="flex:2">
+          <input type="number" id="alertTarget" placeholder="цель ₽" style="flex:1;min-width:100px">
+        </div>
+        <div class="row" style="margin-top:6px">
+          <select id="alertDir"><option value="above">выше</option><option value="below">ниже</option></select>
+          <button type="button" class="btn" id="addAlert">Добавить</button>
+        </div>
+        <div id="alertList" style="margin-top:10px"></div>
+        <p class="meta" style="margin-top:8px">Проверка при снимках в <a class="link" href="tarkovtool-price-track.html">Динамике цен</a> (пока вкладка открыта).</p>
+      </div>
+
+      <div class="card">
+        <h3>Быстрые ссылки</h3>
+        <p><a class="link" href="tarkovtool-desk.html">🖥 Desk (мини-вкладки)</a></p>
+        <p><a class="link" href="tarkovtool-raid-checklist.html">✅ Чек-лист рейда</a></p>
+        <p><a class="link" href="tarkovtool-restock.html">⏰ Ресток</a></p>
+        <p><a class="link" href="tarkovtool-cultist.html">⛧ Культисты</a></p>
+        <p><a class="link" href="tarkovtool-quests.html">📜 Квесты</a></p>
+      </div>
+
+      <div class="card">
+        <h3>Уведомления</h3>
+        <div id="notifs"></div>
+        <button type="button" class="btn-ghost" id="clearN" style="margin-top:8px">Очистить</button>
+      </div>
+    </div>
+  </div>
+  <script src="tarkov-state.js"></script>
+  <script src="tarkov-common.js"></script>
+  <script>
+    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    function paint() {
+      const st = TarkovState.get();
+      document.getElementById('level').value = st.player.level || 1;
+      document.getElementById('gameMode').value = st.player.gameMode || 'pve';
+      document.getElementById('hideoutNotes').value = (st.hideout && st.hideout.notes) || '';
+      document.getElementById('stats').innerHTML =
+        '<div class="stat"><div class="v">'+(st.player.level||1)+'</div><div class="l">PMC</div></div>'+
+        '<div class="stat"><div class="v">'+(st.player.gameMode||'pve')+'</div><div class="l">режим</div></div>'+
+        '<div class="stat"><div class="v">'+((st.alerts&&st.alerts.prices)||[]).length+'</div><div class="l">алертов</div></div>'+
+        '<div class="stat"><div class="v">'+TarkovState.notifications().filter(n=>!n.read).length+'</div><div class="l">непрочит.</div></div>';
+
+      let hs = 'Открой трекер убежища и сохрани прогресс — здесь появится сводка.';
+      try {
+        const raw = localStorage.getItem('tarkovHideout') || localStorage.getItem('tarkovHideoutSettings');
+        if (raw) hs = 'Есть сохранённые данные трекера (localStorage).';
+      } catch(e){}
+      document.getElementById('hideoutSum').textContent = hs;
+
+      const alerts = (st.alerts && st.alerts.prices) || [];
+      document.getElementById('alertList').innerHTML = alerts.length ? alerts.map((a,i)=>
+        `<div class="meta" style="padding:4px 0;display:flex;justify-content:space-between;gap:8px">
+          <span>${esc(a.slug)} ${a.dir==='above'?'≥':'≤'} ${Number(a.target).toLocaleString('ru-RU')} ₽</span>
+          <button type="button" class="btn-ghost" data-i="${i}" style="min-height:28px!important;min-width:auto!important">×</button>
+        </div>`
+      ).join('') : '<span class="meta">Нет алертов</span>';
+      document.querySelectorAll('#alertList button').forEach(b=>{
+        b.onclick=()=>{
+          const st2 = TarkovState.get();
+          const arr = (st2.alerts.prices||[]).slice();
+          arr.splice(+b.dataset.i,1);
+          TarkovState.set({alerts:{prices:arr}});
+          paint();
+        };
+      });
+
+      const ns = TarkovState.notifications().slice(0,10);
+      document.getElementById('notifs').innerHTML = ns.length ? ns.map(n=>
+        `<div style="padding:6px 0;border-bottom:1px solid var(--border)">
+          <strong>${esc(n.title)}</strong><div class="meta">${esc(n.body)}</div>
+        </div>`
+      ).join('') : '<span class="meta">Пусто</span>';
+    }
+
+    document.getElementById('saveProfile').onclick=()=>{
+      TarkovState.set({player:{
+        level: Number(document.getElementById('level').value)||1,
+        gameMode: document.getElementById('gameMode').value
+      }});
+      try { localStorage.setItem('tarkovPreferredGameMode', document.getElementById('gameMode').value); } catch(e){}
+      paint();
+      if (window.TarkovTools&&TarkovTools.beep) TarkovTools.beep('ok');
+    };
+    document.getElementById('saveNotes').onclick=()=>{
+      TarkovState.set({hideout:{notes: document.getElementById('hideoutNotes').value}});
+      paint();
+    };
+    document.getElementById('addAlert').onclick=()=>{
+      const slug = (document.getElementById('alertSlug').value||'').trim();
+      const target = Number(document.getElementById('alertTarget').value);
+      if (!slug || !target) return;
+      const st = TarkovState.get();
+      const arr = ((st.alerts&&st.alerts.prices)||[]).slice();
+      arr.push({slug, target, dir: document.getElementById('alertDir').value});
+      TarkovState.set({alerts:{prices:arr}});
+      document.getElementById('alertSlug').value='';
+      document.getElementById('alertTarget').value='';
+      paint();
+    };
+    document.getElementById('clearN').onclick=()=>{ TarkovState.clearNotifications(); paint(); };
+    paint();
+  </script>
+</body>
+</html>
