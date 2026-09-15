@@ -1,92 +1,153 @@
-/*! Mini-tabs + Notify addon — load after tarkov-common.js */
+/** Mini-tabs addon: МИНИ button + unified Notify() */
 (function (global) {
-  function currentToolFile() {
+  if (global.__ttMiniLoaded) return;
+  global.__ttMiniLoaded = true;
+
+  function currentFile() {
     try {
-      var p = (location.pathname || '').split('/').pop() || '';
-      return p.indexOf('tarkovtool-') === 0 ? p : (p.endsWith('.html') ? p : '');
-    } catch (e) { return ''; }
+      const path = (location.pathname || '').split('/').pop() || '';
+      return path || 'index.html';
+    } catch (e) { return 'unknown'; }
   }
-  function currentToolTitle() {
-    var meta = document.getElementById('tarkovtool-meta');
-    if (meta) {
-      try {
-        var j = JSON.parse(meta.textContent || '{}');
+
+  function currentTitle() {
+    try {
+      const meta = document.getElementById('tarkovtool-meta');
+      if (meta) {
+        const j = JSON.parse(meta.textContent || '{}');
         if (j.title) return j.title;
+      }
+    } catch (e) {}
+    return document.title || currentFile();
+  }
+
+  function isInMiniFrame() {
+    try {
+      return window.parent && window.parent !== window && window.parent.TarkovHubMini === true;
+    } catch (e) { return false; }
+  }
+
+  function isHubPage() {
+    return !!global.TarkovHubMini;
+  }
+
+  /**
+   * Unified Notify — sound + log.
+   * In normal mode and mini-tab mode: beep + store in TarkovState.
+   * In mini-tab: also postMessage to hub so badge updates immediately.
+   * @param {string|object} titleOrOpts
+   * @param {string} [body]
+   */
+  function Notify(titleOrOpts, body) {
+    let title, msg, tool, kind, silent;
+    if (titleOrOpts && typeof titleOrOpts === 'object') {
+      title = titleOrOpts.title || titleOrOpts.t || 'Уведомление';
+      msg = titleOrOpts.body || titleOrOpts.b || titleOrOpts.message || '';
+      tool = titleOrOpts.tool || currentFile();
+      kind = titleOrOpts.kind || 'ok';
+      silent = !!titleOrOpts.silent;
+    } else {
+      title = String(titleOrOpts || 'Уведомление');
+      msg = body != null ? String(body) : '';
+      tool = currentFile();
+      kind = 'ok';
+      silent = false;
+    }
+
+    // sound (works in both modes); skip if tool already played its own
+    if (!silent) {
+      try {
+        if (global.TarkovTools && typeof TarkovTools.beep === 'function') {
+          TarkovTools.beep(kind === 'warn' || kind === 'error' ? 'warn' : 'ok');
+        }
       } catch (e) {}
     }
-    return (document.title || '').split('\u2014')[0].split('-')[0].trim() || currentToolFile();
+
+    // persist for badge + hover popup
+    try {
+      if (global.TarkovState && typeof TarkovState.notify === 'function') {
+        TarkovState.notify({ title: title, body: msg, tool: tool });
+      }
+    } catch (e) {}
+
+    // tell hub to refresh badges immediately (iframe → parent)
+    try {
+      if (isInMiniFrame()) {
+        window.parent.postMessage({ type: 'tt-notify', tool: tool, title: title, body: msg }, '*');
+      }
+    } catch (e) {}
   }
-  function isHubPage() {
-    var f = currentToolFile();
-    return !f || f === 'tarkovtool-hub.html' || f === 'index.html';
+
+  function addToMiniAndGoHub() {
+    const file = currentFile();
+    const title = currentTitle();
+    try {
+      if (global.TarkovState && TarkovState.addMiniTab) {
+        TarkovState.addMiniTab({ file: file, title: title });
+      }
+    } catch (e) {}
+    // navigate to hub with optional expand hash
+    try {
+      location.href = 'tarkovtool-hub.html#mini=' + encodeURIComponent(file);
+    } catch (e) {
+      location.href = 'tarkovtool-hub.html';
+    }
   }
-  function ensureState(cb) {
-    if (window.TarkovState) { if (cb) cb(); return; }
+
+  function injectMiniButton() {
+    if (isHubPage()) return; // no MINI on hub itself
+    const bar = document.getElementById('tt-global-bar');
+    if (!bar) return;
+    if (document.getElementById('tt-bar-mini')) return;
+
+    const hub = document.getElementById('tt-bar-hub');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'tt-bar-mini';
+    btn.className = 'btn-ghost';
+    btn.textContent = 'МИНИ';
+    btn.title = 'Добавить в мини-табы хаба и остаться загруженным';
+    btn.onclick = function (e) {
+      e.preventDefault();
+      addToMiniAndGoHub();
+    };
+
+    if (hub && hub.parentNode) {
+      hub.parentNode.insertBefore(btn, hub);
+    } else {
+      bar.appendChild(btn);
+    }
+  }
+
+  function boot() {
+    // wait for common bar if needed
+    if (!document.getElementById('tt-global-bar')) {
+      setTimeout(boot, 50);
+      return;
+    }
+    injectMiniButton();
+  }
+
+  // expose
+  global.Notify = Notify;
+  global.TarkovMini = {
+    Notify: Notify,
+    addToMiniAndGoHub: addToMiniAndGoHub,
+    currentFile: currentFile,
+    isInMiniFrame: isInMiniFrame
+  };
+
+  // load TarkovState if missing (tools that only include common.js)
+  if (!global.TarkovState) {
     var s = document.createElement('script');
     s.src = 'tarkov-state.js';
-    s.onload = function () { if (cb) cb(); };
-    s.onerror = function () { if (cb) cb(); };
+    s.onload = boot;
     document.head.appendChild(s);
+  } else {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot);
+    } else {
+      boot();
+    }
   }
-  function Notify(opts) {
-    var o = typeof opts === 'string' ? { title: opts } : (opts || {});
-    var title = o.title || 'Событие';
-    var body = o.body || '';
-    var tool = o.tool || currentToolFile();
-    try {
-      if (global.TarkovTools && TarkovTools.beep) TarkovTools.beep(o.kind === 'err' ? 'err' : 'ok');
-    } catch (e) {}
-    try {
-      if (global.TarkovState && TarkovState.notify) TarkovState.notify({ title: title, body: body, tool: tool });
-    } catch (e) {}
-    try {
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: 'tt-notify', tool: tool, title: title, body: body }, '*');
-      }
-    } catch (e) {}
-  }
-  function addToMiniAndHub() {
-    var file = currentToolFile();
-    if (!file || file === 'tarkovtool-hub.html') return;
-    var title = currentToolTitle();
-    try {
-      if (global.TarkovState && TarkovState.addMiniTab) TarkovState.addMiniTab({ file: file, title: title });
-      else {
-        var key = 'tarkovMiniTabs.v1';
-        var tabs = [];
-        try { tabs = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) {}
-        tabs = tabs.filter(function (t) { return t.file !== file; });
-        tabs.push({ file: file, title: title });
-        localStorage.setItem(key, JSON.stringify(tabs));
-      }
-    } catch (e) {}
-    location.href = 'tarkovtool-hub.html#mini=' + encodeURIComponent(file);
-  }
-  function injectMiniBtn() {
-    if (isHubPage()) return;
-    if (document.getElementById('tt-bar-mini')) return;
-    var hub = document.getElementById('tt-bar-hub');
-    if (!hub || !hub.parentNode) return;
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'btn-ghost';
-    btn.id = 'tt-bar-mini';
-    btn.title = 'Мини-таб в хабе';
-    btn.textContent = (global.TarkovTools && TarkovTools.lang && TarkovTools.lang() === 'en') ? 'MINI' : 'МИНИ';
-    btn.onclick = function () {
-      try { if (global.TarkovTools && TarkovTools.beep) TarkovTools.beep('ok'); } catch (e) {}
-      addToMiniAndHub();
-    };
-    hub.parentNode.insertBefore(btn, hub);
-  }
-  function boot() {
-    ensureState(function () {});
-    if (global.TarkovTools) global.TarkovTools.Notify = Notify;
-    global.Notify = Notify;
-    injectMiniBtn();
-    setTimeout(injectMiniBtn, 50);
-    setTimeout(injectMiniBtn, 300);
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-  else boot();
 })(window);
