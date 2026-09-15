@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="tarkov-common.css">
+
+  <title>ПНВ — Tarkov</title>
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "ПНВ", "description": "Night vision: intensity, noise, diffuse, эвристический score."}
+  </script>
+  <style>
+    .container { max-width: min(1600px, 92vw) !important; margin: 0 auto; padding: 12px 14px 64px; }
+    h1 { margin-bottom: 4px; }
+    .sub { color: var(--muted); margin-bottom: 14px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+    .card-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { flex: 1; min-width: 140px; }
+    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    .status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green); }
+    .status.err { color: var(--red); }
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 10px; max-height: 70vh; }
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: .88rem; }
+    th, td { padding: 9px 10px; border-top: 1px solid var(--border); text-align: left; vertical-align: middle; }
+    th { position: sticky; top: 0; background: var(--input-bg); color: var(--muted); font-size: .72rem; text-transform: uppercase; cursor: pointer; z-index: 1; }
+    .name-cell { display: flex; align-items: center; gap: 10px; }
+    .ico { width: 36px; height: 36px; object-fit: contain; border-radius: 6px; background: var(--input-bg); }
+    .meta { font-size: .75rem; color: var(--muted); }
+    .name { font-weight: 600; }
+    .copy-btn { min-width: auto !important; min-height: 32px !important; }
+    .tip {
+      display: none; position: fixed; z-index: 200; min-width: 240px; max-width: 320px;
+      padding: 12px 14px; background: var(--input-bg); border: 1px solid var(--accent);
+      border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.5); font-size: .8rem; pointer-events: none;
+    }
+    .tip .tip-title { font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+    .tip .tip-grid { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; }
+    .tip .k { color: var(--muted); } .tip .v { font-weight: 600; text-align: right; }
+    .name-cell { cursor: help; }
+    
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ПНВ</h1>
+    <p class="sub">Night vision: intensity, noise, diffuse, эвристический score.</p>
+    
+    <div class="card">
+      <div class="card-title">Данные</div>
+      <div class="row">
+        <div class="field"><label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">Загрузить</button>
+      </div>
+      <p class="status" id="status">ПНВ: intensity, noise, diffuse из API.</p>
+    </div>
+    <div class="card" id="tableCard" style="display:none">
+      <div class="row" style="margin-bottom:8px">
+        <input type="search" id="q" placeholder="Поиск…" style="flex:1">
+      </div>
+      <div class="table-wrap">
+        <table id="tbl">
+          <thead><tr>
+            <th data-k="name">Название</th>
+            <th data-k="intensity">Intensity</th>
+            <th data-k="noise">Noise</th>
+            <th data-k="noiseScale">Noise scale</th>
+            <th data-k="diffuse">Diffuse</th>
+            <th data-k="score">Score*</th>
+            <th data-k="avg">avg 24ч</th>
+            <th data-k="weight">Вес</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <p class="meta" style="margin-top:8px">*Score = intensity − noise×10 − diffuse×5 (эвристика «картинка чище»).</p>
+    </div>
+
+  </div>
+  <script src="tarkov-common.js"></script>
+  <script>
+
+    let rows=[], sortKey='score', sortDir=-1;
+    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    function fmt(n){if(!n)return '—'; return Math.round(n).toLocaleString('ru-RU');}
+    function humanize(slug){return (slug||'').replace(/-/g,' ');}
+    function render(){
+      const q=(document.getElementById('q').value||'').toLowerCase();
+      let list=rows.filter(r=>!q||(r.name+r.slug).toLowerCase().includes(q));
+      list.sort((a,b)=>{
+        const va=a[sortKey],vb=b[sortKey];
+        if(typeof va==='string') return sortDir*String(va).localeCompare(String(vb));
+        return sortDir*((va||0)-(vb||0));
+      });
+      document.getElementById('tbody').innerHTML=list.map(r=>`<tr>
+        <td><div class="name-cell">${r.icon?`<img class="ico" src="${esc(r.icon)}" loading="lazy">`:''}<div><div class="name">${esc(r.name)}</div><div class="meta">${esc(r.slug)}</div></div></div></td>
+        <td><strong>${r.intensity}</strong></td>
+        <td>${r.noise}</td>
+        <td>${r.noiseScale}</td>
+        <td>${r.diffuse}</td>
+        <td><strong>${r.score.toFixed(2)}</strong></td>
+        <td>${fmt(r.avg)}</td>
+        <td>${r.weight}</td>
+        <td><button type="button" class="copy-btn" data-n="${esc(r.slug)}">копир.</button></td>
+      </tr>`).join('');
+      document.querySelectorAll('.copy-btn').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(b.dataset.n||''));
+    }
+    document.getElementById('loadBtn').onclick=async()=>{
+      const st=document.getElementById('status'), btn=document.getElementById('loadBtn');
+      btn.disabled=true; st.textContent='Гружу…'; st.className='status';
+      try{
+        const mode=document.getElementById('gameMode').value||'pve';
+        const res=await fetch('https://json.tarkov.dev/'+mode+'/items',{cache:'no-store'});
+        if(!res.ok) throw new Error('HTTP '+res.status);
+        const json=await res.json();
+        let raw=json?.data?.items; const arr=Array.isArray(raw)?raw:Object.values(raw||{});
+        rows=[];
+        arr.forEach(it=>{
+          const p=it.properties||{};
+          if(p.propertiesType!=='ItemPropertiesNightVision') return;
+          const intensity=Number(p.intensity)||0;
+          const noise=Number(p.noiseIntensity)||0;
+          const noiseScale=Number(p.noiseScale)||0;
+          const diffuse=Number(p.diffuseIntensity)||0;
+          rows.push({
+            id:it.id, slug:it.normalizedName||'', name:it.shortName||humanize(it.normalizedName),
+            icon:it.iconLink||it.gridImageLink||'',
+            intensity, noise, noiseScale, diffuse,
+            score: intensity - noise*10 - diffuse*5,
+            avg:Number(it.avg24hPrice)||0,
+            weight:Number(it.weight)||0
+          });
+        });
+        document.getElementById('tableCard').style.display='block';
+        st.className='status ok'; st.textContent='ПНВ: '+rows.length;
+        render();
+      }catch(e){st.className='status err'; st.textContent=e.message;}
+      finally{btn.disabled=false;}
+    };
+    document.getElementById('q').oninput=render;
+    document.querySelectorAll('#tbl th[data-k]').forEach(th=>{
+      th.onclick=()=>{const k=th.dataset.k; if(sortKey===k)sortDir*=-1; else{sortKey=k;sortDir=k==='name'?1:-1;} render();};
+    });
+
+  </script>
+</body>
+</html>

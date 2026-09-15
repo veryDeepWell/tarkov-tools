@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="tarkov-common.css">
+
+  <title>Динамика цен — Tarkov</title>
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Динамика цен", "description": "Фоновые снимки avg/low/high с flea, история в IndexedDB, графики как SteamDB."}
+  </script>
+  <style>
+    .container { max-width: min(1600px, 92vw) !important; margin: 0 auto; padding: 12px 14px 64px; }
+    h1 { margin-bottom: 4px; }
+    .sub { color: var(--muted); margin-bottom: 14px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+    .card-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { flex: 1; min-width: 140px; }
+    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    .status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green); }
+    .status.err { color: var(--red); }
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 10px; max-height: 70vh; }
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: .88rem; }
+    th, td { padding: 9px 10px; border-top: 1px solid var(--border); text-align: left; vertical-align: middle; }
+    th { position: sticky; top: 0; background: var(--input-bg); color: var(--muted); font-size: .72rem; text-transform: uppercase; cursor: pointer; z-index: 1; }
+    .name-cell { display: flex; align-items: center; gap: 10px; }
+    .ico { width: 36px; height: 36px; object-fit: contain; border-radius: 6px; background: var(--input-bg); }
+    .meta { font-size: .75rem; color: var(--muted); }
+    .name { font-weight: 600; }
+    .copy-btn { min-width: auto !important; min-height: 32px !important; }
+    .tip {
+      display: none; position: fixed; z-index: 200; min-width: 240px; max-width: 320px;
+      padding: 12px 14px; background: var(--input-bg); border: 1px solid var(--accent);
+      border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.5); font-size: .8rem; pointer-events: none;
+    }
+    .tip .tip-title { font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+    .tip .tip-grid { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; }
+    .tip .k { color: var(--muted); } .tip .v { font-weight: 600; text-align: right; }
+    .name-cell { cursor: help; }
+    
+    .layout { display: grid; grid-template-columns: 320px 1fr; gap: 12px; }
+    @media(max-width:900px){ .layout { grid-template-columns: 1fr; } }
+    .item-list { max-height: 70vh; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+    .item-row {
+      display: flex; gap: 8px; align-items: center; padding: 8px 10px;
+      border-bottom: 1px solid var(--border); cursor: pointer;
+    }
+    .item-row:hover, .item-row.active { background: rgba(201,162,39,.1); }
+    .item-row .name { font-size: .9rem; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fill,minmax(120px,1fr)); gap: 8px; margin-bottom: 12px; }
+    .stat { background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+    .stat .v { font-size: 1.1rem; font-weight: 800; color: var(--accent); }
+    .stat .l { font-size: .72rem; color: var(--muted); }
+    canvas { width: 100%; height: 280px; background: var(--input-bg); border-radius: 10px; border: 1px solid var(--border); }
+    .periods { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+    .periods button.active { border-color: var(--accent) !important; color: var(--accent) !important; }
+    .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-right: 6px; animation: p 1.2s infinite; }
+    @keyframes p { 50% { opacity: .35; } }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Динамика цен</h1>
+    <p class="sub">Фоновые снимки avg/low/high с flea, история в IndexedDB, графики как SteamDB.</p>
+    
+    <div class="card">
+      <div class="card-title">Сбор цен с барахолки</div>
+      <div class="row">
+        <div class="field"><label>Режим API</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <div class="field"><label>Интервал, мин</label>
+          <input type="number" id="interval" min="5" max="180" value="30">
+        </div>
+        <button type="button" class="btn" id="startBtn">Старт фона</button>
+        <button type="button" class="btn-ghost" id="stopBtn">Стоп</button>
+        <button type="button" class="btn-ghost" id="snapBtn">Снять сейчас</button>
+      </div>
+      <p class="status" id="status"><span class="meta">Хранит только avg24h / lastLow / high24h с flea. Вкладку лучше не выгружать.</span></p>
+      <p class="meta" id="trackMeta"></p>
+    </div>
+    <div class="layout">
+      <div class="card" style="margin:0">
+        <div class="card-title">Предметы с историей</div>
+        <input type="search" id="q" placeholder="Фильтр списка…" style="margin-bottom:8px">
+        <div class="item-list" id="itemList"></div>
+      </div>
+      <div class="card" style="margin:0">
+        <div class="card-title" id="chartTitle">Выбери предмет</div>
+        <div class="stats" id="stats"></div>
+        <div class="periods" id="periods">
+          <button type="button" class="btn-ghost" data-h="24">24ч</button>
+          <button type="button" class="btn-ghost" data-h="72">3д</button>
+          <button type="button" class="btn-ghost active" data-h="168">7д</button>
+          <button type="button" class="btn-ghost" data-h="720">30д</button>
+          <button type="button" class="btn-ghost" data-h="0">Всё</button>
+        </div>
+        <canvas id="chart" width="900" height="280"></canvas>
+        <p class="meta" style="margin-top:8px">Зелёный — avg24h · жёлтый — lastLow · пунктир — high24h</p>
+      </div>
+    </div>
+
+  </div>
+  <script src="tarkov-common.js"></script>
+  <script>
+
+    const DB_NAME = 'tarkovPriceDB';
+    const DB_VER = 1;
+    const STORE = 'snapshots';
+    const META = 'tarkovPriceTrackMeta';
+    let db, timer = null, selectedId = null, periodH = 168, catalog = {};
+
+    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    function fmt(n){if(n==null||Number.isNaN(n))return '—'; return Math.round(n).toLocaleString('ru-RU');}
+
+    function openDb(){
+      return new Promise((resolve,reject)=>{
+        const req=indexedDB.open(DB_NAME, DB_VER);
+        req.onupgradeneeded=()=>{
+          const d=req.result;
+          if(!d.objectStoreNames.contains(STORE)){
+            const os=d.createObjectStore(STORE,{keyPath:'id', autoIncrement:true});
+            os.createIndex('byItem','itemId',{unique:false});
+            os.createIndex('byTs','ts',{unique:false});
+          }
+        };
+        req.onsuccess=()=>{db=req.result; resolve(db);};
+        req.onerror=()=>reject(req.error);
+      });
+    }
+
+    function putSnap(itemId, avg, low, high, name, slug, icon){
+      return new Promise((resolve,reject)=>{
+        const tx=db.transaction(STORE,'readwrite');
+        tx.objectStore(STORE).add({itemId, ts:Date.now(), avg, low, high, name, slug, icon});
+        tx.oncomplete=()=>resolve();
+        tx.onerror=()=>reject(tx.error);
+      });
+    }
+
+    function getHistory(itemId){
+      return new Promise((resolve,reject)=>{
+        const tx=db.transaction(STORE,'readonly');
+        const idx=tx.objectStore(STORE).index('byItem');
+        const req=idx.getAll(IDBKeyRange.only(itemId));
+        req.onsuccess=()=>resolve(req.result||[]);
+        req.onerror=()=>reject(req.error);
+      });
+    }
+
+    function allItemIds(){
+      return new Promise((resolve,reject)=>{
+        const tx=db.transaction(STORE,'readonly');
+        const idx=tx.objectStore(STORE).index('byItem');
+        const req=idx.openKeyCursor();
+        const set=new Set();
+        req.onsuccess=()=>{
+          const c=req.result;
+          if(c){ set.add(c.key); c.continue(); }
+          else resolve([...set]);
+        };
+        req.onerror=()=>reject(req.error);
+      });
+    }
+
+    function latestByItem(){
+      return new Promise((resolve,reject)=>{
+        const tx=db.transaction(STORE,'readonly');
+        const req=tx.objectStore(STORE).getAll();
+        req.onsuccess=()=>{
+          const map={};
+          (req.result||[]).forEach(r=>{
+            if(!map[r.itemId] || r.ts>map[r.itemId].ts) map[r.itemId]=r;
+          });
+          resolve(map);
+        };
+        req.onerror=()=>reject(req.error);
+      });
+    }
+
+    async function takeSnapshot(){
+      const st=document.getElementById('status');
+      st.className='status'; st.textContent='Снимаю цены flea…';
+      const mode=document.getElementById('gameMode').value||'pve';
+      const res=await fetch('https://json.tarkov.dev/'+mode+'/items',{cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const json=await res.json();
+      let raw=json?.data?.items; const arr=Array.isArray(raw)?raw:Object.values(raw||{});
+      let n=0;
+      // only items that have flea activity
+      for(const it of arr){
+        const avg=Number(it.avg24hPrice)||0;
+        const low=Number(it.lastLowPrice)||0;
+        const high=Number(it.high24hPrice)||0;
+        if(!avg && !low) continue;
+        // skip pure trader junk without flea signal
+        if(avg<=0 && low<=0) continue;
+        await putSnap(it.id, avg, low, high, it.shortName||it.name||it.normalizedName, it.normalizedName||'', it.iconLink||'');
+        catalog[it.id]={name:it.shortName||it.name, slug:it.normalizedName, icon:it.iconLink};
+        n++;
+      }
+      const meta={lastRun:Date.now(), count:n, mode};
+      try{localStorage.setItem(META, JSON.stringify(meta));}catch(e){}
+      st.className='status ok';
+      st.innerHTML='<span class="pulse"></span>Снимок: '+n+' предметов с flea · '+new Date().toLocaleString('ru-RU');
+      updateMeta();
+      await refreshList();
+      if(selectedId) await drawSelected();
+      if(window.TarkovTools&&TarkovTools.beep) TarkovTools.beep('ok');
+    }
+
+    function updateMeta(){
+      let meta={};
+      try{meta=JSON.parse(localStorage.getItem(META)||'{}');}catch(e){}
+      const el=document.getElementById('trackMeta');
+      const running=!!timer;
+      el.textContent=(running?'Фон работает · ':'Фон остановлен · ')+
+        (meta.lastRun?('последний снимок '+new Date(meta.lastRun).toLocaleString('ru-RU')+' · '+meta.count+' шт.'):'снимков ещё не было');
+    }
+
+    async function refreshList(){
+      const map=await latestByItem();
+      const q=(document.getElementById('q').value||'').toLowerCase();
+      let list=Object.values(map);
+      if(q) list=list.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.slug||'').toLowerCase().includes(q));
+      list.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru'));
+      const box=document.getElementById('itemList');
+      box.innerHTML=list.slice(0,500).map(r=>`<div class="item-row ${r.itemId===selectedId?'active':''}" data-id="${esc(r.itemId)}">
+        ${r.icon?`<img class="ico" src="${esc(r.icon)}" loading="lazy">`:''}
+        <div><div class="name">${esc(r.name||r.slug)}</div><div class="meta">${fmt(r.avg)} ₽</div></div>
+      </div>`).join('') || '<div class="meta" style="padding:12px">Пока пусто — сними снимок</div>';
+      box.querySelectorAll('.item-row').forEach(el=>{
+        el.onclick=()=>{selectedId=el.dataset.id; refreshList(); drawSelected();};
+      });
+    }
+
+    function filterPeriod(hist){
+      if(!periodH) return hist.slice().sort((a,b)=>a.ts-b.ts);
+      const cut=Date.now()-periodH*3600*1000;
+      return hist.filter(h=>h.ts>=cut).sort((a,b)=>a.ts-b.ts);
+    }
+
+    async function drawSelected(){
+      if(!selectedId) return;
+      const hist=filterPeriod(await getHistory(selectedId));
+      const title=document.getElementById('chartTitle');
+      const last=hist[hist.length-1];
+      title.textContent=last?(last.name||last.slug||selectedId):selectedId;
+      if(!hist.length){
+        document.getElementById('stats').innerHTML='';
+        const ctx=document.getElementById('chart').getContext('2d');
+        ctx.clearRect(0,0,900,280);
+        return;
+      }
+      const avgs=hist.map(h=>h.avg).filter(Boolean);
+      const lows=hist.map(h=>h.low).filter(Boolean);
+      const first=hist[0], lastP=hist[hist.length-1];
+      const delta=lastP.avg && first.avg ? lastP.avg-first.avg : 0;
+      const deltaPct=first.avg? (delta/first.avg*100):0;
+      document.getElementById('stats').innerHTML=`
+        <div class="stat"><div class="v">${fmt(lastP.avg)}</div><div class="l">avg сейчас</div></div>
+        <div class="stat"><div class="v">${fmt(lastP.low)}</div><div class="l">last low</div></div>
+        <div class="stat"><div class="v">${fmt(lastP.high)}</div><div class="l">high 24ч</div></div>
+        <div class="stat"><div class="v" style="color:${delta>=0?'var(--green)':'var(--red)'}">${delta>=0?'+':''}${fmt(delta)}</div><div class="l">Δ за период</div></div>
+        <div class="stat"><div class="v">${deltaPct.toFixed(1)}%</div><div class="l">Δ %</div></div>
+        <div class="stat"><div class="v">${hist.length}</div><div class="l">точек</div></div>
+      `;
+      drawChart(hist);
+    }
+
+    function drawChart(hist){
+      const canvas=document.getElementById('chart');
+      const ctx=canvas.getContext('2d');
+      const W=canvas.width, H=canvas.height;
+      ctx.clearRect(0,0,W,H);
+      const pad={l:54,r:12,t:16,b:28};
+      const plotW=W-pad.l-pad.r, plotH=H-pad.t-pad.b;
+      const vals=[];
+      hist.forEach(h=>{if(h.avg)vals.push(h.avg); if(h.low)vals.push(h.low); if(h.high)vals.push(h.high);});
+      if(!vals.length) return;
+      let min=Math.min(...vals), max=Math.max(...vals);
+      if(min===max){min*=0.95; max*=1.05;}
+      const t0=hist[0].ts, t1=hist[hist.length-1].ts||t0+1;
+      function x(ts){return pad.l + ((ts-t0)/Math.max(1,t1-t0))*plotW;}
+      function y(v){return pad.t + (1-(v-min)/(max-min))*plotH;}
+      // grid
+      ctx.strokeStyle='rgba(127,127,127,.15)'; ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--muted')||'#888';
+      ctx.font='11px sans-serif';
+      for(let i=0;i<=4;i++){
+        const yy=pad.t+plotH*(i/4);
+        ctx.beginPath(); ctx.moveTo(pad.l,yy); ctx.lineTo(W-pad.r,yy); ctx.stroke();
+        const val=max-(max-min)*(i/4);
+        ctx.fillText(Math.round(val).toLocaleString('ru-RU'), 4, yy+4);
+      }
+      function line(key, color, dash){
+        ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=2;
+        ctx.setLineDash(dash||[]);
+        let started=false;
+        hist.forEach(h=>{
+          const v=h[key]; if(!v) return;
+          const xx=x(h.ts), yy=y(v);
+          if(!started){ctx.moveTo(xx,yy); started=true;} else ctx.lineTo(xx,yy);
+        });
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+      line('high','#e0a458',[4,4]);
+      line('low','#e6c35c');
+      line('avg','#3dd68c');
+      // last point
+      const last=hist[hist.length-1];
+      if(last.avg){
+        ctx.fillStyle='#3dd68c';
+        ctx.beginPath(); ctx.arc(x(last.ts), y(last.avg), 4, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--muted')||'#888';
+      ctx.fillText(new Date(t0).toLocaleString('ru-RU',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}), pad.l, H-8);
+      ctx.fillText(new Date(t1).toLocaleString('ru-RU',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}), W-pad.r-90, H-8);
+    }
+
+    function startBg(){
+      stopBg();
+      const mins=Math.max(5, Number(document.getElementById('interval').value)||30);
+      document.getElementById('interval').value=mins;
+      takeSnapshot().catch(e=>{
+        document.getElementById('status').className='status err';
+        document.getElementById('status').textContent=e.message;
+      });
+      timer=setInterval(()=>{
+        takeSnapshot().catch(()=>{});
+      }, mins*60*1000);
+      try{localStorage.setItem('tarkovPriceTrackRunning', JSON.stringify({on:true, mins, mode:document.getElementById('gameMode').value}));}catch(e){}
+      updateMeta();
+    }
+    function stopBg(){
+      if(timer){clearInterval(timer); timer=null;}
+      try{localStorage.setItem('tarkovPriceTrackRunning', JSON.stringify({on:false}));}catch(e){}
+      updateMeta();
+    }
+
+    document.getElementById('startBtn').onclick=startBg;
+    document.getElementById('stopBtn').onclick=stopBg;
+    document.getElementById('snapBtn').onclick=()=>takeSnapshot().catch(e=>{
+      document.getElementById('status').className='status err';
+      document.getElementById('status').textContent=e.message;
+    });
+    document.getElementById('q').oninput=()=>refreshList();
+    document.getElementById('periods').querySelectorAll('button').forEach(b=>{
+      b.onclick=()=>{
+        document.querySelectorAll('#periods button').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        periodH=Number(b.dataset.h);
+        drawSelected();
+      };
+    });
+
+    openDb().then(async()=>{
+      updateMeta();
+      await refreshList();
+      try{
+        const run=JSON.parse(localStorage.getItem('tarkovPriceTrackRunning')||'{}');
+        if(run.on){
+          if(run.mins) document.getElementById('interval').value=run.mins;
+          if(run.mode) document.getElementById('gameMode').value=run.mode;
+          startBg();
+        }
+      }catch(e){}
+    });
+
+  </script>
+</body>
+</html>
