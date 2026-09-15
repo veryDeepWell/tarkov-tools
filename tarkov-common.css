@@ -189,34 +189,31 @@ body > .container {
 
 /* —— Mini-tabs (hub) —— */
 .hub-shell {
-  display: flex;
-  gap: 0;
+  display: block;
   max-width: min(1600px, 96vw);
   margin: 0 auto;
   min-height: calc(100vh - 56px);
-  padding: 0 0 24px;
+  padding: 0 220px 24px 0;
   position: relative;
 }
 .hub-main {
-  flex: 1;
   min-width: 0;
   padding: 12px 14px 64px;
 }
 .hub-side {
   width: 220px;
-  flex-shrink: 0;
   border-left: 1px solid var(--border);
   background: var(--card);
   padding: 12px 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  position: sticky;
+  position: fixed;
   top: 48px;
-  align-self: flex-start;
-  max-height: calc(100vh - 56px);
+  right: 0;
+  bottom: 0;
   overflow: auto;
-  z-index: 40;
+  z-index: 45;
 }
 .hub-side-title {
   font-size: .72rem;
@@ -350,6 +347,7 @@ body > .container {
   color: var(--accent) !important;
 }
 @media (max-width: 900px) {
+  .hub-shell { padding-right: 160px; }
   .hub-side { width: 160px; }
   .hub-expand { right: 160px; }
 }
