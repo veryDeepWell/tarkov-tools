@@ -31,13 +31,6 @@
     return !!global.TarkovHubMini;
   }
 
-  /**
-   * Unified Notify — sound + log.
-   * In normal mode and mini-tab mode: beep + store in TarkovState.
-   * In mini-tab: also postMessage to hub so badge updates immediately.
-   * @param {string|object} titleOrOpts
-   * @param {string} [body]
-   */
   function Notify(titleOrOpts, body) {
     let title, msg, tool, kind, silent;
     if (titleOrOpts && typeof titleOrOpts === 'object') {
@@ -54,7 +47,6 @@
       silent = false;
     }
 
-    // sound (works in both modes); skip if tool already played its own
     if (!silent) {
       try {
         if (global.TarkovTools && typeof TarkovTools.beep === 'function') {
@@ -63,14 +55,12 @@
       } catch (e) {}
     }
 
-    // persist for badge + hover popup
     try {
       if (global.TarkovState && typeof TarkovState.notify === 'function') {
         TarkovState.notify({ title: title, body: msg, tool: tool });
       }
     } catch (e) {}
 
-    // tell hub to refresh badges immediately (iframe → parent)
     try {
       if (isInMiniFrame()) {
         window.parent.postMessage({ type: 'tt-notify', tool: tool, title: title, body: msg }, '*');
@@ -86,7 +76,6 @@
         TarkovState.addMiniTab({ file: file, title: title });
       }
     } catch (e) {}
-    // navigate to hub with optional expand hash
     try {
       location.href = 'tarkovtool-hub.html#mini=' + encodeURIComponent(file);
     } catch (e) {
@@ -95,7 +84,7 @@
   }
 
   function injectMiniButton() {
-    if (isHubPage()) return; // no MINI on hub itself
+    if (isHubPage()) return;
     const bar = document.getElementById('tt-global-bar');
     if (!bar) return;
     if (document.getElementById('tt-bar-mini')) return;
@@ -120,7 +109,6 @@
   }
 
   function boot() {
-    // wait for common bar if needed
     if (!document.getElementById('tt-global-bar')) {
       setTimeout(boot, 50);
       return;
@@ -128,7 +116,6 @@
     injectMiniButton();
   }
 
-  // expose
   global.Notify = Notify;
   global.TarkovMini = {
     Notify: Notify,
@@ -137,7 +124,6 @@
     isInMiniFrame: isInMiniFrame
   };
 
-  // load TarkovState if missing (tools that only include common.js)
   if (!global.TarkovState) {
     var s = document.createElement('script');
     s.src = 'tarkov-state.js';
