@@ -56,13 +56,53 @@
   <script src="tarkov-common.js"></script>
   <script>
     const CATALOG = [
+    {"file": "tarkovtool-desk.html", "title": "Desk", "description": "Мини-вкладки: несколько инструментов сразу, уведомления."},
+    {"file": "tarkovtool-my-tarkov.html", "title": "My Tarkov", "description": "Дашборд: профиль, алерты цен, сводка состояния."},
+    {"file": "tarkovtool-cultist.html", "title": "Круг культистов", "description": "Base 350k/400k, торговцы/flea, бартер-цепочки."},
     {"file": "tarkovtool-price-track.html", "title": "Динамика цен", "description": "Фон: снимки flea, графики истории по предмету."},
     {"file": "tarkovtool-nvg.html", "title": "ПНВ", "description": "Intensity, noise, diffuse, score картинки."},
-    {"file": "tarkovtool-helmets.html", "title": "Шлемы", "description": "Класс, зоны, штрафы; ricochet/blunt по наведению."},{"file": "tarkovtool-ammo.html", "title": "Патроны", "description": "Таблица пробития по калибрам, класс брони, урон, цена."}, {"file": "tarkovtool-armor.html", "title": "Броня", "description": "Рейтинг брони по классу, зонам, плитам, без упора в цену."}, {"file": "tarkovtool-barter-calc.html", "title": "Бартер (ручной)", "description": "Калькулятор выгодности бартера: компоненты, комиссия flea."}, {"file": "tarkovtool-barter-live.html", "title": "Бартер (live)", "description": "Бартер с ценами барахолки через API, пресеты трейдов."}, {"file": "tarkovtool-bosses.html", "title": "Боссы и гуны", "description": "Шансы боссов, таймеры карт, текущая локация гунов."}, {"file": "tarkovtool-btc-farm.html", "title": "Биткоин-ферма", "description": "ROI майнинга: GPU, топливо, солнечная, Hideout Management, графики."}, {"file": "tarkovtool-compare.html", "title": "Сравнение", "description": "Сравнение нескольких предметов одной категории, моды под ствол."}, {"file": "tarkovtool-containers.html", "title": "Разгрузки и рюкзаки", "description": "Рейтинг контейнеров: слоты, вес, сегменты."}, {"file": "tarkovtool-crafts.html", "title": "Крафты убежища", "description": "ROI крафтов hideout, цены, время."}, {"file": "tarkovtool-drip.html", "title": "Дрип по цветам", "description": "Экип по цветам (песок, чёрный, MC…) + score статов."}, {"file": "tarkovtool-gun-budget.html", "title": "Сборка за N ₽", "description": "Оружие под бюджет: максимум статов, схема модов, прицел."}, {"file": "tarkovtool-gun-builder.html", "title": "Gun Builder", "description": "Сборка оружия по слотам: статы, цена, flea/торговец/квест."}, {"file": "tarkovtool-hideout-mgmt.html", "title": "Качатель Hideout Management", "description": "Какой крафт крутить на каждой станции за минимум ₽ за цикл скилла."}, {"file": "tarkovtool-hideout.html", "title": "Трекер убежища", "description": "Уровни станций, шоплист апгрейдов, цены."}, {"file": "tarkovtool-item-use.html", "title": "Что с предметом", "description": "Ввёл предмет — продажа, крафт, убежище, квесты, бартер."}, {"file": "tarkovtool-keys.html", "title": "Ключи", "description": "Ключи по локациям, цена и рейтинг."}, {"file": "tarkovtool-lang-search.html", "title": "EN ↔ RU поиск", "description": "Предметы и квесты: двойной поиск EN/RU."}, {"file": "tarkovtool-loot-slot.html", "title": "Лут ₽/слот", "description": "Цена за клетку: flea и торговец, пометка квеста."}, {"file": "tarkovtool-mags.html", "title": "Магазины", "description": "Магазины по калибрам: ёмкость, эрга, отдача."}, {"file": "tarkovtool-medkits.html", "title": "Аптечки", "description": "HP на клетку, скорость применения, ₽/HP. Аптечки и таблетки."}, {"file": "tarkovtool-mods.html", "title": "Моды", "description": "Рейтинг обвесов по статам и совместимости."}, {"file": "tarkovtool-plates.html", "title": "Плиты", "description": "Эффективность плит: класс, вес, прочность, стоимость ремонта."}, {"file": "tarkovtool-quest-items.html", "title": "Квест-предметы", "description": "FIR-предметы для квестов, трекинг."}, {"file": "tarkovtool-quests.html", "title": "Квесты · карты", "description": "Глоссарий квестов: реальные карты вместо «любая локация», цели по шагам, требования."}, {"file": "tarkovtool-raid-checklist.html", "title": "Чек-лист рейда", "description": "Сборки под карты, DnD списка, В РЕЙД → сброс галочек через 20 мин."}, {"file": "tarkovtool-restock.html", "title": "Таймер рестока", "description": "Обновление торговцев, пилик, история."}, {"file": "tarkovtool-scopes.html", "title": "Прицелы", "description": "Рейтинг оптики: кратность, ПНВ, community tier."}, {"file": "tarkovtool-shortname.html", "title": "Короткие имена", "description": "Поиск по short name + цена торговца/flea."}, {"file": "tarkovtool-skills.html", "title": "Скиллы + чизы", "description": "Трекер уровней, софт-кап усталости навыка, чиз-страты 1.0+."}, {"file": "tarkovtool-stim-combos.html", "title": "Комбо стимуляторов", "description": "Связки вроде Meldonin+SJ1, SJ6+Trimadol, Propital+MULE. Иконки и копир."}, {"file": "tarkovtool-stims.html", "title": "Стимуляторы", "description": "Рейтинг инъекторов: бой, выносливость, отхил, вес. Эффекты из API."}, {"file": "tarkovtool-streamer-flip.html", "title": "Стример-флип", "description": "Стримерские предметы vs Терапевт."}, {"file": "tarkovtool-trader-flip.html", "title": "Трейдер-флип", "description": "Перепродажа от торговца на барахолку с УЛ и квестами."}];
+    {"file": "tarkovtool-helmets.html", "title": "Шлемы", "description": "Класс, зоны, штрафы; ricochet/blunt по наведению."},
+    {"file": "tarkovtool-ammo.html", "title": "Патроны", "description": "Таблица пробития по калибрам, класс брони, урон, цена."},
+    {"file": "tarkovtool-armor.html", "title": "Броня", "description": "Рейтинг брони по классу, зонам, плитам, без упора в цену."},
+    {"file": "tarkovtool-barter-calc.html", "title": "Бартер (ручной)", "description": "Калькулятор выгодности бартера: компоненты, комиссия flea."},
+    {"file": "tarkovtool-barter-live.html", "title": "Бартер (live)", "description": "Бартер с ценами барахолки через API, пресеты трейдов."},
+    {"file": "tarkovtool-bosses.html", "title": "Боссы и гуны", "description": "Шансы боссов, таймеры карт, текущая локация гунов."},
+    {"file": "tarkovtool-btc-farm.html", "title": "Биткоин-ферма", "description": "ROI майнинга: GPU, топливо, солнечная, Hideout Management, графики."},
+    {"file": "tarkovtool-compare.html", "title": "Сравнение", "description": "Сравнение нескольких предметов одной категории, моды под ствол."},
+    {"file": "tarkovtool-containers.html", "title": "Разгрузки и рюкзаки", "description": "Рейтинг контейнеров: слоты, вес, сегменты."},
+    {"file": "tarkovtool-crafts.html", "title": "Крафты убежища", "description": "ROI крафтов hideout, цены, время."},
+    {"file": "tarkovtool-drip.html", "title": "Дрип по цветам", "description": "Экип по цветам (песок, чёрный, MC…) + score статов."},
+    {"file": "tarkovtool-gun-budget.html", "title": "Сборка за N ₽", "description": "Оружие под бюджет: максимум статов, схема модов, прицел."},
+    {"file": "tarkovtool-gun-builder.html", "title": "Gun Builder", "description": "Сборка оружия по слотам: статы, цена, flea/торговец/квест."},
+    {"file": "tarkovtool-hideout-mgmt.html", "title": "Качатель Hideout Management", "description": "Какой крафт крутить на каждой станции за минимум ₽ за цикл скилла."},
+    {"file": "tarkovtool-hideout.html", "title": "Трекер убежища", "description": "Уровни станций, шоплист апгрейдов, цены."},
+    {"file": "tarkovtool-item-use.html", "title": "Что с предметом", "description": "Ввёл предмет — продажа, крафт, убежище, квесты, бартер."},
+    {"file": "tarkovtool-keys.html", "title": "Ключи", "description": "Ключи по локациям, цена и рейтинг."},
+    {"file": "tarkovtool-lang-search.html", "title": "EN ↔ RU поиск", "description": "Предметы и квесты: двойной поиск EN/RU."},
+    {"file": "tarkovtool-loot-slot.html", "title": "Лут ₽/слот", "description": "Цена за клетку: flea и торговец, пометка квеста."},
+    {"file": "tarkovtool-mags.html", "title": "Магазины", "description": "Магазины по калибрам: ёмкость, эрга, отдача."},
+    {"file": "tarkovtool-medkits.html", "title": "Аптечки", "description": "HP на клетку, скорость применения, ₽/HP. Аптечки и таблетки."},
+    {"file": "tarkovtool-mods.html", "title": "Моды", "description": "Рейтинг обвесов по статам и совместимости."},
+    {"file": "tarkovtool-plates.html", "title": "Плиты", "description": "Эффективность плит: класс, вес, прочность, стоимость ремонта."},
+    {"file": "tarkovtool-quest-items.html", "title": "Квест-предметы", "description": "FIR-предметы для квестов, трекинг."},
+    {"file": "tarkovtool-quests.html", "title": "Квесты · карты", "description": "Глоссарий квестов: реальные карты вместо «любая локация», цели по шагам, требования."},
+    {"file": "tarkovtool-raid-checklist.html", "title": "Чек-лист рейда", "description": "Сборки под карты, DnD списка, В РЕЙД → сброс галочек через 20 мин."},
+    {"file": "tarkovtool-restock.html", "title": "Таймер рестока", "description": "Обновление торговцев, пилик, история."},
+    {"file": "tarkovtool-scopes.html", "title": "Прицелы", "description": "Рейтинг оптики: кратность, ПНВ, community tier."},
+    {"file": "tarkovtool-shortname.html", "title": "Короткие имена", "description": "Поиск по short name + цена торговца/flea."},
+    {"file": "tarkovtool-skills.html", "title": "Скиллы + чизы", "description": "Трекер уровней, софт-кап усталости навыка, чиз-страты 1.0+."},
+    {"file": "tarkovtool-stim-combos.html", "title": "Комбо стимуляторов", "description": "Связки вроде Meldonin+SJ1, SJ6+Trimadol, Propital+MULE. Иконки и копир."},
+    {"file": "tarkovtool-stims.html", "title": "Стимуляторы", "description": "Рейтинг инъекторов: бой, выносливость, отхил, вес. Эффекты из API."},
+    {"file": "tarkovtool-streamer-flip.html", "title": "Стример-флип", "description": "Стримерские предметы vs Терапевт."},
+    {"file": "tarkovtool-trader-flip.html", "title": "Трейдер-флип", "description": "Перепродажа от торговца на барахолку с УЛ и квестами."}
+    ];
     const CHANGELOG = [
-  {"date": "2026-09-15", "items": ["Шлемы и ПНВ", "Динамика цен flea (IndexedDB + графики)", "Скрытые статы патронов по наведению"]},{"date": "2026-09-11", "items": ["Единый дизайн: кнопки одной высоты, карточки, таблицы", "Автосортировка и поиск по всем таблицам", "Тема светлая/тёмная, RU/EN шапка, звук, импорт/экспорт", "Хаб без имён файлов + патчноут", "Биткоин-ферма с графиками"]}, {"date": "2026-09-09", "items": ["Квесты с картами, EN↔RU квесты", "Чек-лист рейда: карты + DnD", "Хаб для GitHub Pages"]}];
+  {"date": "2026-09-15", "items": ["Круг культистов: base value + бартер-цепочки", "Desk — мини-вкладки", "My Tarkov + TarkovState + алерты", "Шлемы и ПНВ", "Динамика цен flea"]},
+  {"date": "2026-09-11", "items": ["Единый дизайн: кнопки одной высоты, карточки, таблицы", "Автосортировка и поиск по всем таблицам", "Тема светлая/тёмная, RU/EN шапка, звук, импорт/экспорт", "Хаб без имён файлов + патчноут", "Биткоин-ферма с графиками"]},
+  {"date": "2026-09-09", "items": ["Квесты с картами, EN↔RU квесты", "Чек-лист рейда: карты + DnD", "Хаб для GitHub Pages"]}
+    ];
     const ICONS = [
-      [/btc|bitcoin/i, "₿"], [/helmet/i, "🪖"], [/nvg/i, "🌑"], [/price-track/i, "📈"], [/ammo/i, "🔫"], [/armor/i, "🛡️"], [/barter/i, "🧮"],
+      [/btc|bitcoin/i, "₿"], [/cultist/i, "⛧"], [/desk/i, "🖥️"], [/my-tarkov/i, "👤"], [/helmet/i, "🪖"], [/nvg/i, "🌑"], [/price-track/i, "📈"], [/ammo/i, "🔫"], [/armor/i, "🛡️"], [/barter/i, "🧮"],
       [/boss/i, "👹"], [/compare/i, "⚖️"], [/container/i, "🎒"], [/craft/i, "🔧"],
       [/drip/i, "🕶️"], [/gun-budget/i, "💰"], [/gun-builder/i, "🛠️"],
       [/hideout-mgmt/i, "🏠"], [/hideout/i, "🏗️"], [/key/i, "🔑"], [/lang/i, "🌐"],
@@ -77,7 +117,7 @@
       return "📎";
     }
     function esc(s) {
-      return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+      return String(s || "").replace(/&/g,"&").replace(/</g,"<").replace(/>/g,">").replace(/"/g,""");
     }
     const PINS_KEY = 'tarkovHubPins';
     function loadPins() {
@@ -133,7 +173,6 @@
       }
       const pinned = list.filter(t => pins.includes(t.file));
       const rest = list.filter(t => !pins.includes(t.file));
-      // keep pin order as in pins array
       pinned.sort((a, b) => pins.indexOf(a.file) - pins.indexOf(b.file));
 
       document.getElementById("count").textContent = list.length + " / " + CATALOG.length;
@@ -153,40 +192,14 @@
     function renderChangelog() {
       const en = window.TarkovTools && TarkovTools.lang() === 'en';
       const title = en ? 'Changelog' : 'Что изменилось';
-      const itemsEn = {
-        'Единый дизайн: кнопки одной высоты, карточки, таблицы': 'Unified design: equal buttons, cards, tables',
-        'Автосортировка и поиск по всем таблицам': 'Auto sort and search on all tables',
-        'Тема светлая/тёмная, RU/EN шапка, звук, импорт/экспорт': 'Light/dark theme, RU/EN bar, sound, import/export',
-        'Хаб без имён файлов + патчноут': 'Hub without filenames + changelog',
-        'Биткоин-ферма с графиками': 'Bitcoin farm with charts',
-        'Квесты с картами, EN↔RU квесты': 'Quests with maps, EN↔RU quests',
-        'Чек-лист рейда: карты + DnD': 'Raid checklist: maps + DnD',
-        'Хаб для GitHub Pages': 'Hub for GitHub Pages',
-        'Единый дизайн: кнопки, карточки, таблицы, светлая/тёмная тема': 'Unified design, light/dark theme',
-        'Общие настройки, звук, импорт/экспорт, RU/EN шапка': 'Shared settings, sound, import/export',
-        'Калькулятор биткоин-фермы': 'Bitcoin farm calculator',
-        'Патчноут внизу хаба': 'Changelog at hub bottom',
-        'Глоссарий квестов с картами по целям': 'Quest glossary with per-objective maps',
-        'EN↔RU поиск: вкладка квестов': 'EN↔RU search: quests tab',
-        'Чек-лист рейда: пресеты карт + drag-and-drop': 'Raid checklist: map presets + DnD',
-        'Хаб под GitHub Pages': 'Hub for GitHub Pages',
-        'Калькулятор биткоин-фермы с графиками': 'Bitcoin farm calculator with charts'
-      };
       document.getElementById("changelog").innerHTML = "<h3>" + title + "</h3>" + CHANGELOG.map(b =>
-        `<div style="margin-bottom:12px"><strong>${esc(b.date)}</strong><ul>${b.items.map(i=>`<li>${esc(en ? (itemsEn[i]||i) : i)}</li>`).join("")}</ul></div>`
+        `<div style="margin-bottom:12px"><strong>${esc(b.date)}</strong><ul>${b.items.map(i=>`<li>${esc(i)}</li>`).join("")}</ul></div>`
       ).join("");
     }
     document.getElementById("q").addEventListener("input", render);
     render(); renderChangelog();
-    const _paint = window.TarkovTools && TarkovTools._paintBar;
-    // re-render hub when language toggled
-    const langBtn = document.getElementById('tt-bar-lang');
-    if (langBtn) {
-      langBtn.addEventListener('click', () => setTimeout(() => { render(); renderChangelog(); }, 0));
-    }
     document.addEventListener('click', (e) => {
-      if (e.target && e.target.id === 'tt-bar-lang') setTimeout(() => { render(); renderChangelog(); }, 0);
-      if (e.target && e.target.id === 'tt-apply') setTimeout(() => { render(); renderChangelog(); }, 0);
+      if (e.target && (e.target.id === 'tt-bar-lang' || e.target.id === 'tt-apply')) setTimeout(() => { render(); renderChangelog(); }, 0);
     });
   </script>
 </body>
