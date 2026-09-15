@@ -221,17 +221,49 @@
     }
     .name-cell > div { min-width: 0; }
 
+    .ammo-tip-wrap { position: relative; display: inline-flex; align-items: center; gap: 10px; width: 100%; }
+    .ammo-tip {
+      display: none;
+      position: fixed;
+      z-index: 200;
+      min-width: 260px;
+      max-width: 340px;
+      padding: 12px 14px;
+      background: #12151b;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.55);
+      font-size: 0.8rem;
+      line-height: 1.35;
+      pointer-events: none;
+      color: var(--text);
+    }
+    .ammo-tip .tip-title {
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+      font-size: 0.88rem;
+    }
+    .ammo-tip .tip-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 3px 14px;
+    }
+    .ammo-tip .k { color: var(--muted); }
+    .ammo-tip .v { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+    .name-cell { cursor: help; }
+
 </style>
   <link rel="stylesheet" href="tarkov-common.css">
   <script type="application/json" id="tarkovtool-meta">
-  {"id": "tarkovtool-ammo.html", "title": "Патроны", "description": "Таблица пробития по калибрам, класс брони, урон, цена.", "file": "tarkovtool-ammo.html"}
+  {"id": "tarkovtool-ammo.html", "title": "Патроны", "description": "Пробитие по калибрам; скрытые статы патрона по наведению.", "file": "tarkovtool-ammo.html"}
   </script>
 
 </head>
 <body>
   <div class="container">
     <h1>Патроны — класс пробития</h1>
-    <p class="sub">json.tarkov.dev · калибр → таблица · pen / урон / бронеурон</p>
+    <p class="sub">калибр → таблица · pen / урон / бр% · наведение на патрон = скрытые статы</p>
 
     <div class="card">
       <div class="card-title">Данные</div>
@@ -459,7 +491,23 @@
             traderLL,
             hasCraft,
             craftQuest,
-            craftCount: hasCraft ? crafts[0].count : 0
+            craftCount: hasCraft ? crafts[0].count : 0,
+            // hidden ballistics — tooltip only
+            mass: Number(p.bulletMassGrams) || 0,
+            diam: Number(p.bulletDiameterMilimeters) || 0,
+            bc: Number(p.ballisticCoeficient) || 0,
+            rico: Math.round((Number(p.ricochetChance) || 0) * 100),
+            penChance: Math.round((Number(p.penetrationChance) || 0) * 100),
+            penDev: Number(p.penetrationPowerDeviation) || 0,
+            stamina: Number(p.staminaBurnPerDamage) || 0,
+            durBurn: Number(p.durabilityBurnFactor) || 0,
+            heat: Number(p.heatFactor) || 0,
+            misfire: Math.round((Number(p.misfireChance) || 0) * 1000) / 10,
+            ftf: Math.round((Number(p.failureToFeedChance) || 0) * 1000) / 10,
+            acc: Number(p.accuracyModifier) || 0,
+            reco: Number(p.recoilModifier) || 0,
+            bleedL: Number(p.lightBleedModifier) || 0,
+            bleedH: Number(p.heavyBleedModifier) || 0
           };
           if (!byCaliber[cal]) byCaliber[cal] = [];
           byCaliber[cal].push(row);
@@ -512,6 +560,66 @@
       }
     });
 
+
+    function pct(n) {
+      if (n == null || Number.isNaN(n)) return '—';
+      return n + '%';
+    }
+    function tipHtml(r) {
+      const rows = [
+        ['Масса, г', r.mass || '—'],
+        ['Диаметр, мм', r.diam || '—'],
+        ['Баллист. коэф.', r.bc ? r.bc.toFixed(3) : '—'],
+        ['Скорость, м/с', r.speed || '—'],
+        ['Шанс рикошета', pct(r.rico)],
+        ['Шанс пробития', pct(r.penChance)],
+        ['Шанс фрагментации', pct(r.frag)],
+        ['Pen deviation', r.penDev || '—'],
+        ['Урон по стамине / HP', r.stamina ? r.stamina.toFixed(3) : '—'],
+        ['Поломка брони ×', r.durBurn ? r.durBurn.toFixed(2) : '—'],
+        ['Нагрев ×', r.heat ? r.heat.toFixed(2) : '—'],
+        ['Осечка', pct(r.misfire)],
+        ['Неподача (FTF)', pct(r.ftf)],
+        ['Точность', r.acc ? ((r.acc * 100).toFixed(0) + '%') : '0%'],
+        ['Отдача', r.reco ? ((r.reco * 100).toFixed(0) + '%') : '0%'],
+        ['Лёгкое кровотечение', r.bleedL || '—'],
+        ['Тяжёлое кровотечение', r.bleedH || '—']
+      ];
+      return `<div class="tip-title">${esc(r.name)}</div><div class="tip-grid">${
+        rows.map(([k,v]) => `<span class="k">${esc(k)}</span><span class="v">${esc(String(v))}</span>`).join('')
+      }</div>`;
+    }
+
+    let tipEl = null;
+    function ensureTip() {
+      if (tipEl) return tipEl;
+      tipEl = document.createElement('div');
+      tipEl.className = 'ammo-tip';
+      tipEl.id = 'ammoTip';
+      document.body.appendChild(tipEl);
+      return tipEl;
+    }
+    function showTip(anchor, r, e) {
+      const el = ensureTip();
+      el.innerHTML = tipHtml(r);
+      el.style.display = 'block';
+      const pad = 12;
+      let x = (e && e.clientX != null ? e.clientX : 0) + 16;
+      let y = (e && e.clientY != null ? e.clientY : 0) + 16;
+      el.style.left = '0px';
+      el.style.top = '0px';
+      const rect = el.getBoundingClientRect();
+      if (x + rect.width + pad > window.innerWidth) x = window.innerWidth - rect.width - pad;
+      if (y + rect.height + pad > window.innerHeight) y = window.innerHeight - rect.height - pad;
+      if (x < pad) x = pad;
+      if (y < pad) y = pad;
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+    }
+    function hideTip() {
+      if (tipEl) tipEl.style.display = 'none';
+    }
+
     function renderTable() {
       const card = document.getElementById('tableCard');
       if (!activeCal || !byCaliber[activeCal]) {
@@ -550,10 +658,13 @@
           : '<span class="meta">нет</span>';
         tr.innerHTML = `
           <td>
-            <div class="name-cell">${r.icon?`<img class="ico ico-sm" src="${esc(r.icon)}" loading="lazy" alt="">`:''}<div class="txt">
-            <div class="name">${esc(r.name)}${r.tracer ? ' <span class="meta">TR</span>' : ''}${r.projectiles > 1 ? ' <span class="meta">×' + r.projectiles + '</span>' : ''}</div>
-            <div class="meta">${esc(r.slug)}</div>
-            </div></div>
+            <div class="name-cell" data-tip="1">
+              ${r.icon?`<img class="ico ico-sm" src="${esc(r.icon)}" loading="lazy" alt="">`:''}
+              <div class="txt">
+                <div class="name">${esc(r.name)}${r.tracer ? ' <span class="meta">TR</span>' : ''}${r.projectiles > 1 ? ' <span class="meta">×' + r.projectiles + '</span>' : ''}</div>
+                <div class="meta">${esc(r.slug)}</div>
+              </div>
+            </div>
           </td>
           <td><strong>${r.pen}</strong></td>
           <td>${r.dmg}</td>
@@ -577,6 +688,12 @@
             setTimeout(() => { btn.textContent = old; }, 700);
           }).catch(() => {});
         });
+      });
+      tbody.querySelectorAll('.name-cell[data-tip]').forEach((cell, idx) => {
+        const row = rows[idx];
+        cell.addEventListener('mouseenter', (e) => showTip(cell, row, e));
+        cell.addEventListener('mousemove', (e) => showTip(cell, row, e));
+        cell.addEventListener('mouseleave', hideTip);
       });
     }
 
