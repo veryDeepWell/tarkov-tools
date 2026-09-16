@@ -88,7 +88,7 @@ input[type=button], input[type=submit] {
   text-decoration: none;
   white-space: nowrap;
 }
-button:not(.btn-ghost):not(.del):not(.copy-btn):not(.map-chip):not(.chip):not(.tab):not(.handle),
+button:not(.btn-ghost):not(.del):not(.copy-btn):not(.map-chip):not(.chip):not(.tab):not(.handle):not(.tt-accent-swatch):not(.mini-chip),
 .btn, .btn-raid, .btn-primary,
 input[type=button], input[type=submit] {
   background: var(--accent) !important;
@@ -251,8 +251,9 @@ body > .container {
 .mini-chip {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 8px;
+  padding: 0;
   border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--input-bg);
@@ -261,9 +262,10 @@ body > .container {
   color: var(--text);
   text-align: left;
   width: 100%;
-  min-height: 40px !important;
+  height: 36px !important;
+  min-height: 36px !important;
   min-width: 0 !important;
-  justify-content: center;
+  box-sizing: border-box !important;
   position: relative;
 }
 .hub-side:hover .mini-chip,
@@ -271,6 +273,8 @@ body > .container {
 .hub-side.open .mini-chip {
   justify-content: flex-start;
   padding: 8px 10px;
+  height: auto !important;
+  min-height: 40px !important;
 }
 .mini-chip:hover { border-color: var(--accent); }
 .mini-chip.active {
@@ -280,10 +284,15 @@ body > .container {
 }
 .mini-chip .ico {
   flex-shrink: 0;
-  width: 24px;
-  text-align: center;
-  font-size: 1.15rem;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
   line-height: 1;
+  margin: 0;
+  padding: 0;
 }
 .mini-chip .label {
   flex: 1;
@@ -423,19 +432,40 @@ body > .container {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 6px;
+  align-items: center;
 }
 .tt-accent-swatch {
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  border: 2px solid transparent;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  border: 2px solid rgba(255,255,255,.12) !important;
   cursor: pointer;
   padding: 0 !important;
   min-width: 28px !important;
   min-height: 28px !important;
+  max-width: 28px !important;
+  max-height: 28px !important;
+  box-shadow: none !important;
+  flex-shrink: 0;
+  background: var(--swatch, #888) !important;
+  color: transparent !important;
+}
+.tt-accent-swatch[data-accent="gold"]   { --swatch: #c9a227; }
+.tt-accent-swatch[data-accent="blue"]   { --swatch: #5b9fd4; }
+.tt-accent-swatch[data-accent="green"]  { --swatch: #3dd68c; }
+.tt-accent-swatch[data-accent="cyan"]   { --swatch: #2ec4b6; }
+.tt-accent-swatch[data-accent="purple"] { --swatch: #a78bfa; }
+.tt-accent-swatch[data-accent="orange"] { --swatch: #e0a458; }
+.tt-accent-swatch[data-accent="red"]    { --swatch: #f07178; }
+.tt-accent-swatch[data-accent="pink"]   { --swatch: #e879a9; }
+.tt-accent-swatch[data-accent="slate"]  { --swatch: #94a3b8; }
+.tt-accent-swatch:hover {
+  border-color: rgba(255,255,255,.35) !important;
+  transform: scale(1.08);
 }
 .tt-accent-swatch.on {
-  border-color: var(--text);
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  border-color: #fff !important;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--swatch, var(--accent)) !important;
 }
 @media (max-width: 900px) {
   .hub-main { padding-right: 56px; }
