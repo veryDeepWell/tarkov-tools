@@ -1,1 +1,131 @@
-PLACEHOLDER2
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="tarkov-common.css">
+  <title>Динамика цен — Tarkov</title>
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Динамика цен", "description": "Фоновые снимки avg/low/high с flea."}
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>Динамика цен</h1>
+    <p class="sub">Фоновые снимки avg/low/high с flea, история в IndexedDB.</p>
+    <div class="card">
+      <div class="card-title">Сбор цен с барахолки</div>
+      <div class="row">
+        <div class="field"><label>Режим API</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <div class="field"><label>Интервал, мин</label>
+          <input type="number" id="interval" min="5" max="180" value="30">
+        </div>
+        <button type="button" class="btn" id="startBtn">Старт фона</button>
+        <button type="button" class="btn-ghost" id="stopBtn">Стоп</button>
+        <button type="button" class="btn-ghost" id="snapBtn">Снять сейчас</button>
+      </div>
+      <p class="status" id="status">Хранит avg24h / lastLow / high24h.</p>
+      <p class="meta" id="trackMeta"></p>
+    </div>
+    <div class="card">
+      <div class="card-title">Предметы с историей</div>
+      <input type="search" id="q" placeholder="Фильтр…" style="margin-bottom:8px">
+      <div id="itemList" class="meta">Пока пусто</div>
+    </div>
+  </div>
+  <script src="tarkov-common.js"></script>
+  <script>
+    const DB_NAME = 'tarkovPriceDB', DB_VER = 1, STORE = 'snapshots', META = 'tarkovPriceTrackMeta';
+    let db, timer = null, catalog = {};
+    function openDb(){
+      return new Promise((resolve,reject)=>{
+        const req=indexedDB.open(DB_NAME, DB_VER);
+        req.onupgradeneeded=()=>{ const d=req.result; if(!d.objectStoreNames.contains(STORE)){ const os=d.createObjectStore(STORE,{keyPath:'id',autoIncrement:true}); os.createIndex('byItem','itemId',{unique:false}); os.createIndex('byTs','ts',{unique:false}); } };
+        req.onsuccess=()=>{db=req.result; resolve(db);};
+        req.onerror=()=>reject(req.error);
+      });
+    }
+    function putSnap(itemId, avg, low, high, name, slug, icon){
+      return new Promise((resolve,reject)=>{
+        const tx=db.transaction(STORE,'readwrite');
+        tx.objectStore(STORE).add({itemId, ts:Date.now(), avg, low, high, name, slug, icon});
+        tx.oncomplete=()=>resolve();
+        tx.onerror=()=>reject(tx.error);
+      });
+    }
+    function latestByItem(){
+      return new Promise((resolve,reject)=>{
+        const tx=db.transaction(STORE,'readonly');
+        const req=tx.objectStore(STORE).getAll();
+        req.onsuccess=()=>{ const map={}; (req.result||[]).forEach(r=>{ if(!map[r.itemId]||r.ts>map[r.itemId].ts) map[r.itemId]=r; }); resolve(map); };
+        req.onerror=()=>reject(req.error);
+      });
+    }
+    async function takeSnapshot(){
+      const st=document.getElementById('status');
+      st.className='status'; st.textContent='Снимаю цены flea…';
+      const mode=document.getElementById('gameMode').value||'pve';
+      const res=await fetch('https://json.tarkov.dev/'+mode+'/items',{cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const json=await res.json();
+      let raw=json&&json.data&&json.data.items; const arr=Array.isArray(raw)?raw:Object.values(raw||{});
+      let n=0;
+      for(const it of arr){
+        const avg=Number(it.avg24hPrice)||0, low=Number(it.lastLowPrice)||0, high=Number(it.high24hPrice)||0;
+        if(!avg&&!low) continue;
+        await putSnap(it.id, avg, low, high, it.shortName||it.name||it.normalizedName, it.normalizedName||'', it.iconLink||'');
+        n++;
+      }
+      try{localStorage.setItem(META, JSON.stringify({lastRun:Date.now(), count:n, mode}));}catch(e){}
+      st.className='status ok'; st.textContent='Снимок: '+n+' · '+new Date().toLocaleString('ru-RU');
+      updateMeta(); await refreshList();
+      if(window.TarkovTools&&TarkovTools.beep) TarkovTools.beep('ok');
+    }
+    function updateMeta(){
+      let meta={}; try{meta=JSON.parse(localStorage.getItem(META)||'{}');}catch(e){}
+      const el=document.getElementById('trackMeta');
+      el.textContent=(timer?'Фон работает · ':'Фон остановлен · ')+(meta.lastRun?('последний '+new Date(meta.lastRun).toLocaleString('ru-RU')+' · '+meta.count+' шт.'):'снимков ещё не было');
+    }
+    async function refreshList(){
+      const map=await latestByItem();
+      const q=(document.getElementById('q').value||'').toLowerCase();
+      let list=Object.values(map);
+      if(q) list=list.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.slug||'').toLowerCase().includes(q));
+      list.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru'));
+      const box=document.getElementById('itemList');
+      box.innerHTML=list.slice(0,200).map(r=>'<div style="padding:6px 0;border-bottom:1px solid var(--border)">'+(r.name||r.slug)+' · '+(r.avg?Math.round(r.avg).toLocaleString('ru-RU'):'—')+' ₽</div>').join('')||'<div class="meta">Пока пусто</div>';
+    }
+    function startBg(){
+      stopBg();
+      const mins=Math.max(5, Number(document.getElementById('interval').value)||30);
+      document.getElementById('interval').value=mins;
+      takeSnapshot().catch(e=>{ document.getElementById('status').className='status err'; document.getElementById('status').textContent=e.message; });
+      timer=setInterval(()=>{ takeSnapshot().catch(()=>{}); }, mins*60*1000);
+      try{localStorage.setItem('tarkovPriceTrackRunning', JSON.stringify({on:true, mins, mode:document.getElementById('gameMode').value}));}catch(e){}
+      updateMeta();
+    }
+    function stopBg(){
+      if(timer){clearInterval(timer); timer=null;}
+      try{localStorage.setItem('tarkovPriceTrackRunning', JSON.stringify({on:false}));}catch(e){}
+      updateMeta();
+    }
+    document.getElementById('startBtn').onclick=startBg;
+    document.getElementById('stopBtn').onclick=stopBg;
+    document.getElementById('snapBtn').onclick=()=>takeSnapshot().catch(e=>{ document.getElementById('status').className='status err'; document.getElementById('status').textContent=e.message; });
+    document.getElementById('q').oninput=()=>refreshList();
+    openDb().then(async()=>{ updateMeta(); await refreshList();
+      try{
+        const run=JSON.parse(localStorage.getItem('tarkovPriceTrackRunning')||'{}');
+        if(run.on){ if(run.mins) document.getElementById('interval').value=run.mins; if(run.mode) document.getElementById('gameMode').value=run.mode; startBg(); }
+      }catch(e){}
+    });
+  </script>
+  <script src="tarkov-price-track-boot.js"></script>
+</body>
+</html>
