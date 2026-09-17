@@ -1,4 +1,8 @@
-/** Auto-boot for restock mini-tabs */
+/**
+ * Restock mini helper.
+ * Does NOT call doLoad() on open — user must click "Загрузить".
+ * Only reports status / answers ping so the hub chip stays in sync.
+ */
 (function () {
   function reportMini(running, label) {
     try {
@@ -14,30 +18,19 @@
       }
     } catch (e) {}
   }
-  function tryLoad() {
-    if (typeof doLoad === 'function') {
-      var p = doLoad();
-      if (p && typeof p.then === 'function') {
-        p.then(function () {
-          reportMini(true, 'таймер');
-          if (window.__ttStatusPulse) clearInterval(window.__ttStatusPulse);
-          window.__ttStatusPulse = setInterval(function () { reportMini(true, 'таймер'); }, 8000);
-        }).catch(function () {});
-      } else {
-        setTimeout(function () {
-          reportMini(true, 'таймер');
-          if (window.__ttStatusPulse) clearInterval(window.__ttStatusPulse);
-          window.__ttStatusPulse = setInterval(function () { reportMini(true, 'таймер'); }, 8000);
-        }, 2000);
-      }
-      return;
-    }
-    setTimeout(tryLoad, 100);
-  }
-  setTimeout(tryLoad, 150);
+
+  reportMini(false, 'ожидание');
+
   window.addEventListener('message', function (ev) {
-    if (ev.data && ev.data.type === 'tt-ping-status' && window.__ttLastStatus) {
-      reportMini(window.__ttLastStatus.running, window.__ttLastStatus.label);
+    if (ev.data && ev.data.type === 'tt-ping-status') {
+      if (window.__ttLastStatus) reportMini(window.__ttLastStatus.running, window.__ttLastStatus.label);
+      else reportMini(false, 'ожидание');
     }
   });
+
+  setInterval(function () {
+    try {
+      if (typeof tickTimer !== 'undefined' && tickTimer) reportMini(true, 'таймер');
+    } catch (e) {}
+  }, 10000);
 })();
