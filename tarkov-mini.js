@@ -1,4 +1,4 @@
-/** Mini-tabs: MINI + Notify + reportStatus — shared runtime for every tool */
+/** Mini-tabs: MINI + Notify + reportStatus */
 (function (global) {
   if (global.__ttMiniLoaded) return;
   global.__ttMiniLoaded = true;
@@ -155,6 +155,16 @@
   }
 
   function boot() {
+    if (isInMiniFrame()) {
+      try {
+        document.documentElement.classList.add('tt-mini-frame');
+        document.body.classList.add('tt-mini-frame');
+        document.documentElement.style.overflowY = 'scroll';
+        document.body.style.overflowY = 'scroll';
+        document.body.style.height = 'auto';
+        document.body.style.maxHeight = 'none';
+      } catch (e) {}
+    }
     if (!document.getElementById('tt-global-bar') && !isInMiniFrame()) {
       setTimeout(boot, 50);
       return;
