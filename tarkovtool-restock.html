@@ -1,1 +1,139 @@
-SEE_LOCAL
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Таймер рестока торговцев — Tarkov</title>
+  <link rel="stylesheet" href="tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Таймер рестока", "description": "Обновление торговцев, пилик, история.", "file": "tarkovtool-restock.html"}
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>Таймер рестока торговцев</h1>
+    <p class="sub">Один запрос API → локальный отсчёт → пик в момент рестока</p>
+    <div class="card">
+      <div class="card-title">Настройки</div>
+      <div class="row">
+        <div class="field"><label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular (PVP)</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ ВРЕМЕНА</button>
+        <button type="button" class="btn-ghost" id="refreshBtn" disabled>Обновить сейчас</button>
+        <button type="button" class="btn-ghost" id="notifBtn">Уведомления</button>
+        <button type="button" class="btn-ghost" id="testSoundBtn">Тест звука</button>
+      </div>
+      <p class="status" id="status">Грузим resetTime один раз, дальше локальный отсчёт.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Торговцы</div>
+      <div id="list"><p class="status">Пока пусто</p></div>
+    </div>
+    <div class="card">
+      <div class="card-title">История рестоков</div>
+      <div id="historyList"><p class="status">Пока пусто</p></div>
+      <button type="button" class="btn-ghost" id="clearHistoryBtn" style="margin-top:10px">Очистить историю</button>
+    </div>
+  </div>
+  <script>
+    const TRADER_RU = { prapor:'Прапор', therapist:'Терапевт', fence:'Скупщик', skier:'Лыжник', peacekeeper:'Миротворец', mechanic:'Механик', ragman:'Барахольщик', jaeger:'Егерь', ref:'Реф', lightkeeper:'Смотритель' };
+    const ORDER = ['prapor','therapist','skier','peacekeeper','mechanic','ragman','jaeger','ref','fence','lightkeeper'];
+    let traders = [], fired = {}, tickTimer = null, refetchQueued = false, restockHistory = {};
+    const listEl = document.getElementById('list');
+    const statusEl = document.getElementById('status');
+    const loadBtn = document.getElementById('loadBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    function loadEnabled() { try { return JSON.parse(localStorage.getItem('restockEnabled')||'{}'); } catch(e){ return {}; } }
+    function saveEnabled() { const map={}; traders.forEach(t=>{ map[t.key]=t.enabled; }); localStorage.setItem('restockEnabled', JSON.stringify(map)); }
+    function loadHistory() {
+      try { const raw=JSON.parse(localStorage.getItem('restockHistory')||'{}'); restockHistory={}; Object.entries(raw).forEach(([k,v])=>{ if(v&&v.happenedAt) restockHistory[k]={key:k,name:v.name||k,happenedAt:Number(v.happenedAt)}; }); } catch(e){ restockHistory={}; }
+      try { fired=JSON.parse(localStorage.getItem('restockFired')||'{}'); } catch(e){ fired={}; }
+    }
+    function saveHistory() { try { localStorage.setItem('restockHistory', JSON.stringify(restockHistory)); localStorage.setItem('restockFired', JSON.stringify(fired)); } catch(e){} }
+    function formatRemain(ms) { if(ms<=0) return '00:00:00'; const s=Math.floor(ms/1000); const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60; return [h,m,sec].map(n=>String(n).padStart(2,'0')).join(':'); }
+    function formatAbs(d) { try { return d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); } catch(e){ return d.toISOString().slice(11,19); } }
+    function formatAgo(ms) { if(ms<0) ms=0; const s=Math.floor(ms/1000); if(s<60) return s+' сек назад'; const m=Math.floor(s/60); if(m<60) return m+' мин назад'; return Math.floor(m/60)+' ч '+(m%60)+' мин назад'; }
+    function playAlertSound() {
+      try {
+        const Ctx=window.AudioContext||window.webkitAudioContext; if(!Ctx) return;
+        const ctx=playAlertSound._ctx||(playAlertSound._ctx=new Ctx()); if(ctx.state==='suspended') ctx.resume();
+        const notes=[880,880,1174.7,1174.7]; const t0=ctx.currentTime+0.02;
+        notes.forEach((freq,i)=>{ const osc=ctx.createOscillator(), gain=ctx.createGain(); osc.type='square'; osc.frequency.value=freq; const start=t0+i*0.14; gain.gain.setValueAtTime(0.0001,start); gain.gain.exponentialRampToValueAtTime(0.14,start+0.02); gain.gain.exponentialRampToValueAtTime(0.0001,start+0.12); osc.connect(gain); gain.connect(ctx.destination); osc.start(start); osc.stop(start+0.14); });
+      } catch(e){}
+    }
+    function notify(title, body) { if(Notification.permission==='granted'){ try{ new Notification(title,{body,silent:true}); }catch(e){} } }
+    async function fetchTraders() {
+      const mode=document.getElementById('gameMode').value||'regular';
+      const res=await fetch('https://json.tarkov.dev/'+mode+'/traders',{cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const json=await res.json();
+      let data=json&&json.data&&json.data.traders||json&&json.data;
+      if(!data||typeof data!=='object') throw new Error('Нет data.traders');
+      const list=Array.isArray(data)?data:Object.values(data);
+      const enabledMap=loadEnabled();
+      traders=list.map(t=>{
+        const key=(t.normalizedName||t.id||'').toLowerCase();
+        const resetAt=t.resetTime?new Date(t.resetTime):null;
+        let enabled=enabledMap[key]; if(enabled===undefined) enabled=key!=='fence'&&key!=='lightkeeper';
+        return { id:t.id, key, name:TRADER_RU[key]||key, resetAt, enabled:!!enabled };
+      }).filter(t=>t.resetAt&&!isNaN(t.resetAt.getTime()));
+      traders.sort((a,b)=>{ const ia=ORDER.indexOf(a.key), ib=ORDER.indexOf(b.key); if(ia===-1&&ib===-1) return a.name.localeCompare(b.name,'ru'); if(ia===-1) return 1; if(ib===-1) return -1; return ia-ib; });
+    }
+    function onRestock(t) {
+      const iso=t.resetAt.toISOString(); if(fired[t.key]===iso) return;
+      fired[t.key]=iso; restockHistory[t.key]={ key:t.key, name:t.name, happenedAt:Date.now() }; saveHistory();
+      playAlertSound(); notify('Ресток: '+t.name, 'Ассортимент обновился');
+      try { if(typeof window.Notify==='function') window.Notify({ title:'Ресток: '+t.name, body:'Ассортимент обновился', tool:'tarkovtool-restock.html', kind:'restock' }); } catch(e){}
+      queueRefetch();
+    }
+    function queueRefetch() {
+      if(refetchQueued) return; refetchQueued=true;
+      setTimeout(async()=>{ refetchQueued=false; try{ await fetchTraders(); statusEl.className='status ok'; statusEl.textContent='Новые времена · '+new Date().toLocaleTimeString('ru-RU'); render(); }catch(e){ statusEl.className='status err'; statusEl.textContent=e.message; } }, 2500);
+    }
+    function render() {
+      const now=Date.now();
+      if(!traders.length){ listEl.innerHTML='<p class="status">Нет данных</p>'; renderHistory(); return; }
+      listEl.innerHTML='';
+      traders.forEach(t=>{
+        const remain=t.resetAt.getTime()-now; let state='', badge='', label=formatRemain(remain);
+        if(remain<=0){ state='live'; label='РЕСТОК'; badge=' <span style="color:var(--green)">сейчас</span>'; if(t.enabled) onRestock(t); }
+        const div=document.createElement('div');
+        div.style.cssText='display:grid;grid-template-columns:28px 1fr auto auto;gap:12px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;opacity:'+(t.enabled?'1':'0.4');
+        div.innerHTML='<input type="checkbox" '+(t.enabled?'checked':'')+'><div><b>'+t.name+'</b>'+badge+'<div class="meta">'+t.key+'</div></div><div style="font-weight:700;font-variant-numeric:tabular-nums">'+label+'</div><div class="meta">'+formatAbs(t.resetAt)+'</div>';
+        div.querySelector('input').onchange=e=>{ t.enabled=e.target.checked; saveEnabled(); render(); };
+        listEl.appendChild(div);
+      });
+      renderHistory();
+    }
+    function renderHistory() {
+      const el=document.getElementById('historyList'); const now=Date.now();
+      let entries=Object.values(restockHistory);
+      if(traders.length) entries=entries.filter(h=>{ const t=traders.find(x=>x.key===h.key); return t?t.enabled:true; });
+      entries.sort((a,b)=>b.happenedAt-a.happenedAt);
+      if(!entries.length){ el.innerHTML='<p class="status">Пока пусто</p>'; return; }
+      el.innerHTML=entries.map(h=>'<div style="padding:8px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px"><b>'+h.name+'</b> · '+formatAgo(now-h.happenedAt)+'</div>').join('');
+    }
+    function startTicks(){ if(tickTimer) clearInterval(tickTimer); tickTimer=setInterval(render,1000); }
+    async function doLoad(){
+      loadBtn.disabled=true; statusEl.className='status'; statusEl.textContent='Гружу…';
+      try{ await fetchTraders(); statusEl.className='status ok'; statusEl.textContent='Загружено '+traders.length; refreshBtn.disabled=false; render(); startTicks(); playAlertSound(); }
+      catch(e){ statusEl.className='status err'; statusEl.textContent=e.message; }
+      finally{ loadBtn.disabled=false; }
+    }
+    loadBtn.onclick=doLoad;
+    refreshBtn.onclick=async()=>{ refreshBtn.disabled=true; try{ await fetchTraders(); statusEl.className='status ok'; statusEl.textContent='Обновлено'; render(); }catch(e){ statusEl.className='status err'; statusEl.textContent=e.message; } finally{ refreshBtn.disabled=false; } };
+    document.getElementById('clearHistoryBtn').onclick=()=>{ restockHistory={}; fired={}; saveHistory(); renderHistory(); };
+    document.getElementById('notifBtn').onclick=async()=>{ if(!('Notification' in window)) return; const p=await Notification.requestPermission(); statusEl.textContent=p==='granted'?'OK':'denied'; };
+    document.getElementById('testSoundBtn').onclick=()=>playAlertSound();
+    loadHistory();
+  </script>
+  <script src="tarkov-state.js"></script>
+  <script src="tarkov-common.js"></script>
+  <script src="tarkov-restock-boot.js"></script>
+</body>
+</html>
