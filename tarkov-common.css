@@ -51,7 +51,6 @@ button.btn-ghost, .btn-ghost, a.btn-ghost {
   color: var(--muted) !important; min-width: var(--btn-min-w) !important;
 }
 button.btn-ghost:hover, .btn-ghost:hover { border-color: var(--accent) !important; color: var(--accent) !important; }
-button:disabled, .btn:disabled { opacity: .45 !important; cursor: default !important; }
 .status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
 .status.ok { color: var(--green) !important; }
 .status.err { color: var(--red) !important; }
@@ -73,19 +72,20 @@ th { position: sticky; top: 0; background: var(--input-bg) !important; color: va
 .hub-work { position: relative; min-height: calc(100vh - 160px); margin-top: 12px; }
 body.tt-expand-open { overflow: hidden !important; }
 body.tt-mini-frame #tt-global-bar, html.tt-mini-frame #tt-global-bar { display: none !important; }
-body.tt-mini-frame {
-  padding-top: 8px !important;
-  overflow-y: scroll !important;
-  overflow-x: hidden !important;
-  height: auto !important;
-  min-height: 100% !important;
-  max-height: none !important;
-  position: relative !important;
-}
+/* One scrollbar: html locks, body scrolls */
 html.tt-mini-frame {
   height: 100% !important;
-  overflow-y: scroll !important;
+  overflow: hidden !important;
+}
+body.tt-mini-frame {
+  padding-top: 8px !important;
+  overflow-y: auto !important;
   overflow-x: hidden !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  position: relative !important;
 }
 .hub-top-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
 .hub-top-row #btnNotif { min-width:auto !important; min-height:36px !important; padding:0 12px !important; }
