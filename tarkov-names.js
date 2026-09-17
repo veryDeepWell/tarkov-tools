@@ -1,11 +1,17 @@
 /**
  * TarkovNames — shared item display names across tools.
  *
- * Source of truth for custom short names: localStorage key `tarkovShortNames`
- * written by tarkovtool-shortname.html as { [itemId]: shortName }.
+ * Custom shorts: localStorage `tarkovShortNames` = { [itemId]: shortName }
+ * from tarkovtool-shortname.html.
  *
- * Philosophy: tools stay independent, but names are a shared vocabulary.
- * Resolution order: user short → API shortName → name → normalizedName → id.
+ * Display order (user-defined):
+ *   1) in-game shortName (BSG short, e.g. "M4A1")
+ *   2) full API name
+ *   3) custom short from shortname tool
+ *   4) normalizedName / slug
+ *   5) id (last resort — never preferred)
+ *
+ * Search: full name first, then API short, then custom short, then slug/id.
  */
 (function (global) {
   const KEY = 'tarkovShortNames';
@@ -27,27 +33,44 @@
 
   function getShort(id) {
     if (!id) return '';
-    const map = load();
-    return map[id] || '';
+    return load()[id] || '';
+  }
+
+  function isHashLike(s) {
+    if (!s || typeof s !== 'string') return true;
+    if (/^[a-f0-9]{20,}$/i.test(s)) return true;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(s)) return true;
+    return false;
   }
 
   function display(item) {
     if (item == null) return '';
     if (typeof item === 'string') {
-      return getShort(item) || item;
+      const custom = getShort(item);
+      if (custom) return custom;
+      return isHashLike(item) ? item : item;
     }
     const id = item.id || item.itemId || '';
-    const user = id ? getShort(id) : '';
-    if (user) return user;
-    return (
-      item.shortName ||
-      item.name ||
-      item.localizedName ||
-      item.normalizedName ||
-      item.slug ||
-      id ||
-      ''
-    );
+    const gameShort = String(item.shortName || '').trim();
+    const apiName = String(item.name || item.localizedName || '').trim();
+    const custom = id ? getShort(id) : '';
+    const slug = String(item.normalizedName || item.slug || '').trim();
+
+    if (gameShort && !isHashLike(gameShort)) return gameShort;
+    if (apiName && !isHashLike(apiName)) return apiName;
+    if (custom) return custom;
+    if (slug) return slug;
+    if (gameShort) return gameShort;
+    if (apiName) return apiName;
+    return id || '';
+  }
+
+  function displayFull(item) {
+    if (!item || typeof item === 'string') return display(item);
+    const short = display(item);
+    const full = String(item.name || item.localizedName || '').trim();
+    if (full && full !== short && !isHashLike(full)) return short + ' · ' + full;
+    return short;
   }
 
   function search(query, items) {
@@ -77,18 +100,24 @@
     if (!q) return true;
     const id = item.id || item.itemId || '';
     const hay = [
-      item.name,
-      item.localizedName,
-      item.shortName,
-      getShort(id),
-      item.normalizedName,
-      item.slug,
-      id
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
+      item.name, item.localizedName, item.shortName, getShort(id),
+      item.normalizedName, item.slug, id
+    ].filter(Boolean).join(' ').toLowerCase();
     return hay.includes(q);
+  }
+
+  function resolveFromCatalog(row, byId) {
+    if (!row) return row;
+    const id = row.id || row.itemId || '';
+    const cat = (byId && id && byId[id]) || null;
+    if (!cat) return row;
+    return Object.assign({}, row, {
+      shortName: cat.shortName || row.shortName,
+      name: cat.name || row.name,
+      localizedName: cat.localizedName || row.localizedName,
+      normalizedName: cat.normalizedName || row.normalizedName || row.slug,
+      iconLink: cat.iconLink || row.iconLink || row.icon
+    });
   }
 
   try {
@@ -98,12 +127,8 @@
   } catch (e) {}
 
   global.TarkovNames = {
-    KEY: KEY,
-    load: load,
-    invalidate: invalidate,
-    getShort: getShort,
-    display: display,
-    search: search,
-    matches: matches
+    KEY: KEY, load: load, invalidate: invalidate, getShort: getShort,
+    display: display, displayFull: displayFull, search: search,
+    matches: matches, resolveFromCatalog: resolveFromCatalog, isHashLike: isHashLike
   };
 })(window);
