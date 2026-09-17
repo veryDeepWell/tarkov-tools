@@ -6,49 +6,49 @@
   <link rel="stylesheet" href="tarkov-common.css">
   <title>Дрип-лоадаут — Tarkov Tools</title>
   <script type="application/json" id="tarkovtool-meta">
-  {"id":"tarkovtool-drip-loadout.html","title":"Дрип-лоадаут","description":"Случайный лук по стилю и цвету: дикий, профи, лесное чучело…","file":"tarkovtool-drip-loadout.html"}
+  {"id":"tarkovtool-drip-loadout.html","title":"Дрип-лоадаут","description":"Стили + цвета, раскладка как на персонаже.","file":"tarkovtool-drip-loadout.html"}
   </script>
   <style>
     .styles { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
     .style-chip { border:1px solid var(--border); background:var(--input-bg); border-radius:12px; padding:10px 14px; cursor:pointer; color:var(--text); text-align:left; min-width:140px; }
     .style-chip.active { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
-    .style-chip .t { font-weight:700; }
-    .style-chip .d { font-size:.78rem; color:var(--muted); margin-top:2px; }
-    .slot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
-    .slot-card { background:var(--input-bg); border:1px solid var(--border); border-radius:12px; padding:12px; }
-    .slot-card .lab { font-size:.72rem; text-transform:uppercase; color:var(--muted); }
-    .slot-card img { width:48px; height:48px; object-fit:contain; margin-top:6px; }
-    .slot-card .nm { font-weight:700; margin-top:6px; }
+    .style-chip .t { font-weight:700; } .style-chip .d { font-size:.78rem; color:var(--muted); margin-top:2px; }
+    .paperdoll { display:grid; grid-template-columns:1fr 1.2fr 1fr; grid-template-rows:auto auto auto auto auto; gap:10px; max-width:720px; margin:0 auto; padding:12px; background:var(--card); border:1px solid var(--border); border-radius:14px; }
+    .pd-slot { background:var(--input-bg); border:1px solid var(--border); border-radius:12px; padding:10px; text-align:center; min-height:96px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
+    .pd-slot .lab { font-size:.65rem; text-transform:uppercase; color:var(--muted); }
+    .pd-slot img { width:56px; height:56px; object-fit:contain; border-radius:6px; background:var(--bg); }
+    .pd-slot .nm { font-weight:700; font-size:.88rem; } .pd-slot .pr { color:var(--accent); font-size:.82rem; }
+    .pd-slot.empty { opacity:.55; border-style:dashed; }
+    .pd-helmet{grid-column:2;grid-row:1} .pd-headset{grid-column:1;grid-row:1} .pd-glasses{grid-column:3;grid-row:1}
+    .pd-gun{grid-column:1;grid-row:2/4;min-height:140px} .pd-armor{grid-column:2;grid-row:2} .pd-rig{grid-column:2;grid-row:3}
+    .pd-backpack{grid-column:3;grid-row:2/4;min-height:140px} .pd-sec{grid-column:1;grid-row:4}
+    .pd-total{grid-column:1/-1;grid-row:5;text-align:center;font-weight:800;color:var(--accent);padding:8px}
+    @media(max-width:640px){.paperdoll{grid-template-columns:1fr 1fr}.pd-helmet,.pd-headset,.pd-glasses,.pd-gun,.pd-armor,.pd-rig,.pd-backpack,.pd-sec,.pd-total{grid-column:auto;grid-row:auto}}
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Дрип-лоадаут</h1>
-    <p class="sub">Стиль + цвет фона предмета → случайный комплект «по вайбу»</p>
+    <p class="sub">Стиль + цвет · как на персонаже в игре</p>
     <div class="card">
       <div class="card-title">Стиль</div>
       <div class="styles" id="styles"></div>
       <div class="row">
-        <div class="field" style="max-width:160px">
-          <label>Режим</label>
-          <select id="gameMode">
-            <option value="pve" selected>pve</option>
-            <option value="regular">regular</option>
-            <option value="pvp-season">pvp-season</option>
-          </select>
+        <div class="field" style="max-width:160px"><label>Режим</label>
+          <select id="gameMode"><option value="pve" selected>pve</option><option value="regular">regular</option><option value="pvp-season">pvp-season</option></select>
         </div>
         <button type="button" class="btn" id="btnGo">Собрать лук</button>
       </div>
       <p class="status" id="status">Выбери стиль и жми «Собрать»</p>
     </div>
-    <div class="slot-grid" id="slots"></div>
+    <div class="paperdoll" id="paperdoll"></div>
   </div>
   <script src="tarkov-common.js"></script>
   <script>
   (function () {
     var STYLES = [
-      { id:'wild', title:'Дикий хуебес', desc:'чёрный / красный / олив, хаос', colors:['black','red','olive','yellow'] },
-      { id:'pro', title:'Профессионал', desc:'чёрный / серый, строго', colors:['black','grey','blue'] },
+      { id:'wild', title:'Дикий хуебес', desc:'чёрный / красный / олив', colors:['black','red','olive','yellow'] },
+      { id:'pro', title:'Профессионал', desc:'чёрный / серый', colors:['black','grey','blue'] },
       { id:'forest', title:'Лесное чучело', desc:'олива / зелёный / коричневый', colors:['olive','green','brown','violet'] },
       { id:'snow', title:'Снежный призрак', desc:'белый / серый', colors:['white','grey'] },
       { id:'desert', title:'Песок', desc:'жёлтый / коричневый', colors:['yellow','brown','orange'] },
@@ -56,11 +56,24 @@
       { id:'medic', title:'Полевой медик', desc:'белый / красный / синий', colors:['white','red','blue'] },
       { id:'gold', title:'Флекс', desc:'жёлтый / оранж / красный', colors:['yellow','orange','red'] }
     ];
-    var styleId = 'pro';
-    var pool = null;
+    var styleId = 'pro', pool = null;
     function esc(s){ return String(s||'').replace(/&/g,'&').replace(/</g,'<').replace(/"/g,'"'); }
     function status(m,ok){ var el=document.getElementById('status'); el.className='status'+(ok===true?' ok':ok===false?' err':''); el.textContent=m; }
     function pick(arr){ if(!arr||!arr.length) return null; return arr[Math.floor(Math.random()*arr.length)]; }
+    function priceOf(it){ return it ? (Number(it.avg24hPrice)||Number(it.lastLowPrice)||0) : 0; }
+    function pdCell(cls, lab, it) {
+      if (!it) return '<div class="pd-slot empty '+cls+'"><div class="lab">'+esc(lab)+'</div>—</div>';
+      var pr = priceOf(it);
+      return '<div class="pd-slot '+cls+'"><div class="lab">'+esc(lab)+'</div>'+(it.iconLink?'<img src="'+esc(it.iconLink)+'" alt="">':'')+'<div class="nm">'+esc(it.shortName||it.name)+'</div><div class="pr">'+(pr?pr.toLocaleString('ru-RU')+' ₽':'')+'</div></div>';
+    }
+    function renderPaperdoll(s) {
+      var sum = ['gun','armor','helmet','rig','backpack','headset','glasses'].reduce(function(a,k){ return a+priceOf(s[k]); },0);
+      document.getElementById('paperdoll').innerHTML =
+        pdCell('pd-headset','Наушники',s.headset)+pdCell('pd-helmet','Шлем',s.helmet)+pdCell('pd-glasses','Очки',s.glasses)+
+        pdCell('pd-gun','Оружие',s.gun)+pdCell('pd-armor','Броня',s.armor)+pdCell('pd-rig','Разгрузка',s.rig)+
+        pdCell('pd-backpack','Рюкзак',s.backpack)+pdCell('pd-sec','Вторичка',s.sec)+
+        '<div class="pd-total">Итого ~ '+sum.toLocaleString('ru-RU')+' ₽</div>';
+    }
     document.getElementById('styles').innerHTML = STYLES.map(function(s){
       return '<button type="button" class="style-chip'+(s.id===styleId?' active':'')+'" data-id="'+s.id+'"><div class="t">'+esc(s.title)+'</div><div class="d">'+esc(s.desc)+'</div></button>';
     }).join('');
@@ -82,18 +95,11 @@
         var raw = json && json.data && (json.data.items || json.data);
         arr = Array.isArray(raw) ? raw : Object.values(raw || {});
       }
-      pool = arr;
-      status('Предметов: ' + arr.length, true);
-      return pool;
+      pool = arr; status('Предметов: ' + arr.length, true); return pool;
     }
     function byColor(items, colors, pred) {
-      var set = {};
-      colors.forEach(function(c){ set[c]=1; });
-      var matched = items.filter(function(it){
-        if (!pred(it)) return false;
-        var bg = (it.backgroundColor || '').toLowerCase();
-        return set[bg];
-      });
+      var set = {}; colors.forEach(function(c){ set[c]=1; });
+      var matched = items.filter(function(it){ return pred(it) && set[(it.backgroundColor||'').toLowerCase()]; });
       return matched.length ? matched : items.filter(pred);
     }
     function isGun(it){ return (it.types||[]).includes('gun') && !(it.types||[]).includes('preset') && (it.properties||{}).propertiesType==='ItemPropertiesWeapon'; }
@@ -101,24 +107,22 @@
     function isHelm(it){ return (it.types||[]).includes('helmet') || (it.properties||{}).propertiesType==='ItemPropertiesHelmet'; }
     function isRig(it){ return (it.types||[]).includes('rig') || (it.properties||{}).propertiesType==='ItemPropertiesChestRig'; }
     function isBack(it){ return (it.types||[]).includes('backpack') || (it.properties||{}).propertiesType==='ItemPropertiesBackpack'; }
-    function card(label, it) {
-      if (!it) return '<div class="slot-card"><div class="lab">'+esc(label)+'</div>—</div>';
-      return '<div class="slot-card"><div class="lab">'+esc(label)+' · '+(it.backgroundColor||'?')+'</div>' +
-        (it.iconLink?'<img src="'+esc(it.iconLink)+'" alt="">':'') +
-        '<div class="nm">'+esc(it.shortName||it.name)+'</div>' +
-        '<div class="meta">'+esc(it.name||'')+'</div></div>';
-    }
+    function isHeadset(it){ return (it.types||[]).includes('headphones') || (it.properties||{}).propertiesType==='ItemPropertiesHeadphone'; }
+    function isGlasses(it){ return (it.types||[]).includes('glasses') || (it.properties||{}).propertiesType==='ItemPropertiesGlasses'; }
     async function go() {
       var items = await ensure();
       var st = STYLES.find(function(s){ return s.id===styleId; }) || STYLES[0];
-      var g = pick(byColor(items, st.colors, isGun));
-      var a = pick(byColor(items, st.colors, isArmor));
-      var h = pick(byColor(items, st.colors, isHelm));
-      var r = pick(byColor(items, st.colors, isRig));
-      var b = pick(byColor(items, st.colors, isBack));
-      document.getElementById('slots').innerHTML =
-        card('Оружие', g)+card('Броня', a)+card('Шлем', h)+card('Разгрузка', r)+card('Рюкзак', b);
-      status(st.title + ' · цвета: ' + st.colors.join(', '), true);
+      renderPaperdoll({
+        gun: pick(byColor(items, st.colors, isGun)),
+        armor: pick(byColor(items, st.colors, isArmor)),
+        helmet: pick(byColor(items, st.colors, isHelm)),
+        rig: pick(byColor(items, st.colors, isRig)),
+        backpack: pick(byColor(items, st.colors, isBack)),
+        headset: pick(byColor(items, st.colors, isHeadset)),
+        glasses: pick(byColor(items, st.colors, isGlasses)),
+        sec: null
+      });
+      status(st.title + ' · ' + st.colors.join(', '), true);
     }
     document.getElementById('btnGo').onclick = function(){ go().catch(function(e){ status(String(e.message||e), false); }); };
     document.getElementById('gameMode').onchange = function(){ pool = null; };
