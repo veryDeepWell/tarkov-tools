@@ -72,20 +72,24 @@ th { position: sticky; top: 0; background: var(--input-bg) !important; color: va
 .hub-work { position: relative; min-height: calc(100vh - 160px); margin-top: 12px; }
 body.tt-expand-open { overflow: hidden !important; }
 body.tt-mini-frame #tt-global-bar, html.tt-mini-frame #tt-global-bar { display: none !important; }
-/* One scrollbar: html locks, body scrolls */
+/* Mini iframe: one scrollbar on html; body grows with content */
 html.tt-mini-frame {
   height: 100% !important;
-  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
 }
 body.tt-mini-frame {
   padding-top: 8px !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  height: 100% !important;
+  padding-bottom: 24px !important;
+  overflow: visible !important;
+  height: auto !important;
   min-height: 100% !important;
-  max-height: 100% !important;
-  margin: 0 !important;
+  max-height: none !important;
   position: relative !important;
+  margin: 0 !important;
+}
+html.tt-mini-frame body {
+  min-height: 100% !important;
 }
 .hub-top-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
 .hub-top-row #btnNotif { min-width:auto !important; min-height:36px !important; padding:0 12px !important; }
