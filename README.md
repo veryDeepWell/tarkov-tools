@@ -1,47 +1,69 @@
 # Tarkov Tools
 
-Static toolkit for Escape from Tarkov. Vanilla HTML/CSS/JS, no build step. Data from [json.tarkov.dev](https://json.tarkov.dev).
+Static toolkit for Escape from Tarkov. Vanilla HTML/CSS/JS, no build step. Market and item data from [json.tarkov.dev](https://json.tarkov.dev).
 
-**Demo:** https://verydeepwell.github.io/tarkov-tools/tarkovtool-hub.html
+**Live:** https://verydeepwell.github.io/tarkov-tools/tarkovtool-hub.html
 
-## Stack
+## Architecture
 
-| Layer | Role |
-|-------|------|
-| `tarkovtool-hub.html` | Shell: catalog, mini-tab bar, expand host, notification panel |
-| `tarkov-hub-app.js` | Catalog model, iframe pool, expand/collapse, pins |
-| `tarkov-hub-cats.js` | Category grouping, collapse state, hidden-tools filter |
-| `tarkov-state.js` | localStorage, notifications, mini-tab list, BroadcastChannel |
-| `tarkov-mini.js` | MINI button, `Notify()`, `reportStatus()` |
-| `tarkov-api.js` | Shared GraphQL/REST helpers + cache |
-| `tarkov-names.js` | Display names: game shortName → API name → user short |
-| `tarkov-icons.js` | Card/chip icons: emoji fallback, optional `assets/icons/` |
-| `tarkov-common.js` / `.css` | Theme, accent, sound, settings UI |
-| `tarkovtool-*.html` | Individual tools |
+| File | Responsibility |
+|------|----------------|
+| `tarkovtool-hub.html` | Hub shell: search, catalog host, mini-tab bar, expand panel, notification UI |
+| `tarkov-hub-app.js` | Catalog data, iframe pool, expand/collapse, pins, mini-tab chrome |
+| `tarkov-hub-cats.js` | Category assignment, collapse persistence, hidden-tool filter |
+| `tarkov-state.js` | localStorage, notification store, mini-tab list, BroadcastChannel |
+| `tarkov-mini.js` | Per-tool MINI control, `Notify()`, `reportStatus()` |
+| `tarkov-api.js` | Shared request helpers and response cache for json.tarkov.dev |
+| `tarkov-names.js` | Name resolution: game shortName → API name → user short name |
+| `tarkov-icons.js` | Icon resolution for cards and chips (emoji / optional image assets) |
+| `tarkov-common.js`, `tarkov-common.css` | Theme, accent color, audio, settings panel |
+| `tarkovtool-*.html` | Standalone tools |
 
-Tools run as full pages or as background iframes in the hub pool. Switching mini-tabs does not destroy the iframe (soft state). Closing the tab or reloading the page does (hard reset).
+A tool can open as a normal page or as a hub mini-tab. Mini-tabs keep a real-size iframe in an off-screen pool so timers and polls keep running. Switching tabs does not tear down the iframe. Closing the mini-tab or reloading the hub does.
 
-## Run locally
+## Local development
 
 ```bash
 git clone https://github.com/veryDeepWell/tarkov-tools.git
 cd tarkov-tools
 python -m http.server 8080
-# open http://localhost:8080/tarkovtool-hub.html
 ```
 
-## Tool contract
+Open `http://localhost:8080/tarkovtool-hub.html`.
 
-1. Include `tarkov-common.css` and `tarkov-common.js` (loads state / names / mini).
-2. Meta block: `<script type="application/json" id="tarkovtool-meta">{"title":"…","description":"…"}</script>`
-3. Background alerts: `Notify(toolFile, title, body, kind)`.
-4. Running flag for the hub chip: `reportStatus({ running: true, label: "…" })`.
-5. Item labels: `TarkovNames.display(item)`.
-6. Prefer `TarkovAPI` over ad-hoc `fetch` to the same endpoints.
-7. Own localStorage keys; do not overwrite foreign prefixes.
+## Adding a tool
 
-## Custom icons
+1. Add `tarkovtool-<id>.html` with `tarkov-common.css` and `tarkov-common.js`.
+2. Publish meta:  
+   `<script type="application/json" id="tarkovtool-meta">{"title":"…","description":"…"}</script>`
+3. Register the file in `CATALOG` inside `tarkov-hub-app.js` (`file`, `title`, `description`, optional `icon`).
+4. Map the file to a category in `tarkov-hub-cats.js` (`CAT_MAP`).
+5. Optional background integration:
+   - `Notify(toolFile, title, body, kind)`
+   - `reportStatus({ running: true, label: "…" })`
+6. Prefer `TarkovAPI` and `TarkovNames.display(item)` instead of raw ids or duplicated fetches.
+7. Use a dedicated localStorage key prefix.
 
-Catalog entries have an `icon` id. Options:
+## Icons
 
-- `
+Each catalog entry may set `icon` (id) and/or `iconUrl`.
+
+- Default UI uses emoji via `tarkov-icons.js`.
+- To use files: place `assets/icons/<id>.svg` (or `.png` / `.webp`), then either set `iconUrl` or call `TarkovIcons.register(id, url)`.
+- Optional: `TarkovIcons.useAssetFolder = true` to resolve `assets/icons/<id>.svg` automatically.
+
+## Hub features (summary)
+
+- Catalog search, pins, collapsible categories
+- Mini-tabs with unread badges and hover detail
+- Global notification list
+- Settings: general, sound, appearance, per-tool/category hide
+- Expand overlay constrained to the work area (scroll inside the tool iframe)
+
+## Docs
+
+- [CHANGELOG.md](CHANGELOG.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+
+Not affiliated with Battlestate Games.

@@ -1,47 +1,44 @@
 # Changelog
 
-## [0.2.0] — 2026-09-17
+## 0.2.0 — 2026-09-17
 
-Первый связный публичный срез хаба с мини-табами и категориями.
+### Added
 
-### Хаб и UX
-- Каталог **карточками** (не списком), группы: Барахолка, Лоадаут, Убежка, Квесты, Мед/еда, Утилиты
-- Категории сворачиваются; скрытие тулзов/категорий в настройках
-- Понятные **описания** на каждой карточке
-- Настройки: Общее / Звук / Внешний вид / Скрытые инструменты
-- Акцентный цвет (не только «кринж-жёлтый»)
-- Expand-панель тулза вписывается в экран, скролл внутри iframe
+- Mini-tab system: persistent iframe pool, status chips, unread badges, expand/collapse
+- `Notify` / `reportStatus` bridge between tools and hub
+- Global notification panel (chronological)
+- Catalog categories with collapse state (`tarkov-hub-cats.js`)
+- Settings sections: general, sound, appearance, hidden tools
+- Accent color selection
+- Shared `tarkov-api.js` request layer
+- `tarkov-names.js` display chain (game shortName → API name → custom short)
+- `tarkov-icons.js` and `assets/icons/` hook for custom tool icons
+- Tools: price-alarm, food, random-loadout, drip-loadout, loadout-builder, loadout-budget (stub), drip-builder (stub)
+- Paperdoll layout for loadout tools
+- Catalog descriptions for all registered tools
 
-### Мини-табы
-- Горизонтальная панель: иконка + бейдж уведомлений
-- Фон: iframe в пуле реального размера (без throttling «скрытых» фреймов)
-- Soft-state: переключение хаб ↔ другой таб **сохраняет** UI тулза; hard-reset только при закрытии/перезагрузке
-- Вход в уже открытый мини-таб **не** запускает опросы сам по себе
-- Общий колокол уведомлений (хронология)
-- `Notify` + `reportStatus` + звук (лимит частоты снижен до 1 мин)
+### Changed
 
-### Инструменты
-- **Price Alarm** — условия цена/офферы, опрос по интервалу
-- **Еда и вода** — рейтинг пища/вода
-- Лоадауты: random, drip, builder, budget (paperdoll)
-- Дрип-билдер — заглушка под поиск модов по цвету
-- Ресток / динамика цен — стабильный фон и статусы «запущен»
+- Hub catalog: tools grouped under category headers
+- Expand host limited to viewport; tool content scrolls inside the iframe
+- Price-track and restock: background run state and interval handling
+- Cultist circle UI: column layout for slots
+- Notification pipeline: hub mirrors iframe events; badge is not cleared on expand alone
+- Minimum notification interval reduced to 1 minute
 
-### Инфраструктура
-- `tarkov-api.js` — общий слой к json.tarkov.dev
-- `tarkov-names.js` — short → API name → custom short
-- `tarkov-icons.js` + `assets/icons/` — задел под кастомные иконки
-- Категории в `tarkov-hub-cats.js`
+### Fixed
 
-### Исправления (сегодняшний проход)
-- Уведомления: звук без бейджа → зеркалирование в хаб
-- Двойные запросы / сброс интервала рестока
-- Прокрутка культистов и expand
-- Рекурсия в `hiddenList` ломала категории («Все инструменты»)
-- Имена-хеши в списках
+- Category render crash (recursive `hiddenList`)
+- Double polling / interval reset on restock when collapsing
+- Missing price-alarm page (404)
+- Item labels shown as raw hashes in several lists
+- Expand panel overflow below the fold
+- Mini-tab auto-start of polls on mere open (open ≠ start)
 
----
+### Removed
 
-## [0.1.x] — 2026-09-09 … 2026-09-16
+- Single unlabeled tool dump as the only catalog mode (categories + pins instead)
 
-Прототип хаба на GitHub Pages, единый CSS, тема, первые тулзы (бартер, ammo, armor, hideout, cultist, restock, price-track).
+## 0.1.x — 2026-09-09 … 2026-09-16
+
+Initial GitHub Pages hub, shared theme, early tools (barter, ammo, armor, hideout, cultist, restock, price-track).
