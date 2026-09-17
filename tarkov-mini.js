@@ -1,4 +1,4 @@
-/** Mini-tabs: MINI button + unified Notify() */
+/** Mini-tabs: MINI + Notify + reportStatus */
 (function (global) {
   if (global.__ttMiniLoaded) return;
   global.__ttMiniLoaded = true;
@@ -27,7 +27,7 @@
   function isHubPage() { return !!global.TarkovHubMini; }
 
   function Notify(titleOrOpts, body) {
-    let title, msg, tool, kind, silent;
+    var title, msg, tool, kind, silent;
     if (titleOrOpts && typeof titleOrOpts === 'object') {
       title = titleOrOpts.title || titleOrOpts.t || 'Уведомление';
       msg = titleOrOpts.body || titleOrOpts.b || titleOrOpts.message || '';
@@ -65,9 +65,37 @@
     } catch (e) {}
   }
 
+  function reportStatus(opts) {
+    opts = opts || {};
+    var payload = {
+      type: 'tt-status',
+      tool: opts.tool || currentFile(),
+      running: !!opts.running,
+      label: opts.label || opts.detail || ''
+    };
+    try {
+      if (isInMiniFrame()) window.parent.postMessage(payload, '*');
+    } catch (e) {}
+    try {
+      if (window.BroadcastChannel) {
+        var bc = new BroadcastChannel('tarkov-tools');
+        bc.postMessage(payload);
+        bc.close();
+      }
+    } catch (e) {}
+  }
+
+  try {
+    window.addEventListener('message', function (ev) {
+      if (ev.data && ev.data.type === 'tt-ping-status' && global.__ttLastStatus) {
+        reportStatus(global.__ttLastStatus);
+      }
+    });
+  } catch (e) {}
+
   function addToMiniAndGoHub() {
-    const file = currentFile();
-    const title = currentTitle();
+    var file = currentFile();
+    var title = currentTitle();
     try {
       if (global.TarkovState && TarkovState.addMiniTab) {
         TarkovState.addMiniTab({ file: file, title: title });
@@ -82,10 +110,10 @@
 
   function injectMiniButton() {
     if (isHubPage()) return;
-    const bar = document.getElementById('tt-global-bar');
+    var bar = document.getElementById('tt-global-bar');
     if (!bar || document.getElementById('tt-bar-mini')) return;
-    const hub = document.getElementById('tt-bar-hub');
-    const btn = document.createElement('button');
+    var hub = document.getElementById('tt-bar-hub');
+    var btn = document.createElement('button');
     btn.type = 'button';
     btn.id = 'tt-bar-mini';
     btn.className = 'btn-ghost';
@@ -102,7 +130,14 @@
   }
 
   global.Notify = Notify;
-  global.TarkovMini = { Notify: Notify, addToMiniAndGoHub: addToMiniAndGoHub, currentFile: currentFile, isInMiniFrame: isInMiniFrame };
+  global.reportStatus = reportStatus;
+  global.TarkovMini = {
+    Notify: Notify,
+    addToMiniAndGoHub: addToMiniAndGoHub,
+    currentFile: currentFile,
+    isInMiniFrame: isInMiniFrame,
+    reportStatus: reportStatus
+  };
 
   function loadDeps(then) {
     var pending = 0;
