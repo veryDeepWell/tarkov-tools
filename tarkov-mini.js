@@ -1,4 +1,4 @@
-/** Mini-tabs: MINI + Notify + reportStatus */
+/** Mini-tabs: MINI + Notify + reportStatus — shared runtime for every tool */
 (function (global) {
   if (global.__ttMiniLoaded) return;
   global.__ttMiniLoaded = true;
@@ -58,14 +58,34 @@
         }
       } catch (e) {}
     }
-    try {
-      if (global.TarkovState && typeof TarkovState.notify === 'function') {
-        TarkovState.notify({ title: title, body: msg, tool: tool, kind: kind });
-      }
-    } catch (e) {}
+
+    function pushNotif() {
+      try {
+        if (global.TarkovState && typeof TarkovState.notify === 'function') {
+          TarkovState.notify({ title: title, body: msg, tool: tool, kind: kind });
+          return true;
+        }
+      } catch (e) {}
+      return false;
+    }
+    if (!pushNotif()) {
+      var tries = 0;
+      var iv = setInterval(function () {
+        tries++;
+        if (pushNotif() || tries > 25) clearInterval(iv);
+      }, 40);
+    }
+
     try {
       if (window.parent && window.parent !== window) {
         window.parent.postMessage({ type: 'tt-notify', tool: tool, title: title, body: msg, kind: kind }, '*');
+      }
+    } catch (e) {}
+    try {
+      if (window.BroadcastChannel) {
+        var bc = new BroadcastChannel('tarkov-tools');
+        bc.postMessage({ type: 'notification', item: { title: title, body: msg, tool: tool, kind: kind } });
+        bc.close();
       }
     } catch (e) {}
   }
@@ -84,9 +104,7 @@
       global.__ttLastStatus = { running: payload.running, label: payload.label, tool: tool };
     } catch (e) {}
     try {
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage(payload, '*');
-      }
+      if (window.parent && window.parent !== window) window.parent.postMessage(payload, '*');
     } catch (e) {}
     try {
       if (window.BroadcastChannel) {
@@ -137,7 +155,10 @@
   }
 
   function boot() {
-    if (!document.getElementById('tt-global-bar')) { setTimeout(boot, 50); return; }
+    if (!document.getElementById('tt-global-bar') && !isInMiniFrame()) {
+      setTimeout(boot, 50);
+      return;
+    }
     injectMiniButton();
   }
 
