@@ -14,22 +14,40 @@
       }
     } catch (e) {}
   }
+  var tries = 0;
   function tryStart() {
-    var inMini = window.parent && window.parent !== window && window.parent.TarkovHubMini === true;
-    if (typeof startBg !== 'function') { setTimeout(tryStart, 120); return; }
+    tries++;
+    var inMini = false;
     try {
-      var run = JSON.parse(localStorage.getItem('tarkovPriceTrackRunning') || '{}');
+      inMini = window.parent && window.parent !== window && window.parent.TarkovHubMini === true;
+    } catch (e) {}
+    if (typeof startBg !== 'function') {
+      if (tries < 50) setTimeout(tryStart, 150);
+      return;
+    }
+    try {
+      var run = {};
+      try { run = JSON.parse(localStorage.getItem('tarkovPriceTrackRunning') || '{}'); } catch (e) {}
       if (run.on || inMini) {
         if (run.mins && document.getElementById('interval')) document.getElementById('interval').value = run.mins;
+        if (run.mode && document.getElementById('gameMode')) document.getElementById('gameMode').value = run.mode;
         startBg();
         var mins = Math.max(5, Number((document.getElementById('interval') || {}).value) || 30);
         reportMini(true, 'каждые ' + mins + 'м');
         if (window.__ttStatusPulse) clearInterval(window.__ttStatusPulse);
-        window.__ttStatusPulse = setInterval(function () { reportMini(true, 'каждые ' + mins + 'м'); }, 8000);
+        window.__ttStatusPulse = setInterval(function () {
+          reportMini(true, 'каждые ' + mins + 'м');
+        }, 8000);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('price-track-boot', e);
+    }
   }
-  setTimeout(tryStart, 400);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(tryStart, 300); });
+  } else {
+    setTimeout(tryStart, 300);
+  }
   window.addEventListener('message', function (ev) {
     if (ev.data && ev.data.type === 'tt-ping-status' && window.__ttLastStatus) {
       reportMini(window.__ttLastStatus.running, window.__ttLastStatus.label);
