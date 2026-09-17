@@ -5,15 +5,15 @@
 
   function currentFile() {
     try {
-      const path = (location.pathname || '').split('/').pop() || '';
+      var path = (location.pathname || '').split('/').pop() || '';
       return path || 'index.html';
     } catch (e) { return 'unknown'; }
   }
   function currentTitle() {
     try {
-      const meta = document.getElementById('tarkovtool-meta');
+      var meta = document.getElementById('tarkovtool-meta');
       if (meta) {
-        const j = JSON.parse(meta.textContent || '{}');
+        var j = JSON.parse(meta.textContent || '{}');
         if (j.title) return j.title;
       }
     } catch (e) {}
@@ -21,7 +21,12 @@
   }
   function isInMiniFrame() {
     try {
-      return window.parent && window.parent !== window && window.parent.TarkovHubMini === true;
+      if (!window.parent || window.parent === window) return false;
+      if (window.parent.TarkovHubMini === true) return true;
+      try {
+        if (window.parent.document && window.parent.document.getElementById('framePool')) return true;
+      } catch (e2) {}
+      return false;
     } catch (e) { return false; }
   }
   function isHubPage() { return !!global.TarkovHubMini; }
@@ -59,22 +64,29 @@
       }
     } catch (e) {}
     try {
-      if (isInMiniFrame()) {
-        window.parent.postMessage({ type: 'tt-notify', tool: tool, title: title, body: msg }, '*');
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'tt-notify', tool: tool, title: title, body: msg, kind: kind }, '*');
       }
     } catch (e) {}
   }
 
   function reportStatus(opts) {
     opts = opts || {};
+    var tool = opts.tool || currentFile();
+    if (tool && tool.indexOf('/') !== -1) tool = tool.split('/').pop();
     var payload = {
       type: 'tt-status',
-      tool: opts.tool || currentFile(),
+      tool: tool,
       running: !!opts.running,
       label: opts.label || opts.detail || ''
     };
     try {
-      if (isInMiniFrame()) window.parent.postMessage(payload, '*');
+      global.__ttLastStatus = { running: payload.running, label: payload.label, tool: tool };
+    } catch (e) {}
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(payload, '*');
+      }
     } catch (e) {}
     try {
       if (window.BroadcastChannel) {
