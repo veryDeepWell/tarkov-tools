@@ -24,15 +24,20 @@
     .stat .v{font-size:1.15rem;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
     .stat .l{font-size:.72rem;color:var(--muted);margin-top:2px}
     .stat .v.good{color:var(--green)}.stat .v.bad{color:var(--red)}
-    .slots{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px}
-    @media(max-width:800px){.slots{grid-template-columns:1fr 1fr}}
-    .slot{border:1px dashed var(--border);border-radius:10px;padding:10px;min-height:110px;background:var(--input-bg);position:relative}
+    .slots{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+    .slot{
+      border:1px dashed var(--border);border-radius:10px;padding:10px 12px;
+      min-height:56px;background:var(--input-bg);position:relative;
+      display:flex;align-items:center;gap:12px;
+    }
     .slot.filled{border-style:solid;border-color:var(--accent)}
-    .slot .ico{width:40px;height:40px;object-fit:contain}
-    .slot .rm{position:absolute;top:6px;right:6px;min-width:auto!important;min-height:28px!important;padding:0 8px!important}
-    .layout{display:grid;grid-template-columns:1fr 1.2fr;gap:12px}
+    .slot .ico{width:40px;height:40px;object-fit:contain;flex-shrink:0}
+    .slot .slot-body{flex:1;min-width:0}
+    .slot .rm{margin-left:auto;min-width:auto!important;min-height:32px!important;padding:0 10px!important;flex-shrink:0}
+    .layout{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:12px;align-items:start}
     @media(max-width:1000px){.layout{grid-template-columns:1fr}}
-    .table-wrap{overflow:auto;max-height:55vh;border:1px solid var(--border);border-radius:10px}
+    .circle-panel .actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+    .table-wrap{overflow:auto;max-height:min(70vh,560px);border:1px solid var(--border);border-radius:10px}
     table{width:100%;border-collapse:collapse;font-size:.85rem;font-variant-numeric:tabular-nums}
     th,td{padding:8px 10px;border-top:1px solid var(--border);text-align:left}
     th{position:sticky;top:0;background:var(--input-bg);color:var(--muted);font-size:.7rem;text-transform:uppercase;z-index:1}
@@ -80,15 +85,15 @@
     </div>
     <div class="layout">
       <div>
-        <div class="card">
+        <div class="card circle-panel">
           <div class="card-title">Жертва (до 5)</div>
-          <div class="slots" id="slots"></div>
-          <div class="stats" id="sumStats"></div>
-          <div class="row" style="margin-top:10px">
+          <div class="actions">
             <button type="button" class="btn-ghost" id="clearBtn">Очистить</button>
             <button type="button" class="btn-ghost" id="fill350">Добор до 350k</button>
             <button type="button" class="btn-ghost" id="fill400">Добор до 400k</button>
           </div>
+          <div class="slots" id="slots"></div>
+          <div class="stats" id="sumStats"></div>
         </div>
       </div>
       <div>
