@@ -32,7 +32,7 @@
         if (run.mins && document.getElementById('interval')) document.getElementById('interval').value = run.mins;
         if (run.mode && document.getElementById('gameMode')) document.getElementById('gameMode').value = run.mode;
         startBg();
-        var mins = Math.max(5, Number((document.getElementById('interval') || {}).value) || 30);
+        var mins = Math.max(1, Number((document.getElementById('interval') || {}).value) || 30);
         reportMini(true, 'каждые ' + mins + 'м');
         if (window.__ttStatusPulse) clearInterval(window.__ttStatusPulse);
         window.__ttStatusPulse = setInterval(function () {
