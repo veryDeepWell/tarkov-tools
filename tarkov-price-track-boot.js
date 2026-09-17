@@ -1,4 +1,9 @@
-/** Auto-start price track when in mini iframe */
+/**
+ * Price-track mini helper.
+ * Opening a mini-tab never starts polling by itself.
+ * Resume of background polling is owned by the page (run.on in localStorage).
+ * This script only reports status to the hub chip.
+ */
 (function () {
   function reportMini(running, label) {
     try {
@@ -14,43 +19,28 @@
       }
     } catch (e) {}
   }
-  var tries = 0;
-  function tryStart() {
-    tries++;
-    var inMini = false;
-    try {
-      inMini = window.parent && window.parent !== window && window.parent.TarkovHubMini === true;
-    } catch (e) {}
-    if (typeof startBg !== 'function') {
-      if (tries < 50) setTimeout(tryStart, 150);
-      return;
-    }
+
+  function sync() {
     try {
       var run = {};
       try { run = JSON.parse(localStorage.getItem('tarkovPriceTrackRunning') || '{}'); } catch (e) {}
-      if (run.on || inMini) {
-        if (run.mins && document.getElementById('interval')) document.getElementById('interval').value = run.mins;
-        if (run.mode && document.getElementById('gameMode')) document.getElementById('gameMode').value = run.mode;
-        startBg();
-        var mins = Math.max(1, Number((document.getElementById('interval') || {}).value) || 30);
+      if (typeof timer !== 'undefined' && timer) {
+        var mins = Math.max(1, Number((document.getElementById('interval') || {}).value) || run.mins || 30);
         reportMini(true, 'каждые ' + mins + 'м');
-        if (window.__ttStatusPulse) clearInterval(window.__ttStatusPulse);
-        window.__ttStatusPulse = setInterval(function () {
-          reportMini(true, 'каждые ' + mins + 'м');
-        }, 8000);
+      } else if (run.on) {
+        reportMini(true, 'запуск…');
+      } else {
+        reportMini(false, 'ожидание');
       }
     } catch (e) {
-      console.warn('price-track-boot', e);
+      reportMini(false, 'ожидание');
     }
   }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () { setTimeout(tryStart, 300); });
-  } else {
-    setTimeout(tryStart, 300);
-  }
+
+  setTimeout(sync, 400);
+  setInterval(sync, 8000);
+
   window.addEventListener('message', function (ev) {
-    if (ev.data && ev.data.type === 'tt-ping-status' && window.__ttLastStatus) {
-      reportMini(window.__ttLastStatus.running, window.__ttLastStatus.label);
-    }
+    if (ev.data && ev.data.type === 'tt-ping-status') sync();
   });
 })();
