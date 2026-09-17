@@ -1,7 +1,7 @@
 window.TarkovHubMini = true;
 
 const CATALOG = [{"file":"tarkovtool-my-tarkov.html","title":"My Tarkov","description":"Дашборд"},{"file":"tarkovtool-cultist.html","title":"Круг культистов","description":"Base 350k"},{"file":"tarkovtool-price-track.html","title":"Динамика цен","description":"Снимки flea"},{"file":"tarkovtool-price-alarm.html","title":"Price Alarm","description":"Цена ≤/≥, офферы ≤/≥"},{"file":"tarkovtool-food.html","title":"Еда и вода","description":"Пища / вода, рейтинг"},{"file":"tarkovtool-random-loadout.html","title":"Рандомный лоадаут","description":"Случайный ган без модов"},{"file":"tarkovtool-drip-loadout.html","title":"Дрип-лоадаут","description":"Стили: дикий, профи, лес"},{"file":"tarkovtool-drip-builder.html","title":"Дрип-билдер","description":"Моды по цветам — заглушка"},{"file":"tarkovtool-loadout-budget.html","title":"Лоадаут за N ₽","description":"Кит под бюджет — заглушка"},{"file":"tarkovtool-loadout-builder.html","title":"Лоадаут-билдер","description":"Слоты + пресеты"},{"file":"tarkovtool-nvg.html","title":"ПНВ","description":"ПНВ"},{"file":"tarkovtool-helmets.html","title":"Шлемы","description":"Шлемы"},{"file":"tarkovtool-ammo.html","title":"Патроны","description":"Патроны"},{"file":"tarkovtool-armor.html","title":"Броня","description":"Броня"},{"file":"tarkovtool-barter-calc.html","title":"Бартер (ручной)","description":"Бартер"},{"file":"tarkovtool-barter-live.html","title":"Бартер (live)","description":"Бартер API"},{"file":"tarkovtool-bosses.html","title":"Боссы","description":"Боссы"},{"file":"tarkovtool-btc-farm.html","title":"Биткоин-ферма","description":"BTC"},{"file":"tarkovtool-compare.html","title":"Сравнение","description":"Сравнение"},{"file":"tarkovtool-containers.html","title":"Контейнеры","description":"Контейнеры"},{"file":"tarkovtool-crafts.html","title":"Крафты","description":"Крафты"},{"file":"tarkovtool-drip.html","title":"Дрип","description":"Дрип"},{"file":"tarkovtool-gun-budget.html","title":"Сборка за N","description":"Бюджет"},{"file":"tarkovtool-gun-builder.html","title":"Gun Builder","description":"Сборка"},{"file":"tarkovtool-hideout-mgmt.html","title":"Hideout Mgmt","description":"Скилл"},{"file":"tarkovtool-hideout.html","title":"Трекер убежища","description":"Убежище"},{"file":"tarkovtool-item-use.html","title":"Что с предметом","description":"Предмет"},{"file":"tarkovtool-keys.html","title":"Ключи","description":"Ключи"},{"file":"tarkovtool-lang-search.html","title":"EN↔RU","description":"Поиск"},{"file":"tarkovtool-loot-slot.html","title":"Лут ₽/слот","description":"Лут"},{"file":"tarkovtool-mags.html","title":"Магазины","description":"Маги"},{"file":"tarkovtool-medkits.html","title":"Аптечки","description":"Мед"},{"file":"tarkovtool-mods.html","title":"Моды","description":"Моды"},{"file":"tarkovtool-plates.html","title":"Плиты","description":"Плиты"},{"file":"tarkovtool-quest-items.html","title":"Квест-предметы","description":"FIR"},{"file":"tarkovtool-quests.html","title":"Квесты","description":"Квесты"},{"file":"tarkovtool-raid-checklist.html","title":"Чек-лист рейда","description":"Рейд"},{"file":"tarkovtool-restock.html","title":"Таймер рестока","description":"Ресток"},{"file":"tarkovtool-scopes.html","title":"Прицелы","description":"Оптика"},{"file":"tarkovtool-shortname.html","title":"Короткие имена","description":"Short"},{"file":"tarkovtool-skills.html","title":"Скиллы","description":"Скиллы"},{"file":"tarkovtool-stim-combos.html","title":"Комбо стимов","description":"Стимы"},{"file":"tarkovtool-stims.html","title":"Стимуляторы","description":"Стимы"},{"file":"tarkovtool-streamer-flip.html","title":"Стример-флип","description":"Стример"},{"file":"tarkovtool-trader-flip.html","title":"Трейдер-флип","description":"Трейдер"}];
-const CHANGELOG = [{"date":"2026-09-17","items":["Еда и вода","Рандомный / дрип / билдер лоадауты","Price Alarm: цена и офферы ≤/≥"]}];
+const CHANGELOG = [{"date":"2026-09-17","items":["Панель тулза влезает в экран","Скролл внутри iframe","Price Alarm / лоадауты"]}];
 const ICONS = [[/btc/i,"₿"],[/cultist/i,"⛧"],[/my-tarkov/i,"👤"],[/helmet/i,"🪖"],[/nvg/i,"🌑"],[/price-track/i,"📈"],[/price-alarm/i,"🔔"],[/food/i,"🍖"],[/random-loadout/i,"🎲"],[/loadout-budget/i,"💰"],[/loadout-builder/i,"🧰"],[/drip-builder/i,"🎨"],[/drip-loadout/i,"✨"],[/ammo/i,"🔫"],[/armor/i,"🛡️"],[/barter/i,"🧮"],[/boss/i,"👹"],[/compare/i,"⚖️"],[/container/i,"🎒"],[/craft/i,"🔧"],[/drip/i,"🕶️"],[/gun/i,"🛠️"],[/hideout/i,"🏗️"],[/key/i,"🔑"],[/lang/i,"🌐"],[/loot/i,"📦"],[/item-use/i,"💡"],[/mag/i,"📟"],[/med/i,"💊"],[/mods/i,"🔩"],[/plate/i,"🧱"],[/quest/i,"📜"],[/raid/i,"✅"],[/restock/i,"⏰"],[/scope/i,"🔭"],[/short/i,"🏷️"],[/skill/i,"📈"],[/stim/i,"💉"],[/streamer/i,"📺"],[/trader/i,"🏪"]];
 
 let expanded = null;
@@ -34,7 +34,8 @@ function poolStyle(ifr) {
   ifr.style.cssText = "border:0;width:1100px;height:800px;background:var(--bg)";
 }
 function expandStyle(ifr) {
-  ifr.style.cssText = "border:0;width:100%;height:100%;position:absolute;inset:0;background:var(--bg)";
+  ifr.style.cssText = "border:0;width:100%;height:100%;flex:1 1 auto;min-height:0;max-height:100%;display:block;background:var(--bg)";
+  ifr.setAttribute("scrolling", "yes");
 }
 function ensureFrame(file) {
   if (frames[file]) return frames[file];
@@ -45,6 +46,7 @@ function ensureFrame(file) {
   ifr.title = titleOf(file);
   ifr.dataset.file = file;
   ifr.setAttribute("loading", "eager");
+  ifr.setAttribute("scrolling", "yes");
   poolStyle(ifr);
   pool.appendChild(ifr);
   frames[file] = ifr;
@@ -124,7 +126,10 @@ function expandTab(file) {
   try { hideTip(); } catch (e) {}
   try {
     window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
     document.body.classList.add("tt-expand-open");
+    document.documentElement.style.overflow = "hidden";
   } catch (e) {}
   if (expanded && expanded !== file && frames[expanded]) {
     const prev = frames[expanded];
@@ -145,7 +150,10 @@ function expandTab(file) {
 }
 function collapseExpand() {
   if (!expanded) return;
-  try { document.body.classList.remove("tt-expand-open"); } catch (e) {}
+  try {
+    document.body.classList.remove("tt-expand-open");
+    document.documentElement.style.overflow = "";
+  } catch (e) {}
   const ifr = frames[expanded];
   if (ifr) {
     const pool = document.getElementById("framePool");
