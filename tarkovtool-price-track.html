@@ -62,6 +62,13 @@
     const DB_NAME='tarkovPriceDB', DB_VER=1, STORE='snapshots', META='tarkovPriceTrackMeta';
     let db, timer=null, selectedId=null;
     function esc(s){ return String(s||'').replace(/&/g,'\u0026amp;').replace(/</g,'\u0026lt;').replace(/"/g,'\u0026quot;'); }
+    function readRun(){ try{ return JSON.parse(localStorage.getItem('tarkovPriceTrackRunning')||'{}'); }catch(e){ return {}; } }
+    function writeRun(patch){
+      var cur = readRun();
+      Object.keys(patch).forEach(function(k){ cur[k]=patch[k]; });
+      try{ localStorage.setItem('tarkovPriceTrackRunning', JSON.stringify(cur)); }catch(e){}
+      return cur;
+    }
     function openDb(){
       return new Promise((resolve,reject)=>{
         const req=indexedDB.open(DB_NAME, DB_VER);
@@ -125,7 +132,11 @@
     }
     function updateMeta(){
       let meta={}; try{meta=JSON.parse(localStorage.getItem(META)||'{}');}catch(e){}
-      document.getElementById('trackMeta').textContent=(timer?'Фон работает · ':'Фон остановлен · ')+(meta.lastRun?('последний '+new Date(meta.lastRun).toLocaleString('ru-RU')+' · '+meta.count+' шт.'):'снимков ещё не было');
+      var run=readRun();
+      var mins = window.__ttPollMins || run.mins || Number(document.getElementById('interval').value) || 30;
+      document.getElementById('trackMeta').textContent=
+        (timer ? ('Фон · каждые '+mins+'м · ') : 'Фон остановлен · ')+
+        (meta.lastRun?('последний '+new Date(meta.lastRun).toLocaleString('ru-RU')+' · '+meta.count+' шт.'):'снимков ещё не было');
     }
     async function refreshList(){
       const map=await latestByItem();
@@ -176,31 +187,55 @@
     function startBg(){
       if (window.__ttStartLock || timer) return;
       window.__ttStartLock = true;
-      stopBg();
-      const mins=Math.max(1, Number(document.getElementById('interval').value)||30);
-      document.getElementById('interval').value=mins;
+      // soft clear timer only — do not wipe mins from storage
+      if (timer) { clearInterval(timer); timer = null; }
+      const saved = Number(readRun().mins);
+      const mins = Math.max(1, Number(document.getElementById('interval').value) || saved || 30);
+      document.getElementById('interval').value = mins;
+      window.__ttPollMins = mins;
       takeSnapshot().catch(e=>{ document.getElementById('status').className='status err'; document.getElementById('status').textContent=e.message; });
-      timer=setInterval(()=>{ takeSnapshot().catch(()=>{}); }, mins*60*1000);
-      try{localStorage.setItem('tarkovPriceTrackRunning', JSON.stringify({on:true, mins, mode:document.getElementById('gameMode').value}));}catch(e){}
+      timer = setInterval(function(){ takeSnapshot().catch(function(){}); }, mins * 60 * 1000);
+      writeRun({ on: true, mins: mins, mode: document.getElementById('gameMode').value });
       updateMeta();
+      if (window.TarkovMini && TarkovMini.reportStatus) TarkovMini.reportStatus({ running: true, label: 'каждые ' + mins + 'м' });
       window.__ttStartLock = false;
     }
     function stopBg(){
       window.__ttStartLock = false;
-      if(timer){ clearInterval(timer); timer=null; }
-      try{localStorage.setItem('tarkovPriceTrackRunning', JSON.stringify({on:false}));}catch(e){}
+      if (timer) { clearInterval(timer); timer = null; }
+      window.__ttPollMins = null;
+      var mins = Number(document.getElementById('interval').value) || Number(readRun().mins) || 30;
+      writeRun({ on: false, mins: mins, mode: document.getElementById('gameMode').value });
       updateMeta();
+      if (window.TarkovMini && TarkovMini.reportStatus) TarkovMini.reportStatus({ running: false, label: 'ожидание' });
     }
+    document.getElementById('interval').addEventListener('change', function(){
+      var m = Math.max(1, Number(this.value) || 30);
+      this.value = m;
+      writeRun({ mins: m });
+      if (timer) {
+        // restart with new interval without losing mins
+        clearInterval(timer); timer = null;
+        window.__ttPollMins = m;
+        timer = setInterval(function(){ takeSnapshot().catch(function(){}); }, m * 60 * 1000);
+        writeRun({ on: true, mins: m });
+        updateMeta();
+        if (window.TarkovMini && TarkovMini.reportStatus) TarkovMini.reportStatus({ running: true, label: 'каждые ' + m + 'м' });
+      }
+    });
     document.getElementById('startBtn').onclick=startBg;
     document.getElementById('stopBtn').onclick=stopBg;
     document.getElementById('snapBtn').onclick=()=>takeSnapshot().catch(e=>{ document.getElementById('status').className='status err'; document.getElementById('status').textContent=e.message; });
     document.getElementById('q').oninput=()=>refreshList();
-    openDb().then(async()=>{ updateMeta(); await refreshList();
-      // Resume only if user left background ON (not merely because mini is open)
-      try{
-        const run=JSON.parse(localStorage.getItem('tarkovPriceTrackRunning')||'{}');
-        if(run.on){ if(run.mins) document.getElementById('interval').value=run.mins; if(run.mode) document.getElementById('gameMode').value=run.mode; startBg(); }
-      }catch(e){}
+    openDb().then(async()=>{
+      var run = readRun();
+      if (run.mins) document.getElementById('interval').value = String(run.mins);
+      if (run.mode) document.getElementById('gameMode').value = run.mode;
+      updateMeta(); await refreshList();
+      if (run.on) {
+        window.__ttPollMins = Number(run.mins) || null;
+        startBg();
+      }
     });
   </script>
   <script src="tarkov-price-track-boot.js"></script>
