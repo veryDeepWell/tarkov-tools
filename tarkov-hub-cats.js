@@ -35,23 +35,27 @@
     if (!t.cat) t.cat = CAT_MAP[t.file] || "other";
     return t;
   }
-  function hiddenList() {
-    if (window.TarkovTools && TarkovTools.hiddenTools) return TarkovTools.hiddenTools();
+
+  // Direct localStorage — never call TarkovTools.* from these (recursion)
+  function readHidden() {
     try { return JSON.parse(localStorage.getItem("tarkovHiddenTools") || "[]") || []; } catch (e) { return []; }
   }
-  function collapsedList() {
-    if (window.TarkovTools && TarkovTools.collapsedCats) return TarkovTools.collapsedCats();
+  function writeHidden(arr) {
+    try { localStorage.setItem("tarkovHiddenTools", JSON.stringify(arr || [])); } catch (e) {}
+  }
+  function readCollapsed() {
     try { return JSON.parse(localStorage.getItem("tarkovCollapsedCats") || "[]") || []; } catch (e) { return []; }
   }
-  function setCollapsed(arr) {
-    if (window.TarkovTools && TarkovTools.setCollapsedCats) TarkovTools.setCollapsedCats(arr);
-    else try { localStorage.setItem("tarkovCollapsedCats", JSON.stringify(arr || [])); } catch (e) {}
+  function writeCollapsed(arr) {
+    try { localStorage.setItem("tarkovCollapsedCats", JSON.stringify(arr || [])); } catch (e) {}
   }
+
   function publishCatalog() {
     if (typeof CATALOG === "undefined") return;
     CATALOG.forEach(ensureCat);
     window.TarkovHubCatalog = CATALOG;
   }
+
   function card(t, pinned) {
     if (typeof cardHtml === "function") return cardHtml(t, !!pinned);
     var title = t.title || t.file;
@@ -59,6 +63,7 @@
       '<div class="tool-head"><div class="tool-ico">📎</div>' +
       '<div><h2>' + title + '</h2><p>' + (t.description || "") + '</p></div></div></div>';
   }
+
   function wireCards() {
     document.querySelectorAll(".tool-pin").forEach(function (btn) {
       btn.onclick = function (e) {
@@ -78,10 +83,10 @@
       var cat = head.getAttribute("data-cat");
       if (cat === "__pins__") return;
       head.onclick = function () {
-        var col = collapsedList();
+        var col = readCollapsed();
         if (col.indexOf(cat) >= 0) col = col.filter(function (x) { return x !== cat; });
         else col.push(cat);
-        setCollapsed(col);
+        writeCollapsed(col);
         window.renderCatalog();
       };
     });
@@ -96,8 +101,8 @@
     var pins = typeof loadPins === "function" ? loadPins() : (function () {
       try { return JSON.parse(localStorage.getItem("tarkovHubPins") || "[]"); } catch (e) { return []; }
     })();
-    var hidden = hiddenList();
-    var collapsed = collapsedList();
+    var hidden = readHidden();
+    var collapsed = readCollapsed();
 
     var list = CATALOG.filter(function (t) {
       return hidden.indexOf(t.file) < 0;
@@ -163,18 +168,14 @@
   };
 
   if (!window.TarkovTools) window.TarkovTools = {};
-  if (!TarkovTools.hiddenTools) {
-    TarkovTools.hiddenTools = hiddenList;
-    TarkovTools.setHiddenTools = function (arr) {
-      try { localStorage.setItem("tarkovHiddenTools", JSON.stringify(arr || [])); } catch (e) {}
-      try { window.dispatchEvent(new CustomEvent("tt-hidden-changed")); } catch (e) {}
-    };
-    TarkovTools.isToolHidden = function (f) { return hiddenList().indexOf(f) >= 0; };
-  }
-  if (!TarkovTools.collapsedCats) {
-    TarkovTools.collapsedCats = collapsedList;
-    TarkovTools.setCollapsedCats = setCollapsed;
-  }
+  TarkovTools.hiddenTools = readHidden;
+  TarkovTools.setHiddenTools = function (arr) {
+    writeHidden(arr);
+    try { window.dispatchEvent(new CustomEvent("tt-hidden-changed")); } catch (e) {}
+  };
+  TarkovTools.isToolHidden = function (f) { return readHidden().indexOf(f) >= 0; };
+  TarkovTools.collapsedCats = readCollapsed;
+  TarkovTools.setCollapsedCats = writeCollapsed;
 
   window.addEventListener("tt-hidden-changed", function () {
     try { window.renderCatalog(); } catch (e) {}
@@ -185,7 +186,7 @@
 
   function boot() {
     publishCatalog();
-    try { window.renderCatalog(); } catch (e) {}
+    try { window.renderCatalog(); } catch (e) { console.error("[hub-cats]", e); }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () { setTimeout(boot, 0); });
