@@ -49,7 +49,10 @@
 <body>
   <div class="hub-shell">
     <div style="padding:12px 14px 0">
-      <h1>Tarkov Tools</h1>
+      <div class="hub-top-row">
+        <h1 style="margin:0">Tarkov Tools</h1>
+        <button type="button" class="btn-ghost" id="btnNotif" title="Уведомления">🔔 <span id="notifCount">0</span></button>
+      </div>
 
       <div class="mini-bar" id="miniBar" hidden>
         <div class="mini-bar-label">Мини</div>
@@ -80,9 +83,20 @@
 
   <div class="hub-frames" id="framePool" aria-hidden="true"></div>
   <div class="mini-tip" id="miniTip"></div>
+  <div class="modal-bg" id="notifPanelBg">
+    <div class="modal" id="notifPanel" style="max-width:520px">
+      <div class="row" style="align-items:center;margin-bottom:12px">
+        <h2 style="margin:0;flex:1">Уведомления</h2>
+        <button type="button" class="btn-ghost" id="notifMarkAll">Прочитать все</button>
+        <button type="button" class="btn-ghost" id="notifClose">Закрыть</button>
+      </div>
+      <div id="notifList" class="meta">Пусто</div>
+    </div>
+  </div>
 
   <script src="tarkov-state.js"></script>
   <script src="tarkov-names.js"></script>
+  <script src="tarkov-api.js"></script>
   <script src="tarkov-common.js"></script>
   <script src="tarkov-hub-app.js"></script>
 </body>
