@@ -6,47 +6,70 @@
   <link rel="stylesheet" href="tarkov-common.css">
   <title>Рандомный лоадаут — Tarkov Tools</title>
   <script type="application/json" id="tarkovtool-meta">
-  {"id":"tarkovtool-random-loadout.html","title":"Рандомный лоадаут","description":"Случайный ган (без модов), броня, шлем, разгрузка, рюкзак.","file":"tarkovtool-random-loadout.html"}
+  {"id":"tarkovtool-random-loadout.html","title":"Рандомный лоадаут","description":"Случайный ган без модов — раскладка как на персонаже.","file":"tarkovtool-random-loadout.html"}
   </script>
   <style>
-    .slot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
-    .slot-card { background:var(--input-bg); border:1px solid var(--border); border-radius:12px; padding:12px; }
-    .slot-card .lab { font-size:.72rem; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
-    .slot-card img { width:56px; height:56px; object-fit:contain; border-radius:8px; background:var(--bg); }
-    .slot-card .nm { font-weight:700; margin-top:8px; }
-    .slot-card .pr { color:var(--accent); margin-top:4px; font-variant-numeric:tabular-nums; }
-    .total { font-size:1.2rem; font-weight:800; color:var(--accent); }
+    .paperdoll { display:grid; grid-template-columns:1fr 1.2fr 1fr; grid-template-rows:auto auto auto auto auto; gap:10px; max-width:720px; margin:0 auto; padding:12px; background:var(--card); border:1px solid var(--border); border-radius:14px; }
+    .pd-slot { background:var(--input-bg); border:1px solid var(--border); border-radius:12px; padding:10px; text-align:center; min-height:96px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
+    .pd-slot .lab { font-size:.65rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+    .pd-slot img { width:56px; height:56px; object-fit:contain; border-radius:6px; background:var(--bg); }
+    .pd-slot .nm { font-weight:700; font-size:.88rem; line-height:1.2; }
+    .pd-slot .pr { color:var(--accent); font-size:.82rem; font-variant-numeric:tabular-nums; }
+    .pd-slot.empty { opacity:.55; border-style:dashed; }
+    .pd-helmet { grid-column:2; grid-row:1; }
+    .pd-headset { grid-column:1; grid-row:1; }
+    .pd-glasses { grid-column:3; grid-row:1; }
+    .pd-gun { grid-column:1; grid-row:2 / 4; min-height:140px; }
+    .pd-armor { grid-column:2; grid-row:2; }
+    .pd-rig { grid-column:2; grid-row:3; }
+    .pd-backpack { grid-column:3; grid-row:2 / 4; min-height:140px; }
+    .pd-sec { grid-column:1; grid-row:4; }
+    .pd-total { grid-column:1 / -1; grid-row:5; text-align:center; font-weight:800; color:var(--accent); font-size:1.1rem; padding:8px; }
+    @media (max-width:640px) {
+      .paperdoll { grid-template-columns:1fr 1fr; }
+      .pd-helmet,.pd-headset,.pd-glasses,.pd-gun,.pd-armor,.pd-rig,.pd-backpack,.pd-sec,.pd-total { grid-column:auto; grid-row:auto; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Рандомный лоадаут</h1>
-    <p class="sub">Оружие без модов · броня · шлем · разгрузка · рюкзак · наугад</p>
+    <p class="sub">Как на персонаже · оружие без модов · броня · шлем · разгруз · рюкзак</p>
     <div class="card">
       <div class="row">
-        <div class="field" style="max-width:160px">
-          <label>Режим</label>
-          <select id="gameMode">
-            <option value="pve" selected>pve</option>
-            <option value="regular">regular</option>
-            <option value="pvp-season">pvp-season</option>
-          </select>
+        <div class="field" style="max-width:160px"><label>Режим</label>
+          <select id="gameMode"><option value="pve" selected>pve</option><option value="regular">regular</option><option value="pvp-season">pvp-season</option></select>
         </div>
         <button type="button" class="btn" id="btnGo">Сгенерировать</button>
       </div>
       <p class="status" id="status">Нажми «Сгенерировать»</p>
-      <p class="total" id="total"></p>
     </div>
-    <div class="slot-grid" id="slots"></div>
+    <div class="paperdoll" id="paperdoll"></div>
   </div>
   <script src="tarkov-common.js"></script>
   <script>
   (function () {
     var pool = null;
-    function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+    function esc(s){ return String(s||'').replace(/&/g,'&').replace(/</g,'<').replace(/"/g,'"'); }
     function status(m,ok){ var el=document.getElementById('status'); el.className='status'+(ok===true?' ok':ok===false?' err':''); el.textContent=m; }
-    function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-    function price(it){ return Number(it.avg24hPrice)||Number(it.lastLowPrice)||0; }
+    function pick(arr){ if(!arr||!arr.length) return null; return arr[Math.floor(Math.random()*arr.length)]; }
+    function priceOf(it){ return it ? (Number(it.avg24hPrice)||Number(it.lastLowPrice)||0) : 0; }
+    function pdCell(cls, lab, it) {
+      if (!it) return '<div class="pd-slot empty '+cls+'"><div class="lab">'+esc(lab)+'</div><div class="meta">—</div></div>';
+      var nm = it.shortName || it.name || it.normalizedName || '';
+      var pr = priceOf(it);
+      var icon = it.iconLink || it.gridImageLink || '';
+      return '<div class="pd-slot '+cls+'"><div class="lab">'+esc(lab)+'</div>'+(icon?'<img src="'+esc(icon)+'" alt="">':'')+'<div class="nm">'+esc(nm)+'</div><div class="pr">'+(pr?pr.toLocaleString('ru-RU')+' ₽':'')+'</div></div>';
+    }
+    function renderPaperdoll(slots) {
+      var s = slots || {};
+      var sum = ['gun','armor','helmet','rig','backpack','headset','glasses','sec'].reduce(function(a,k){ return a + priceOf(s[k]); }, 0);
+      document.getElementById('paperdoll').innerHTML =
+        pdCell('pd-headset','Наушники', s.headset) + pdCell('pd-helmet','Шлем', s.helmet) + pdCell('pd-glasses','Очки', s.glasses) +
+        pdCell('pd-gun','Оружие', s.gun) + pdCell('pd-armor','Броня', s.armor) + pdCell('pd-rig','Разгрузка', s.rig) +
+        pdCell('pd-backpack','Рюкзак', s.backpack) + pdCell('pd-sec','Вторичка', s.sec) +
+        '<div class="pd-total">Итого ~ '+sum.toLocaleString('ru-RU')+' ₽</div>';
+    }
     async function ensure() {
       if (pool) return pool;
       status('Гружу предметы…');
@@ -60,45 +83,26 @@
         var raw = json && json.data && (json.data.items || json.data);
         arr = Array.isArray(raw) ? raw : Object.values(raw || {});
       }
-      pool = { gun:[], armor:[], helmet:[], rig:[], backpack:[] };
+      pool = { gun:[], armor:[], helmet:[], rig:[], backpack:[], headset:[], glasses:[] };
       arr.forEach(function (it) {
-        var types = it.types || [];
-        var p = it.properties || {};
+        var types = it.types || [], p = it.properties || {};
         if (types.includes('preset')) return;
-        if (types.includes('gun') && p.propertiesType === 'ItemPropertiesWeapon') {
-          pool.gun.push(it); return;
-        }
+        if (types.includes('gun') && p.propertiesType === 'ItemPropertiesWeapon') { pool.gun.push(it); return; }
         if (types.includes('helmet') || p.propertiesType === 'ItemPropertiesHelmet') { pool.helmet.push(it); return; }
         if (types.includes('armor') || p.propertiesType === 'ItemPropertiesArmor') { pool.armor.push(it); return; }
         if (types.includes('rig') || p.propertiesType === 'ItemPropertiesChestRig') { pool.rig.push(it); return; }
         if (types.includes('backpack') || p.propertiesType === 'ItemPropertiesBackpack') { pool.backpack.push(it); return; }
+        if (types.includes('headphones') || p.propertiesType === 'ItemPropertiesHeadphone') { pool.headset.push(it); return; }
+        if (types.includes('glasses') || p.propertiesType === 'ItemPropertiesGlasses') { pool.glasses.push(it); return; }
       });
-      status('Пулы: gun '+pool.gun.length+', armor '+pool.armor.length+', helm '+pool.helmet.length, true);
-      return pool;
-    }
-    function card(label, it) {
-      if (!it) return '<div class="slot-card"><div class="lab">'+esc(label)+'</div><div class="meta">—</div></div>';
-      var nm = it.shortName || it.name || it.normalizedName;
-      var pr = price(it);
-      return '<div class="slot-card"><div class="lab">'+esc(label)+'</div>' +
-        (it.iconLink ? '<img src="'+esc(it.iconLink)+'" alt="">' : '') +
-        '<div class="nm">'+esc(nm)+'</div>' +
-        '<div class="meta">'+esc(it.name||'')+'</div>' +
-        '<div class="pr">'+(pr?pr.toLocaleString('ru-RU')+' ₽':'—')+'</div></div>';
+      status('Готово', true); return pool;
     }
     async function go() {
       var p = await ensure();
-      var g = pick(p.gun), a = pick(p.armor), h = pick(p.helmet), r = pick(p.rig), b = pick(p.backpack);
-      var sum = [g,a,h,r,b].reduce(function(s,it){ return s + price(it); }, 0);
-      document.getElementById('slots').innerHTML =
-        card('Оружие (без модов)', g) + card('Броня', a) + card('Шлем', h) +
-        card('Разгрузка', r) + card('Рюкзак', b);
-      document.getElementById('total').textContent = 'Итого ~ ' + sum.toLocaleString('ru-RU') + ' ₽';
+      renderPaperdoll({ gun:pick(p.gun), armor:pick(p.armor), helmet:pick(p.helmet), rig:pick(p.rig), backpack:pick(p.backpack), headset:pick(p.headset), glasses:pick(p.glasses), sec:null });
       status('Готово', true);
     }
-    document.getElementById('btnGo').onclick = function () {
-      go().catch(function (e) { status(String(e.message||e), false); });
-    };
+    document.getElementById('btnGo').onclick = function () { go().catch(function (e) { status(String(e.message||e), false); }); };
     document.getElementById('gameMode').onchange = function () { pool = null; };
   })();
   </script>
