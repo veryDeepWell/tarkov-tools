@@ -23,7 +23,7 @@
 <body>
   <div class="container">
     <h1>Динамика цен</h1>
-    <p class="sub">Фоновые снимки avg/low/high с flea · история в IndexedDB · клик по предмету = график</p>
+    <p class="sub">Фоновые снимки · клик по предмету = график · Старт фона только по кнопке</p>
     <div class="card">
       <div class="card-title">Сбор цен</div>
       <div class="row">
@@ -61,7 +61,7 @@
   <script>
     const DB_NAME='tarkovPriceDB', DB_VER=1, STORE='snapshots', META='tarkovPriceTrackMeta';
     let db, timer=null, selectedId=null;
-    function esc(s){ return String(s||'').replace(/&/g,'&').replace(/</g,'<').replace(/"/g,'"'); }
+    function esc(s){ return String(s||'').replace(/&/g,'\u0026amp;').replace(/</g,'\u0026lt;').replace(/"/g,'\u0026quot;'); }
     function openDb(){
       return new Promise((resolve,reject)=>{
         const req=indexedDB.open(DB_NAME, DB_VER);
@@ -174,6 +174,8 @@
       ctx.stroke();
     }
     function startBg(){
+      if (window.__ttStartLock || timer) return;
+      window.__ttStartLock = true;
       stopBg();
       const mins=Math.max(1, Number(document.getElementById('interval').value)||30);
       document.getElementById('interval').value=mins;
@@ -181,8 +183,10 @@
       timer=setInterval(()=>{ takeSnapshot().catch(()=>{}); }, mins*60*1000);
       try{localStorage.setItem('tarkovPriceTrackRunning', JSON.stringify({on:true, mins, mode:document.getElementById('gameMode').value}));}catch(e){}
       updateMeta();
+      window.__ttStartLock = false;
     }
     function stopBg(){
+      window.__ttStartLock = false;
       if(timer){ clearInterval(timer); timer=null; }
       try{localStorage.setItem('tarkovPriceTrackRunning', JSON.stringify({on:false}));}catch(e){}
       updateMeta();
@@ -192,6 +196,7 @@
     document.getElementById('snapBtn').onclick=()=>takeSnapshot().catch(e=>{ document.getElementById('status').className='status err'; document.getElementById('status').textContent=e.message; });
     document.getElementById('q').oninput=()=>refreshList();
     openDb().then(async()=>{ updateMeta(); await refreshList();
+      // Resume only if user left background ON (not merely because mini is open)
       try{
         const run=JSON.parse(localStorage.getItem('tarkovPriceTrackRunning')||'{}');
         if(run.on){ if(run.mins) document.getElementById('interval').value=run.mins; if(run.mode) document.getElementById('gameMode').value=run.mode; startBg(); }
