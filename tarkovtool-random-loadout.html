@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="tarkov-common.css">
+  <title>Рандомный лоадаут — Tarkov Tools</title>
+  <script type="application/json" id="tarkovtool-meta">
+  {"id":"tarkovtool-random-loadout.html","title":"Рандомный лоадаут","description":"Случайный ган (без модов), броня, шлем, разгрузка, рюкзак.","file":"tarkovtool-random-loadout.html"}
+  </script>
+  <style>
+    .slot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+    .slot-card { background:var(--input-bg); border:1px solid var(--border); border-radius:12px; padding:12px; }
+    .slot-card .lab { font-size:.72rem; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+    .slot-card img { width:56px; height:56px; object-fit:contain; border-radius:8px; background:var(--bg); }
+    .slot-card .nm { font-weight:700; margin-top:8px; }
+    .slot-card .pr { color:var(--accent); margin-top:4px; font-variant-numeric:tabular-nums; }
+    .total { font-size:1.2rem; font-weight:800; color:var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Рандомный лоадаут</h1>
+    <p class="sub">Оружие без модов · броня · шлем · разгрузка · рюкзак · наугад</p>
+    <div class="card">
+      <div class="row">
+        <div class="field" style="max-width:160px">
+          <label>Режим</label>
+          <select id="gameMode">
+            <option value="pve" selected>pve</option>
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="btnGo">Сгенерировать</button>
+      </div>
+      <p class="status" id="status">Нажми «Сгенерировать»</p>
+      <p class="total" id="total"></p>
+    </div>
+    <div class="slot-grid" id="slots"></div>
+  </div>
+  <script src="tarkov-common.js"></script>
+  <script>
+  (function () {
+    var pool = null;
+    function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+    function status(m,ok){ var el=document.getElementById('status'); el.className='status'+(ok===true?' ok':ok===false?' err':''); el.textContent=m; }
+    function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+    function price(it){ return Number(it.avg24hPrice)||Number(it.lastLowPrice)||0; }
+    async function ensure() {
+      if (pool) return pool;
+      status('Гружу предметы…');
+      var mode = document.getElementById('gameMode').value || 'pve';
+      var arr;
+      if (window.TarkovAPI && TarkovAPI.items) arr = await TarkovAPI.items(mode);
+      else {
+        var res = await fetch('https://json.tarkov.dev/' + mode + '/items', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        var json = await res.json();
+        var raw = json && json.data && (json.data.items || json.data);
+        arr = Array.isArray(raw) ? raw : Object.values(raw || {});
+      }
+      pool = { gun:[], armor:[], helmet:[], rig:[], backpack:[] };
+      arr.forEach(function (it) {
+        var types = it.types || [];
+        var p = it.properties || {};
+        if (types.includes('preset')) return;
+        if (types.includes('gun') && p.propertiesType === 'ItemPropertiesWeapon') {
+          pool.gun.push(it); return;
+        }
+        if (types.includes('helmet') || p.propertiesType === 'ItemPropertiesHelmet') { pool.helmet.push(it); return; }
+        if (types.includes('armor') || p.propertiesType === 'ItemPropertiesArmor') { pool.armor.push(it); return; }
+        if (types.includes('rig') || p.propertiesType === 'ItemPropertiesChestRig') { pool.rig.push(it); return; }
+        if (types.includes('backpack') || p.propertiesType === 'ItemPropertiesBackpack') { pool.backpack.push(it); return; }
+      });
+      status('Пулы: gun '+pool.gun.length+', armor '+pool.armor.length+', helm '+pool.helmet.length, true);
+      return pool;
+    }
+    function card(label, it) {
+      if (!it) return '<div class="slot-card"><div class="lab">'+esc(label)+'</div><div class="meta">—</div></div>';
+      var nm = it.shortName || it.name || it.normalizedName;
+      var pr = price(it);
+      return '<div class="slot-card"><div class="lab">'+esc(label)+'</div>' +
+        (it.iconLink ? '<img src="'+esc(it.iconLink)+'" alt="">' : '') +
+        '<div class="nm">'+esc(nm)+'</div>' +
+        '<div class="meta">'+esc(it.name||'')+'</div>' +
+        '<div class="pr">'+(pr?pr.toLocaleString('ru-RU')+' ₽':'—')+'</div></div>';
+    }
+    async function go() {
+      var p = await ensure();
+      var g = pick(p.gun), a = pick(p.armor), h = pick(p.helmet), r = pick(p.rig), b = pick(p.backpack);
+      var sum = [g,a,h,r,b].reduce(function(s,it){ return s + price(it); }, 0);
+      document.getElementById('slots').innerHTML =
+        card('Оружие (без модов)', g) + card('Броня', a) + card('Шлем', h) +
+        card('Разгрузка', r) + card('Рюкзак', b);
+      document.getElementById('total').textContent = 'Итого ~ ' + sum.toLocaleString('ru-RU') + ' ₽';
+      status('Готово', true);
+    }
+    document.getElementById('btnGo').onclick = function () {
+      go().catch(function (e) { status(String(e.message||e), false); });
+    };
+    document.getElementById('gameMode').onchange = function () { pool = null; };
+  })();
+  </script>
+</body>
+</html>
