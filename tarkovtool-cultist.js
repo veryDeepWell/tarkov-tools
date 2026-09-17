@@ -23,7 +23,7 @@ let sacrifice = [null,null,null,null,null];
 const costCache = new Map();
 
 function esc(s){
-  return String(s||'').replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"');
+  return String(s||'').replace(/&/g,'\u0026amp;').replace(/</g,'\u0026lt;').replace(/>/g,'\u0026gt;').replace(/"/g,'\u0026quot;');
 }
 function fmt(n){ if(n==null||!isFinite(n)) return '—'; return Math.round(n).toLocaleString('ru-RU'); }
 function humanize(slug){ return (slug||'').replace(/-/g,' '); }
@@ -138,12 +138,13 @@ function renderSlots(){
   const box = document.getElementById('slots');
   if(!box) return;
   box.innerHTML = sacrifice.map((id,i)=>{
-    if(!id || !byId[id]) return '<div class="slot"><div class="meta">Слот '+(i+1)+'</div><div class="meta">пусто</div></div>';
+    if(!id || !byId[id]) return '<div class="slot"><div class="slot-body"><div class="meta">Слот '+(i+1)+' · пусто</div></div></div>';
     const it = byId[id];
-    return '<div class="slot filled"><button type="button" class="btn-ghost rm" data-i="'+i+'">×</button>'+
-      (it.icon?'<img class="ico" src="'+esc(it.icon)+'">':'')+
-      '<div style="font-weight:600;margin-top:4px">'+esc(it.shortName)+'</div>'+
-      '<div class="meta">base '+fmt(it._value)+'</div><div class="meta">cost '+fmt(it._cost)+'</div></div>';
+    return '<div class="slot filled">'+
+      (it.icon?'<img class="ico" src="'+esc(it.icon)+'" alt="">':'')+
+      '<div class="slot-body"><div style="font-weight:600">'+esc(it.shortName||it.name)+'</div>'+
+      '<div class="meta">base '+fmt(it._value)+' · cost '+fmt(it._cost)+'</div></div>'+
+      '<button type="button" class="btn-ghost rm" data-i="'+i+'" title="Убрать">×</button></div>';
   }).join('');
   box.querySelectorAll('.rm').forEach(b=>{
     b.onclick=()=>{ sacrifice[+b.dataset.i]=null; renderSlots(); };
