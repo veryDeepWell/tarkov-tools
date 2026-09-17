@@ -159,10 +159,6 @@
       try {
         document.documentElement.classList.add('tt-mini-frame');
         document.body.classList.add('tt-mini-frame');
-        document.documentElement.style.overflowY = 'scroll';
-        document.body.style.overflowY = 'scroll';
-        document.body.style.height = 'auto';
-        document.body.style.maxHeight = 'none';
       } catch (e) {}
     }
     if (!document.getElementById('tt-global-bar') && !isInMiniFrame()) {
