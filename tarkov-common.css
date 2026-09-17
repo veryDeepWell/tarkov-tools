@@ -70,7 +70,50 @@ th { position: sticky; top: 0; background: var(--input-bg) !important; color: va
 .hub-shell { max-width: min(1600px, 96vw); margin: 0 auto; min-height: calc(100vh - 56px); padding: 0 12px 24px; position: relative; }
 .hub-main { min-width: 0; padding: 0 0 64px; }
 .hub-work { position: relative; min-height: calc(100vh - 160px); margin-top: 12px; }
-body.tt-expand-open { overflow: hidden !important; }
+body.tt-expand-open {
+  overflow: hidden !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+}
+/* Open tool panel must fit in the viewport; scroll lives inside the iframe */
+body.tt-expand-open .hub-shell {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  padding-bottom: 8px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+}
+body.tt-expand-open .hub-shell > div {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  padding-bottom: 0 !important;
+}
+body.tt-expand-open .hub-top-row,
+body.tt-expand-open .mini-bar {
+  flex-shrink: 0 !important;
+}
+body.tt-expand-open .hub-work {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+  margin-top: 8px !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+body.tt-expand-open .hub-main {
+  visibility: hidden !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  inset: 0 !important;
+  overflow: hidden !important;
+}
 body.tt-mini-frame #tt-global-bar, html.tt-mini-frame #tt-global-bar { display: none !important; }
 /* Mini iframe: one scrollbar on html; body grows with content */
 html.tt-mini-frame {
@@ -133,15 +176,16 @@ html.tt-mini-frame body {
   display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 40;
   background: var(--bg); flex-direction: column; border: 1px solid var(--border);
   border-radius: 12px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.45);
+  max-height: 100%; height: 100%; box-sizing: border-box;
 }
 .hub-expand.open { display: flex; }
 .hub-expand #expandHost, #expandHost {
-  flex: 1; min-height: 0; position: relative; overflow: hidden;
+  flex: 1 1 auto; min-height: 0; position: relative; overflow: hidden;
   display: flex; flex-direction: column;
 }
 .hub-expand #expandHost iframe, #expandHost iframe {
   flex: 1 1 auto; width: 100% !important; height: 100% !important; min-height: 0 !important;
-  border: 0 !important; background: var(--bg); display: block;
+  max-height: 100% !important; border: 0 !important; background: var(--bg); display: block;
 }
 .hub-expand-bar {
   flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px;
