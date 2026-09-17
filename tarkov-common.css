@@ -75,65 +75,35 @@ body.tt-expand-open {
   height: 100vh !important;
   max-height: 100vh !important;
 }
-/* Open tool panel must fit in the viewport; scroll lives inside the iframe */
 body.tt-expand-open .hub-shell {
-  height: 100vh !important;
-  max-height: 100vh !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-  padding-bottom: 8px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  box-sizing: border-box !important;
+  height: 100vh !important; max-height: 100vh !important; min-height: 0 !important;
+  overflow: hidden !important; padding-bottom: 8px !important;
+  display: flex !important; flex-direction: column !important; box-sizing: border-box !important;
 }
 body.tt-expand-open .hub-shell > div {
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-  padding-bottom: 0 !important;
+  flex: 1 1 auto !important; min-height: 0 !important; display: flex !important;
+  flex-direction: column !important; overflow: hidden !important; padding-bottom: 0 !important;
 }
 body.tt-expand-open .hub-top-row,
-body.tt-expand-open .mini-bar {
-  flex-shrink: 0 !important;
-}
+body.tt-expand-open .mini-bar { flex-shrink: 0 !important; }
 body.tt-expand-open .hub-work {
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  height: auto !important;
-  margin-top: 8px !important;
-  overflow: hidden !important;
-  position: relative !important;
+  flex: 1 1 auto !important; min-height: 0 !important; max-height: none !important;
+  height: auto !important; margin-top: 8px !important; overflow: hidden !important; position: relative !important;
 }
 body.tt-expand-open .hub-main {
-  visibility: hidden !important;
-  pointer-events: none !important;
-  position: absolute !important;
-  inset: 0 !important;
-  overflow: hidden !important;
+  visibility: hidden !important; pointer-events: none !important;
+  position: absolute !important; inset: 0 !important; overflow: hidden !important;
 }
 body.tt-mini-frame #tt-global-bar, html.tt-mini-frame #tt-global-bar { display: none !important; }
-/* Mini iframe: one scrollbar on html; body grows with content */
 html.tt-mini-frame {
-  height: 100% !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
+  height: 100% !important; overflow-x: hidden !important; overflow-y: auto !important;
 }
 body.tt-mini-frame {
-  padding-top: 8px !important;
-  padding-bottom: 24px !important;
-  overflow: visible !important;
-  height: auto !important;
-  min-height: 100% !important;
-  max-height: none !important;
-  position: relative !important;
-  margin: 0 !important;
+  padding-top: 8px !important; padding-bottom: 24px !important; overflow: visible !important;
+  height: auto !important; min-height: 100% !important; max-height: none !important;
+  position: relative !important; margin: 0 !important;
 }
-html.tt-mini-frame body {
-  min-height: 100% !important;
-}
+html.tt-mini-frame body { min-height: 100% !important; }
 .hub-top-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
 .hub-top-row #btnNotif { min-width:auto !important; min-height:36px !important; padding:0 12px !important; }
 .hub-top-row #btnNotif.has-unread { border-color: var(--red) !important; color: var(--red) !important; }
@@ -229,3 +199,23 @@ html.tt-mini-frame body {
 .tt-accent-swatch[data-accent="pink"] { --swatch: #e879a9; }
 .tt-accent-swatch[data-accent="slate"] { --swatch: #94a3b8; }
 .tt-accent-swatch.on { border-color: #fff !important; box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--swatch, var(--accent)) !important; }
+
+/* Hub categories */
+.cat-head {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin: 14px 0 8px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  cursor: pointer; user-select: none;
+}
+.cat-head:hover { border-color: var(--accent); }
+.cat-chevron { color: var(--muted); width: 1em; font-size: .9rem; }
+.cat-title { font-weight: 700; color: var(--text); flex: 1; }
+.cat-count {
+  font-size: .75rem; color: var(--muted); background: var(--input-bg);
+  border-radius: 999px; padding: 2px 8px;
+}
+.cat-body { margin-bottom: 4px; }
+.cat-body.is-collapsed { display: none; }
+.cat-body .grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px;
+}
+#grid { display: block; }
