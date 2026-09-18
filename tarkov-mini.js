@@ -78,7 +78,7 @@
 
     try {
       if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: 'tt-notify', tool: tool, title: title, body: msg, kind: kind }, '*');
+        window.parent.postMessage({ type: 'tt-notify', tool: tool, title: title, body: msg, kind: kind }, location.origin);
       }
     } catch (e) {}
     try {
@@ -104,7 +104,7 @@
       global.__ttLastStatus = { running: payload.running, label: payload.label, tool: tool };
     } catch (e) {}
     try {
-      if (window.parent && window.parent !== window) window.parent.postMessage(payload, '*');
+      if (window.parent && window.parent !== window) window.parent.postMessage(payload, location.origin);
     } catch (e) {}
     try {
       if (window.BroadcastChannel) {
@@ -117,6 +117,7 @@
 
   try {
     window.addEventListener('message', function (ev) {
+      if (ev.origin !== location.origin) return;
       if (ev.data && ev.data.type === 'tt-ping-status' && global.__ttLastStatus) {
         reportStatus(global.__ttLastStatus);
       }
