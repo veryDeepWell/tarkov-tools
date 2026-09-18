@@ -6,7 +6,7 @@
   <title>Локализатор — Tarkov Tools</title>
   <link rel="stylesheet" href="tarkov-common.css">
   <script type="application/json" id="tarkovtool-meta">
-  {"title":"Локализатор","description":"Поиск предметов и квестов по выбранным языкам API (en, ru, de, zh…)."}
+  {"title":"Локализатор","description":"Поиск предметов и квестов по выбранным языкам API."}
   </script>
   <style>
     .container { max-width: min(1600px, 96vw); margin: 0 auto; padding: 12px 14px 48px; }
@@ -15,7 +15,7 @@
     .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
     .field { flex: 1; min-width: 140px; }
     .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
-    .lang-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .lang-grid { display: flex; flex-wrap: wrap; gap: 6px; min-height: 44px; }
     .lang-chip {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border);
@@ -23,7 +23,7 @@
       font-size: .85rem; font-weight: 600; user-select: none;
       min-width: auto !important; min-height: 32px !important;
     }
-    .lang-chip input { accent-color: var(--accent); margin: 0; }
+    .lang-chip input { accent-color: var(--accent); margin: 0; width: auto; min-height: auto; }
     .lang-chip.on { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
     .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
     .tab {
@@ -55,10 +55,10 @@
 <body>
   <div class="container">
     <h1>Локализатор</h1>
-    <p class="meta" style="margin-bottom:12px">Имена предметов и квестов из json.tarkov.dev по выбранным языкам</p>
+    <p class="meta" style="margin-bottom:12px">Сначала языки → «Загрузить» → поиск. Тяжёлые данные не качаются, пока не нажмёшь загрузку.</p>
 
     <div class="card">
-      <div class="card-title">Языки поиска и колонок</div>
+      <div class="card-title">1. Языки (макс. 4) — до загрузки</div>
       <div class="lang-grid" id="langGrid"></div>
       <div class="row" style="margin-top:12px">
         <div class="field" style="flex:0;min-width:140px">
@@ -70,11 +70,11 @@
           </select>
         </div>
         <button type="button" class="btn" id="loadBtn">Загрузить</button>
-        <button type="button" class="btn-ghost" id="selAll" style="min-width:auto">Все</button>
-        <button type="button" class="btn-ghost" id="selNone" style="min-width:auto">Сброс</button>
         <button type="button" class="btn-ghost" id="selDefault" style="min-width:auto">en + ru</button>
+        <button type="button" class="btn-ghost" id="selNone" style="min-width:auto">Только en</button>
+        <button type="button" class="btn-ghost" id="selAll" style="min-width:auto" title="Лимит памяти">Все (нельзя)</button>
       </div>
-      <p class="status" id="status">Выбери языки и нажми «Загрузить»</p>
+      <p class="status" id="status">Отметь чекбоксы языков, потом «Загрузить»</p>
     </div>
 
     <div class="tabs">
@@ -84,7 +84,7 @@
 
     <div class="card" id="searchCard" hidden>
       <div class="field">
-        <label>Поиск (по всем выбранным языкам + slug)</label>
+        <label>Поиск (по выбранным языкам + slug)</label>
         <input type="search" id="q" placeholder="m4a1 / болт / …" autocomplete="off">
       </div>
       <p class="meta" id="count" style="margin-top:8px"></p>
@@ -100,7 +100,7 @@
     </div>
   </div>
 
-  <script src="tarkov-localizer.js"></script>
+  <script src="tarkov-localizer.js?v=2"></script>
   <script src="tarkov-common.js"></script>
 </body>
 </html>
