@@ -1,4 +1,4 @@
-/*! Localizer v4 */
+/*! Localizer v5 — P3 TarkovUI/API */
 (function () {
   var API = "https://json.tarkov.dev";
   var MAX_LANGS = 4;
@@ -24,12 +24,12 @@
     return String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
   }
   function esc(s) {
-    var t = String(s == null ? "" : s);
-    t = t.split(String.fromCharCode(38)).join(String.fromCharCode(38) + "amp;");
-    t = t.split(String.fromCharCode(60)).join(String.fromCharCode(38) + "lt;");
-    t = t.split(String.fromCharCode(62)).join(String.fromCharCode(38) + "gt;");
-    t = t.split(String.fromCharCode(34)).join(String.fromCharCode(38) + "quot;");
-    return t;
+    if (window.TarkovUI && TarkovUI.esc) return TarkovUI.esc(s);
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
   function humanize(slug) {
     return String(slug || "").split("-").join(" ");
@@ -115,6 +115,14 @@
     syncChips();
   }
   async function fetchJson(url) {
+    if (window.TarkovAPI && typeof TarkovAPI.getJson === "function") {
+      try {
+        // Prefer shared cache layer when URL is under json.tarkov.dev
+        if (url.indexOf("json.tarkov.dev") >= 0 || url.charAt(0) === "/") {
+          return await TarkovAPI.getJson(url, { httpCache: "force-cache", ttl: 10 * 60 * 1000 });
+        }
+      } catch (e) { /* fall through */ }
+    }
     var res = await fetch(url, { cache: "force-cache" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     return res.json();

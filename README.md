@@ -1,26 +1,14 @@
-# P2 — shared UI kit
+# P3 — Localizer / soft timers / origin
 
-## Push to repo root
+## Push
 
-| File | Action |
+| File | Change |
 |------|--------|
-| `tarkov-ui.js` | **new** |
-| `tarkov-common.js` | loadShared → also loads ui |
-| `tarkovtool-barter-live.html` | wrappers → TarkovUI |
-| `tarkovtool-barter-calc.html` | same |
-| `tarkovtool-trader-flip.html` | same |
-| `tarkovtool-streamer-flip.html` | same |
+| `tarkov-price-track-boot.js` | origin check, `postMessage(..., location.origin)`, clearInterval on pagehide |
+| `tarkov-restock-boot.js` | same |
+| `tarkov-localizer.js` | TarkovUI.esc, TarkovAPI.getJson when available, still max 4 langs |
 
-## API
-
-```js
-TarkovUI.esc(s)
-TarkovUI.fmtNum(n) / fmtRub(n)
-TarkovUI.fleaTax(base, offer, count, { intelCenter3, hmLvl })
-TarkovUI.fleaNet(...)
-TarkovUI.settingsStore(namespace, defaults) // .get .set .getKey .setKey .reset
-TarkovUI.bindSettingsForm(store, ['commission','intel3'], onChange)
-TarkovUI.table(tableEl, filterInput) // → TarkovTools.enhanceTable
-```
-
-Legacy globals: `escapeHtml`, `formatNum`, `fleaTax`, `fleaNet` (set if missing).
+Already OK on main:
+- Catalog title «Локализатор»
+- Localizer cap 4 + selected-only packs
+- price-alarm soft restore (`run.on` → start)
