@@ -1,0 +1,50 @@
+{
+  "_meta": { "code": "zh-CN", "name": "Chinese (Simplified)", "nativeName": "简体中文" },
+  "common": {
+    "settings": "设置",
+    "theme": "主题",
+    "themeDark": "深色",
+    "themeLight": "浅色",
+    "lang": "语言",
+    "sound": "声音",
+    "soundOn": "开",
+    "soundOff": "关",
+    "close": "关闭",
+    "apply": "应用",
+    "hub": "中心",
+    "accent": "强调色",
+    "volume": "音量",
+    "testSound": "测试",
+    "tabGeneral": "常规",
+    "tabSound": "声音",
+    "tabLook": "外观",
+    "tabHidden": "隐藏工具",
+    "tabLang": "语言",
+    "loading": "加载中…",
+    "empty": "空",
+    "save": "保存",
+    "cancel": "取消"
+  },
+  "hub": {
+    "title": "Tarkov Tools",
+    "searchPlaceholder": "搜索…",
+    "mini": "迷你",
+    "notifications": "通知",
+    "markAllRead": "全部已读",
+    "collapse": "收起",
+    "closeTab": "关闭",
+    "toolsCount": "{n} 个工具",
+    "noResults": "未找到工具",
+    "pinned": "已固定"
+  },
+  "cat": {
+    "flea": "跳蚤市场",
+    "loadout": "配装",
+    "hideout": "藏身处",
+    "quests": "任务",
+    "med": "医疗 / 食物",
+    "util": "实用",
+    "other": "其他",
+    "all": "全部工具"
+  }
+}

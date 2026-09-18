@@ -1,0 +1,50 @@
+{
+  "_meta": { "code": "uk", "name": "Ukrainian", "nativeName": "Українська" },
+  "common": {
+    "settings": "Налаштування",
+    "theme": "Тема",
+    "themeDark": "Темна",
+    "themeLight": "Світла",
+    "lang": "Мова",
+    "sound": "Звук",
+    "soundOn": "Увімк",
+    "soundOff": "Вимк",
+    "close": "Закрити",
+    "apply": "Застосувати",
+    "hub": "Хаб",
+    "accent": "Акцент",
+    "volume": "Гучність",
+    "testSound": "Тест",
+    "tabGeneral": "Загальне",
+    "tabSound": "Звук",
+    "tabLook": "Вигляд",
+    "tabHidden": "Приховані інструменти",
+    "tabLang": "Мова",
+    "loading": "Завантаження…",
+    "empty": "Порожньо",
+    "save": "Зберегти",
+    "cancel": "Скасувати"
+  },
+  "hub": {
+    "title": "Tarkov Tools",
+    "searchPlaceholder": "Пошук…",
+    "mini": "Міні",
+    "notifications": "Сповіщення",
+    "markAllRead": "Прочитати все",
+    "collapse": "Згорнути",
+    "closeTab": "Закрити",
+    "toolsCount": "{n} інструментів",
+    "noResults": "Нічого не знайдено",
+    "pinned": "Закріплені"
+  },
+  "cat": {
+    "flea": "Барахолка",
+    "loadout": "Лоадаут",
+    "hideout": "Сховок",
+    "quests": "Квести",
+    "med": "Мед / їжа",
+    "util": "Утиліти",
+    "other": "Інше",
+    "all": "Усі інструменти"
+  }
+}
