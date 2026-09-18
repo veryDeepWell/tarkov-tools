@@ -39,6 +39,7 @@
       <div class="row">
         <div class="field" style="max-width:160px"><label>Режим</label>
           <select id="gameMode"><option value="pve" selected>pve</option><option value="regular">regular</option><option value="pvp-season">pvp-season</option></select>
+        <label class="chk" style="display:flex;align-items:center;gap:8px;margin-top:8px"><input type="checkbox" id="excludeArena" checked> Исключить скины Arena</label>
         </div>
         <button type="button" class="btn" id="btnGo">Сгенерировать</button>
       </div>
@@ -46,7 +47,12 @@
     </div>
     <div class="paperdoll" id="paperdoll"></div>
   </div>
+    
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
-    <script src="tarkovtool-random-loadout.js"></script>
+  <script src="tarkovtool-random-loadout.js"></script>
 </body>
 </html>

@@ -420,6 +420,16 @@
     });
   
     (function() {
+  function itemName(it){
+    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
+    if(window.itemName&&window.itemName!==itemName)return window.itemName(it);
+    if(!it)return '';
+    if(typeof it==='string')return it;
+    var s=(itemName(it)||'').trim();
+    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
+    return s||it.id||'';
+  }
+
       const SKEY = 'tarkovCraftsSettings';
       const s = loadSettings(SKEY, { gameMode: 'regular', priceIn: 'avg24h', priceOut: 'avg24h', intel3: '0', hmLvl: 0, hideQuest: true, onlyProfit: false });
       const set = (id, v, chk) => { const el = document.getElementById(id); if (!el) return; if (chk) el.checked = !!v; else el.value = v; };

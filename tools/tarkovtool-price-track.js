@@ -1,180 +1,432 @@
+(function () {
+  function itemName(it){
+    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
+    if(!it)return '';
+    if(typeof it==='string')return it;
+    var s=String(itemName(it)||'').trim();
+    if(/^[a-f0-9]{20,}$/i.test(s)) {
+      var n=String(it.name||'').trim();
+      var sl=String(it.normalizedName||'').trim();
+      if(n && !/^[a-f0-9]{20,}$/i.test(n)) s=n;
+      else if(sl) s=sl;
+    }
+    return s||it.id||'';
+  }
 
-    const DB_NAME='tarkovPriceDB', DB_VER=1, STORE='snapshots', META='tarkovPriceTrackMeta';
-    let db, timer=null, selectedId=null;
-    function esc(s){ return String(s||'').replace(/&/g,'\u0026amp;').replace(/</g,'\u0026lt;').replace(/"/g,'\u0026quot;'); }
-    function readRun(){ try{ return JSON.parse(localStorage.getItem('tarkovPriceTrackRunning')||'{}'); }catch(e){ return {}; } }
-    function writeRun(patch){
-      var cur = readRun();
-      Object.keys(patch).forEach(function(k){ cur[k]=patch[k]; });
-      try{ localStorage.setItem('tarkovPriceTrackRunning', JSON.stringify(cur)); }catch(e){}
-      return cur;
+  const DB_NAME = "tarkovPriceDB", DB_VER = 1, STORE = "snapshots", META = "tarkovPriceTrackMeta";
+  let db, timer = null, selectedId = null;
+  let chartSeries = { avg: true, low: true, high: true };
+  let viewRange = null; // {i0, i1} index range for zoom, null = all
+  let lastHist = [];
+  let hoverX = null;
+
+  function esc(s) {
+    if (window.TarkovUI && TarkovUI.esc) return TarkovUI.esc(s);
+    return String(s || "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function itemLabel(it) {
+    if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
+    var s = (it && (itemName(it))) || "";
+    if (window.TarkovNames && TarkovNames.isHashLike && TarkovNames.isHashLike(s))
+      return (it && it.name) || s || (it && it.id) || "";
+    return s || (it && it.id) || "";
+  }
+  function fmtRub(n) {
+    if (window.TarkovUI && TarkovUI.fmtRub) return TarkovUI.fmtRub(n);
+    return Math.round(Number(n) || 0).toLocaleString("ru-RU") + " ₽";
+  }
+  function openDb() {
+    return new Promise(function (resolve, reject) {
+      var req = indexedDB.open(DB_NAME, DB_VER);
+      req.onupgradeneeded = function () {
+        var d = req.result;
+        if (!d.objectStoreNames.contains(STORE)) {
+          var os = d.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
+          os.createIndex("itemId", "itemId", { unique: false });
+          os.createIndex("ts", "ts", { unique: false });
+        }
+      };
+      req.onsuccess = function () { db = req.result; resolve(db); };
+      req.onerror = function () { reject(req.error); };
+    });
+  }
+  function putSnap(itemId, avg, low, high, name, slug, icon) {
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).add({
+        itemId: itemId, ts: Date.now(), avg: avg, low: low, high: high,
+        name: name, slug: slug, icon: icon
+      });
+      tx.oncomplete = resolve; tx.onerror = function () { reject(tx.error); };
+    });
+  }
+  function allLatest() {
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction(STORE, "readonly");
+      var req = tx.objectStore(STORE).getAll();
+      req.onsuccess = function () {
+        var map = {};
+        (req.result || []).forEach(function (r) {
+          if (!map[r.itemId] || r.ts > map[r.itemId].ts) map[r.itemId] = r;
+        });
+        resolve(Object.keys(map).map(function (k) { return map[k]; }));
+      };
+      req.onerror = function () { reject(req.error); };
+    });
+  }
+  function historyFor(itemId) {
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction(STORE, "readonly");
+      var idx = tx.objectStore(STORE).index("itemId");
+      var req = idx.getAll(IDBKeyRange.only(itemId));
+      req.onsuccess = function () {
+        var rows = (req.result || []).slice().sort(function (a, b) { return a.ts - b.ts; });
+        resolve(rows);
+      };
+      req.onerror = function () { reject(req.error); };
+    });
+  }
+  function readRun() {
+    try { return JSON.parse(localStorage.getItem("tarkovPriceTrackRunning") || "{}"); } catch (e) { return {}; }
+  }
+  function writeRun(o) {
+    try { localStorage.setItem("tarkovPriceTrackRunning", JSON.stringify(o)); } catch (e) {}
+  }
+  function updateMeta() {
+    var el = document.getElementById("trackMeta");
+    if (!el) return;
+    var r = readRun();
+    el.textContent = r.on
+      ? ("Фон: каждые " + (r.mins || "?") + " мин · mode " + (r.mode || ""))
+      : "Фон выключен";
+  }
+  async function takeSnapshot() {
+    await openDb();
+    var mode = document.getElementById("gameMode").value || "pve";
+    var arr;
+    if (window.TarkovAPI && TarkovAPI.items) arr = await TarkovAPI.items(mode);
+    else {
+      var res = await fetch("https://json.tarkov.dev/" + mode + "/items", { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      var json = await res.json();
+      var raw = json && json.data && (json.data.items || json.data);
+      arr = Array.isArray(raw) ? raw : Object.values(raw || {});
     }
-    function openDb(){
-      return new Promise((resolve,reject)=>{
-        const req=indexedDB.open(DB_NAME, DB_VER);
-        req.onupgradeneeded=()=>{ const d=req.result; if(!d.objectStoreNames.contains(STORE)){
-          const os=d.createObjectStore(STORE,{keyPath:'id',autoIncrement:true});
-          os.createIndex('byItem','itemId',{unique:false}); os.createIndex('byTs','ts',{unique:false});
-        }};
-        req.onsuccess=()=>{ db=req.result; resolve(db); };
-        req.onerror=()=>reject(req.error);
+    var n = 0;
+    for (var i = 0; i < arr.length; i++) {
+      var it = arr[i];
+      if (!it || !it.id) continue;
+      var avg = Number(it.avg24hPrice) || 0;
+      var low = Number(it.lastLowPrice) || 0;
+      var high = Number(it.high24hPrice || it.avg24hPrice) || 0;
+      if (avg <= 0 && low <= 0) continue;
+      var name = itemLabel(it);
+      var slug = it.normalizedName || "";
+      await putSnap(it.id, avg, low, high, name, slug, it.iconLink || "");
+      n++;
+    }
+    try {
+      localStorage.setItem(META, JSON.stringify({ lastSnap: Date.now(), count: n, mode: mode }));
+    } catch (e) {}
+    document.getElementById("status").className = "status ok";
+    document.getElementById("status").textContent = "Снимок: " + n + " предметов";
+    await renderList();
+    if (selectedId) drawChart(selectedId);
+    if (typeof Notify === "function") {
+      Notify({
+        title: "Динамика цен",
+        body: "Снимок: " + n + " предметов",
+        tool: "tarkovtool-price-track.html",
+        kind: "price"
       });
     }
-    function putSnap(itemId, avg, low, high, name, slug, icon){
-      return new Promise((resolve,reject)=>{
-        const tx=db.transaction(STORE,'readwrite');
-        tx.objectStore(STORE).add({itemId, ts:Date.now(), avg, low, high, name, slug, icon});
-        tx.oncomplete=()=>resolve(); tx.onerror=()=>reject(tx.error);
+  }
+  async function renderList() {
+    await openDb();
+    var list = await allLatest();
+    var q = (document.getElementById("q").value || "").toLowerCase().trim();
+    if (q) {
+      list = list.filter(function (r) {
+        return (r.name || "").toLowerCase().indexOf(q) >= 0
+          || (r.slug || "").toLowerCase().indexOf(q) >= 0
+          || (r.itemId || "").toLowerCase().indexOf(q) >= 0;
       });
     }
-    function latestByItem(){
-      return new Promise((resolve,reject)=>{
-        const tx=db.transaction(STORE,'readonly');
-        const req=tx.objectStore(STORE).getAll();
-        req.onsuccess=()=>{ const map={}; (req.result||[]).forEach(r=>{ if(!map[r.itemId]||r.ts>map[r.itemId].ts) map[r.itemId]=r; }); resolve(map); };
-        req.onerror=()=>reject(req.error);
-      });
-    }
-    function historyFor(itemId){
-      return new Promise((resolve,reject)=>{
-        const tx=db.transaction(STORE,'readonly');
-        const idx=tx.objectStore(STORE).index('byItem');
-        const req=idx.getAll(itemId);
-        req.onsuccess=()=>resolve((req.result||[]).sort((a,b)=>a.ts-b.ts));
-        req.onerror=()=>reject(req.error);
-      });
-    }
-    async function takeSnapshot(){
-      const st=document.getElementById('status');
-      st.className='status'; st.textContent='Снимаю цены flea…';
-      const mode=document.getElementById('gameMode').value||'pve';
-      let arr;
-      if(window.TarkovAPI&&TarkovAPI.items){ arr=await TarkovAPI.items(mode); }
-      else {
-        const res=await fetch('https://json.tarkov.dev/'+mode+'/items',{cache:'no-store'});
-        if(!res.ok) throw new Error('HTTP '+res.status);
-        const json=await res.json();
-        let raw=json&&json.data&&json.data.items; arr=Array.isArray(raw)?raw:Object.values(raw||{});
+    list.sort(function (a, b) { return (a.name || "").localeCompare(b.name || "", "ru"); });
+    var box = document.getElementById("itemList");
+    if (!list.length) { box.innerHTML = '<p class="meta">Пока пусто — снимите снимок</p>'; return; }
+    box.innerHTML = list.map(function (r) {
+      var label = r.name || r.slug || r.itemId;
+      if (window.TarkovNames && TarkovNames.isHashLike && TarkovNames.isHashLike(label)) {
+        label = r.slug || r.itemId || label;
       }
-      let n=0;
-      for(const it of arr){
-        const avg=Number(it.avg24hPrice)||0, low=Number(it.lastLowPrice)||0, high=Number(it.high24hPrice)||0;
-        if(!avg&&!low) continue;
-        await putSnap(it.id, avg, low, high, it.shortName||it.name||it.normalizedName, it.normalizedName||'', it.iconLink||'');
-        n++;
+      return '<div class="item-row" data-id="' + esc(r.itemId) + '">' +
+        (r.icon ? '<img src="' + esc(r.icon) + '" alt="">' : '') +
+        '<div class="nm">' + esc(label) + '</div>' +
+        '<div class="pr">' + fmtRub(r.avg || r.low) + '</div></div>';
+    }).join("");
+    box.querySelectorAll(".item-row").forEach(function (el) {
+      el.onclick = function () {
+        selectedId = el.getAttribute("data-id");
+        viewRange = null;
+        drawChart(selectedId);
+      };
+    });
+  }
+
+  function seriesVals(hist, key) {
+    return hist.map(function (h) { return Number(h[key]) || 0; });
+  }
+
+  function drawChart(itemId) {
+    historyFor(itemId).then(function (hist) {
+      lastHist = hist;
+      var title = document.getElementById("chartTitle");
+      var meta = document.getElementById("chartMeta");
+      var tip = document.getElementById("chartTip");
+      if (!hist.length) {
+        title.textContent = "Нет данных";
+        meta.textContent = "";
+        return;
       }
-      try{localStorage.setItem(META, JSON.stringify({lastRun:Date.now(), count:n, mode}));}catch(e){}
-      st.className='status ok'; st.textContent='Снимок: '+n+' · '+new Date().toLocaleString('ru-RU');
-      updateMeta(); await refreshList();
-      if(selectedId) drawChart(selectedId);
-      if(window.TarkovTools&&TarkovTools.beep) TarkovTools.beep('ok');
-      if(typeof Notify==='function') Notify({ title:'Динамика цен', body:'Снимок: '+n+' предметов', tool:'tarkovtool-price-track.html', kind:'price' });
-    }
-    function updateMeta(){
-      let meta={}; try{meta=JSON.parse(localStorage.getItem(META)||'{}');}catch(e){}
-      var run=readRun();
-      var mins = window.__ttPollMins || run.mins || Number(document.getElementById('interval').value) || 30;
-      document.getElementById('trackMeta').textContent=
-        (timer ? ('Фон · каждые '+mins+'м · ') : 'Фон остановлен · ')+
-        (meta.lastRun?('последний '+new Date(meta.lastRun).toLocaleString('ru-RU')+' · '+meta.count+' шт.'):'снимков ещё не было');
-    }
-    async function refreshList(){
-      const map=await latestByItem();
-      const q=(document.getElementById('q').value||'').toLowerCase();
-      let list=Object.values(map);
-      if(q) list=list.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.slug||'').toLowerCase().includes(q));
-      list.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru'));
-      const box=document.getElementById('itemList');
-      box.innerHTML=list.slice(0,300).map(r=>
-        '<div class="item-row" data-id="'+esc(r.itemId)+'">'+
-        (r.icon?'<img src="'+esc(r.icon)+'" loading="lazy" alt="">':'')+
-        '<div class="nm">'+esc(r.name||r.slug)+'</div>'+
-        '<div class="pr">'+(r.avg?Math.round(r.avg).toLocaleString('ru-RU'):'—')+' ₽</div></div>'
-      ).join('')||'<div class="meta">Пока пусто</div>';
-      box.querySelectorAll('.item-row').forEach(el=>{
-        el.onclick=()=>{ selectedId=el.getAttribute('data-id'); drawChart(selectedId); };
+      var last = hist[hist.length - 1];
+      title.textContent = last.name || itemId;
+      meta.textContent = hist.length + " точек · avg " + fmtRub(last.avg) +
+        " · low " + fmtRub(last.low) + " · high " + fmtRub(last.high);
+
+      var canvas = document.getElementById("chart");
+      var ctx = canvas.getContext("2d");
+      var dpr = window.devicePixelRatio || 1;
+      var cssW = canvas.clientWidth || 900;
+      var cssH = 320;
+      canvas.width = Math.floor(cssW * dpr);
+      canvas.height = Math.floor(cssH * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      var W = cssW, H = cssH;
+      ctx.clearRect(0, 0, W, H);
+
+      var i0 = 0, i1 = hist.length - 1;
+      if (viewRange) {
+        i0 = Math.max(0, Math.min(viewRange.i0, hist.length - 1));
+        i1 = Math.max(i0 + 1, Math.min(viewRange.i1, hist.length - 1));
+      }
+      var slice = hist.slice(i0, i1 + 1);
+      if (slice.length < 2) {
+        ctx.fillStyle = "#8b919a";
+        ctx.font = "13px sans-serif";
+        ctx.fillText("Мало точек для графика", 20, H / 2);
+        return;
+      }
+
+      var vals = [];
+      slice.forEach(function (h) {
+        if (chartSeries.avg && h.avg > 0) vals.push(h.avg);
+        if (chartSeries.low && h.low > 0) vals.push(h.low);
+        if (chartSeries.high && h.high > 0) vals.push(h.high);
       });
-    }
-    async function drawChart(itemId){
-      const hist=await historyFor(itemId);
-      const title=document.getElementById('chartTitle');
-      const meta=document.getElementById('chartMeta');
-      if(!hist.length){ title.textContent='Нет данных'; meta.textContent=''; return; }
-      const last=hist[hist.length-1];
-      title.textContent=last.name||itemId;
-      meta.textContent=hist.length+' точек · last '+Math.round(last.avg||0).toLocaleString('ru-RU')+' ₽';
-      const canvas=document.getElementById('chart');
-      const ctx=canvas.getContext('2d');
-      const W=canvas.width, H=canvas.height;
-      ctx.clearRect(0,0,W,H);
-      const vals=hist.map(h=>h.avg||h.low||0).filter(v=>v>0);
-      if(vals.length<2){ ctx.fillStyle='#8b919a'; ctx.fillText('Мало точек для графика', 20, H/2); return; }
-      let min=Math.min(...vals), max=Math.max(...vals);
-      if(min===max){ min*=0.95; max*=1.05; }
-      const pad=24;
-      ctx.strokeStyle='#2a2f3a'; ctx.beginPath();
-      for(let i=0;i<=4;i++){ const y=pad+(H-2*pad)*i/4; ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); }
-      ctx.stroke();
-      ctx.strokeStyle='#c9a227'; ctx.lineWidth=2; ctx.beginPath();
-      hist.forEach((h,i)=>{
-        const v=h.avg||h.low||0;
-        const x=pad+(W-2*pad)*(i/(hist.length-1));
-        const y=H-pad-(H-2*pad)*((v-min)/(max-min||1));
-        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      if (!vals.length) {
+        ctx.fillStyle = "#8b919a";
+        ctx.fillText("Включите хотя бы один ряд (avg/low/high)", 20, H / 2);
+        return;
+      }
+      var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+      if (min === max) { min *= 0.95; max *= 1.05; }
+      var padL = 64, padR = 16, padT = 16, padB = 36;
+      var plotW = W - padL - padR, plotH = H - padT - padB;
+
+      // grid + Y labels
+      ctx.strokeStyle = "rgba(42,47,58,0.9)";
+      ctx.fillStyle = "#8b919a";
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      for (var g = 0; g <= 4; g++) {
+        var gy = padT + plotH * g / 4;
+        var gv = max - (max - min) * g / 4;
+        ctx.beginPath();
+        ctx.moveTo(padL, gy);
+        ctx.lineTo(W - padR, gy);
+        ctx.stroke();
+        ctx.fillText(Math.round(gv).toLocaleString("ru-RU"), padL - 6, gy);
+      }
+
+      // X labels (first / mid / last)
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      function xAt(i) {
+        return padL + plotW * (i / (slice.length - 1));
+      }
+      function yAt(v) {
+        return padT + plotH * (1 - (v - min) / (max - min || 1));
+      }
+      function tLabel(ts) {
+        try {
+          var d = new Date(ts);
+          return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" }) +
+            " " + d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+        } catch (e) { return ""; }
+      }
+      [0, Math.floor(slice.length / 2), slice.length - 1].forEach(function (idx) {
+        ctx.fillText(tLabel(slice[idx].ts), xAt(idx), H - padB + 6);
       });
-      ctx.stroke();
-    }
-    function startBg(){
-      if (window.__ttStartLock || timer) return;
-      window.__ttStartLock = true;
-      // soft clear timer only — do not wipe mins from storage
-      if (timer) { clearInterval(timer); timer = null; }
-      const saved = Number(readRun().mins);
-      const mins = Math.max(1, Number(document.getElementById('interval').value) || saved || 30);
-      document.getElementById('interval').value = mins;
-      window.__ttPollMins = mins;
-      takeSnapshot().catch(e=>{ document.getElementById('status').className='status err'; document.getElementById('status').textContent=e.message; });
-      timer = setInterval(function(){ takeSnapshot().catch(function(){}); }, mins * 60 * 1000);
-      writeRun({ on: true, mins: mins, mode: document.getElementById('gameMode').value });
-      updateMeta();
-      if (window.TarkovMini && TarkovMini.reportStatus) TarkovMini.reportStatus({ running: true, label: 'каждые ' + mins + 'м' });
-      window.__ttStartLock = false;
-    }
-    function stopBg(){
-      window.__ttStartLock = false;
-      if (timer) { clearInterval(timer); timer = null; }
-      window.__ttPollMins = null;
-      var mins = Number(document.getElementById('interval').value) || Number(readRun().mins) || 30;
-      writeRun({ on: false, mins: mins, mode: document.getElementById('gameMode').value });
-      updateMeta();
-      if (window.TarkovMini && TarkovMini.reportStatus) TarkovMini.reportStatus({ running: false, label: 'ожидание' });
-    }
-    document.getElementById('interval').addEventListener('change', function(){
-      var m = Math.max(1, Number(this.value) || 30);
-      this.value = m;
-      writeRun({ mins: m });
-      if (timer) {
-        // restart with new interval without losing mins
-        clearInterval(timer); timer = null;
-        window.__ttPollMins = m;
-        timer = setInterval(function(){ takeSnapshot().catch(function(){}); }, m * 60 * 1000);
-        writeRun({ on: true, mins: m });
-        updateMeta();
-        if (window.TarkovMini && TarkovMini.reportStatus) TarkovMini.reportStatus({ running: true, label: 'каждые ' + m + 'м' });
+
+      function strokeSeries(key, color) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        var started = false;
+        for (var i = 0; i < slice.length; i++) {
+          var v = Number(slice[i][key]) || 0;
+          if (v <= 0) continue;
+          var x = xAt(i), y = yAt(v);
+          if (!started) { ctx.moveTo(x, y); started = true; }
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        // points
+        ctx.fillStyle = color;
+        for (var j = 0; j < slice.length; j++) {
+          var v2 = Number(slice[j][key]) || 0;
+          if (v2 <= 0) continue;
+          ctx.beginPath();
+          ctx.arc(xAt(j), yAt(v2), 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      if (chartSeries.high) strokeSeries("high", "#f07178");
+      if (chartSeries.avg) strokeSeries("avg", "#c9a227");
+      if (chartSeries.low) strokeSeries("low", "#3dd68c");
+
+      // hover
+      if (hoverX != null) {
+        var rel = (hoverX - padL) / (plotW || 1);
+        var hi = Math.round(rel * (slice.length - 1));
+        hi = Math.max(0, Math.min(slice.length - 1, hi));
+        var hx = xAt(hi);
+        ctx.strokeStyle = "rgba(232,234,237,0.35)";
+        ctx.beginPath();
+        ctx.moveTo(hx, padT);
+        ctx.lineTo(hx, padT + plotH);
+        ctx.stroke();
+        var h = slice[hi];
+        var tipText = tLabel(h.ts) +
+          (chartSeries.avg ? " · avg " + fmtRub(h.avg) : "") +
+          (chartSeries.low ? " · low " + fmtRub(h.low) : "") +
+          (chartSeries.high ? " · high " + fmtRub(h.high) : "");
+        if (tip) {
+          tip.style.display = "block";
+          tip.textContent = tipText;
+        }
+      } else if (tip) {
+        tip.style.display = "none";
       }
     });
-    document.getElementById('startBtn').onclick=startBg;
-    document.getElementById('stopBtn').onclick=stopBg;
-    document.getElementById('snapBtn').onclick=()=>takeSnapshot().catch(e=>{ document.getElementById('status').className='status err'; document.getElementById('status').textContent=e.message; });
-    document.getElementById('q').oninput=()=>refreshList();
-    openDb().then(async()=>{
-      var run = readRun();
-      if (run.mins) document.getElementById('interval').value = String(run.mins);
-      if (run.mode) document.getElementById('gameMode').value = run.mode;
-      updateMeta(); await refreshList();
-      if (run.on) {
-        window.__ttPollMins = Number(run.mins) || null;
-        startBg();
-      }
+  }
+
+  function startBg() {
+    if (window.__ttStartLock || timer) return;
+    window.__ttStartLock = true;
+    if (timer) { clearInterval(timer); timer = null; }
+    var saved = Number(readRun().mins);
+    var mins = Math.max(1, Number(document.getElementById("interval").value) || saved || 30);
+    document.getElementById("interval").value = mins;
+    window.__ttPollMins = mins;
+    takeSnapshot().catch(function (e) {
+      document.getElementById("status").className = "status err";
+      document.getElementById("status").textContent = e.message;
     });
-  
+    timer = setInterval(function () {
+      takeSnapshot().catch(function () {});
+    }, mins * 60 * 1000);
+    writeRun({ on: true, mins: mins, mode: document.getElementById("gameMode").value });
+    updateMeta();
+    if (window.TarkovMini && TarkovMini.reportStatus) {
+      TarkovMini.reportStatus({ running: true, label: "каждые " + mins + "м" });
+    }
+    window.__ttStartLock = false;
+  }
+  function stopBg() {
+    window.__ttStartLock = false;
+    if (timer) { clearInterval(timer); timer = null; }
+    var prev = readRun();
+    writeRun({ on: false, mins: prev.mins, mode: prev.mode });
+    updateMeta();
+    if (window.TarkovMini && TarkovMini.reportStatus) {
+      TarkovMini.reportStatus({ running: false, label: "ожидание" });
+    }
+  }
+
+  function wireChart() {
+    var canvas = document.getElementById("chart");
+    if (!canvas) return;
+    canvas.addEventListener("mousemove", function (e) {
+      var rect = canvas.getBoundingClientRect();
+      hoverX = e.clientX - rect.left;
+      if (selectedId) drawChart(selectedId);
+    });
+    canvas.addEventListener("mouseleave", function () {
+      hoverX = null;
+      if (selectedId) drawChart(selectedId);
+    });
+    canvas.addEventListener("wheel", function (e) {
+      if (!lastHist.length || lastHist.length < 4) return;
+      e.preventDefault();
+      var len = lastHist.length;
+      var i0 = viewRange ? viewRange.i0 : 0;
+      var i1 = viewRange ? viewRange.i1 : len - 1;
+      var span = i1 - i0;
+      var mid = (i0 + i1) / 2;
+      if (e.deltaY < 0) {
+        // zoom in
+        span = Math.max(3, Math.floor(span * 0.7));
+      } else {
+        span = Math.min(len - 1, Math.ceil(span / 0.7));
+      }
+      i0 = Math.max(0, Math.round(mid - span / 2));
+      i1 = Math.min(len - 1, i0 + span);
+      viewRange = { i0: i0, i1: i1 };
+      if (i0 === 0 && i1 === len - 1) viewRange = null;
+      if (selectedId) drawChart(selectedId);
+    }, { passive: false });
+    document.querySelectorAll("[data-series]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var k = btn.getAttribute("data-series");
+        chartSeries[k] = !chartSeries[k];
+        btn.classList.toggle("on", chartSeries[k]);
+        if (selectedId) drawChart(selectedId);
+      });
+    });
+    var reset = document.getElementById("chartResetZoom");
+    if (reset) reset.onclick = function () {
+      viewRange = null;
+      if (selectedId) drawChart(selectedId);
+    };
+  }
+
+  document.getElementById("startBtn").onclick = startBg;
+  document.getElementById("stopBtn").onclick = stopBg;
+  document.getElementById("snapBtn").onclick = function () {
+    takeSnapshot().catch(function (e) {
+      document.getElementById("status").className = "status err";
+      document.getElementById("status").textContent = e.message;
+    });
+  };
+  document.getElementById("q").oninput = function () { renderList().catch(function () {}); };
+  openDb().then(function () {
+    renderList();
+    updateMeta();
+    wireChart();
+    var run = readRun();
+    if (run.mins) document.getElementById("interval").value = run.mins;
+    if (run.mode) document.getElementById("gameMode").value = run.mode;
+    if (run.on) startBg();
+    else if (window.TarkovMini && TarkovMini.reportStatus) {
+      TarkovMini.reportStatus({ running: false, label: "ожидание" });
+    }
+  }).catch(function (e) {
+    document.getElementById("status").className = "status err";
+    document.getElementById("status").textContent = String(e.message || e);
+  });
+})();

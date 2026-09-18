@@ -1,5 +1,15 @@
 
   (function () {
+  function itemName(it){
+    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
+    if(window.itemName&&window.itemName!==itemName)return window.itemName(it);
+    if(!it)return '';
+    if(typeof it==='string')return it;
+    var s=(itemName(it)||'').trim();
+    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
+    return s||it.id||'';
+  }
+
     var STYLES = [
       { id:'wild', title:'Дикий хуебес', desc:'чёрный / красный / олив', colors:['black','red','olive','yellow'] },
       { id:'pro', title:'Профессионал', desc:'чёрный / серый', colors:['black','grey','blue'] },
@@ -18,7 +28,7 @@
     function pdCell(cls, lab, it) {
       if (!it) return '<div class="pd-slot empty '+cls+'"><div class="lab">'+esc(lab)+'</div>—</div>';
       var pr = priceOf(it);
-      return '<div class="pd-slot '+cls+'"><div class="lab">'+esc(lab)+'</div>'+(it.iconLink?'<img src="'+esc(it.iconLink)+'" alt="">':'')+'<div class="nm">'+esc(it.shortName||it.name)+'</div><div class="pr">'+(pr?pr.toLocaleString('ru-RU')+' ₽':'')+'</div></div>';
+      return '<div class="pd-slot '+cls+'"><div class="lab">'+esc(lab)+'</div>'+(it.iconLink?'<img src="'+esc(it.iconLink)+'" alt="">':'')+'<div class="nm">'+esc(itemName(it))+'</div><div class="pr">'+(pr?pr.toLocaleString('ru-RU')+' ₽':'')+'</div></div>';
     }
     function renderPaperdoll(s) {
       var sum = ['gun','armor','helmet','rig','backpack','headset','glasses'].reduce(function(a,k){ return a+priceOf(s[k]); },0);

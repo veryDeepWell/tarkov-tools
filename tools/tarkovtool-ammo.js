@@ -394,6 +394,16 @@
     });
 
     (function() {
+  function itemName(it){
+    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
+    if(window.itemName&&window.itemName!==itemName)return window.itemName(it);
+    if(!it)return '';
+    if(typeof it==='string')return it;
+    var s=(itemName(it)||'').trim();
+    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
+    return s||it.id||'';
+  }
+
       const s = loadSettings('tarkovAmmoSettings', { gameMode: 'regular' });
       if (s.gameMode) document.getElementById('gameMode').value = s.gameMode;
       document.getElementById('gameMode').addEventListener('change', () => {

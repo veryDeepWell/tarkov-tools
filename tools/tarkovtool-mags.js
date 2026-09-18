@@ -139,7 +139,17 @@
       document.getElementById(id).addEventListener('change',()=>{render();persist()});
     });
     function persist(){saveSettings('tarkovMagsSettings',{gameMode:document.getElementById('gameMode').value,hideQuest:document.getElementById('hideQuest').checked,activeCal})}
-    (function(){const s=loadSettings('tarkovMagsSettings',{});if(s.gameMode)document.getElementById('gameMode').value=s.gameMode;if(s.hideQuest)document.getElementById('hideQuest').checked=true;if(s.activeCal)activeCal=s.activeCal})();
+    (function(){
+  function itemName(it){
+    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
+    if(window.itemName&&window.itemName!==itemName)return window.itemName(it);
+    if(!it)return '';
+    if(typeof it==='string')return it;
+    var s=(itemName(it)||'').trim();
+    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
+    return s||it.id||'';
+  }
+const s=loadSettings('tarkovMagsSettings',{});if(s.gameMode)document.getElementById('gameMode').value=s.gameMode;if(s.hideQuest)document.getElementById('hideQuest').checked=true;if(s.activeCal)activeCal=s.activeCal})();
   
 
 

@@ -1,5 +1,19 @@
 
   (function () {
+  function itemName(it){
+    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
+    if(!it)return '';
+    if(typeof it==='string')return it;
+    var s=String(itemName(it)||'').trim();
+    if(/^[a-f0-9]{20,}$/i.test(s)) {
+      var n=String(it.name||'').trim();
+      var sl=String(it.normalizedName||'').trim();
+      if(n && !/^[a-f0-9]{20,}$/i.test(n)) s=n;
+      else if(sl) s=sl;
+    }
+    return s||it.id||'';
+  }
+
     const RUN_KEY = 'tarkovPriceAlarmRunning';
     const COND = [
       { id: 'price_lte', label: 'Цена ≤' },
@@ -50,7 +64,7 @@
     }
     function displayName(it) {
       if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-      return it.shortName || it.name || it.id;
+      return itemName(it) || it.id;
     }
     function renderHits(q) {
       var box = document.getElementById('hits');

@@ -17,7 +17,12 @@
     .item-row .nm { font-weight:600; }
     .item-row .pr { margin-left:auto; font-variant-numeric:tabular-nums; color:var(--accent); }
     #itemList { max-height:420px; overflow:auto; }
-    canvas { width:100%; height:280px; background:var(--input-bg); border-radius:10px; border:1px solid var(--border); }
+    canvas { width:100%; height:320px; background:var(--input-bg); border-radius:10px; border:1px solid var(--border); display:block; }
+    .chart-toolbar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; align-items:center; }
+    .chart-toolbar .chip { border:1px solid var(--border); background:var(--input-bg); color:var(--muted); border-radius:999px; padding:4px 12px; cursor:pointer; font-size:.85rem; }
+    .chart-toolbar .chip.on { border-color:var(--accent); color:var(--text); background:color-mix(in srgb, var(--accent) 18%, transparent); }
+    .chart-wrap { position:relative; }
+    .chart-tip { position:absolute; left:12px; top:12px; background:rgba(15,17,21,.92); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:.8rem; pointer-events:none; max-width:90%; }
   </style>
 </head>
 <body>
@@ -52,11 +57,26 @@
       </div>
       <div class="card">
         <div class="card-title" id="chartTitle">Выбери предмет</div>
-        <canvas id="chart" width="900" height="280"></canvas>
+        <div class="chart-toolbar">
+          <button type="button" class="chip on" data-series="avg">avg</button>
+          <button type="button" class="chip on" data-series="low">low</button>
+          <button type="button" class="chip on" data-series="high">high</button>
+          <button type="button" class="btn-ghost" id="chartResetZoom" style="min-width:auto;min-height:28px;padding:0 10px">Сброс зума</button>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chart" width="900" height="320"></canvas>
+          <div id="chartTip" class="chart-tip" style="display:none"></div>
+        </div>
         <p class="meta" id="chartMeta"></p>
+        <p class="meta">Колесо мыши — зум · наведение — цена в точке</p>
       </div>
     </div>
   </div>
+  
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
   <script src="tarkovtool-price-track.js"></script>
   <script src="tarkov-price-track-boot.js"></script>

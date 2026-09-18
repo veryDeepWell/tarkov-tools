@@ -1,3 +1,16 @@
+  function itemName(it){
+    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
+    if(!it)return '';
+    if(typeof it==='string')return it;
+    var s=String(itemName(it)||'').trim();
+    if(/^[a-f0-9]{20,}$/i.test(s)) {
+      var n=String(it.name||'').trim();
+      var sl=String(it.normalizedName||'').trim();
+      if(n && !/^[a-f0-9]{20,}$/i.test(n)) s=n;
+      else if(sl) s=sl;
+    }
+    return s||it.id||'';
+  }
 const MULT = {
   '54cb50c76803fa8b248b4571': 0.50,
   '54cb57776803fa99248b456e': 0.63,
@@ -142,7 +155,7 @@ function renderSlots(){
     const it = byId[id];
     return '<div class="slot filled">'+
       (it.icon?'<img class="ico" src="'+esc(it.icon)+'" alt="">':'')+
-      '<div class="slot-body"><div style="font-weight:600">'+esc(it.shortName||it.name)+'</div>'+
+      '<div class="slot-body"><div style="font-weight:600">'+esc(itemName(it))+'</div>'+
       '<div class="meta">base '+fmt(it._value)+' · cost '+fmt(it._cost)+'</div></div>'+
       '<button type="button" class="btn-ghost rm" data-i="'+i+'" title="Убрать">×</button></div>';
   }).join('');

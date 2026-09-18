@@ -4,12 +4,14 @@
  * Custom shorts: localStorage `tarkovShortNames` = { [itemId]: shortName }
  * from tarkovtool-shortname.html.
  *
- * Display order:
+ * Display order (user-defined):
  *   1) in-game shortName (BSG short, e.g. "M4A1")
  *   2) full API name
  *   3) custom short from shortname tool
  *   4) normalizedName / slug
- *   5) id (last resort)
+ *   5) id (last resort — never preferred)
+ *
+ * Search: full name first, then API short, then custom short, then slug/id.
  */
 (function (global) {
   const KEY = 'tarkovShortNames';
@@ -50,7 +52,7 @@
     if (typeof item === 'string') {
       const custom = getShort(item);
       if (custom) return custom;
-      return item;
+      return isHashLike(item) ? item : item;
     }
     const id = item.id || item.itemId || '';
     const gameShort = String(item.shortName || '').trim();
@@ -128,7 +130,7 @@
     });
   } catch (e) {}
 
-  function itemName(item) { return display(item); }
+    function itemName(item) { return display(item); }
   global.itemName = itemName;
   global.TarkovNames = {
     itemName: itemName,

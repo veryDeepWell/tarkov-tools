@@ -35,6 +35,9 @@
         </div>
         <button type="button" class="btn" id="btnSave">Сохранить</button>
         <button type="button" class="btn-ghost" id="btnClear">Очистить слоты</button>
+        <button type="button" class="btn-ghost" id="btnExport">Экспорт JSON</button>
+        <button type="button" class="btn-ghost" id="btnImport">Импорт JSON</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden>
       </div>
       <div class="presets" id="presetList" style="margin-top:10px"></div>
       <p class="status" id="status"></p>
@@ -49,7 +52,12 @@
     </div>
     <div class="slots" id="slots"></div>
   </div>
+    
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
-    <script src="tarkovtool-loadout-builder.js"></script>
+  <script src="tarkovtool-loadout-builder.js"></script>
 </body>
 </html>

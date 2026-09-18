@@ -1,5 +1,19 @@
 
   (function () {
+  function itemName(it){
+    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
+    if(!it)return '';
+    if(typeof it==='string')return it;
+    var s=String(itemName(it)||'').trim();
+    if(/^[a-f0-9]{20,}$/i.test(s)) {
+      var n=String(it.name||'').trim();
+      var sl=String(it.normalizedName||'').trim();
+      if(n && !/^[a-f0-9]{20,}$/i.test(n)) s=n;
+      else if(sl) s=sl;
+    }
+    return s||it.id||'';
+  }
+
     const KEY = 'tarkovLoadoutPresets.v1';
     const SLOT_DEFS = [
       { id:'gun', label:'Оружие' },
@@ -12,7 +26,15 @@
     ];
     var loadout = {};
     var catalog = null;
-    function esc(s){ return String(s||'').replace(/&/g,'&').replace(/</g,'<').replace(/"/g,'"'); }
+    function esc(s){
+      if (window.TarkovUI && TarkovUI.esc) return TarkovUI.esc(s);
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function label(it){
+      if (!it) return '';
+      if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
+      return itemName(it) || '';
+    }
     function status(m,ok){ var el=document.getElementById('status'); el.className='status'+(ok===true?' ok':ok===false?' err':''); el.textContent=m||''; }
     function presets(){ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ return []; } }
     function savePresets(list){ try{ localStorage.setItem(KEY, JSON.stringify(list)); }catch(e){} renderPresets(); }
@@ -40,7 +62,7 @@
         var it = loadout[s.id];
         return '<div class="slot" data-slot="'+s.id+'">' +
           '<div class="lab">'+esc(s.label)+'</div>' +
-          (it ? ('<div>'+(it.iconLink?'<img src="'+esc(it.iconLink)+'" alt="">':'')+'<strong>'+esc(it.shortName||it.name)+'</strong>' +
+          (it ? ('<div>'+(it.iconLink?'<img src="'+esc(it.iconLink)+'" alt="">':'')+'<strong>'+esc(label(it))+'</strong>' +
             ' <button type="button" class="btn-ghost" data-clear="'+s.id+'" style="min-width:auto;min-height:28px;padding:0 8px">×</button></div>' +
             '<div class="meta">'+(it.avg?it.avg.toLocaleString('ru-RU')+' ₽':'')+'</div>')
             : '<div class="meta">пусто</div>') +
@@ -68,7 +90,7 @@
         box.innerHTML = hits.map(function(it){
           return '<div class="hit" data-slot="'+slot+'" data-id="'+it.id+'">' +
             (it.iconLink?'<img src="'+esc(it.iconLink)+'" alt="">':'') +
-            '<span>'+esc(it.shortName||it.name)+'</span></div>';
+            '<span>'+esc(label(it))+'</span></div>';
         }).join('') || '<div class="meta">нет</div>';
       }).catch(function(err){ status(String(err.message||err), false); });
     });
@@ -105,5 +127,56 @@
     document.getElementById('gameMode').onchange = function(){ catalog = null; };
     renderSlots();
     renderPresets();
-  })();
   
+    function exportLoadout() {
+      var payload = {
+        v: 1,
+        type: 'tarkov-loadout',
+        name: (document.getElementById('presetName') || {}).value || 'loadout',
+        mode: (document.getElementById('gameMode') || {}).value || 'pve',
+        slots: loadout,
+        savedAt: Date.now()
+      };
+      var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (payload.name || 'loadout').replace(/[^\w\-]+/g, '_').slice(0, 40) + '.json';
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+      status('Экспорт JSON', true);
+    }
+    function importLoadout(file) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var data = JSON.parse(String(reader.result || '{}'));
+          var slots = data.slots || data.loadout || data;
+          if (!slots || typeof slots !== 'object') throw new Error('Нет slots в файле');
+          loadout = {};
+          SLOT_DEFS.forEach(function (s) {
+            if (slots[s.id]) loadout[s.id] = slots[s.id];
+          });
+          if (data.name && document.getElementById('presetName')) {
+            document.getElementById('presetName').value = data.name;
+          }
+          renderSlots();
+          status('Импорт OK', true);
+        } catch (e) {
+          status(String(e.message || e), false);
+        }
+      };
+      reader.readAsText(file);
+    }
+    var btnEx = document.getElementById('btnExport');
+    if (btnEx) btnEx.onclick = exportLoadout;
+    var btnIm = document.getElementById('btnImport');
+    var fileIm = document.getElementById('importFile');
+    if (btnIm && fileIm) {
+      btnIm.onclick = function () { fileIm.click(); };
+      fileIm.onchange = function () {
+        if (fileIm.files && fileIm.files[0]) importLoadout(fileIm.files[0]);
+        fileIm.value = '';
+      };
+    }
+
+  })();
