@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tarkov Tools</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="tarkov-common.css?v=5">
+  <link rel="stylesheet" href="tarkov-common.css?v=6">
   <link rel="stylesheet" href="tarkov-i18n.css">
   <script type="application/json" id="tarkovtool-meta">
   {"title": "Hub", "description": "All Tarkov tools in one place."}
@@ -49,11 +49,11 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="hub-shell">
-      <div class="hub-top">
-        <h1>Tarkov Tools</h1>
-        <button type="button" class="btn-ghost" id="btnNotif" title="Notifications">🔔 <span id="notifCount">0</span></button>
+  <div class="hub-shell">
+    <div style="padding:12px 14px 0">
+      <div class="hub-top-row">
+        <h1 style="margin:0" data-i18n="hub.title">Tarkov Tools</h1>
+        <button type="button" class="btn-ghost" id="btnNotif" data-i18n-title="hub.notifications" title="Notifications">🔔 <span id="notifCount">0</span></button>
       </div>
 
       <div class="mini-bar" id="miniBar" hidden>
