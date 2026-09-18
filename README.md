@@ -1,14 +1,18 @@
-# P3 — Localizer / soft timers / origin
+# FIX_BUNDLE — только файлы для ручного пуша
 
-## Push
+Скопировать **с сохранением путей** в корень репо:
 
-| File | Change |
-|------|--------|
-| `tarkov-price-track-boot.js` | origin check, `postMessage(..., location.origin)`, clearInterval on pagehide |
-| `tarkov-restock-boot.js` | same |
-| `tarkov-localizer.js` | TarkovUI.esc, TarkovAPI.getJson when available, still max 4 langs |
+```
+core/tarkov-names.js
+tools/tarkovtool-price-track.js
+tools/tarkovtool-price-track.html
+tools/tarkov-price-track-boot.js
+```
 
-Already OK on main:
-- Catalog title «Локализатор»
-- Localizer cap 4 + selected-only packs
-- price-alarm soft restore (`run.on` → start)
+## Что чинит
+
+1. **Имена-хеши** — API отдаёт `name`/`shortName` как `"<id> Name"`. Теперь берём humanized `normalizedName` (везде через TarkovNames).
+2. **График** — ширина canvas (не 0 в layout), 1 точка тоже рисуется.
+3. **Мини-таб трекера** — «каждые N мин · снимок ДД.ММ ЧЧ:ММ» из interval + lastSnap.
+
+После пуша: Ctrl+F5, новый снимок в price-track (старые записи в IndexedDB могут ещё с хешами — «Снять сейчас» обновит).

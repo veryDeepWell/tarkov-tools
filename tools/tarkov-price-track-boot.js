@@ -1,17 +1,16 @@
 /**
- * Price-track mini helper — status only (P3: origin + interval cleanup).
- * Interval label always prefers saved mins / __ttPollMins over HTML default 30.
+ * Price-track mini helper — status label with interval + last snapshot time.
  */
 (function () {
   var syncTimer = null;
 
   function reportMini(running, label) {
     try {
-      var tool = "tools/tarkovtool-price-track.html";
+      var tool = "tarkovtool-price-track.html";
       var payload = { type: "tt-status", tool: tool, running: !!running, label: label || "" };
       window.__ttLastStatus = { running: !!running, label: label || "", tool: tool };
       if (window.TarkovMini && TarkovMini.reportStatus) {
-        TarkovMini.reportStatus({ running: !!running, label: label || "" });
+        TarkovMini.reportStatus({ running: !!running, label: label || "", tool: tool });
       }
       if (window.parent && window.parent !== window) {
         window.parent.postMessage(payload, location.origin);
@@ -32,9 +31,17 @@
     }
   }
 
+  function readMeta() {
+    try {
+      return JSON.parse(localStorage.getItem("tarkovPriceTrackMeta") || "{}");
+    } catch (e) {
+      return {};
+    }
+  }
+
   function resolvedMins(run) {
     run = run || readRun();
-    if (window.__ttPollMins && window.__ttPollMins > 0) return window.__ttPollMins;
+    if (window.__ttPollMins && window.__ttPollMins > 0) return Number(window.__ttPollMins);
     var saved = Number(run.mins);
     if (saved > 0) return saved;
     var el = document.getElementById("interval");
@@ -43,14 +50,34 @@
     return 30;
   }
 
+  function fmtTime(ts) {
+    if (!ts) return "";
+    try {
+      var d = new Date(ts);
+      return d.toLocaleString("ru-RU", {
+        day: "2-digit", month: "2-digit",
+        hour: "2-digit", minute: "2-digit"
+      });
+    } catch (e) {
+      return "";
+    }
+  }
+
   function sync() {
     try {
       var run = readRun();
       var mins = resolvedMins(run);
-      if ((typeof timer !== "undefined" && timer) || run.on) {
-        reportMini(true, "каждые " + mins + "м");
+      var meta = readMeta();
+      var last = fmtTime(meta.lastSnap);
+      var on = (typeof timer !== "undefined" && timer) || run.on;
+      if (on) {
+        var label = "каждые " + mins + " мин";
+        if (last) label += " · снимок " + last;
+        reportMini(true, label);
       } else {
-        reportMini(false, "ожидание");
+        var label2 = "ожидание";
+        if (last) label2 += " · снимок " + last;
+        reportMini(false, label2);
       }
     } catch (e) {
       reportMini(false, "ожидание");
@@ -76,7 +103,6 @@
     if (ev.data && ev.data.type === "tt-ping-status") sync();
   });
 
-  // Hard navigation / iframe destroy — drop helper interval (tool's own timer is separate)
   window.addEventListener("pagehide", stopSyncLoop);
   window.addEventListener("beforeunload", stopSyncLoop);
 })();

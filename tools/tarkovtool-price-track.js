@@ -1,16 +1,23 @@
 (function () {
   function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    var s=String(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s)) {
-      var n=String(it.name||'').trim();
-      var sl=String(it.normalizedName||'').trim();
-      if(n && !/^[a-f0-9]{20,}$/i.test(n)) s=n;
-      else if(sl) s=sl;
+    if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
+    if (!it) return '';
+    if (typeof it === 'string') return it;
+    var id = it.id || it.itemId || '';
+    var short = String(it.shortName || '').trim();
+    var name = String(it.name || '').trim();
+    var slug = String(it.normalizedName || it.slug || '').trim();
+    function bad(s) {
+      if (!s) return true;
+      if (/^[a-f0-9]{20,}$/i.test(s)) return true;
+      if (id && s.indexOf(id) === 0) return true;
+      if (/\s(Name|ShortName)$/i.test(s)) return true;
+      return false;
     }
-    return s||it.id||'';
+    if (short && !bad(short)) return short;
+    if (name && !bad(name)) return name;
+    if (slug) return slug.replace(/[-_]+/g, ' ').replace(/\b[a-z]/g, function(c){ return c.toUpperCase(); });
+    return id || '';
   }
 
   const DB_NAME = "tarkovPriceDB", DB_VER = 1, STORE = "snapshots", META = "tarkovPriceTrackMeta";
@@ -171,7 +178,10 @@
       el.onclick = function () {
         selectedId = el.getAttribute("data-id");
         viewRange = null;
-        drawChart(selectedId);
+        requestAnimationFrame(function () {
+          drawChart(selectedId);
+          requestAnimationFrame(function () { drawChart(selectedId); });
+        });
       };
     });
   }
@@ -197,10 +207,19 @@
         " · low " + fmtRub(last.low) + " · high " + fmtRub(last.high);
 
       var canvas = document.getElementById("chart");
+      if (!canvas) return;
       var ctx = canvas.getContext("2d");
       var dpr = window.devicePixelRatio || 1;
-      var cssW = canvas.clientWidth || 900;
+      var wrap = canvas.parentElement;
+      var cssW = Math.max(
+        canvas.clientWidth || 0,
+        wrap && wrap.clientWidth ? wrap.clientWidth : 0,
+        canvas.parentElement && canvas.parentElement.parentElement ? canvas.parentElement.parentElement.clientWidth - 32 : 0,
+        320
+      );
       var cssH = 320;
+      canvas.style.width = cssW + "px";
+      canvas.style.height = cssH + "px";
       canvas.width = Math.floor(cssW * dpr);
       canvas.height = Math.floor(cssH * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -210,14 +229,18 @@
       var i0 = 0, i1 = hist.length - 1;
       if (viewRange) {
         i0 = Math.max(0, Math.min(viewRange.i0, hist.length - 1));
-        i1 = Math.max(i0 + 1, Math.min(viewRange.i1, hist.length - 1));
+        i1 = Math.max(i0, Math.min(viewRange.i1, hist.length - 1));
       }
       var slice = hist.slice(i0, i1 + 1);
-      if (slice.length < 2) {
+      if (!slice.length) {
         ctx.fillStyle = "#8b919a";
         ctx.font = "13px sans-serif";
-        ctx.fillText("Мало точек для графика", 20, H / 2);
+        ctx.fillText("Нет точек", 20, H / 2);
         return;
+      }
+      // 1 точка — рисуем горизонтальную линию + маркер
+      if (slice.length === 1) {
+        slice = [slice[0], Object.assign({}, slice[0], { ts: slice[0].ts + 1 })];
       }
 
       var vals = [];
