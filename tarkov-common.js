@@ -1,6 +1,6 @@
 /*! common entry: same-origin full source (concat then eval) */
 (function () {
-  var files = ["tarkov-common.a1.js", "tarkov-common.a2.js", "tarkov-common.b.js"];
+  var files = ["tarkov-common.a1.js", "tarkov-common.a2a.js", "tarkov-common.a2b.js", "tarkov-common.b.js"];
   var code = "";
   for (var i = 0; i < files.length; i++) {
     try {
