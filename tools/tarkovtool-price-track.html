@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="../core/tarkov-common.css">
   <title>Динамика цен — Tarkov</title>
   <script type="application/json" id="tarkovtool-meta">
-  {"title": "Динамика цен", "description": "Снимки flea avg/low/high, график, фон."}
+  {"title": "Динамика цен", "description": "Снимки flea avg/low/high, график, фон, countdown."}
   </script>
   <style>
     .layout { display:grid; grid-template-columns:1fr 1.2fr; gap:12px; }
@@ -17,18 +17,20 @@
     .item-row .nm { font-weight:600; }
     .item-row .pr { margin-left:auto; font-variant-numeric:tabular-nums; color:var(--accent); }
     #itemList { max-height:420px; overflow:auto; }
-    canvas { width:100%; height:320px; background:var(--input-bg); border-radius:10px; border:1px solid var(--border); display:block; }
     .chart-toolbar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; align-items:center; }
     .chart-toolbar .chip { border:1px solid var(--border); background:var(--input-bg); color:var(--muted); border-radius:999px; padding:4px 12px; cursor:pointer; font-size:.85rem; }
     .chart-toolbar .chip.on { border-color:var(--accent); color:var(--text); background:color-mix(in srgb, var(--accent) 18%, transparent); }
-    .chart-wrap { position:relative; }
+    .chart-wrap { position:relative; min-height:320px; background:#12151c; border-radius:10px; border:1px solid var(--border); overflow:hidden; }
+    #chart { display:block; width:100%; height:320px; }
     .chart-tip { position:absolute; left:12px; top:12px; background:rgba(15,17,21,.92); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:.8rem; pointer-events:none; max-width:90%; }
+    .countdown { font-weight:700; font-variant-numeric:tabular-nums; margin-top:8px; color:var(--muted); }
+    .countdown.on { color:var(--accent); }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Динамика цен</h1>
-    <p class="sub">Фоновые снимки · клик по предмету = график · Старт фона только по кнопке</p>
+    <p class="sub">Фоновые снимки · клик по предмету = график · обратный отсчёт до следующего API-снимка</p>
     <div class="card">
       <div class="card-title">Сбор цен</div>
       <div class="row">
@@ -48,6 +50,7 @@
       </div>
       <p class="status" id="status">Хранит avg24h / lastLow / high24h.</p>
       <p class="meta" id="trackMeta"></p>
+      <p class="countdown" id="countdown">Обратный отсчёт: —</p>
     </div>
     <div class="layout">
       <div class="card">
@@ -68,11 +71,10 @@
           <div id="chartTip" class="chart-tip" style="display:none"></div>
         </div>
         <p class="meta" id="chartMeta"></p>
-        <p class="meta">Колесо мыши — зум · наведение — цена в точке</p>
+        <p class="meta">Колесо — зум · наведение — цена в точке</p>
       </div>
     </div>
   </div>
-  
   <script src="../core/tarkov-names.js"></script>
   <script src="../core/tarkov-api.js"></script>
   <script src="../core/tarkov-ui.js"></script>

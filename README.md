@@ -1,18 +1,17 @@
-# FIX_BUNDLE — только файлы для ручного пуша
+# FIX_BUNDLE — price-track only
 
-Скопировать **с сохранением путей** в корень репо:
+Скопировать в репо:
 
 ```
-core/tarkov-names.js
 tools/tarkovtool-price-track.js
 tools/tarkovtool-price-track.html
 tools/tarkov-price-track-boot.js
 ```
 
-## Что чинит
+## Фиксы
+1. **lastSnap / nextSnapAt** пишутся в localStorage при каждом снимке (и в фоне, и вручную)
+2. **Обратный отсчёт** на странице + в мини-табе («через Xm Yс · был ДД.ММ ЧЧ:ММ»)
+3. **График** — тёмный фон canvas, яркие линии, Resize, 1 точка рисуется
+4. Resume фона учитывает `nextSnapAt` (не сбрасывает таймер при открытии)
 
-1. **Имена-хеши** — API отдаёт `name`/`shortName` как `"<id> Name"`. Теперь берём humanized `normalizedName` (везде через TarkovNames).
-2. **График** — ширина canvas (не 0 в layout), 1 точка тоже рисуется.
-3. **Мини-таб трекера** — «каждые N мин · снимок ДД.ММ ЧЧ:ММ» из interval + lastSnap.
-
-После пуша: Ctrl+F5, новый снимок в price-track (старые записи в IndexedDB могут ещё с хешами — «Снять сейчас» обновит).
+После пуша: Ctrl+F5 → «Снять сейчас» → клик по предмету в списке.

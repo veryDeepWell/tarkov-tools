@@ -1,8 +1,40 @@
 /**
- * Price-track mini helper — status label with interval + last snapshot time.
+ * Price-track mini helper — mirrors run state + countdown into mini-tab status.
  */
 (function () {
   var syncTimer = null;
+  var RUN_KEY = "tarkovPriceTrackRunning";
+  var META_KEY = "tarkovPriceTrackMeta";
+
+  function readRun() {
+    try { return JSON.parse(localStorage.getItem(RUN_KEY) || "{}") || {}; } catch (e) { return {}; }
+  }
+  function readMeta() {
+    try { return JSON.parse(localStorage.getItem(META_KEY) || "{}") || {}; } catch (e) { return {}; }
+  }
+
+  function fmtClock(ts) {
+    if (!ts) return "";
+    try {
+      return new Date(ts).toLocaleString("ru-RU", {
+        day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"
+      });
+    } catch (e) { return ""; }
+  }
+
+  function fmtRemain(ms) {
+    if (ms == null || isNaN(ms)) return "—";
+    if (ms <= 0) return "сейчас";
+    var s = Math.floor(ms / 1000);
+    var m = Math.floor(s / 60);
+    var sec = s % 60;
+    if (m >= 60) {
+      var h = Math.floor(m / 60);
+      m = m % 60;
+      return h + "ч " + m + "м";
+    }
+    return m + "м " + String(sec).padStart(2, "0") + "с";
+  }
 
   function reportMini(running, label) {
     try {
@@ -15,94 +47,38 @@
       if (window.parent && window.parent !== window) {
         window.parent.postMessage(payload, location.origin);
       }
-      if (window.BroadcastChannel) {
+      try {
         var bc = new BroadcastChannel("tarkov-tools");
         bc.postMessage(payload);
         bc.close();
-      }
+      } catch (e) {}
     } catch (e) {}
   }
 
-  function readRun() {
-    try {
-      return JSON.parse(localStorage.getItem("tarkovPriceTrackRunning") || "{}");
-    } catch (e) {
-      return {};
-    }
-  }
-
-  function readMeta() {
-    try {
-      return JSON.parse(localStorage.getItem("tarkovPriceTrackMeta") || "{}");
-    } catch (e) {
-      return {};
-    }
-  }
-
-  function resolvedMins(run) {
-    run = run || readRun();
-    if (window.__ttPollMins && window.__ttPollMins > 0) return Number(window.__ttPollMins);
-    var saved = Number(run.mins);
-    if (saved > 0) return saved;
-    var el = document.getElementById("interval");
-    var fromInput = el ? Number(el.value) : 0;
-    if (fromInput > 0) return fromInput;
-    return 30;
-  }
-
-  function fmtTime(ts) {
-    if (!ts) return "";
-    try {
-      var d = new Date(ts);
-      return d.toLocaleString("ru-RU", {
-        day: "2-digit", month: "2-digit",
-        hour: "2-digit", minute: "2-digit"
-      });
-    } catch (e) {
-      return "";
-    }
-  }
-
   function sync() {
-    try {
-      var run = readRun();
-      var mins = resolvedMins(run);
-      var meta = readMeta();
-      var last = fmtTime(meta.lastSnap);
-      var on = (typeof timer !== "undefined" && timer) || run.on;
-      if (on) {
-        var label = "каждые " + mins + " мин";
-        if (last) label += " · снимок " + last;
-        reportMini(true, label);
-      } else {
-        var label2 = "ожидание";
-        if (last) label2 += " · снимок " + last;
-        reportMini(false, label2);
-      }
-    } catch (e) {
-      reportMini(false, "ожидание");
+    var run = readRun();
+    var meta = readMeta();
+    var last = fmtClock(meta.lastSnap);
+    if (run.on) {
+      var remain = run.nextSnapAt ? Number(run.nextSnapAt) - Date.now() : null;
+      var label = "через " + fmtRemain(remain);
+      if (last) label += " · был " + last;
+      reportMini(true, label);
+    } else {
+      var label2 = "ожидание";
+      if (last) label2 += " · был " + last;
+      reportMini(false, label2);
     }
   }
 
-  function startSyncLoop() {
-    if (syncTimer) return;
-    syncTimer = setInterval(sync, 5000);
-  }
-  function stopSyncLoop() {
-    if (syncTimer) {
-      clearInterval(syncTimer);
-      syncTimer = null;
-    }
-  }
-
-  setTimeout(sync, 400);
-  startSyncLoop();
+  setTimeout(sync, 300);
+  syncTimer = setInterval(sync, 1000);
 
   window.addEventListener("message", function (ev) {
     if (ev.origin !== location.origin) return;
     if (ev.data && ev.data.type === "tt-ping-status") sync();
   });
-
-  window.addEventListener("pagehide", stopSyncLoop);
-  window.addEventListener("beforeunload", stopSyncLoop);
+  window.addEventListener("pagehide", function () {
+    if (syncTimer) clearInterval(syncTimer);
+  });
 })();
