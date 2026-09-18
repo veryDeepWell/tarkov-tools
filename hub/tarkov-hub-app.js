@@ -1,18 +1,17 @@
-/** Hub app loader — fetches full script from same folder */
+/** Hub app multi-part loader */
 (function () {
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "hub/tarkov-hub-app.full.js", false);
-  try {
+  var n = 3, text = "", i;
+  for (i = 0; i < n; i++) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "hub/hub-app.p" + i + ".js", false);
     xhr.send(null);
-  } catch (e) {
-    console.error("hub-app load", e);
-    return;
+    if (xhr.status < 200 || xhr.status >= 300) {
+      console.error("hub part", i, xhr.status);
+      return;
+    }
+    text += xhr.responseText;
   }
-  if (xhr.status >= 200 && xhr.status < 300 && xhr.responseText && xhr.responseText.indexOf("PLACEHOLDER") < 0) {
-    var s = document.createElement("script");
-    s.text = xhr.responseText;
-    (document.body || document.documentElement).appendChild(s);
-  } else {
-    console.error("hub-app full missing or bad", xhr.status);
-  }
+  var s = document.createElement("script");
+  s.text = text;
+  (document.body || document.documentElement).appendChild(s);
 })();
