@@ -4,14 +4,12 @@
  * Custom shorts: localStorage `tarkovShortNames` = { [itemId]: shortName }
  * from tarkovtool-shortname.html.
  *
- * Display order (user-defined):
+ * Display order:
  *   1) in-game shortName (BSG short, e.g. "M4A1")
  *   2) full API name
  *   3) custom short from shortname tool
  *   4) normalizedName / slug
- *   5) id (last resort — never preferred)
- *
- * Search: full name first, then API short, then custom short, then slug/id.
+ *   5) id (last resort)
  */
 (function (global) {
   const KEY = 'tarkovShortNames';
@@ -38,8 +36,12 @@
 
   function isHashLike(s) {
     if (!s || typeof s !== 'string') return true;
+    s = s.trim();
+    if (!s) return true;
     if (/^[a-f0-9]{20,}$/i.test(s)) return true;
     if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(s)) return true;
+    if (/^[a-f0-9]{24}$/i.test(s)) return true;
+    if (s.length >= 16 && !/[a-z]/i.test(s)) return true;
     return false;
   }
 
@@ -48,7 +50,7 @@
     if (typeof item === 'string') {
       const custom = getShort(item);
       if (custom) return custom;
-      return isHashLike(item) ? item : item;
+      return item;
     }
     const id = item.id || item.itemId || '';
     const gameShort = String(item.shortName || '').trim();
@@ -126,7 +128,10 @@
     });
   } catch (e) {}
 
+  function itemName(item) { return display(item); }
+  global.itemName = itemName;
   global.TarkovNames = {
+    itemName: itemName,
     KEY: KEY, load: load, invalidate: invalidate, getShort: getShort,
     display: display, displayFull: displayFull, search: search,
     matches: matches, resolveFromCatalog: resolveFromCatalog, isHashLike: isHashLike
