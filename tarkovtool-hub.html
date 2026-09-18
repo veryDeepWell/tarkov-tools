@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tarkov Tools</title>
-  <link rel="stylesheet" href="tarkov-common.css?v=4">
+  <link rel="stylesheet" href="tarkov-common.css?v=5">
   <script type="application/json" id="tarkovtool-meta">
-  {"title": "Хаб", "description": "Все инструменты Tarkov в одном месте."}
+  {"title": "Hub", "description": "All Tarkov tools in one place."}
   </script>
   <style>
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
@@ -50,19 +50,19 @@
   <div class="hub-shell">
     <div style="padding:12px 14px 0">
       <div class="hub-top-row">
-        <h1 style="margin:0">Tarkov Tools</h1>
-        <button type="button" class="btn-ghost" id="btnNotif" title="Уведомления">🔔 <span id="notifCount">0</span></button>
+        <h1 style="margin:0" data-i18n="hub.title">Tarkov Tools</h1>
+        <button type="button" class="btn-ghost" id="btnNotif" data-i18n-title="hub.notifications" title="Notifications">🔔 <span id="notifCount">0</span></button>
       </div>
 
       <div class="mini-bar" id="miniBar" hidden>
-        <div class="mini-bar-label">Мини</div>
+        <div class="mini-bar-label" data-i18n="hub.mini">Mini</div>
         <div class="mini-bar-list" id="miniList"></div>
       </div>
 
       <div class="hub-work" id="hubWork">
         <div class="hub-main" id="hubMain">
           <div class="card" style="margin-top:0">
-            <div class="row"><input type="search" id="q" placeholder="Поиск…" autocomplete="off"></div>
+            <div class="row"><input type="search" id="q" placeholder="Search…" data-i18n-placeholder="hub.searchPlaceholder" autocomplete="off"></div>
             <p class="meta" id="count" style="margin-top:8px"></p>
           </div>
           <div class="grid" id="grid"></div>
@@ -72,8 +72,8 @@
         <div class="hub-expand" id="hubExpand">
           <div class="hub-expand-bar">
             <span class="title" id="expandTitle">—</span>
-            <button type="button" class="btn-ghost" id="btnCollapse">Свернуть</button>
-            <button type="button" class="btn-ghost" id="btnCloseExpand">Закрыть</button>
+            <button type="button" class="btn-ghost" id="btnCollapse" data-i18n="hub.collapse">Collapse</button>
+            <button type="button" class="btn-ghost" id="btnCloseExpand" data-i18n="hub.closeTab">Close</button>
           </div>
           <div id="expandHost" style="flex:1;min-height:0;position:relative"></div>
         </div>
@@ -86,21 +86,23 @@
   <div class="modal-bg" id="notifPanelBg">
     <div class="modal" id="notifPanel" style="max-width:520px">
       <div class="row" style="align-items:center;margin-bottom:12px">
-        <h2 style="margin:0;flex:1">Уведомления</h2>
-        <button type="button" class="btn-ghost" id="notifMarkAll">Прочитать все</button>
-        <button type="button" class="btn-ghost" id="notifClose">Закрыть</button>
+        <h2 style="margin:0;flex:1" data-i18n="hub.notifications">Notifications</h2>
+        <button type="button" class="btn-ghost" id="notifMarkAll" data-i18n="hub.markAllRead">Mark all read</button>
+        <button type="button" class="btn-ghost" id="notifClose" data-i18n="common.close">Close</button>
       </div>
-      <div id="notifList" class="meta">Пусто</div>
+      <div id="notifList" class="meta" data-i18n="common.empty">Empty</div>
     </div>
   </div>
 
   <script src="tarkov-state.js"></script>
   <script src="tarkov-names.js"></script>
   <script src="tarkov-api.js"></script>
+  <script src="tarkov-i18n.js"></script>
   <script src="tarkov-common.js"></script>
+  <script src="tarkov-i18n-bridge.js"></script>
   <script src="tarkov-icons.js"></script>
   <script src="tarkov-hub-app.js"></script>
-  <script src="tarkov-hub-cats.js?v=4"></script>
+  <script src="tarkov-hub-cats.js?v=5"></script>
   <script src="tarkov-settings-tabs.js"></script>
   <script src="tarkov-hub-notif.js"></script>
 </body>
