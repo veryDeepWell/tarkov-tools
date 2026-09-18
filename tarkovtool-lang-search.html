@@ -1,218 +1,106 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EN ↔ RU поиск — Tarkov</title>
+  <title>Локализатор — Tarkov Tools</title>
   <link rel="stylesheet" href="tarkov-common.css">
   <script type="application/json" id="tarkovtool-meta">
-  {"title": "EN ↔ RU поиск", "description": "Предметы и квесты: двойной поиск EN/RU."}
+  {"title":"Локализатор","description":"Поиск предметов и квестов по выбранным языкам API (en, ru, de, zh…)."}
   </script>
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{min-height:100vh;padding:20px 14px 48px}
-    .container{max-width:min(1600px,92vw);margin:0 auto}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px}
-    .card-title{font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;font-weight:600}
-    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
-    .field{flex:1;min-width:180px}
-    .field label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
-    select,input[type=text]{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;color:var(--text);outline:none;font-size:1.05rem}
-    .btn{background:var(--accent);color:#111;border:none;border-radius:8px;padding:12px 18px;font-weight:700;cursor:pointer}
-    .status{font-size:.95rem;color:var(--muted);margin-top:8px}
-    .status.ok{color:var(--green)}.status.err{color:var(--red)}
-    .tabs{display:flex;gap:6px;margin-bottom:12px}
-    .tab{background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:8px 14px;color:var(--muted);cursor:pointer;font-weight:600}
-    .tab.active{border-color:var(--accent);color:var(--accent)}
-    .table-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px;max-height:70vh}
-    table{width:100%;border-collapse:collapse;font-size:1rem}
-    th{position:sticky;top:0;background:var(--input-bg);text-align:left;padding:12px;color:var(--muted);font-size:.8rem;text-transform:uppercase;z-index:1}
-    td{padding:12px;border-top:1px solid var(--border);vertical-align:middle}
-    .ico{width:48px;height:48px;object-fit:contain;border-radius:6px;background:#0a0c10}
-    .en{font-weight:600}.ru{font-weight:600;color:#7ec8ff}
-    .short{font-size:.85rem;color:var(--muted)}
-    .mark{background:rgba(201,162,39,.35);color:var(--accent);border-radius:2px;padding:0 2px}
-    .copy-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:5px 10px;font-size:.8rem;cursor:pointer;margin:2px}
-    .meta{font-size:.85rem;color:var(--muted)}
+    .container { max-width: min(1600px, 96vw); margin: 0 auto; padding: 12px 14px 48px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+    .card-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { flex: 1; min-width: 140px; }
+    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    .lang-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .lang-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border);
+      background: var(--input-bg); color: var(--muted); cursor: pointer;
+      font-size: .85rem; font-weight: 600; user-select: none;
+      min-width: auto !important; min-height: 32px !important;
+    }
+    .lang-chip input { accent-color: var(--accent); margin: 0; }
+    .lang-chip.on { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+    .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+    .tab {
+      background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 8px 14px; color: var(--muted); cursor: pointer; font-weight: 600;
+      min-width: auto !important;
+    }
+    .tab.active { border-color: var(--accent); color: var(--accent); }
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 10px; max-height: 70vh; }
+    table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+    th { position: sticky; top: 0; background: var(--input-bg); text-align: left; padding: 10px 12px; color: var(--muted); font-size: .72rem; text-transform: uppercase; z-index: 1; white-space: nowrap; }
+    td { padding: 10px 12px; border-top: 1px solid var(--border); vertical-align: middle; }
+    .ico { width: 40px; height: 40px; object-fit: contain; border-radius: 6px; background: var(--input-bg); }
+    .nm { font-weight: 600; color: var(--text); }
+    .sh { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+    .mark { background: color-mix(in srgb, var(--accent) 35%, transparent); color: var(--accent); border-radius: 2px; padding: 0 2px; }
+    .copy-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 6px; padding: 4px 8px; font-size: .75rem; cursor: pointer; margin: 1px;
+      min-width: auto !important; min-height: auto !important;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green); }
+    .status.err { color: var(--red); }
+    .meta { font-size: .85rem; color: var(--muted); }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>EN ↔ RU поиск</h1>
-    <p class="sub" style="color:var(--muted);margin-bottom:12px">Предметы и квесты · обе строки сразу</p>
+    <h1>Локализатор</h1>
+    <p class="meta" style="margin-bottom:12px">Имена предметов и квестов из json.tarkov.dev по выбранным языкам</p>
 
     <div class="card">
-      <div class="row">
+      <div class="card-title">Языки поиска и колонок</div>
+      <div class="lang-grid" id="langGrid"></div>
+      <div class="row" style="margin-top:12px">
         <div class="field" style="flex:0;min-width:140px">
           <label>Режим</label>
           <select id="gameMode">
+            <option value="pve" selected>pve</option>
             <option value="regular">regular</option>
             <option value="pvp-season">pvp-season</option>
-            <option value="pve" selected>pve</option>
           </select>
         </div>
-        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+        <button type="button" class="btn" id="loadBtn">Загрузить</button>
+        <button type="button" class="btn-ghost" id="selAll" style="min-width:auto">Все</button>
+        <button type="button" class="btn-ghost" id="selNone" style="min-width:auto">Сброс</button>
+        <button type="button" class="btn-ghost" id="selDefault" style="min-width:auto">en + ru</button>
       </div>
-      <p class="status" id="status"></p>
+      <p class="status" id="status">Выбери языки и нажми «Загрузить»</p>
     </div>
 
     <div class="tabs">
-      <div class="tab active" data-tab="items">Предметы</div>
-      <div class="tab" data-tab="quests">Квесты</div>
+      <button type="button" class="tab active" data-tab="items">Предметы</button>
+      <button type="button" class="tab" data-tab="quests">Квесты</button>
     </div>
 
-    <div class="card" id="searchCard" style="display:none">
-      <div class="row">
-        <div class="field"><label>English</label><input type="text" id="qEn" placeholder="first in line / bolt…"></div>
-        <div class="field"><label>Русский</label><input type="text" id="qRu" placeholder="первый в очереди / болт…"></div>
+    <div class="card" id="searchCard" hidden>
+      <div class="field">
+        <label>Поиск (по всем выбранным языкам + slug)</label>
+        <input type="search" id="q" placeholder="m4a1 / болт / …" autocomplete="off">
       </div>
       <p class="meta" id="count" style="margin-top:8px"></p>
     </div>
 
-    <div class="card" id="tableCard" style="display:none">
+    <div class="card" id="tableCard" hidden>
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th style="width:56px"></th>
-              <th>English</th>
-              <th>Русский</th>
-              <th>slug / id</th>
-              <th></th>
-            </tr>
-          </thead>
+          <thead id="thead"></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
     </div>
   </div>
-  <script>
-    const LOCALE_EN = 'https://raw.githubusercontent.com/carlsmei/tarkovdata/main/languages/en.json';
-    const LOCALE_RU = 'https://raw.githubusercontent.com/carlsmei/tarkovdata/main/languages/ru.json';
-    let items = [], quests = [], tab = 'items';
 
-    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-    function humanize(s){return s?String(s).replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):''}
-    function norm(s){return String(s||'').toLowerCase().trim()}
-    function highlight(text, q) {
-      const t = String(text || '');
-      const qq = norm(q);
-      if (!qq || !t) return esc(t);
-      const lower = t.toLowerCase();
-      let out = '', i = 0;
-      while (i < t.length) {
-        const idx = lower.indexOf(qq, i);
-        if (idx === -1) { out += esc(t.slice(i)); break; }
-        out += esc(t.slice(i, idx)) + '<span class="mark">' + esc(t.slice(idx, idx + qq.length)) + '</span>';
-        i = idx + qq.length;
-      }
-      return out;
-    }
-
-    document.getElementById('loadBtn').onclick = async () => {
-      const st = document.getElementById('status');
-      st.textContent = 'Гружу…';
-      try {
-        const mode = document.getElementById('gameMode').value || 'pve';
-        const [en, ru, ji, jt] = await Promise.all([
-          fetch(LOCALE_EN).then(r => r.json()),
-          fetch(LOCALE_RU).then(r => r.json()),
-          fetch('https://json.tarkov.dev/' + mode + '/items').then(r => r.json()),
-          fetch('https://json.tarkov.dev/' + mode + '/tasks').then(r => r.json())
-        ]);
-        let raw = ji?.data?.items;
-        const arr = Array.isArray(raw) ? raw : Object.values(raw || {});
-        items = arr.map(it => {
-          const id = it.id;
-          const slug = it.normalizedName || '';
-          const enN = en[id + ' Name'] || humanize(slug);
-          const ruN = ru[id + ' Name'] || '';
-          const enS = en[id + ' ShortName'] || '';
-          const ruS = ru[id + ' ShortName'] || '';
-          return {
-            id, slug, icon: it.iconLink || '',
-            en: enN, ru: ruN, enShort: enS, ruShort: ruS,
-            searchEn: norm([enN, enS, slug].join(' ')),
-            searchRu: norm([ruN, ruS, slug].join(' '))
-          };
-        });
-        let tr = jt?.data?.tasks;
-        const tarr = Array.isArray(tr) ? tr : Object.values(tr || {});
-        quests = tarr.map(t => {
-          const id = t.id;
-          const slug = t.normalizedName || '';
-          const enN = en[id + ' name'] || en[id + ' Name'] || humanize(slug);
-          const ruN = ru[id + ' name'] || ru[id + ' Name'] || '';
-          return {
-            id, slug, icon: t.taskImageLink || '',
-            en: enN, ru: ruN, enShort: '', ruShort: '',
-            searchEn: norm([enN, slug].join(' ')),
-            searchRu: norm([ruN, slug].join(' '))
-          };
-        });
-        document.getElementById('searchCard').style.display = 'block';
-        document.getElementById('tableCard').style.display = 'block';
-        st.className = 'status ok';
-        st.textContent = 'Предметов: ' + items.length + ' · квестов: ' + quests.length;
-        render();
-      } catch (e) {
-        st.className = 'status err';
-        st.textContent = e.message;
-      }
-    };
-
-    function render() {
-      const qEn = norm(document.getElementById('qEn').value);
-      const qRu = norm(document.getElementById('qRu').value);
-      const catalog = tab === 'quests' ? quests : items;
-      let list = catalog;
-      if (qEn || qRu) {
-        list = catalog.filter(it => {
-          if (qEn && !it.searchEn.includes(qEn)) return false;
-          if (qRu && !it.searchRu.includes(qRu)) return false;
-          return true;
-        });
-      } else list = [];
-      document.getElementById('count').textContent = (qEn || qRu)
-        ? ('Найдено: ' + list.length + (list.length > 150 ? ' (150)' : ''))
-        : 'Введи EN или RU';
-      const shown = list.slice(0, 150);
-      const tbody = document.getElementById('tbody');
-      tbody.innerHTML = shown.map(it => `
-        <tr>
-          <td>${it.icon ? `<img class="ico" src="${esc(it.icon)}" loading="lazy" alt="">` : ''}</td>
-          <td><div class="en">${highlight(it.en, qEn)}</div>${it.enShort ? `<div class="short">${highlight(it.enShort, qEn)}</div>` : ''}</td>
-          <td><div class="ru">${highlight(it.ru, qRu) || '—'}</div>${it.ruShort ? `<div class="short">${highlight(it.ruShort, qRu)}</div>` : ''}</td>
-          <td class="meta">${esc(it.slug || it.id)}</td>
-          <td>
-            <button type="button" class="copy-btn" data-v="${esc(it.en)}">EN</button>
-            <button type="button" class="copy-btn" data-v="${esc(it.ru)}">RU</button>
-          </td>
-        </tr>`).join('');
-      tbody.querySelectorAll('.copy-btn').forEach(b => {
-        b.onclick = () => navigator.clipboard.writeText(b.dataset.v || '');
-      });
-    }
-
-    document.querySelectorAll('.tab').forEach(tabEl => {
-      tabEl.onclick = () => {
-        tab = tabEl.dataset.tab;
-        document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === tabEl));
-        render();
-      };
-    });
-    document.getElementById('qEn').oninput = render;
-    document.getElementById('qRu').oninput = render;
-
-    (function () {
-      const KEY = 'tarkovPreferredGameMode';
-      const def = localStorage.getItem(KEY) || 'pve';
-      document.querySelectorAll('select#gameMode').forEach(sel => {
-        if ([...sel.options].some(o => o.value === def)) sel.value = def;
-        sel.addEventListener('change', () => { try { localStorage.setItem(KEY, sel.value); } catch (e) {} });
-      });
-    })();
-  </script>
+  <script src="tarkov-localizer.js"></script>
   <script src="tarkov-common.js"></script>
 </body>
 </html>
