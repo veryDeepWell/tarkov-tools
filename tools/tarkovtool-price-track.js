@@ -1,19 +1,26 @@
 (function () {
-  const DB_NAME = "tarkovPriceDB", DB_VER = 2, STORE = "snapshots";
-  const RUN_KEY = "tarkovPriceTrackRunning";
-  const META_KEY = "tarkovPriceTrackMeta";
+  "use strict";
+  var DB_NAME = "tarkovPriceDB";
+  var DB_VER = 3;
+  var STORE = "snapshots";
+  var RUN_KEY = "tarkovPriceTrackRunning";
+  var META_KEY = "tarkovPriceTrackMeta";
 
-  let db = null;
-  let timer = null;
-  let countdownTimer = null;
-  let selectedId = null;
-  let chartSeries = { avg: true, low: true, high: true };
-  let viewRange = null;
-  let lastHist = [];
-  let hoverX = null;
+  var db = null;
+  var timer = null;
+  var countdownTimer = null;
+  var selectedId = null;
+  var chartSeries = { avg: true, low: true, high: true };
+  var viewRange = null;
+  var lastHist = [];
+  var hoverX = null;
+
+  function $(id) { return document.getElementById(id); }
 
   function itemName(it) {
-    if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
+    try {
+      if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
+    } catch (e) {}
     if (!it) return "";
     if (typeof it === "string") return it;
     var id = it.id || it.itemId || "";
@@ -38,16 +45,14 @@
   }
 
   function esc(s) {
-    if (window.TarkovUI && TarkovUI.esc) return TarkovUI.esc(s);
     return String(s || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+      .replace(/&/g, "&")
+      .replace(/</g, "<")
+      .replace(/>/g, ">")
+      .replace(/"/g, """);
   }
 
   function fmtRub(n) {
-    if (window.TarkovUI && TarkovUI.fmtRub) return TarkovUI.fmtRub(n);
     return Math.round(Number(n) || 0).toLocaleString("ru-RU") + " ₽";
   }
 
@@ -55,15 +60,10 @@
     if (!ts) return "—";
     try {
       return new Date(ts).toLocaleString("ru-RU", {
-        day: "2-digit",
-        month: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit"
+        day: "2-digit", month: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit"
       });
-    } catch (e) {
-      return "—";
-    }
+    } catch (e) { return "—"; }
   }
 
   function fmtRemain(ms) {
@@ -78,167 +78,107 @@
   }
 
   function readRun() {
-    try {
-      return JSON.parse(localStorage.getItem(RUN_KEY) || "{}") || {};
-    } catch (e) {
-      return {};
-    }
+    try { return JSON.parse(localStorage.getItem(RUN_KEY) || "{}") || {}; } catch (e) { return {}; }
   }
-
   function writeRun(o) {
-    try {
-      localStorage.setItem(RUN_KEY, JSON.stringify(o));
-    } catch (e) {}
+    try { localStorage.setItem(RUN_KEY, JSON.stringify(o)); } catch (e) {}
   }
-
   function readMeta() {
-    try {
-      return JSON.parse(localStorage.getItem(META_KEY) || "{}") || {};
-    } catch (e) {
-      return {};
-    }
+    try { return JSON.parse(localStorage.getItem(META_KEY) || "{}") || {}; } catch (e) { return {}; }
   }
-
   function writeMeta(patch) {
-    var cur = readMeta();
-    var next = Object.assign({}, cur, patch || {});
-    try {
-      localStorage.setItem(META_KEY, JSON.stringify(next));
-    } catch (e) {}
+    var next = Object.assign({}, readMeta(), patch || {});
+    try { localStorage.setItem(META_KEY, JSON.stringify(next)); } catch (e) {}
     return next;
   }
 
+  /** Always getAll — no indexes (avoids broken old DBs). */
   function openDb() {
     if (db) return Promise.resolve(db);
     return new Promise(function (resolve, reject) {
-      var req = indexedDB.open(DB_NAME, DB_VER);
-      req.onupgradeneeded = function (ev) {
+      var req;
+      try {
+        req = indexedDB.open(DB_NAME, DB_VER);
+      } catch (e) {
+        reject(e);
+        return;
+      }
+      req.onupgradeneeded = function () {
         var d = req.result;
-        var os;
-        if (!d.objectStoreNames.contains(STORE)) {
-          os = d.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
-        } else {
-          os = ev.target.transaction.objectStore(STORE);
+        try {
+          if (d.objectStoreNames.contains(STORE)) {
+            d.deleteObjectStore(STORE);
+          }
+        } catch (e) {}
+        try {
+          d.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
+        } catch (e) {}
+      };
+      req.onblocked = function () {
+        var st = $("status");
+        if (st) {
+          st.className = "status err";
+          st.textContent = "IndexedDB занята другой вкладкой — закрой дубликаты трекера";
         }
-        // Старые БД могли создаться без индексов — досоздаём
-        try {
-          if (!os.indexNames.contains("itemId")) {
-            os.createIndex("itemId", "itemId", { unique: false });
-          }
-        } catch (e) {}
-        try {
-          if (!os.indexNames.contains("ts")) {
-            os.createIndex("ts", "ts", { unique: false });
-          }
-        } catch (e) {}
       };
       req.onsuccess = function () {
         db = req.result;
+        db.onversionchange = function () {
+          try { db.close(); } catch (e) {}
+          db = null;
+        };
         resolve(db);
       };
       req.onerror = function () {
-        reject(req.error);
+        reject(req.error || new Error("IndexedDB open failed"));
       };
     });
   }
 
-  function putSnap(itemId, avg, low, high, name, slug, icon) {
+  function getAllRows() {
     return new Promise(function (resolve, reject) {
-      var tx = db.transaction(STORE, "readwrite");
-      tx.objectStore(STORE).add({
-        itemId: itemId,
-        ts: Date.now(),
-        avg: avg,
-        low: low,
-        high: high,
-        name: name,
-        slug: slug,
-        icon: icon
-      });
-      tx.oncomplete = function () {
-        resolve();
-      };
-      tx.onerror = function () {
-        reject(tx.error);
-      };
-    });
-  }
-
-  function allLatest() {
-    return new Promise(function (resolve, reject) {
+      if (!db) {
+        reject(new Error("DB not open"));
+        return;
+      }
       var tx = db.transaction(STORE, "readonly");
       var req = tx.objectStore(STORE).getAll();
-      req.onsuccess = function () {
-        var map = {};
-        (req.result || []).forEach(function (r) {
-          if (!map[r.itemId] || r.ts > map[r.itemId].ts) map[r.itemId] = r;
-        });
-        resolve(
-          Object.keys(map).map(function (k) {
-            return map[k];
-          })
-        );
-      };
-      req.onerror = function () {
-        reject(req.error);
-      };
+      req.onsuccess = function () { resolve(req.result || []); };
+      req.onerror = function () { reject(req.error); };
     });
   }
 
   function historyFor(itemId) {
-    return new Promise(function (resolve, reject) {
-      var tx = db.transaction(STORE, "readonly");
-      var os = tx.objectStore(STORE);
-      function finish(rows) {
-        rows = (rows || []).filter(function (r) { return r.itemId === itemId; });
-        rows.sort(function (a, b) { return a.ts - b.ts; });
-        resolve(rows);
-      }
-      // С индексом — быстрее; без индекса (старая БД) — getAll + filter
-      if (os.indexNames && os.indexNames.contains("itemId")) {
-        try {
-          var idx = os.index("itemId");
-          var req = idx.getAll(IDBKeyRange.only(itemId));
-          req.onsuccess = function () { finish(req.result); };
-          req.onerror = function () { reject(req.error); };
-          return;
-        } catch (e) {
-          /* fall through */
-        }
-      }
-      var all = os.getAll();
-      all.onsuccess = function () { finish(all.result); };
-      all.onerror = function () { reject(all.error); };
+    return getAllRows().then(function (rows) {
+      return rows
+        .filter(function (r) { return r.itemId === itemId; })
+        .sort(function (a, b) { return a.ts - b.ts; });
+    });
+  }
+
+  function allLatest() {
+    return getAllRows().then(function (rows) {
+      var map = {};
+      rows.forEach(function (r) {
+        if (!map[r.itemId] || r.ts > map[r.itemId].ts) map[r.itemId] = r;
+      });
+      return Object.keys(map).map(function (k) { return map[k]; });
     });
   }
 
   function paintStatusUI() {
     var run = readRun();
     var meta = readMeta();
-    var el = document.getElementById("trackMeta");
-    var cd = document.getElementById("countdown");
+    var el = $("trackMeta");
+    var cd = $("countdown");
     var last = meta.lastSnap ? fmtClock(meta.lastSnap) : "ещё не было";
-    var mins = Number(run.mins) || Number(document.getElementById("interval").value) || 30;
-
+    var mins = Number(run.mins) || Number(($("interval") || {}).value) || 30;
     if (el) {
-      if (run.on) {
-        el.textContent =
-          "Фон ВКЛ · каждые " +
-          mins +
-          " мин · mode " +
-          (run.mode || "—") +
-          " · последний снимок: " +
-          last;
-      } else {
-        el.textContent = "Фон выкл · последний снимок: " + last;
-      }
+      el.textContent = run.on
+        ? ("Фон ВКЛ · каждые " + mins + " мин · mode " + (run.mode || "—") + " · последний снимок: " + last)
+        : ("Фон выкл · последний снимок: " + last);
     }
-
-    var remainMs = null;
-    if (run.on && run.nextSnapAt) {
-      remainMs = Number(run.nextSnapAt) - Date.now();
-    }
-
+    var remainMs = run.on && run.nextSnapAt ? Number(run.nextSnapAt) - Date.now() : null;
     if (cd) {
       if (run.on) {
         cd.textContent = "До следующего снимка: " + fmtRemain(remainMs);
@@ -248,17 +188,10 @@
         cd.className = "countdown";
       }
     }
-
-    // mini status
-    var label;
-    if (run.on) {
-      label = "через " + fmtRemain(remainMs);
-      if (meta.lastSnap) label += " · был " + fmtClock(meta.lastSnap);
-    } else {
-      label = "ожидание";
-      if (meta.lastSnap) label += " · был " + fmtClock(meta.lastSnap);
-    }
     try {
+      var label = run.on
+        ? ("через " + fmtRemain(remainMs) + (meta.lastSnap ? " · был " + fmtClock(meta.lastSnap) : ""))
+        : ("ожидание" + (meta.lastSnap ? " · был " + fmtClock(meta.lastSnap) : ""));
       if (window.TarkovMini && TarkovMini.reportStatus) {
         TarkovMini.reportStatus({
           running: !!run.on,
@@ -276,33 +209,30 @@
 
   function scheduleNext(mins) {
     mins = Math.max(1, Number(mins) || 30);
-    var next = Date.now() + mins * 60 * 1000;
     var run = readRun();
-    writeRun(
-      Object.assign({}, run, {
-        on: true,
-        mins: mins,
-        mode: (document.getElementById("gameMode") || {}).value || run.mode || "pve",
-        nextSnapAt: next,
-        startedAt: run.startedAt || Date.now()
-      })
-    );
+    writeRun(Object.assign({}, run, {
+      on: true,
+      mins: mins,
+      mode: (($("gameMode") || {}).value) || run.mode || "pve",
+      nextSnapAt: Date.now() + mins * 60 * 1000,
+      startedAt: run.startedAt || Date.now()
+    }));
     window.__ttPollMins = mins;
     paintStatusUI();
-    return next;
   }
 
   async function takeSnapshot() {
     await openDb();
-    var mode = (document.getElementById("gameMode") || {}).value || "pve";
-    var status = document.getElementById("status");
+    var mode = (($("gameMode") || {}).value) || "pve";
+    var status = $("status");
     if (status) {
       status.className = "status";
       status.textContent = "Снимаю цены…";
     }
     var arr;
-    if (window.TarkovAPI && TarkovAPI.items) arr = await TarkovAPI.items(mode);
-    else {
+    if (window.TarkovAPI && TarkovAPI.items) {
+      arr = await TarkovAPI.items(mode);
+    } else {
       var res = await fetch("https://json.tarkov.dev/" + mode + "/items", { cache: "no-store" });
       if (!res.ok) throw new Error("HTTP " + res.status);
       var json = await res.json();
@@ -311,7 +241,6 @@
     }
     var n = 0;
     var now = Date.now();
-    // batch write for speed
     await new Promise(function (resolve, reject) {
       var tx = db.transaction(STORE, "readwrite");
       var os = tx.objectStore(STORE);
@@ -335,75 +264,57 @@
         n++;
       }
       tx.oncomplete = resolve;
-      tx.onerror = function () {
-        reject(tx.error);
-      };
+      tx.onerror = function () { reject(tx.error); };
     });
-
     writeMeta({ lastSnap: now, count: n, mode: mode });
     var run = readRun();
-    var mins = Number(run.mins) || Number(document.getElementById("interval").value) || 30;
-    if (run.on) {
-      scheduleNext(mins);
-    } else {
-      paintStatusUI();
-    }
-
+    var mins = Number(run.mins) || Number(($("interval") || {}).value) || 30;
+    if (run.on) scheduleNext(mins);
+    else paintStatusUI();
     if (status) {
       status.className = "status ok";
       status.textContent = "Снимок: " + n + " предметов · " + fmtClock(now);
     }
     await renderList();
     if (selectedId) drawChart(selectedId);
-    if (typeof Notify === "function") {
-      Notify({
-        title: "Динамика цен",
-        body: "Снимок: " + n + " · " + fmtClock(now),
-        tool: "tarkovtool-price-track.html",
-        kind: "price"
-      });
-    }
+    try {
+      if (typeof Notify === "function") {
+        Notify({
+          title: "Динамика цен",
+          body: "Снимок: " + n + " · " + fmtClock(now),
+          tool: "tarkovtool-price-track.html",
+          kind: "price"
+        });
+      }
+    } catch (e) {}
   }
 
   async function renderList() {
     await openDb();
     var list = await allLatest();
-    var q = ((document.getElementById("q") || {}).value || "").toLowerCase().trim();
+    var q = ((($("q") || {}).value) || "").toLowerCase().trim();
     if (q) {
       list = list.filter(function (r) {
-        return (
-          (r.name || "").toLowerCase().indexOf(q) >= 0 ||
-          (r.slug || "").toLowerCase().indexOf(q) >= 0 ||
-          (r.itemId || "").toLowerCase().indexOf(q) >= 0
-        );
+        return (r.name || "").toLowerCase().indexOf(q) >= 0
+          || (r.slug || "").toLowerCase().indexOf(q) >= 0
+          || (r.itemId || "").toLowerCase().indexOf(q) >= 0;
       });
     }
     list.sort(function (a, b) {
       return (a.name || "").localeCompare(b.name || "", "ru");
     });
-    var box = document.getElementById("itemList");
+    var box = $("itemList");
     if (!box) return;
     if (!list.length) {
       box.innerHTML = '<p class="meta">Пока пусто — нажми «Снять сейчас» или «Старт фона»</p>';
       return;
     }
-    box.innerHTML = list
-      .map(function (r) {
-        var label = r.name || r.slug || r.itemId;
-        return (
-          '<div class="item-row" data-id="' +
-          esc(r.itemId) +
-          '">' +
-          (r.icon ? '<img src="' + esc(r.icon) + '" alt="">' : "") +
-          '<div class="nm">' +
-          esc(label) +
-          "</div>" +
-          '<div class="pr">' +
-          fmtRub(r.avg || r.low) +
-          "</div></div>"
-        );
-      })
-      .join("");
+    box.innerHTML = list.map(function (r) {
+      return '<div class="item-row" data-id="' + esc(r.itemId) + '">'
+        + (r.icon ? '<img src="' + esc(r.icon) + '" alt="">' : "")
+        + '<div class="nm">' + esc(r.name || r.slug || r.itemId) + "</div>"
+        + '<div class="pr">' + fmtRub(r.avg || r.low) + "</div></div>";
+    }).join("");
     box.querySelectorAll(".item-row").forEach(function (el) {
       el.onclick = function () {
         selectedId = el.getAttribute("data-id");
@@ -415,204 +326,147 @@
 
   function drawChart(itemId) {
     if (!itemId) return;
-    historyFor(itemId)
-      .then(function (hist) {
-        lastHist = hist;
-        var title = document.getElementById("chartTitle");
-        var meta = document.getElementById("chartMeta");
-        var tip = document.getElementById("chartTip");
-        var canvas = document.getElementById("chart");
-        if (!canvas) return;
-        var ctx = canvas.getContext("2d");
+    historyFor(itemId).then(function (hist) {
+      lastHist = hist;
+      var title = $("chartTitle");
+      var meta = $("chartMeta");
+      var tip = $("chartTip");
+      var canvas = $("chart");
+      if (!canvas) return;
+      var ctx = canvas.getContext("2d");
+      if (!hist.length) {
+        if (title) title.textContent = "Нет данных";
+        if (meta) meta.textContent = "";
+        return;
+      }
+      var last = hist[hist.length - 1];
+      if (title) title.textContent = last.name || itemId;
+      if (meta) {
+        meta.textContent = hist.length + " точек · avg " + fmtRub(last.avg)
+          + " · low " + fmtRub(last.low) + " · high " + fmtRub(last.high);
+      }
+      var dpr = window.devicePixelRatio || 1;
+      var wrap = canvas.parentElement;
+      var cssW = Math.max(280, canvas.clientWidth || 0, wrap ? wrap.clientWidth : 0, 400);
+      var cssH = 320;
+      canvas.style.width = cssW + "px";
+      canvas.style.height = cssH + "px";
+      canvas.width = Math.floor(cssW * dpr);
+      canvas.height = Math.floor(cssH * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      var W = cssW, H = cssH;
+      ctx.fillStyle = "#12151c";
+      ctx.fillRect(0, 0, W, H);
 
-        if (!hist.length) {
-          if (title) title.textContent = "Нет данных";
-          if (meta) meta.textContent = "";
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          return;
-        }
-
-        var last = hist[hist.length - 1];
-        if (title) title.textContent = last.name || itemId;
-        if (meta) {
-          meta.textContent =
-            hist.length +
-            " точек · avg " +
-            fmtRub(last.avg) +
-            " · low " +
-            fmtRub(last.low) +
-            " · high " +
-            fmtRub(last.high);
-        }
-
-        var dpr = window.devicePixelRatio || 1;
-        var wrap = canvas.parentElement;
-        var cssW = Math.max(
-          280,
-          canvas.clientWidth || 0,
-          wrap ? wrap.clientWidth : 0,
-          Math.floor((document.querySelector(".container") || {}).clientWidth || 0) - 48
-        );
-        var cssH = 320;
-        canvas.style.width = cssW + "px";
-        canvas.style.height = cssH + "px";
-        canvas.width = Math.floor(cssW * dpr);
-        canvas.height = Math.floor(cssH * dpr);
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        var W = cssW;
-        var H = cssH;
-
-        // background (always visible)
-        ctx.fillStyle = "#12151c";
-        ctx.fillRect(0, 0, W, H);
-
-        var i0 = 0;
-        var i1 = hist.length - 1;
-        if (viewRange) {
-          i0 = Math.max(0, Math.min(viewRange.i0, hist.length - 1));
-          i1 = Math.max(i0, Math.min(viewRange.i1, hist.length - 1));
-        }
-        var slice = hist.slice(i0, i1 + 1);
-        if (slice.length === 1) {
-          slice = [slice[0], Object.assign({}, slice[0], { ts: (slice[0].ts || 0) + 60000 })];
-        }
-
-        var vals = [];
-        slice.forEach(function (h) {
-          if (chartSeries.avg && h.avg > 0) vals.push(Number(h.avg));
-          if (chartSeries.low && h.low > 0) vals.push(Number(h.low));
-          if (chartSeries.high && h.high > 0) vals.push(Number(h.high));
-        });
-        if (!vals.length) {
-          ctx.fillStyle = "#c9a227";
-          ctx.font = "14px sans-serif";
-          ctx.fillText("Нет ненулевых цен в выбранных рядах", 16, H / 2);
-          return;
-        }
-
-        var min = Math.min.apply(null, vals);
-        var max = Math.max.apply(null, vals);
-        if (min === max) {
-          min = min * 0.95;
-          max = max * 1.05 || 1;
-        }
-        var padL = 70;
-        var padR = 16;
-        var padT = 18;
-        var padB = 40;
-        var plotW = W - padL - padR;
-        var plotH = H - padT - padB;
-
-        function xAt(i) {
-          return padL + (plotW * i) / Math.max(1, slice.length - 1);
-        }
-        function yAt(v) {
-          return padT + plotH * (1 - (v - min) / (max - min || 1));
-        }
-        function tLabel(ts) {
-          try {
-            var d = new Date(ts);
-            return (
-              d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" }) +
-              " " +
-              d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })
-            );
-          } catch (e) {
-            return "";
-          }
-        }
-
-        // grid + Y labels
-        ctx.strokeStyle = "#2a3140";
-        ctx.lineWidth = 1;
-        ctx.fillStyle = "#9aa3b2";
-        ctx.font = "11px sans-serif";
-        ctx.textAlign = "right";
-        ctx.textBaseline = "middle";
-        for (var g = 0; g <= 4; g++) {
-          var gy = padT + (plotH * g) / 4;
-          var gv = max - ((max - min) * g) / 4;
-          ctx.beginPath();
-          ctx.moveTo(padL, gy);
-          ctx.lineTo(W - padR, gy);
-          ctx.stroke();
-          ctx.fillText(Math.round(gv).toLocaleString("ru-RU"), padL - 8, gy);
-        }
-
-        // X labels
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-        [0, Math.floor(slice.length / 2), slice.length - 1].forEach(function (idx) {
-          if (slice[idx]) ctx.fillText(tLabel(slice[idx].ts), xAt(idx), H - padB + 8);
-        });
-
-        function strokeSeries(key, color) {
-          ctx.strokeStyle = color;
-          ctx.fillStyle = color;
-          ctx.lineWidth = 2.5;
-          ctx.beginPath();
-          var started = false;
-          for (var i = 0; i < slice.length; i++) {
-            var v = Number(slice[i][key]) || 0;
-            if (v <= 0) continue;
-            var x = xAt(i);
-            var y = yAt(v);
-            if (!started) {
-              ctx.moveTo(x, y);
-              started = true;
-            } else ctx.lineTo(x, y);
-          }
-          if (started) ctx.stroke();
-          for (var j = 0; j < slice.length; j++) {
-            var v2 = Number(slice[j][key]) || 0;
-            if (v2 <= 0) continue;
-            ctx.beginPath();
-            ctx.arc(xAt(j), yAt(v2), 4, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
-
-        if (chartSeries.high) strokeSeries("high", "#ff6b7a");
-        if (chartSeries.avg) strokeSeries("avg", "#f0c14b");
-        if (chartSeries.low) strokeSeries("low", "#3dd68c");
-
-        // border
-        ctx.strokeStyle = "#3a4254";
-        ctx.lineWidth = 1;
-        ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
-
-        if (hoverX != null && slice.length) {
-          var rel = (hoverX - padL) / (plotW || 1);
-          var hi = Math.round(rel * (slice.length - 1));
-          hi = Math.max(0, Math.min(slice.length - 1, hi));
-          var hx = xAt(hi);
-          ctx.strokeStyle = "rgba(255,255,255,0.35)";
-          ctx.beginPath();
-          ctx.moveTo(hx, padT);
-          ctx.lineTo(hx, padT + plotH);
-          ctx.stroke();
-          var h = slice[hi];
-          var tipText =
-            tLabel(h.ts) +
-            (chartSeries.avg ? " · avg " + fmtRub(h.avg) : "") +
-            (chartSeries.low ? " · low " + fmtRub(h.low) : "") +
-            (chartSeries.high ? " · high " + fmtRub(h.high) : "");
-          if (tip) {
-            tip.style.display = "block";
-            tip.textContent = tipText;
-          }
-        } else if (tip) {
-          tip.style.display = "none";
-        }
-      })
-      .catch(function (e) {
-        var title = document.getElementById("chartTitle");
-        if (title) title.textContent = "Ошибка графика: " + (e.message || e);
+      var i0 = 0, i1 = hist.length - 1;
+      if (viewRange) {
+        i0 = Math.max(0, Math.min(viewRange.i0, hist.length - 1));
+        i1 = Math.max(i0, Math.min(viewRange.i1, hist.length - 1));
+      }
+      var slice = hist.slice(i0, i1 + 1);
+      if (slice.length === 1) {
+        slice = [slice[0], Object.assign({}, slice[0], { ts: (slice[0].ts || 0) + 60000 })];
+      }
+      var vals = [];
+      slice.forEach(function (h) {
+        if (chartSeries.avg && h.avg > 0) vals.push(Number(h.avg));
+        if (chartSeries.low && h.low > 0) vals.push(Number(h.low));
+        if (chartSeries.high && h.high > 0) vals.push(Number(h.high));
       });
+      if (!vals.length) {
+        ctx.fillStyle = "#f0c14b";
+        ctx.font = "14px sans-serif";
+        ctx.fillText("Нет ненулевых цен", 16, H / 2);
+        return;
+      }
+      var min = Math.min.apply(null, vals);
+      var max = Math.max.apply(null, vals);
+      if (min === max) { min *= 0.95; max = max * 1.05 || 1; }
+      var padL = 70, padR = 16, padT = 18, padB = 40;
+      var plotW = W - padL - padR, plotH = H - padT - padB;
+      function xAt(i) { return padL + (plotW * i) / Math.max(1, slice.length - 1); }
+      function yAt(v) { return padT + plotH * (1 - (v - min) / (max - min || 1)); }
+      function tLabel(ts) {
+        try {
+          var d = new Date(ts);
+          return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" })
+            + " " + d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+        } catch (e) { return ""; }
+      }
+      ctx.strokeStyle = "#2a3140";
+      ctx.fillStyle = "#9aa3b2";
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      for (var g = 0; g <= 4; g++) {
+        var gy = padT + (plotH * g) / 4;
+        var gv = max - ((max - min) * g) / 4;
+        ctx.beginPath();
+        ctx.moveTo(padL, gy);
+        ctx.lineTo(W - padR, gy);
+        ctx.stroke();
+        ctx.fillText(Math.round(gv).toLocaleString("ru-RU"), padL - 8, gy);
+      }
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      [0, Math.floor(slice.length / 2), slice.length - 1].forEach(function (idx) {
+        if (slice[idx]) ctx.fillText(tLabel(slice[idx].ts), xAt(idx), H - padB + 8);
+      });
+      function strokeSeries(key, color) {
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        var started = false;
+        for (var i = 0; i < slice.length; i++) {
+          var v = Number(slice[i][key]) || 0;
+          if (v <= 0) continue;
+          var x = xAt(i), y = yAt(v);
+          if (!started) { ctx.moveTo(x, y); started = true; }
+          else ctx.lineTo(x, y);
+        }
+        if (started) ctx.stroke();
+        for (var j = 0; j < slice.length; j++) {
+          var v2 = Number(slice[j][key]) || 0;
+          if (v2 <= 0) continue;
+          ctx.beginPath();
+          ctx.arc(xAt(j), yAt(v2), 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      if (chartSeries.high) strokeSeries("high", "#ff6b7a");
+      if (chartSeries.avg) strokeSeries("avg", "#f0c14b");
+      if (chartSeries.low) strokeSeries("low", "#3dd68c");
+      ctx.strokeStyle = "#3a4254";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+      if (hoverX != null && slice.length) {
+        var rel = (hoverX - padL) / (plotW || 1);
+        var hi = Math.max(0, Math.min(slice.length - 1, Math.round(rel * (slice.length - 1))));
+        var hx = xAt(hi);
+        ctx.strokeStyle = "rgba(255,255,255,0.35)";
+        ctx.beginPath();
+        ctx.moveTo(hx, padT);
+        ctx.lineTo(hx, padT + plotH);
+        ctx.stroke();
+        var h = slice[hi];
+        var tipText = tLabel(h.ts)
+          + (chartSeries.avg ? " · avg " + fmtRub(h.avg) : "")
+          + (chartSeries.low ? " · low " + fmtRub(h.low) : "")
+          + (chartSeries.high ? " · high " + fmtRub(h.high) : "");
+        if (tip) { tip.style.display = "block"; tip.textContent = tipText; }
+      } else if (tip) {
+        tip.style.display = "none";
+      }
+    }).catch(function (e) {
+      var title = $("chartTitle");
+      if (title) title.textContent = "Ошибка графика: " + (e && e.message ? e.message : e);
+    });
   }
 
   function clearPollTimer() {
     if (timer) {
+      clearTimeout(timer);
       clearInterval(timer);
       timer = null;
     }
@@ -629,33 +483,28 @@
   function startBg() {
     if (window.__ttStartLock) return;
     window.__ttStartLock = true;
-    var saved = Number(readRun().mins);
-    var mins = Math.max(1, Number(document.getElementById("interval").value) || saved || 30);
-    document.getElementById("interval").value = mins;
+    var mins = Math.max(1, Number(($("interval") || {}).value) || Number(readRun().mins) || 30);
+    if ($("interval")) $("interval").value = mins;
     window.__ttPollMins = mins;
     writeRun({
       on: true,
       mins: mins,
-      mode: document.getElementById("gameMode").value,
+      mode: (($("gameMode") || {}).value) || "pve",
       startedAt: Date.now(),
-      nextSnapAt: Date.now() // first snap now
+      nextSnapAt: Date.now()
     });
     takeSnapshot()
-      .then(function () {
-        armPollTimer(mins);
-        scheduleNext(mins);
-      })
+      .then(function () { armPollTimer(mins); scheduleNext(mins); })
       .catch(function (e) {
-        var status = document.getElementById("status");
+        var status = $("status");
         if (status) {
           status.className = "status err";
-          status.textContent = e.message || String(e);
+          status.textContent = e && e.message ? e.message : String(e);
         }
-        // keep on but still schedule
         armPollTimer(mins);
         scheduleNext(mins);
       })
-      .finally(function () {
+      .then(function () {
         window.__ttStartLock = false;
         paintStatusUI();
       });
@@ -667,8 +516,8 @@
     var prev = readRun();
     writeRun({
       on: false,
-      mins: prev.mins || Number(document.getElementById("interval").value) || 30,
-      mode: prev.mode || document.getElementById("gameMode").value,
+      mins: prev.mins || Number(($("interval") || {}).value) || 30,
+      mode: prev.mode || (($("gameMode") || {}).value) || "pve",
       nextSnapAt: null,
       startedAt: prev.startedAt || null
     });
@@ -677,49 +526,30 @@
 
   function resumeIfNeeded() {
     var run = readRun();
-    if (!run.on) {
-      paintStatusUI();
-      return;
-    }
+    if (!run.on) { paintStatusUI(); return; }
     var mins = Math.max(1, Number(run.mins) || 30);
-    document.getElementById("interval").value = mins;
-    if (run.mode) document.getElementById("gameMode").value = run.mode;
+    if ($("interval")) $("interval").value = mins;
+    if (run.mode && $("gameMode")) $("gameMode").value = run.mode;
     window.__ttPollMins = mins;
-
     var next = Number(run.nextSnapAt) || 0;
     var now = Date.now();
     if (!next || next <= now) {
-      // due now
       takeSnapshot()
-        .then(function () {
-          armPollTimer(mins);
-          scheduleNext(mins);
-        })
-        .catch(function () {
-          armPollTimer(mins);
-          scheduleNext(mins);
-        });
+        .then(function () { armPollTimer(mins); scheduleNext(mins); })
+        .catch(function () { armPollTimer(mins); scheduleNext(mins); });
     } else {
-      // wait until nextSnapAt, then regular interval
-      var delay = next - now;
       clearPollTimer();
       timer = setTimeout(function () {
         takeSnapshot()
-          .then(function () {
-            armPollTimer(mins);
-            scheduleNext(mins);
-          })
-          .catch(function () {
-            armPollTimer(mins);
-            scheduleNext(mins);
-          });
-      }, delay);
+          .then(function () { armPollTimer(mins); scheduleNext(mins); })
+          .catch(function () { armPollTimer(mins); scheduleNext(mins); });
+      }, next - now);
     }
     paintStatusUI();
   }
 
   function wireChart() {
-    var canvas = document.getElementById("chart");
+    var canvas = $("chart");
     if (!canvas) return;
     canvas.addEventListener("mousemove", function (e) {
       var rect = canvas.getBoundingClientRect();
@@ -730,26 +560,22 @@
       hoverX = null;
       if (selectedId) drawChart(selectedId);
     });
-    canvas.addEventListener(
-      "wheel",
-      function (e) {
-        if (!lastHist.length || lastHist.length < 4) return;
-        e.preventDefault();
-        var len = lastHist.length;
-        var i0 = viewRange ? viewRange.i0 : 0;
-        var i1 = viewRange ? viewRange.i1 : len - 1;
-        var span = i1 - i0;
-        var mid = (i0 + i1) / 2;
-        if (e.deltaY < 0) span = Math.max(3, Math.floor(span * 0.7));
-        else span = Math.min(len - 1, Math.ceil(span / 0.7));
-        i0 = Math.max(0, Math.round(mid - span / 2));
-        i1 = Math.min(len - 1, i0 + span);
-        viewRange = { i0: i0, i1: i1 };
-        if (i0 === 0 && i1 === len - 1) viewRange = null;
-        if (selectedId) drawChart(selectedId);
-      },
-      { passive: false }
-    );
+    canvas.addEventListener("wheel", function (e) {
+      if (!lastHist.length || lastHist.length < 4) return;
+      e.preventDefault();
+      var len = lastHist.length;
+      var i0 = viewRange ? viewRange.i0 : 0;
+      var i1 = viewRange ? viewRange.i1 : len - 1;
+      var span = i1 - i0;
+      var mid = (i0 + i1) / 2;
+      if (e.deltaY < 0) span = Math.max(3, Math.floor(span * 0.7));
+      else span = Math.min(len - 1, Math.ceil(span / 0.7));
+      i0 = Math.max(0, Math.round(mid - span / 2));
+      i1 = Math.min(len - 1, i0 + span);
+      viewRange = { i0: i0, i1: i1 };
+      if (i0 === 0 && i1 === len - 1) viewRange = null;
+      if (selectedId) drawChart(selectedId);
+    }, { passive: false });
     document.querySelectorAll("[data-series]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var k = btn.getAttribute("data-series");
@@ -758,7 +584,7 @@
         if (selectedId) drawChart(selectedId);
       });
     });
-    var reset = document.getElementById("chartResetZoom");
+    var reset = $("chartResetZoom");
     if (reset) {
       reset.onclick = function () {
         viewRange = null;
@@ -770,33 +596,50 @@
     });
   }
 
-  document.getElementById("startBtn").onclick = startBg;
-  document.getElementById("stopBtn").onclick = stopBg;
-  document.getElementById("snapBtn").onclick = function () {
-    takeSnapshot().catch(function (e) {
-      var status = document.getElementById("status");
-      if (status) {
-        status.className = "status err";
-        status.textContent = e.message || String(e);
-      }
-    });
-  };
-  document.getElementById("q").oninput = function () {
-    renderList().catch(function () {});
-  };
+  function boot() {
+    var startBtn = $("startBtn");
+    var stopBtn = $("stopBtn");
+    var snapBtn = $("snapBtn");
+    var q = $("q");
+    if (startBtn) startBtn.onclick = startBg;
+    if (stopBtn) stopBtn.onclick = stopBg;
+    if (snapBtn) {
+      snapBtn.onclick = function () {
+        takeSnapshot().catch(function (e) {
+          var status = $("status");
+          if (status) {
+            status.className = "status err";
+            status.textContent = e && e.message ? e.message : String(e);
+          }
+        });
+      };
+    }
+    if (q) {
+      q.oninput = function () {
+        renderList().catch(function () {});
+      };
+    }
+    openDb()
+      .then(function () {
+        return renderList();
+      })
+      .then(function () {
+        wireChart();
+        startCountdownLoop();
+        resumeIfNeeded();
+      })
+      .catch(function (e) {
+        var status = $("status");
+        if (status) {
+          status.className = "status err";
+          status.textContent = "DB: " + (e && e.message ? e.message : e);
+        }
+      });
+  }
 
-  openDb()
-    .then(function () {
-      renderList();
-      wireChart();
-      startCountdownLoop();
-      resumeIfNeeded();
-    })
-    .catch(function (e) {
-      var status = document.getElementById("status");
-      if (status) {
-        status.className = "status err";
-        status.textContent = String(e.message || e);
-      }
-    });
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
 })();
