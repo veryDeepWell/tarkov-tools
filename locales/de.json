@@ -1,0 +1,54 @@
+{
+  "_meta": {
+    "code": "de",
+    "name": "German",
+    "nativeName": "Deutsch"
+  },
+  "common": {
+    "settings": "Einstellungen",
+    "theme": "Design",
+    "themeDark": "Dunkel",
+    "themeLight": "Hell",
+    "lang": "Sprache",
+    "sound": "Ton",
+    "soundOn": "An",
+    "soundOff": "Aus",
+    "close": "Schließen",
+    "apply": "Übernehmen",
+    "hub": "Hub",
+    "accent": "Akzent",
+    "volume": "Lautstärke",
+    "testSound": "Test",
+    "tabGeneral": "Allgemein",
+    "tabSound": "Ton",
+    "tabLook": "Erscheinung",
+    "tabHidden": "Ausgeblendete Tools",
+    "tabLang": "Sprache",
+    "loading": "Laden…",
+    "empty": "Leer",
+    "save": "Speichern",
+    "cancel": "Abbrechen"
+  },
+  "hub": {
+    "title": "Tarkov Tools",
+    "searchPlaceholder": "Suche…",
+    "mini": "Mini",
+    "notifications": "Benachrichtigungen",
+    "markAllRead": "Alle gelesen",
+    "collapse": "Einklappen",
+    "closeTab": "Schließen",
+    "toolsCount": "{n} Tools",
+    "noResults": "Keine Tools gefunden",
+    "pinned": "Angeheftet"
+  },
+  "cat": {
+    "flea": "Flea-Markt",
+    "loadout": "Loadout",
+    "hideout": "Unterschlupf",
+    "quests": "Quests",
+    "med": "Med / Essen",
+    "util": "Werkzeuge",
+    "other": "Sonstiges",
+    "all": "Alle Tools"
+  }
+}
