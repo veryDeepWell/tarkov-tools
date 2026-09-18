@@ -198,22 +198,7 @@ window.addEventListener("message", function (ev) {
   if (ev.origin !== location.origin) return;
   const d = ev.data;
   if (!d || typeof d !== "object") return;
-  if (d.type === "tt-notify") {
-    try {
-      if (d.title && window.TarkovState && TarkovState.notify) {
-        var tool = (d.tool || "").split("/").pop();
-        var list = TarkovState.notifications ? TarkovState.notifications() : [];
-        var recent = list.filter(function (n) {
-          return n.tool === tool && n.title === d.title && !n.read && (Date.now() - (n.ts || 0)) < 3000;
-        });
-        if (!recent.length) {
-          TarkovState.notify({ title: d.title, body: d.body || "", tool: tool, kind: d.kind || "ok" });
-        }
-      }
-    } catch (e) {}
-    renderMiniList();
-    return;
-  }
+  // tt-notify removed: Notify → TarkovState only (storage/BC). Status still via postMessage.
   if (d.type === "tt-status") {
     const tool = (d.tool || "").split("/").pop();
     if (!tool) return;

@@ -75,19 +75,8 @@
         if (pushNotif() || tries > 25) clearInterval(iv);
       }, 40);
     }
-
-    try {
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: 'tt-notify', tool: tool, title: title, body: msg, kind: kind }, location.origin);
-      }
-    } catch (e) {}
-    try {
-      if (window.BroadcastChannel) {
-        var bc = new BroadcastChannel('tarkov-tools');
-        bc.postMessage({ type: 'notification', item: { title: title, body: msg, tool: tool, kind: kind } });
-        bc.close();
-      }
-    } catch (e) {}
+    // Single path: TarkovState.notify → localStorage + BC + listeners.
+    // Do NOT postMessage tt-notify / BC again (caused double notifications).
   }
 
   function reportStatus(opts) {
