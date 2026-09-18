@@ -20,7 +20,11 @@
     }
   }
   function esc(s) {
-    return String(s || '').replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
   function renderNotifPanel() {
     var box = document.getElementById('notifList');
@@ -80,6 +84,7 @@
   // UI-only: hub-app.js already calls TarkovState.notify (with dedup).
   // Re-notifying here caused duplicate entries in the panel.
   window.addEventListener('message', function (ev) {
+    if (ev.origin !== location.origin) return;
     var d = ev.data;
     if (!d || d.type !== 'tt-notify') return;
     updateNotifBell();
