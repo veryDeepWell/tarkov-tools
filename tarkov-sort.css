@@ -1,0 +1,19 @@
+/* Table sort indicators (enhanceTable cycle: desc → asc → off) */
+th.sorted-asc,
+th.sorted-desc {
+  position: relative;
+  padding-right: 1.15em;
+  color: var(--accent, #c9a227);
+}
+th.sorted-asc::after,
+th.sorted-desc::after {
+  position: absolute;
+  right: 0.2em;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75em;
+  opacity: 0.9;
+  pointer-events: none;
+}
+th.sorted-asc::after { content: "\25B2"; }
+th.sorted-desc::after { content: "\25BC"; }
