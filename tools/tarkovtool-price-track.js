@@ -1,5 +1,5 @@
 (function () {
-  const DB_NAME = "tarkovPriceDB", DB_VER = 1, STORE = "snapshots";
+  const DB_NAME = "tarkovPriceDB", DB_VER = 2, STORE = "snapshots";
   const RUN_KEY = "tarkovPriceTrackRunning";
   const META_KEY = "tarkovPriceTrackMeta";
 
@@ -112,13 +112,25 @@
     if (db) return Promise.resolve(db);
     return new Promise(function (resolve, reject) {
       var req = indexedDB.open(DB_NAME, DB_VER);
-      req.onupgradeneeded = function () {
+      req.onupgradeneeded = function (ev) {
         var d = req.result;
+        var os;
         if (!d.objectStoreNames.contains(STORE)) {
-          var os = d.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
-          os.createIndex("itemId", "itemId", { unique: false });
-          os.createIndex("ts", "ts", { unique: false });
+          os = d.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
+        } else {
+          os = ev.target.transaction.objectStore(STORE);
         }
+        // Старые БД могли создаться без индексов — досоздаём
+        try {
+          if (!os.indexNames.contains("itemId")) {
+            os.createIndex("itemId", "itemId", { unique: false });
+          }
+        } catch (e) {}
+        try {
+          if (!os.indexNames.contains("ts")) {
+            os.createIndex("ts", "ts", { unique: false });
+          }
+        } catch (e) {}
       };
       req.onsuccess = function () {
         db = req.result;
@@ -176,17 +188,27 @@
   function historyFor(itemId) {
     return new Promise(function (resolve, reject) {
       var tx = db.transaction(STORE, "readonly");
-      var idx = tx.objectStore(STORE).index("itemId");
-      var req = idx.getAll(IDBKeyRange.only(itemId));
-      req.onsuccess = function () {
-        var rows = (req.result || []).slice().sort(function (a, b) {
-          return a.ts - b.ts;
-        });
+      var os = tx.objectStore(STORE);
+      function finish(rows) {
+        rows = (rows || []).filter(function (r) { return r.itemId === itemId; });
+        rows.sort(function (a, b) { return a.ts - b.ts; });
         resolve(rows);
-      };
-      req.onerror = function () {
-        reject(req.error);
-      };
+      }
+      // С индексом — быстрее; без индекса (старая БД) — getAll + filter
+      if (os.indexNames && os.indexNames.contains("itemId")) {
+        try {
+          var idx = os.index("itemId");
+          var req = idx.getAll(IDBKeyRange.only(itemId));
+          req.onsuccess = function () { finish(req.result); };
+          req.onerror = function () { reject(req.error); };
+          return;
+        } catch (e) {
+          /* fall through */
+        }
+      }
+      var all = os.getAll();
+      all.onsuccess = function () { finish(all.result); };
+      all.onerror = function () { reject(all.error); };
     });
   }
 
