@@ -266,5 +266,8 @@
     if (!document.querySelector("script[data-tt-mini]")) {
       var s = document.createElement("script"); s.src = "tarkov-mini.js"; s.dataset.ttMini = "1"; s.async = false; document.head.appendChild(s);
     }
+    if (!document.querySelector("script[data-tt-ui]")) {
+      var u = document.createElement("script"); u.src = "tarkov-ui.js"; u.dataset.ttUi = "1"; u.async = false; document.head.appendChild(u);
+    }
   })();
 })(window);

@@ -161,6 +161,28 @@
   </style>
   <link rel="stylesheet" href="tarkov-common.css">
   <script type="application/json" id="tarkovtool-meta">
+    /* P2: shared TarkovUI — local wrappers keep call sites stable */
+    function fleaTax(basePrice, offerPrice, count, opts) {
+      return (window.TarkovUI || {}).fleaTax ? TarkovUI.fleaTax(basePrice, offerPrice, count, opts) : 0;
+    }
+    function fleaNet(basePrice, offerPrice, count, opts) {
+      return (window.TarkovUI || {}).fleaNet ? TarkovUI.fleaNet(basePrice, offerPrice, count, opts)
+        : ((Number(offerPrice)||0)*(Number(count)||1) - fleaTax(basePrice, offerPrice, count, opts));
+    }
+    function formatNum(n) {
+      return (window.TarkovUI || {}).fmtNum ? TarkovUI.fmtNum(n) : String(Math.round(Number(n)||0));
+    }
+    function escapeHtml(s) {
+      return (window.TarkovUI || {}).esc ? TarkovUI.esc(s) : String(s||'');
+    }
+    function loadSettings(key, defaults) {
+      return (window.TarkovUI || {}).loadSettings ? TarkovUI.loadSettings(key, defaults)
+        : Object.assign({}, defaults||{});
+    }
+    function saveSettings(key, obj) {
+      if ((window.TarkovUI || {}).saveSettings) TarkovUI.saveSettings(key, obj);
+    }
+
   {"id": "tarkovtool-streamer-flip.html", "title": "Стример-флип", "description": "Стримерские предметы vs Терапевт.", "file": "tarkovtool-streamer-flip.html"}
   </script>
 
@@ -332,25 +354,11 @@
     let sortKey = 'profit';
     let sortDir = -1;
 
-    function loadSettings(key, defaults) {
-      try {
-        const raw = localStorage.getItem(key);
-        if (!raw) return Object.assign({}, defaults);
-        return Object.assign({}, defaults, JSON.parse(raw));
-      } catch (e) { return Object.assign({}, defaults); }
-    }
-    function saveSettings(key, obj) {
-      try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {}
-    }
-    function humanize(slug) {
+            function humanize(slug) {
       if (!slug) return '?';
       return String(slug).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     }
-    function formatNum(n) {
-      if (n == null || Number.isNaN(n)) return '—';
-      return Math.round(n).toLocaleString('ru-RU');
-    }
-    function esc(s) {
+        function esc(s) {
       return String(s || '')
         .replace(/&/g, '&amp;').replace(/</g, '&lt;')
         .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -549,5 +557,6 @@
 })();
 </script>
   <script src="tarkov-common.js"></script>
+  <script src="tarkov-ui.js"></script>
 </body>
 </html>

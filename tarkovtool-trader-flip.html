@@ -238,6 +238,28 @@
 </style>
   <link rel="stylesheet" href="tarkov-common.css">
   <script type="application/json" id="tarkovtool-meta">
+    /* P2: shared TarkovUI — local wrappers keep call sites stable */
+    function fleaTax(basePrice, offerPrice, count, opts) {
+      return (window.TarkovUI || {}).fleaTax ? TarkovUI.fleaTax(basePrice, offerPrice, count, opts) : 0;
+    }
+    function fleaNet(basePrice, offerPrice, count, opts) {
+      return (window.TarkovUI || {}).fleaNet ? TarkovUI.fleaNet(basePrice, offerPrice, count, opts)
+        : ((Number(offerPrice)||0)*(Number(count)||1) - fleaTax(basePrice, offerPrice, count, opts));
+    }
+    function formatNum(n) {
+      return (window.TarkovUI || {}).fmtNum ? TarkovUI.fmtNum(n) : String(Math.round(Number(n)||0));
+    }
+    function escapeHtml(s) {
+      return (window.TarkovUI || {}).esc ? TarkovUI.esc(s) : String(s||'');
+    }
+    function loadSettings(key, defaults) {
+      return (window.TarkovUI || {}).loadSettings ? TarkovUI.loadSettings(key, defaults)
+        : Object.assign({}, defaults||{});
+    }
+    function saveSettings(key, obj) {
+      if ((window.TarkovUI || {}).saveSettings) TarkovUI.saveSettings(key, obj);
+    }
+
   {"id": "tarkovtool-trader-flip.html", "title": "Трейдер-флип", "description": "Перепродажа от торговца на барахолку с УЛ и квестами.", "file": "tarkovtool-trader-flip.html"}
   </script>
 
@@ -330,41 +352,8 @@
      *  intelCenter3 — разведцентр 3 ур. (−30%)
      *  hmLvl — Hideout Management 0..50 (+0.3% за уровень, до −45% суммарно с IC3)
      */
-    function fleaTax(basePrice, offerPrice, count, opts) {
-      opts = opts || {};
-      const bp = Number(basePrice) || 0;
-      const op = Number(offerPrice) || 0;
-      const n = Math.max(1, Number(count) || 1);
-      if (bp <= 0 || op <= 0) return 0;
-      const Ti = 0.05, Tr = 0.05;
-      let PO = Math.log10(bp / op);
-      let PR = Math.log10(op / bp);
-      if (op < bp) PO = Math.pow(PO, 1.08);
-      if (op >= bp) PR = Math.pow(PR, 1.08);
-      let tax = (bp * Ti * Math.pow(4, PO) + op * Tr * Math.pow(4, PR)) * n;
-      if (opts.intelCenter3) {
-        const hm = Math.max(0, Math.min(50, Number(opts.hmLvl) || 0));
-        const reduction = Math.min(0.45, 0.30 + hm * 0.003);
-        tax *= (1 - reduction);
-      }
-      return Math.max(0, Math.ceil(tax));
-    }
-    function fleaNet(basePrice, offerPrice, count, opts) {
-      const gross = (Number(offerPrice) || 0) * (Number(count) || 1);
-      return gross - fleaTax(basePrice, offerPrice, count, opts);
-    }
-
-    function loadSettings(key, defaults) {
-      try {
-        const raw = localStorage.getItem(key);
-        if (!raw) return { ...defaults };
-        return { ...defaults, ...JSON.parse(raw) };
-      } catch (e) { return { ...defaults }; }
-    }
-    function saveSettings(key, obj) {
-      try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {}
-    }
-
+        
+        
     const TRADERS_UI = [
       { id: 'prapor', ru: 'Прапор' },
       { id: 'therapist', ru: 'Терапевт' },
@@ -733,19 +722,8 @@
       return rows;
     }
 
-    function formatNum(n) {
-      if (n == null || Number.isNaN(n)) return '—';
-      return Math.round(n).toLocaleString('ru-RU');
-    }
-
-    function escapeHtml(s) {
-      return String(s || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
-
+    
+    
     function renderTable() {
       const thead = document.getElementById('theadRow');
       thead.innerHTML = '';
@@ -874,5 +852,6 @@
 })();
 </script>
   <script src="tarkov-common.js"></script>
+  <script src="tarkov-ui.js"></script>
 </body>
 </html>
