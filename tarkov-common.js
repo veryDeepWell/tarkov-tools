@@ -1,5 +1,14 @@
-/*! common.js recovery + sort cycle */
+/*! common.js recovery + sort cycle + sort.css */
 (function () {
+  try {
+    if (!document.querySelector('link[data-tt-sort]')) {
+      var l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = 'tarkov-sort.css';
+      l.dataset.ttSort = '1';
+      document.head.appendChild(l);
+    }
+  } catch (e) {}
   var urls = [
     "https://cdn.jsdelivr.net/gh/veryDeepWell/tarkov-tools@50aeed507de1d85d1b21053d9d01ce9f07dae93a/tarkov-common.js",
     "https://raw.githubusercontent.com/veryDeepWell/tarkov-tools/50aeed507de1d85d1b21053d9d01ce9f07dae93a/tarkov-common.js"
