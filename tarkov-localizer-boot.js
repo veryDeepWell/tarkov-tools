@@ -1,7 +1,10 @@
-/*! load localizer from b64 */
-fetch("tarkov-localizer.b64?v=3").then(function(r){return r.text()}).then(function(b64){
+/*! load localizer from split b64 */
+Promise.all([
+  fetch("tarkov-localizer.b64.1?v=4").then(function(r){return r.text()}),
+  fetch("tarkov-localizer.b64.2?v=4").then(function(r){return r.text()})
+]).then(function(parts){
   var s=document.createElement("script");
-  s.textContent=atob(b64.replace(/\s+/g,""));
+  s.textContent=atob((parts[0]+parts[1]).replace(/\s+/g,""));
   document.body.appendChild(s);
 }).catch(function(e){
   var st=document.getElementById("status");
