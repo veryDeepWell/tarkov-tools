@@ -77,16 +77,13 @@
     };
   }
 
+  // UI-only: hub-app.js already calls TarkovState.notify (with dedup).
+  // Re-notifying here caused duplicate entries in the panel.
   window.addEventListener('message', function (ev) {
     var d = ev.data;
-    if (!d || d.type !== 'tt-notify' || !d.title) return;
-    try {
-      if (window.TarkovState && TarkovState.notify) {
-        var tool = (d.tool || '').split('/').pop();
-        TarkovState.notify({ title: d.title, body: d.body || '', tool: tool, kind: d.kind || 'ok' });
-      }
-    } catch (e) {}
+    if (!d || d.type !== 'tt-notify') return;
     updateNotifBell();
+    try { if (typeof renderNotifPanel === 'function') renderNotifPanel(); } catch (e) {}
     try { if (typeof renderMiniList === 'function') renderMiniList(); } catch (e) {}
   });
 
