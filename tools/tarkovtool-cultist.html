@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Круг культистов — Tarkov</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Круг культистов", "description": "Base value 350k/400k, цена: торговцы / flea / бартер-цепочки."}
+  </script>
+  <style>
+    .container{max-width:min(1600px,92vw)!important;margin:0 auto;padding:12px 14px 64px}
+    h1{margin-bottom:4px}
+    .sub{color:var(--muted);margin-bottom:14px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+    .card-title{font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;font-weight:600}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+    .field{flex:1;min-width:140px}
+    .field label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px}
+    .status{font-size:.9rem;color:var(--muted);margin-top:8px}
+    .status.ok{color:var(--green)}.status.err{color:var(--red)}
+    .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:10px}
+    .stat{background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:12px}
+    .stat .v{font-size:1.15rem;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+    .stat .l{font-size:.72rem;color:var(--muted);margin-top:2px}
+    .stat .v.good{color:var(--green)}.stat .v.bad{color:var(--red)}
+    .slots{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+    .slot{
+      border:1px dashed var(--border);border-radius:10px;padding:10px 12px;
+      min-height:56px;background:var(--input-bg);position:relative;
+      display:flex;align-items:center;gap:12px;
+    }
+    .slot.filled{border-style:solid;border-color:var(--accent)}
+    .slot .ico{width:40px;height:40px;object-fit:contain;flex-shrink:0}
+    .slot .slot-body{flex:1;min-width:0}
+    .slot .rm{margin-left:auto;min-width:auto!important;min-height:32px!important;padding:0 10px!important;flex-shrink:0}
+    .layout{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:12px;align-items:start}
+    @media(max-width:1000px){.layout{grid-template-columns:1fr}}
+    .circle-panel .actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+    .table-wrap{overflow:auto;max-height:min(70vh,560px);border:1px solid var(--border);border-radius:10px}
+    table{width:100%;border-collapse:collapse;font-size:.85rem;font-variant-numeric:tabular-nums}
+    th,td{padding:8px 10px;border-top:1px solid var(--border);text-align:left}
+    th{position:sticky;top:0;background:var(--input-bg);color:var(--muted);font-size:.7rem;text-transform:uppercase;z-index:1}
+    .name-cell{display:flex;gap:8px;align-items:center}
+    .ico-sm{width:32px;height:32px;object-fit:contain}
+    .meta{font-size:.75rem;color:var(--muted)}
+    .path{font-size:.72rem;color:var(--muted);max-width:300px}
+    .check{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:.92rem}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Круг культистов</h1>
+    <p class="sub">Base value (не flea) · до 5 слотов · 350 001 / 400 000 · покупка: торговцы, flea и бартер-цепочки</p>
+    <div class="card">
+      <div class="card-title">Данные и режим цены</div>
+      <div class="row">
+        <div class="field"><label>Режим API</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <div class="field"><label>Цена получения</label>
+          <select id="costMode">
+            <option value="trader">Только торговцы</option>
+            <option value="flea">Только flea</option>
+            <option value="both" selected>Торговцы + flea</option>
+          </select>
+        </div>
+        <div class="field"><label>Глубина бартеров</label>
+          <select id="barterDepth">
+            <option value="0">Выкл</option>
+            <option value="1">1 шаг</option>
+            <option value="2" selected>2 шага</option>
+            <option value="3">3 шага</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">Загрузить</button>
+      </div>
+      <div class="check"><input type="checkbox" id="amulet"> <label for="amulet">Амулет посвящённого (+15% к base value)</label></div>
+      <div class="check"><input type="checkbox" id="allowQuestBarter"> <label for="allowQuestBarter">Учитывать бартеры/покупки за квестом</label></div>
+      <p class="status" id="status">Base value = basePrice, иначе sellToTrader ÷ множитель. Cost — мин. путь: торговец / flea / бартер-цепочка.</p>
+    </div>
+    <div class="layout">
+      <div>
+        <div class="card circle-panel">
+          <div class="card-title">Жертва (до 5)</div>
+          <div class="actions">
+            <button type="button" class="btn-ghost" id="clearBtn">Очистить</button>
+            <button type="button" class="btn-ghost" id="fill350">Добор до 350k</button>
+            <button type="button" class="btn-ghost" id="fill400">Добор до 400k</button>
+          </div>
+          <div class="slots" id="slots"></div>
+          <div class="stats" id="sumStats"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-title">Каталог · клик = в слот</div>
+          <div class="row" style="margin-bottom:8px">
+            <input type="search" id="q" placeholder="Поиск предмета…" style="flex:2;min-width:160px">
+            <div class="field" style="flex:1;min-width:120px"><label>Сорт</label>
+              <select id="sortBy">
+                <option value="eff">value / cost</option>
+                <option value="value">base value</option>
+                <option value="cost">цена получения</option>
+                <option value="name">имя</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Предмет</th><th>Base</th><th>Cost</th><th>Эфф.</th><th>Как взять</th>
+              </tr></thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="../core/tarkov-common.js"></script>
+      <script src="tarkovtool-cultist.js"></script>
+</body>
+</html>

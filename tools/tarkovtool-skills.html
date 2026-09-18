@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Скиллы · чизы и софт-кап — Tarkov</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Скиллы + чизы", "description": "Трекер уровней, софт-кап усталости навыка, чиз-страты 1.0+."}
+  </script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;padding:20px 14px 48px}
+    .container{max-width:min(1600px, 92vw);margin:0 auto}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+    .card-title{font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;font-weight:600}
+    .btn{background:var(--accent);color:#111;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 12px;cursor:pointer}
+    .skill-row{display:grid;grid-template-columns:140px 70px 56px 1fr;gap:10px;align-items:start;padding:12px 0;border-bottom:1px solid var(--border)}
+    @media(max-width:700px){.skill-row{grid-template-columns:1fr}}
+    .skill-row input[type=number]{width:64px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text)}
+    .name{font-weight:700}
+    .tag{display:inline-block;font-size:.7rem;padding:2px 7px;border-radius:4px;margin:1px 2px 1px 0;background:rgba(255,255,255,.06);color:var(--muted)}
+    .tag.phys{background:rgba(61,214,140,.12);color:var(--green)}
+    .tag.prac{background:rgba(100,160,255,.12);color:#7ec8ff}
+    .tag.combat{background:rgba(240,113,120,.12);color:var(--red)}
+    .tag.mental{background:rgba(201,162,39,.15);color:var(--accent)}
+    .cheese{font-size:.88rem;color:var(--text);line-height:1.45;margin-top:4px}
+    .cheese b{color:var(--accent)}
+    .soft{font-size:.82rem;color:var(--muted);margin-top:4px}
+    .soft strong{color:var(--orange)}
+    .hint{font-size:.9rem;color:var(--muted);line-height:1.5}
+    .fatigue-table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:8px;font-variant-numeric:tabular-nums}
+    .fatigue-table th,.fatigue-table td{padding:8px 10px;border-top:1px solid var(--border);text-align:left}
+    .fatigue-table th{color:var(--muted);font-size:.75rem;text-transform:uppercase}
+    .good{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--orange)}
+    h1{margin-bottom:6px}
+    .sub{color:var(--muted);margin-bottom:16px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Скиллы · чизы · софт-кап</h1>
+    <p class="sub">Патч 1.0+ · трекер + как качать эффективно, не в молоко</p>
+
+    <div class="card">
+      <div class="card-title">Усталость навыка (софт-кап в рейде)</div>
+      <p class="hint">
+        За рейд навык качается с множителем в зависимости от того, сколько <b>полных очков</b> ты уже набил по этому скиллу.
+        Стрелка в меню навыков: синяя = буст, красная = уже режет.
+      </p>
+      <table class="fatigue-table">
+        <thead>
+          <tr><th>Очков за рейд</th><th>Множитель</th><th>Смысл</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>0 → первое</td><td class="good">~129%</td><td>Синяя стрелка — самое жирное</td></tr>
+          <tr><td>после 1-го</td><td>100%</td><td>Норма</td></tr>
+          <tr><td>2-е</td><td class="warn">~60%</td><td>Красная стрелка, уже хуже</td></tr>
+          <tr><td>3-е</td><td class="bad">~36%</td><td>Почти впустую</td></tr>
+          <tr><td>4-е+</td><td class="bad">~22% и ниже</td><td>Формула ~0.6^(n−1)</td></tr>
+        </tbody>
+      </table>
+      <p class="hint" style="margin-top:10px">
+        Практический вывод: <b>1 полноценное действие на скилл за рейд</b> (одна хирургия, один «пакет» еды/воды, кусок перегруза) — нормально.
+        Спамить 5 CMS подряд в одном рейде — после первого-второго очка XP тает.
+        Часть источников пишет про ~5 мин «отлежки» до возврата эффективности — не надейся на это как на абьюз, ориентир всё равно 1–2 очка/скилл/рейд.
+        Elite = 51, стимы временно до 60.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Трекер (localStorage)</div>
+      <div id="skillList"></div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn" id="saveSkills">Сохранить</button>
+        <button type="button" class="btn-ghost" id="resetSkills">Сбросить уровни</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-skills.js"></script>
+</body>
+</html>

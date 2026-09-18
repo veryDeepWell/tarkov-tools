@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Биткоин-ферма — калькулятор — Tarkov</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Биткоин-ферма", "description": "ROI майнинга: GPU, топливо, солнечная, Hideout Management, графики."}
+  </script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;padding:20px 14px 48px}
+    .container{max-width:min(1600px, 92vw);margin:0 auto}
+    h1{margin-bottom:6px}
+    .sub{color:var(--muted);margin-bottom:14px;line-height:1.45}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+    .card-title{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;font-weight:600}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+    .field{flex:1;min-width:140px}
+    .field label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px}
+    input,select{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:1rem}
+    .btn{background:var(--accent);color:#111;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 12px;cursor:pointer}
+    .status{font-size:.9rem;color:var(--muted);margin-top:8px}
+    .status.ok{color:var(--green)}.status.err{color:var(--red)}
+    .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:8px}
+    .stat{background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:12px}
+    .stat .v{font-size:1.2rem;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+    .stat .l{font-size:.75rem;color:var(--muted);margin-top:2px}
+    .stat .v.good{color:var(--green)}.stat .v.bad{color:var(--red)}
+    .hint{font-size:.85rem;color:var(--muted);margin-top:10px;line-height:1.45}
+    .charts{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:800px){.charts{grid-template-columns:1fr 1fr}}
+    canvas{width:100%;height:220px;background:var(--input-bg);border-radius:10px;border:1px solid var(--border)}
+    .check{display:flex;align-items:center;gap:8px;padding:8px 0;color:var(--text);font-size:.95rem}
+    .check input{width:auto}
+    table{width:100%;border-collapse:collapse;font-size:.88rem;font-variant-numeric:tabular-nums}
+    th,td{padding:8px 10px;border-top:1px solid var(--border);text-align:left}
+    th{color:var(--muted);font-size:.72rem;text-transform:uppercase}
+    .table-wrap{overflow:auto;max-height:320px;border:1px solid var(--border);border-radius:10px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Биткоин-ферма</h1>
+    <p class="sub">Формула 1.0+: time = 300000 / (1 + (GPU−1)×0.041225) сек · топливо, солнечная, Hideout Management · графики ROI</p>
+
+    <div class="card">
+      <div class="row">
+        <div class="field" style="flex:0;min-width:120px">
+          <label>Режим API</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="priceBtn">Цены с барахолки</button>
+        <button type="button" class="btn-ghost" id="recalcBtn">Пересчитать</button>
+      </div>
+      <p class="status" id="status">Цены можно ввести вручную или подтянуть avg24h</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Параметры</div>
+      <div class="row">
+        <div class="field"><label>Видеокарты (1–50)</label><input type="number" id="gpus" min="1" max="50" value="25"></div>
+        <div class="field"><label>Уровень фермы (слоты)</label>
+          <select id="farmLv">
+            <option value="10">1 · макс 10</option>
+            <option value="25" selected>2 · макс 25</option>
+            <option value="50">3 · макс 50</option>
+          </select>
+        </div>
+        <div class="field"><label>Hideout Management (0–51)</label><input type="number" id="hm" min="0" max="51" value="10"></div>
+        <div class="field"><label>Crafting (0–51)</label><input type="number" id="craft" min="0" max="51" value="20"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="field"><label>Цена BTC (₽, Терапевт/барахолка)</label><input type="number" id="btcPrice" min="0" value="450000" step="1000"></div>
+        <div class="field"><label>Цена 1 GPU (₽)</label><input type="number" id="gpuPrice" min="0" value="400000" step="1000"></div>
+        <div class="field"><label>Цена канистры (металл, ₽)</label><input type="number" id="fuelPrice" min="0" value="180000" step="1000"></div>
+      </div>
+      <div class="check"><input type="checkbox" id="solar"> <label for="solar">Солнечная батарея (−50% расход топлива)</label></div>
+      <div class="check"><input type="checkbox" id="jaegerFuel" checked> <label for="jaegerFuel">Топливо у Егеря (фиксированная цена канистры выше)</label></div>
+      <p class="hint">Crafting <b>не ускоряет</b> BTC (только крафты станций). HM режет расход топлива: −0.5%/ур. Металл. канистра ≈ 100 ед.; база без бонусов ≈ 12 мин 38 сек на 1 ед. топлива.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Текущая конфигурация</div>
+      <div class="stats" id="stats"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Графики по числу GPU</div>
+      <div class="charts">
+        <div>
+          <div class="meta" style="margin-bottom:6px;color:var(--muted);font-size:.8rem">Нетто ₽ / сутки</div>
+          <canvas id="chartProfit" width="500" height="220"></canvas>
+        </div>
+        <div>
+          <div class="meta" style="margin-bottom:6px;color:var(--muted);font-size:.8rem">Окупаемость GPU (дни)</div>
+          <canvas id="chartRoi" width="500" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Таблица 1…50 GPU</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>GPU</th><th>Время/BTC</th><th>BTC/сут</th><th>Валовая ₽</th><th>Топливо ₽</th><th>Нетто ₽</th><th>ROI дни</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-btc-farm.js"></script>
+</body>
+</html>

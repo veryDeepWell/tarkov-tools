@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Магазины — Tarkov</title>
+  <style>
+    :root {
+      --bg:#0f1115; --card:#1a1d24; --border:#2a2f3a; --text:#e8eaed;
+      --muted:#9aa0a6; --accent:#c9a227; --green:#3dd68c; --red:#f07178; --input-bg:#12151b;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:20px 14px 40px;line-height:1.4}
+    .container { max-width: min(1600px, 92vw);margin:0 auto}
+    h1{font-size:1.35rem;font-weight:600;margin-bottom:4px}
+    .sub{color:var(--muted);font-size:.85rem;margin-bottom:18px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+    .card-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;font-weight:600}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+    .field label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:4px}
+    select,input{background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:.9rem;outline:none}
+    .btn{background:var(--accent);color:#111;border:none;border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .status{font-size:.82rem;color:var(--muted);margin-top:8px}
+    .status.ok{color:var(--green)}.status.err{color:var(--red)}
+    .chips{display:flex;flex-wrap:wrap;gap:6px}
+    .chip{background:var(--input-bg);border:1px solid var(--border);border-radius:16px;padding:5px 11px;font-size:.78rem;color:var(--muted);cursor:pointer}
+    .chip.active{border-color:var(--accent);color:var(--accent);background:rgba(201,162,39,.12)}
+    .table-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px;max-height:65vh}
+    table{width:100%;border-collapse:collapse;font-size:.82rem;font-variant-numeric:tabular-nums}
+    th{position:sticky;top:0;background:var(--input-bg);text-align:left;padding:8px 9px;color:var(--muted);font-size:.68rem;text-transform:uppercase;cursor:pointer;user-select:none;white-space:nowrap;z-index:1}
+    th:hover{color:var(--text)}
+    td{padding:7px 9px;border-top:1px solid var(--border);vertical-align:middle}
+    tr:hover td{background:rgba(255,255,255,.02)}
+    .name{font-weight:600}.meta{font-size:.72rem;color:var(--muted)}
+    .ok{color:var(--green);font-weight:600}.bad{color:var(--red);font-weight:600}
+    .pos{color:var(--green)}.neg{color:var(--red)}
+    .copy-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 7px;font-size:.7rem;cursor:pointer}
+    .copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+    .hint{font-size:.78rem;color:var(--muted);margin-top:10px}
+  
+    .ico {
+      width: 40px; height: 40px;
+      object-fit: contain;
+      background: #0a0c10;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+    .ico-sm { width: 32px; height: 32px; }
+    .name-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .name-cell .txt { min-width: 0; }
+
+    .item-icon {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      border-radius: 4px;
+      background: rgba(0,0,0,0.25);
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+    .item-icon.sm { width: 32px; height: 32px; }
+    .item-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .item-cell .txt { min-width: 0; }
+
+  
+    .icon {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+      border-radius: 4px;
+      background: #0a0c10;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+    .icon-sm { width: 28px; height: 28px; }
+    .name-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .name-cell > div { min-width: 0; }
+
+</style>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"id": "tarkovtool-mags.html", "title": "Магазины", "description": "Магазины по калибрам: ёмкость, эрга, отдача.", "file": "tarkovtool-mags.html"}
+  </script>
+
+</head>
+<body>
+  <div class="container">
+    <h1>Магазины</h1>
+    <p class="sub">Калибр · ёмкость · эрга · отдача · flea · торговец</p>
+    <div class="card">
+      <div class="card-title">Данные</div>
+      <div class="row">
+        <div class="field">
+          <label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+      </div>
+      <p class="status" id="status">Жми ЗАГРУЗИТЬ</p>
+    </div>
+    <div class="card" id="filters" style="display:none">
+      <div class="card-title">Калибр</div>
+      <div class="chips" id="cals"></div>
+      <div class="row" style="margin-top:12px">
+        <div class="field" style="flex:1;min-width:160px">
+          <label>Поиск</label>
+          <input type="text" id="search" placeholder="magpul, 60-round…">
+        </div>
+        <div class="field">
+          <label style="display:flex;gap:6px;align-items:center;cursor:pointer;padding-top:18px">
+            <input type="checkbox" id="hideQuest"> Скрыть квест
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="card" id="tableCard" style="display:none">
+      <div class="card-title" id="title">Магазины</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th data-k="name">Магазин</th>
+              <th data-k="cal">Калибр</th>
+              <th data-k="cap">Ёмк.</th>
+              <th data-k="ergo">Эрга</th>
+              <th data-k="recoil">Отдача</th>
+              <th data-k="malf">Клин</th>
+              <th data-k="avg">Flea</th>
+              <th data-k="traderPrice">Торговец</th>
+              <th data-k="quest">Квест</th>
+              <th data-k="rating">Рейтинг</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <p class="hint">Рейтинг ≈ ёмкость×1.2 + эрга×2 + (−отдача%)×1.5 − клин%×50. Цена не влияет.</p>
+    </div>
+  </div>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-mags.js"></script>
+</body>
+</html>

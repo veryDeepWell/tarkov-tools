@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Боссы · гуны · время карт — Tarkov</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"id": "tarkovtool-bosses.html", "title": "Боссы и гуны", "description": "Шансы боссов, таймеры карт, текущая локация гунов.", "file": "tarkovtool-bosses.html"}
+  </script>
+
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;padding:20px 14px 40px}
+    .container{max-width:min(1600px,92vw);margin:0 auto}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+    .card-title{font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;font-weight:600}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+    .field label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
+    select,input{background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);outline:none}
+    .btn{background:var(--accent);color:#111;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer}
+    .status{font-size:.95rem;color:var(--muted);margin-top:8px}
+    .status.ok{color:var(--green)}.status.err{color:var(--red)}
+    .chips{display:flex;flex-wrap:wrap;gap:6px}
+    .chip{background:var(--input-bg);border:1px solid var(--border);border-radius:16px;padding:6px 14px;font-size:.9rem;color:var(--muted);cursor:pointer}
+    .chip.active{border-color:var(--accent);color:var(--accent);background:rgba(201,162,39,.12)}
+    .map-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+    .map-card{background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+    .map-card.goons-here{border-color:var(--orange);box-shadow:0 0 16px rgba(230,162,60,.25)}
+    .map-name{font-weight:700;font-size:1.1rem;display:flex;justify-content:space-between;align-items:center;gap:8px}
+    .dur{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700}
+    .timer{font-variant-numeric:tabular-nums;font-size:1rem;color:var(--green);margin-top:4px}
+    .boss-line{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:.95rem}
+    .boss-name{font-weight:600}
+    .meta{font-size:.85rem;color:var(--muted)}
+    .chance{font-weight:700;font-variant-numeric:tabular-nums}
+    .hint{font-size:.9rem;color:var(--muted);margin-top:10px}
+    .goons-panel{background:rgba(230,162,60,.1);border:1px solid rgba(230,162,60,.4);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+    .goons-panel h2{color:var(--orange);font-size:1.15rem;margin-bottom:6px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Боссы · гуны · время карт</h1>
+    <p class="sub">Текущая локация гунов · шансы боссов · длительность · секундомер</p>
+    <div class="card">
+      <div class="card-title">Данные</div>
+      <div class="row">
+        <div class="field">
+          <label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+        <button type="button" class="btn-ghost" id="refreshGoons">Обновить гунов</button>
+      </div>
+      <p class="status" id="status">maps + goonReports</p>
+    </div>
+    <div id="main" style="display:none">
+      <div class="goons-panel" id="goonsPanel"></div>
+      <div class="card">
+        <div class="card-title">Фильтр</div>
+        <div class="chips" id="filters">
+          <span class="chip active" data-f="all">Все карты</span>
+          <span class="chip" data-f="boss">С боссами</span>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <input type="text" id="search" placeholder="tagilla, customs…" style="flex:1;min-width:160px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text)">
+        </div>
+      </div>
+      <div class="map-grid" id="maps"></div>
+      <p class="hint">Гуны: актуальная карта из goonReports API. Секундомер — локальный.</p>
+    </div>
+  </div>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-bosses.js"></script>
+</body>
+</html>

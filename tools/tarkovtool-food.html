@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <title>Еда и вода — Tarkov Tools</title>
+  <script type="application/json" id="tarkovtool-meta">
+  {"id":"tarkovtool-food.html","title":"Еда и вода","description":"Пища / вода: energy, hydration, цена, рейтинг ₽/очко.","file":"tarkovtool-food.html"}
+  </script>
+  <style>
+    .chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+    .chip { background:var(--input-bg); border:1px solid var(--border); border-radius:16px; padding:6px 14px; font-size:.85rem; color:var(--muted); cursor:pointer; }
+    .chip.active { border-color:var(--accent); color:var(--accent); }
+    .name-cell { display:flex; align-items:center; gap:10px; }
+    .ico { width:40px; height:40px; object-fit:contain; border-radius:6px; background:var(--input-bg); }
+    .score { font-weight:800; color:var(--accent); }
+    th { cursor:pointer; user-select:none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Еда и вода</h1>
+    <p class="sub">Только provisions · energy / hydration · цена flea · рейтинг ценности</p>
+    <div class="card">
+      <div class="card-title">Фильтр</div>
+      <div class="chips" id="kindChips">
+        <button type="button" class="chip active" data-k="all">Всё</button>
+        <button type="button" class="chip" data-k="food">Только пища</button>
+        <button type="button" class="chip" data-k="drink">Только вода</button>
+      </div>
+      <div class="row">
+        <div class="field" style="max-width:160px">
+          <label>Режим</label>
+          <select id="gameMode">
+            <option value="pve" selected>pve</option>
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+          </select>
+        </div>
+        <div class="field" style="max-width:200px">
+          <label>Поиск</label>
+          <input type="search" id="q" placeholder="имя…">
+        </div>
+        <button type="button" class="btn" id="btnLoad">Загрузить</button>
+      </div>
+      <p class="status" id="status">Нажми «Загрузить»</p>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th data-s="name">Предмет</th>
+              <th data-s="kind">Тип</th>
+              <th data-s="energy">Energy</th>
+              <th data-s="hydration">Hydration</th>
+              <th data-s="units">Units</th>
+              <th data-s="avg">Цена ₽</th>
+              <th data-s="perPoint">₽/очко</th>
+              <th data-s="score">Рейтинг</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script src="../core/tarkov-common.js"></script>
+    <script src="tarkovtool-food.js"></script>
+</body>
+</html>

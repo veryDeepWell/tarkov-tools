@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Price Alarm — Tarkov Tools</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"id":"tarkovtool-price-alarm.html","title":"Price Alarm","description":"Цена ≤/≥ N, офферы ≤/≥ N, фон-опрос.","file":"tarkovtool-price-alarm.html"}
+  </script>
+  <style>
+    .alarm-row { display:grid; grid-template-columns:40px 1fr minmax(120px,auto) 110px auto auto; gap:8px; align-items:center; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:var(--input-bg); margin-bottom:8px; }
+    .alarm-row img { width:36px; height:36px; object-fit:contain; border-radius:6px; background:var(--bg); }
+    .alarm-row .nm { font-weight:600; }
+    .alarm-row .meta { font-size:.78rem; color:var(--muted); }
+    .alarm-row input[type=number] { width:110px; min-height:36px !important; }
+    .alarm-row select { min-height:36px !important; min-width:130px; }
+    .search-hit { display:flex; gap:10px; align-items:center; padding:8px; border-radius:8px; cursor:pointer; border:1px solid transparent; }
+    .search-hit:hover { border-color:var(--accent); background:var(--input-bg); }
+    .search-hit img { width:36px; height:36px; object-fit:contain; border-radius:6px; }
+    #hits { max-height:240px; overflow:auto; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Price Alarm</h1>
+    <p class="sub">Любимые предметы → условие → порог → опрос по кнопке или таймеру</p>
+    <div class="card">
+      <div class="card-title">Опрос</div>
+      <div class="row">
+        <div class="field" style="max-width:140px"><label>Интервал (мин)</label><input type="number" id="interval" min="1" max="180" value="5"></div>
+        <div class="field" style="max-width:160px"><label>Режим</label>
+          <select id="gameMode"><option value="pve" selected>pve</option><option value="regular">regular</option><option value="pvp-season">pvp-season</option></select>
+        </div>
+        <button type="button" class="btn" id="btnStart">Старт фона</button>
+        <button type="button" class="btn-ghost" id="btnStop">Стоп</button>
+        <button type="button" class="btn-ghost" id="btnNow">Проверить сейчас</button>
+      </div>
+      <p class="status" id="status">Остановлен</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Добавить предмет</div>
+      <input type="search" id="q" placeholder="Имя / shortName…">
+      <div id="hits"></div>
+    </div>
+    <div class="card"><div class="card-title">Алерты</div><div id="list"></div></div>
+  </div>
+  <script src="../core/tarkov-common.js"></script>
+    <script src="tarkovtool-price-alarm.js"></script>
+</body>
+</html>

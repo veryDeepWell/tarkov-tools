@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Сборка оружия ≈ за N ₽ — Tarkov</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"id": "tarkovtool-gun-budget.html", "title": "Сборка за N ₽", "description": "Оружие под бюджет: максимум статов, схема модов, прицел.", "file": "tarkovtool-gun-budget.html"}
+  </script>
+
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;padding:20px 14px 48px}
+    .container{max-width:min(1600px,92vw);margin:0 auto}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+    .card-title{font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;font-weight:600}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+    .field label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
+    select,input{background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);outline:none;font-size:1rem}
+    .btn{background:var(--accent);color:#111;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .status{font-size:.95rem;color:var(--muted);margin-top:8px}
+    .status.ok{color:var(--green)}.status.err{color:var(--red)}
+    .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+    .chip{background:var(--input-bg);border:1px solid var(--border);border-radius:16px;padding:6px 14px;font-size:.9rem;color:var(--muted);cursor:pointer;user-select:none}
+    .chip.active{border-color:var(--accent);color:var(--accent);background:rgba(201,162,39,.12)}
+    .gun-pick{max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:10px}
+    .gun-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);cursor:pointer}
+    .gun-row:hover,.gun-row.active{background:rgba(201,162,39,.1)}
+    .name{font-weight:600}.meta{font-size:.85rem;color:var(--muted)}
+    .hint{font-size:.9rem;color:var(--muted);margin-top:10px}
+
+    .weapon-schematic{
+      display:grid;
+      grid-template-columns:repeat(7, minmax(88px, 1fr));
+      grid-template-rows:auto auto auto auto;
+      gap:8px;
+      margin:16px 0;
+      padding:16px;
+      background:var(--input-bg);
+      border-radius:12px;
+      border:1px solid var(--border);
+    }
+    .slot-box{
+      background:var(--card);
+      border:1px dashed var(--border);
+      border-radius:10px;
+      padding:8px;
+      min-height:86px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
+      cursor:pointer;
+      position:relative;
+      text-align:center;
+    }
+    .slot-box.filled{border-style:solid;border-color:var(--accent)}
+    .slot-box.empty{opacity:.4}
+    .slot-box img{width:52px;height:52px;object-fit:contain}
+    .slot-box .slot-label{font-size:.7rem;color:var(--muted)}
+    .slot-box .tip{
+      display:none;position:absolute;bottom:calc(100% + 4px);left:50%;
+      transform:translateX(-50%);background:#000;color:#fff;padding:6px 10px;
+      border-radius:6px;font-size:.8rem;white-space:nowrap;z-index:5;pointer-events:none;
+    }
+    .slot-box:hover .tip{display:block}
+    .s-scope{grid-column:3/6;grid-row:1}
+    .s-sight{grid-column:2;grid-row:1}
+    .s-muzzle{grid-column:1;grid-row:2}
+    .s-barrel{grid-column:2;grid-row:2}
+    .s-handguard{grid-column:3;grid-row:2}
+    .s-receiver{grid-column:4;grid-row:2}
+    .s-charge{grid-column:5;grid-row:2}
+    .s-stock{grid-column:6;grid-row:2}
+    .s-buffer{grid-column:7;grid-row:2}
+    .s-tactical{grid-column:2;grid-row:3}
+    .s-foregrip{grid-column:3;grid-row:3}
+    .s-mag{grid-column:4;grid-row:3}
+    .s-grip{grid-column:5;grid-row:3}
+    .s-extra{
+      grid-column:1/-1;grid-row:4;
+      display:flex;flex-wrap:wrap;gap:8px;justify-content:center;
+      border:none;background:transparent;min-height:0;padding:0;cursor:default;
+    }
+    .s-extra .slot-box{min-width:100px;cursor:pointer}
+
+    .stats-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+      gap:10px;margin-top:12px;
+    }
+    .stat{background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+    .stat .k{font-size:.75rem;color:var(--muted);text-transform:uppercase}
+    .stat .v{font-size:1.15rem;font-weight:700;color:var(--accent)}
+    .mod-list{font-size:.92rem;margin-top:12px}
+    .mod-list li{display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap}
+    .copy-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 8px;font-size:.78rem;cursor:pointer}
+    .warn{color:var(--orange)}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Сборка оружия ≈ за N ₽</h1>
+    <p class="sub">Максимум по цели · прицел обязателен в бюджете · все моды на схеме (трубки, планки, …)</p>
+
+    <div class="card">
+      <div class="card-title">Данные</div>
+      <div class="row">
+        <div class="field">
+          <label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Бюджет ≈ ₽</label>
+          <input type="number" id="budget" min="10000" step="5000" value="500000" style="width:140px">
+        </div>
+        <div class="field">
+          <label>УЛ</label>
+          <select id="ll"><option>1</option><option>2</option><option selected>3</option><option>4</option></select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+        <button type="button" class="btn" id="buildBtn" disabled>СОБРАТЬ</button>
+      </div>
+      <p class="status" id="status">Сначала загрузка</p>
+    </div>
+
+    <div class="card" id="opts" style="display:none">
+      <div class="card-title">Источник цен</div>
+      <div class="chips" id="sourceChips">
+        <span class="chip active" data-v="mixed">Торговцы + flea</span>
+        <span class="chip" data-v="trader">Только торговцы</span>
+        <span class="chip" data-v="flea">Только flea</span>
+      </div>
+      <div class="card-title">Цель (максимизируем)</div>
+      <div class="chips" id="statChips">
+        <span class="chip active" data-v="balance">Баланс</span>
+        <span class="chip" data-v="ergo">Эрга</span>
+        <span class="chip" data-v="recoil">Отдача</span>
+        <span class="chip" data-v="weight">Лёгкий</span>
+      </div>
+      <div class="card-title">Оружие</div>
+      <input type="text" id="gunSearch" placeholder="m4a1, akm, mcx, svd…"
+        style="width:100%;max-width:420px;margin-bottom:8px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text)">
+      <div class="gun-pick" id="gunList"></div>
+    </div>
+
+    <div class="card" id="result" style="display:none">
+      <div class="card-title">Сборка</div>
+      <div id="buildHead"></div>
+      <div class="weapon-schematic" id="layout"></div>
+      <div class="stats-grid" id="stats"></div>
+      <ul class="mod-list" id="modList"></ul>
+      <p class="hint">Все установленные моды в списке ниже. Клик по слоту/кнопке — копир. slug. Прицел ставится в рамках бюджета в первую очередь.</p>
+    </div>
+  </div>
+
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-gun-budget.js"></script>
+</body>
+</html>

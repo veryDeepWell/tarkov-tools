@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Крафты убежища ROI — Tarkov</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #1a1d24;
+      --border: #2a2f3a;
+      --text: #e8eaed;
+      --muted: #9aa0a6;
+      --accent: #c9a227;
+      --green: #3dd68c;
+      --red: #f07178;
+      --input-bg: #12151b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px 14px 40px;
+      line-height: 1.4;
+    }
+    .container { max-width: min(1600px, 92vw); margin: 0 auto; }
+    h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: 4px; }
+    .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 18px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { min-width: 110px; }
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    input, select {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+      width: 100%;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    .btn {
+      background: var(--accent);
+      color: #111;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .status { font-size: 0.82rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green); }
+    .status.err { color: var(--red); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .chip {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 4px 11px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+    .chip.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(201,162,39,0.12);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 68vh;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+      font-variant-numeric: tabular-nums;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      background: var(--input-bg);
+      text-align: left;
+      padding: 9px 10px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      z-index: 1;
+    }
+    th:hover { color: var(--text); }
+    th .s { opacity: 0.35; margin-left: 3px; }
+    th.sorted .s { opacity: 1; color: var(--accent); }
+    td {
+      padding: 8px 10px;
+      border-top: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .pos { color: var(--green); font-weight: 600; }
+    .neg { color: var(--red); }
+    .muted { color: var(--muted); }
+    .name { font-weight: 600; }
+    .detail {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 3px;
+      max-width: 320px;
+    }
+    .quest { color: var(--red); font-size: 0.72rem; }
+    .hint { font-size: 0.78rem; color: var(--muted); margin-top: 10px; }
+    .meta { font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
+  
+    .copy-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 6px; padding: 2px 6px; font-size: 0.68rem; cursor: pointer; margin-left: 6px;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .ico {
+      width: 40px; height: 40px;
+      object-fit: contain;
+      background: #0a0c10;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+    .ico-sm { width: 32px; height: 32px; }
+    .name-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .name-cell .txt { min-width: 0; }
+</style>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"id": "tarkovtool-crafts.html", "title": "Крафты убежища", "description": "ROI крафтов hideout, цены, время.", "file": "tarkovtool-crafts.html"}
+  </script>
+
+</head>
+<body>
+  <div class="container">
+    <h1>Крафты убежища — ROI</h1>
+    <p class="sub">json.tarkov.dev · стоимость входов vs цена выхода · профит / час</p>
+
+    <div class="card">
+      <div class="card-title">Данные</div>
+      <div class="row">
+        <div class="field">
+          <label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Цена входов</label>
+          <select id="priceIn">
+            <option value="avg24h" selected>avg 24ч</option>
+            <option value="lastLow">min сейчас</option>
+            <option value="max">max(avg,min)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Цена выхода</label>
+          <select id="priceOut">
+            <option value="avg24h" selected>avg 24ч</option>
+            <option value="lastLow">min сейчас</option>
+            <option value="max">max(avg,min)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>РЦ 3</label>
+          <select id="intel3"><option value="0">Нет</option><option value="1">Да</option></select>
+        </div>
+        <div class="field">
+          <label>HM lvl</label>
+          <input type="number" id="hmLvl" min="0" max="50" value="0">
+        </div>
+        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+      </div>
+      <p class="status" id="status">Инструменты (tool) в стоимость крафта не входят</p>
+    </div>
+
+    <div class="card" id="resultsCard" style="display:none;">
+      <div class="card-title">Фильтры</div>
+      <div class="chips" id="stationChips"></div>
+      <div class="row" style="margin-bottom:10px;">
+        <div class="field">
+          <label>Мин. профит, ₽</label>
+          <input type="number" id="minProfit" value="0" step="1000">
+        </div>
+        <div class="field">
+          <label>Мин. ₽/час</label>
+          <input type="number" id="minPerHour" value="0" step="1000">
+        </div>
+        <div class="field" style="flex:1;min-width:160px;">
+          <label>Поиск</label>
+          <input type="text" id="search" placeholder="патроны, bitcoin, workbench…">
+        </div>
+        <div class="field" style="min-width:auto;padding-bottom:2px;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;padding-top:18px;">
+            <input type="checkbox" id="hideQuest" checked>
+            Скрыть за квестом
+          </label>
+        </div>
+        <div class="field" style="min-width:auto;padding-bottom:2px;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;padding-top:18px;">
+            <input type="checkbox" id="onlyProfit">
+            Только плюс
+          </label>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="thead"></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <p class="meta" id="meta"></p>
+      <p class="hint">
+        Профит = (цена выхода × кол-во − комиссия) − сумма входов (без tool).
+        ₽/час = профит / (duration/3600). Цены барахолки — ориентир, не гарантия ликвидности.
+      </p>
+    </div>
+  </div>
+
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-crafts.js"></script>
+</body>
+</html>

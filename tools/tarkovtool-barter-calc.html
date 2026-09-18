@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Калькулятор выгодности бартера — Tarkov</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #1a1d24;
+      --border: #2a2f3a;
+      --text: #e8eaed;
+      --muted: #9aa0a6;
+      --accent: #c9a227;
+      --green: #3dd68c;
+      --red: #f07178;
+      --input-bg: #12151b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px;
+      line-height: 1.45;
+    }
+
+    .container { max-width: min(1600px, 92vw);
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 14px;
+      font-weight: 600;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .field {
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .field.narrow {
+      flex: 0 0 110px;
+      min-width: 90px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+    }
+
+    input[type="number"] {
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
+    .btn {
+      background: var(--accent);
+      color: #111;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      color: var(--text);
+      border-color: var(--muted);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--red);
+      border: 1px solid transparent;
+      padding: 8px 10px;
+      font-size: 0.85rem;
+    }
+
+    .btn-danger:hover {
+      border-color: var(--red);
+    }
+
+    .price-quick {
+      display: flex;
+      gap: 4px;
+      padding-bottom: 2px;
+    }
+
+    .btn-quick {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-quick:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .preset-btn {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .preset-btn:hover {
+      border-color: var(--accent);
+      background: #1e222b;
+    }
+
+    .preset-btn.active {
+      border-color: var(--accent);
+      background: rgba(201, 162, 39, 0.15);
+      color: var(--accent);
+    }
+
+    .items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .item-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      padding: 12px;
+      background: var(--input-bg);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .item-row .field {
+      margin-bottom: 0;
+    }
+
+    .item-cost {
+      font-size: 0.85rem;
+      color: var(--muted);
+      min-width: 100px;
+      text-align: right;
+      padding-bottom: 10px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .results {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      background: var(--input-bg);
+      border-radius: 10px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 1.25rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-value.profit-pos {
+      color: var(--green);
+    }
+
+    .stat-value.profit-neg {
+      color: var(--red);
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 12px;
+    }
+
+    .add-row {
+      margin-top: 12px;
+    }
+
+    .preset-note {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+
+    @media (max-width: 520px) {
+      .item-cost {
+        width: 100%;
+        text-align: left;
+        padding-bottom: 0;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+    /* P2: shared TarkovUI — local wrappers keep call sites stable */
+    function fleaTax(basePrice, offerPrice, count, opts) {
+      return (window.TarkovUI || {}).fleaTax ? TarkovUI.fleaTax(basePrice, offerPrice, count, opts) : 0;
+    }
+    function fleaNet(basePrice, offerPrice, count, opts) {
+      return (window.TarkovUI || {}).fleaNet ? TarkovUI.fleaNet(basePrice, offerPrice, count, opts)
+        : ((Number(offerPrice)||0)*(Number(count)||1) - fleaTax(basePrice, offerPrice, count, opts));
+    }
+    function formatNum(n) {
+      return (window.TarkovUI || {}).fmtNum ? TarkovUI.fmtNum(n) : String(Math.round(Number(n)||0));
+    }
+    function escapeHtml(s) {
+      return (window.TarkovUI || {}).esc ? TarkovUI.esc(s) : String(s||'');
+    }
+    function loadSettings(key, defaults) {
+      return (window.TarkovUI || {}).loadSettings ? TarkovUI.loadSettings(key, defaults)
+        : Object.assign({}, defaults||{});
+    }
+    function saveSettings(key, obj) {
+      if ((window.TarkovUI || {}).saveSettings) TarkovUI.saveSettings(key, obj);
+    }
+
+  {"id": "tarkovtool-barter-calc.html", "title": "Бартер (ручной)", "description": "Калькулятор выгодности бартера: компоненты, комиссия flea.", "file": "tarkovtool-barter-calc.html"}
+  </script>
+
+</head>
+<body>
+  <div class="container">
+    <h1>Калькулятор бартера Tarkov</h1>
+    <p class="subtitle">Считай прибыль с бартерных сделок на барахолке</p>
+
+    <!-- Пресеты -->
+    <div class="card">
+      <div class="card-title">Пресеты популярных бартеров</div>
+      <div class="presets" id="presets"></div>
+      <p class="preset-note">Цены на компоненты нужно подставить актуальные с барахолки. Цена продажи — ориентир, правь под рынок.</p>
+    </div>
+
+    <!-- Результат бартера -->
+    <div class="card">
+      <div class="card-title">Что получаем (результат бартера)</div>
+      <div class="row">
+        <div class="field">
+          <label for="resultName">Название</label>
+          <input type="text" id="resultName" placeholder="Кейс для предметов" value="Кейс для предметов">
+        </div>
+        <div class="field">
+          <label for="sellPrice">Цена продажи, ₽</label>
+          <input type="number" id="sellPrice" min="0" step="1000" value="1700000" placeholder="1700000">
+        </div>
+        <div class="field narrow">
+          <label for="commission">Комиссия, %</label>
+          <input type="number" id="commission" min="0" max="100" step="0.1" value="8" placeholder="8">
+        </div>
+      </div>
+    </div>
+
+    <!-- Компоненты -->
+    <div class="card">
+      <div class="card-title">Предметы для бартера</div>
+      <div class="items-list" id="itemsList"></div>
+      <div class="add-row">
+        <button type="button" class="btn btn-ghost" id="addItemBtn">+ Добавить предмет</button>
+      </div>
+    </div>
+
+    <!-- Результаты -->
+    <div class="card">
+      <div class="card-title">Расчёт</div>
+      <div class="results">
+        <div class="stat">
+          <div class="stat-label">Стоимость компонентов</div>
+          <div class="stat-value" id="totalCost">0 ₽</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">После комиссии</div>
+          <div class="stat-value" id="netSell">0 ₽</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Прибыль</div>
+          <div class="stat-value" id="profit">0 ₽</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Рентабельность</div>
+          <div class="stat-value" id="roi">—</div>
+        </div>
+      </div>
+      <p class="hint">
+        Прибыль = (цена продажи − комиссия) − сумма (кол-во × цена) всех компонентов.
+        Налог барахолки по формуле BSG (base price + цена лота). Если base price = 0 — используется % fallback. РЦ3 −30%, HM +0.3%/lvl до −45%.
+      </p>
+    </div>
+  </div>
+
+  <script src="../core/tarkov-common.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="tarkovtool-barter-calc.js"></script>
+</body>
+</html>

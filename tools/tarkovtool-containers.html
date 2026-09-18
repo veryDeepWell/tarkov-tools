@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Разгрузки и рюкзаки — Tarkov</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #1a1d24;
+      --border: #2a2f3a;
+      --text: #e8eaed;
+      --muted: #9aa0a6;
+      --accent: #c9a227;
+      --green: #3dd68c;
+      --red: #f07178;
+      --input-bg: #12151b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px 14px 40px;
+      line-height: 1.4;
+    }
+    .container { max-width: min(1600px, 92vw); margin: 0 auto; }
+    h1 { font-size: 1.35rem; font-weight: 600; margin-bottom: 4px; }
+    .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 18px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    select, input {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .btn {
+      background: var(--accent);
+      color: #111;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .status { font-size: 0.82rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green); }
+    .status.err { color: var(--red); }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .tab {
+      flex: 1;
+      background: var(--input-bg);
+      border: none;
+      color: var(--muted);
+      padding: 12px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    .tab.active {
+      background: rgba(201,162,39,0.15);
+      color: var(--accent);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      max-height: 65vh;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      font-variant-numeric: tabular-nums;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      background: var(--input-bg);
+      text-align: left;
+      padding: 8px 9px;
+      color: var(--muted);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      z-index: 1;
+    }
+    th:hover { color: var(--text); }
+    td {
+      padding: 8px 9px;
+      border-top: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .name { font-weight: 600; }
+    .meta { font-size: 0.72rem; color: var(--muted); }
+    .ok { color: var(--green); font-weight: 600; }
+    .bad { color: var(--red); font-weight: 600; }
+    .grid-viz {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      max-width: 200px;
+    }
+    .grid-cell {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      font-size: 0.65rem;
+      color: var(--muted);
+      padding: 2px 4px;
+      white-space: nowrap;
+    }
+    .grid-cell.wide { border-color: var(--accent); color: var(--accent); }
+    .hint { font-size: 0.78rem; color: var(--muted); margin-top: 10px; }
+    .badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: rgba(201,162,39,0.15);
+      color: var(--accent);
+      margin-left: 4px;
+    }
+  
+    .copy-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 6px; padding: 3px 7px; font-size: 0.7rem; cursor: pointer;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .ico {
+      width: 40px; height: 40px;
+      object-fit: contain;
+      background: #0a0c10;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+    .ico-sm { width: 32px; height: 32px; }
+    .name-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .name-cell .txt { min-width: 0; }
+</style>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"id": "tarkovtool-containers.html", "title": "Разгрузки и рюкзаки", "description": "Рейтинг контейнеров: слоты, вес, сегменты.", "file": "tarkovtool-containers.html"}
+  </script>
+
+</head>
+<body>
+  <div class="container">
+    <h1>Разгрузки и рюкзаки</h1>
+    <p class="sub">Слоты · вес · сегментация · цена · торговец · квест · рейтинг «куда складывать лут»</p>
+
+    <div class="card">
+      <div class="card-title">Данные</div>
+      <div class="row">
+        <div class="field">
+          <label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+      </div>
+      <p class="status" id="status">Разные слоты экипировки — два раздела</p>
+    </div>
+
+    <div class="tabs" id="tabs" style="display:none;">
+      <button type="button" class="tab active" data-tab="rig">Разгрузки / carriers</button>
+      <button type="button" class="tab" data-tab="backpack">Рюкзаки</button>
+    </div>
+
+    <div class="card" id="filtersCard" style="display:none;">
+      <div class="row">
+        <div class="field" style="flex:1;min-width:160px;">
+          <label>Поиск</label>
+          <input type="text" id="search" placeholder="avt, tri-zip, blackrock…">
+        </div>
+        <div class="field">
+          <label>Мин. слотов</label>
+          <input type="number" id="minSlots" min="0" value="0" style="width:90px;">
+        </div>
+        <div class="field">
+          <label style="display:flex;gap:6px;align-items:center;cursor:pointer;padding-top:18px;">
+            <input type="checkbox" id="hideQuest">
+            Скрыть квест
+          </label>
+        </div>
+        <div class="field" id="armorFilterWrap">
+          <label style="display:flex;gap:6px;align-items:center;cursor:pointer;padding-top:18px;">
+            <input type="checkbox" id="onlyArmorRig">
+            Только с плитами
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="tableCard" style="display:none;">
+      <div class="card-title" id="tableTitle">Список</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th data-k="name">Название</th>
+              <th data-k="capacity">Слоты</th>
+              <th data-k="weight">Вес</th>
+              <th data-k="spk">Слот/кг</th>
+              <th data-k="grids">Сегм.</th>
+              <th>Сетка</th>
+              <th data-k="avg">Flea</th>
+              <th data-k="traderPrice">Торговец</th>
+              <th data-k="quest">Квест</th>
+              <th data-k="rating">Рейтинг</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <p class="hint" id="hint">
+        Рейтинг = слоты + слот/кг + сегментация + мобильность (цена не влияет — деньги пыль).
+        Сегментация: число карманов + разнообразие размеров (магазины / аптечки / лут).
+      </p>
+    </div>
+  </div>
+
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-containers.js"></script>
+</body>
+</html>

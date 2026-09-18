@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <title>Динамика цен — Tarkov</title>
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Динамика цен", "description": "Снимки flea avg/low/high, график, фон."}
+  </script>
+  <style>
+    .layout { display:grid; grid-template-columns:1fr 1.2fr; gap:12px; }
+    @media(max-width:900px){ .layout{grid-template-columns:1fr;} }
+    .item-row { display:flex; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); cursor:pointer; }
+    .item-row:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+    .item-row img { width:36px; height:36px; object-fit:contain; border-radius:6px; background:var(--input-bg); }
+    .item-row .nm { font-weight:600; }
+    .item-row .pr { margin-left:auto; font-variant-numeric:tabular-nums; color:var(--accent); }
+    #itemList { max-height:420px; overflow:auto; }
+    canvas { width:100%; height:280px; background:var(--input-bg); border-radius:10px; border:1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Динамика цен</h1>
+    <p class="sub">Фоновые снимки · клик по предмету = график · Старт фона только по кнопке</p>
+    <div class="card">
+      <div class="card-title">Сбор цен</div>
+      <div class="row">
+        <div class="field"><label>Режим API</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <div class="field"><label>Интервал, мин</label>
+          <input type="number" id="interval" min="1" max="180" value="30">
+        </div>
+        <button type="button" class="btn" id="startBtn">Старт фона</button>
+        <button type="button" class="btn-ghost" id="stopBtn">Стоп</button>
+        <button type="button" class="btn-ghost" id="snapBtn">Снять сейчас</button>
+      </div>
+      <p class="status" id="status">Хранит avg24h / lastLow / high24h.</p>
+      <p class="meta" id="trackMeta"></p>
+    </div>
+    <div class="layout">
+      <div class="card">
+        <div class="card-title">Предметы</div>
+        <input type="search" id="q" placeholder="Фильтр…" style="margin-bottom:8px">
+        <div id="itemList" class="meta">Пока пусто</div>
+      </div>
+      <div class="card">
+        <div class="card-title" id="chartTitle">Выбери предмет</div>
+        <canvas id="chart" width="900" height="280"></canvas>
+        <p class="meta" id="chartMeta"></p>
+      </div>
+    </div>
+  </div>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-price-track.js"></script>
+  <script src="tarkov-price-track-boot.js"></script>
+</body>
+</html>

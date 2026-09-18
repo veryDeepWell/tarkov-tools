@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Чек-лист перед рейдом — Tarkov</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Чек-лист рейда", "description": "Сборки под карты, DnD списка, В РЕЙД → сброс галочек через 20 мин."}
+  </script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;padding:20px 14px 48px}
+    .container{max-width:min(1600px, 92vw);margin:0 auto}
+    h1{margin-bottom:6px}
+    .sub{color:var(--muted);margin-bottom:16px;line-height:1.4}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+    .card-title{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;font-weight:600}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+    input[type=text],input[type=number],select{
+      background:var(--input-bg);border:1px solid var(--border);border-radius:8px;
+      padding:10px 12px;color:var(--text);outline:none;font-size:1rem;
+    }
+    input[type=text]{flex:1;min-width:140px}
+    input[type=number]{width:72px}
+    select{min-width:160px}
+    .btn{
+      background:var(--accent);color:#111;border:none;border-radius:8px;
+      padding:10px 16px;font-weight:700;cursor:pointer;font-size:1rem;
+    }
+    .btn:disabled{opacity:.45;cursor:default}
+    .btn-ghost{
+      background:transparent;border:1px solid var(--border);color:var(--muted);
+      border-radius:8px;padding:8px 12px;cursor:pointer;font-size:.9rem;
+    }
+    .btn-raid{
+      width:100%;padding:22px 16px;font-size:1.45rem;font-weight:800;
+      letter-spacing:.04em;border-radius:12px;margin-top:4px;
+      background:linear-gradient(180deg,#e0b84a,#c9a227);color:#111;
+      border:none;cursor:pointer;
+    }
+    .btn-raid.active{background:linear-gradient(180deg,#5a6a7a,#3d4a56);color:#ddd}
+    .maps{display:flex;flex-wrap:wrap;gap:6px}
+    .map-chip{
+      border:1px solid var(--border);background:var(--input-bg);color:var(--muted);
+      border-radius:16px;padding:7px 14px;font-size:.9rem;cursor:pointer;user-select:none;
+    }
+    .map-chip.active{border-color:var(--accent);color:var(--accent);background:rgba(201,162,39,.12)}
+    .item{
+      display:flex;align-items:center;gap:10px;padding:12px 10px;
+      border-bottom:1px solid var(--border);background:transparent;
+      transition:background .12s, opacity .12s;
+    }
+    .item:last-child{border-bottom:none}
+    .item.dragging{opacity:.45}
+    .item.drag-over{background:rgba(201,162,39,.1);border-radius:8px}
+    .handle{
+      cursor:grab;color:var(--muted);font-size:1.1rem;padding:4px 2px;
+      user-select:none;line-height:1;
+    }
+    .handle:active{cursor:grabbing}
+    .item input[type=checkbox]{
+      width:22px;height:22px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;
+    }
+    .item.done .label{opacity:.45;text-decoration:line-through}
+    .label{flex:1;font-size:1.05rem}
+    .qty{color:var(--muted);font-variant-numeric:tabular-nums;min-width:2.5em;text-align:right}
+    .del{
+      background:transparent;border:none;color:var(--muted);cursor:pointer;
+      font-size:1.1rem;padding:4px 8px;border-radius:6px;
+    }
+    .del:hover{color:var(--red);background:rgba(240,113,120,.1)}
+    .timer-wrap{text-align:center;padding:8px 0 4px}
+    .timer{
+      font-size:2.6rem;font-weight:800;font-variant-numeric:tabular-nums;
+      color:var(--accent);letter-spacing:.06em;
+    }
+    .timer.idle{color:var(--muted);font-size:1.1rem;font-weight:600}
+    .meta{font-size:.85rem;color:var(--muted);margin-top:6px}
+    .hint{font-size:.88rem;color:var(--muted);margin-top:10px;line-height:1.45}
+    .progress{height:6px;background:var(--input-bg);border-radius:4px;overflow:hidden;margin-top:10px}
+    .progress > div{height:100%;background:var(--accent);width:0%;transition:width .4s linear}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Чек-лист перед рейдом</h1>
+    <p class="sub">Сборка под карту · drag-and-drop · «В РЕЙД» сбросит галочки через 20 мин</p>
+
+    <div class="card">
+      <div class="card-title">Карта / сборка</div>
+      <div class="maps" id="maps"></div>
+      <div class="row" style="margin-top:10px">
+        <input type="text" id="newMap" placeholder="Новая карта / пресет…">
+        <button type="button" class="btn-ghost" id="addMapBtn">+ карта</button>
+        <button type="button" class="btn-ghost" id="delMapBtn">Удалить карту</button>
+        <button type="button" class="btn-ghost" id="copyMapBtn">Копировать в…</button>
+      </div>
+      <p class="meta" id="mapMeta">У каждой карты свой список. Паракорд — только на Reserve и т.п.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Добавить в текущую сборку</div>
+      <div class="row">
+        <input type="text" id="name" placeholder="паракорд / Ф-1 / мельдонин…" autocomplete="off">
+        <input type="number" id="qty" min="1" value="1" title="Количество">
+        <button type="button" class="btn" id="addBtn">+</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Список · тяни за ⋮⋮</div>
+      <div id="list"></div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" class="btn-ghost" id="uncheckAll">Снять галочки</button>
+        <button type="button" class="btn-ghost" id="checkAll">Отметить все</button>
+        <button type="button" class="btn-ghost" id="clearList">Очистить список</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="timer-wrap">
+        <div class="timer idle" id="timer">20:00 · готов</div>
+        <div class="progress"><div id="bar"></div></div>
+        <p class="meta" id="timerMeta">Таймер не запущен</p>
+      </div>
+      <button type="button" class="btn-raid" id="raidBtn">В РЕЙД</button>
+      <p class="hint">Галочки общие на таймер (сброс через 20 мин). Списки предметов — раздельно по картам.</p>
+    </div>
+  </div>
+
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-raid-checklist.js"></script>
+</body>
+</html>

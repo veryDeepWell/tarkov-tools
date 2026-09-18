@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Сравнение предметов — Tarkov</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"id": "tarkovtool-compare.html", "title": "Сравнение", "description": "Сравнение нескольких предметов одной категории, моды под ствол.", "file": "tarkovtool-compare.html"}
+  </script>
+
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;padding:20px 14px 48px}
+    .container{max-width:min(1600px,92vw);margin:0 auto}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+    .card-title{font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;font-weight:600}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+    .field label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
+    select,input{background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);outline:none;font-size:1rem}
+    .btn{background:var(--accent);color:#111;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer}
+    .btn:disabled{opacity:.45}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer}
+    .status{font-size:.95rem;color:var(--muted);margin-top:8px}
+    .status.ok{color:var(--green)}.status.err{color:var(--red)}
+    .chips{display:flex;flex-wrap:wrap;gap:6px}
+    .chip{background:var(--input-bg);border:1px solid var(--border);border-radius:16px;padding:6px 14px;font-size:.9rem;color:var(--muted);cursor:pointer;user-select:none}
+    .chip.active{border-color:var(--accent);color:var(--accent);background:rgba(201,162,39,.12)}
+    .chip.sub{font-size:.85rem;padding:4px 10px}
+    .layout{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:12px;align-items:start}
+    @media(max-width:900px){.layout{grid-template-columns:1fr}}
+    .pick-list{max-height:70vh;overflow:auto;border:1px solid var(--border);border-radius:10px}
+    .pick-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer;font-size:.95rem}
+    .pick-item:hover{background:rgba(255,255,255,.03)}
+    .pick-item.selected{background:rgba(201,162,39,.1);border-left:3px solid var(--accent)}
+    .pick-item input{accent-color:var(--accent);width:16px;height:16px;flex-shrink:0}
+    .ico{width:52px;height:52px;object-fit:contain;border-radius:6px;background:#0a0c10;flex-shrink:0}
+    .ico-sm{width:40px;height:40px}
+    .ico-lg{width:72px;height:72px}
+    .meta{font-size:.85rem;color:var(--muted)}
+    .name{font-weight:600}
+    .compare-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px;max-height:75vh}
+    table.compare{border-collapse:collapse;font-size:.95rem;font-variant-numeric:tabular-nums;min-width:100%}
+    table.compare th,table.compare td{border:1px solid var(--border);padding:10px 12px;text-align:center;vertical-align:middle}
+    table.compare th.row-label,table.compare td.row-label{text-align:left;position:sticky;left:0;background:var(--input-bg);z-index:2;font-weight:600;color:var(--muted);font-size:.8rem;text-transform:uppercase;min-width:130px;white-space:nowrap}
+    table.compare thead th{position:sticky;top:0;background:var(--card);z-index:3}
+    table.compare thead th.row-label{z-index:4}
+    table.compare .best{color:var(--green);font-weight:700}
+    table.compare .worst{color:var(--red)}
+    .head-cell{min-width:150px;max-width:220px}
+    .head-cell .nm{font-weight:600;font-size:.9rem;white-space:normal;word-break:break-word;margin-top:4px}
+    .copy-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 10px;font-size:.8rem;cursor:pointer;margin-top:4px}
+    .copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+    .remove-btn{background:transparent;border:none;color:var(--red);cursor:pointer;font-size:.9rem}
+    .selected-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;min-height:28px}
+    .sel-chip{display:flex;align-items:center;gap:6px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:.85rem}
+    .sel-chip img{width:28px;height:28px;object-fit:contain}
+    .sel-chip button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem}
+    .hint{font-size:.9rem;color:var(--muted);margin-top:10px}
+    .empty{text-align:center;padding:28px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Сравнение предметов</h1>
+    <p class="sub">Несколько предметов одной категории · подкатегории · фильтр «под ствол» (моды) · иконки</p>
+
+    <div class="card">
+      <div class="card-title">Данные</div>
+      <div class="row">
+        <div class="field"><label>Режим</label>
+          <select id="gameMode"><option value="regular">regular</option><option value="pvp-season">pvp-season</option><option value="pve" selected>pve</option></select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+        <button type="button" class="btn-ghost" id="clearSel">Очистить выбор</button>
+      </div>
+      <p class="status" id="status">Загрузи items</p>
+    </div>
+
+    <div class="card" id="catCard" style="display:none">
+      <div class="card-title">Категория</div>
+      <div class="chips" id="cats"></div>
+      <div id="subWrap" style="display:none;margin-top:12px">
+        <div class="card-title">Подкатегория</div>
+        <div class="chips" id="subs"></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div class="field" style="flex:1;min-width:160px">
+          <label>Поиск</label>
+          <input type="text" id="search" placeholder="название…" style="width:100%">
+        </div>
+        <div class="field" id="weaponFilterField" style="display:none;flex:1;min-width:200px">
+          <label>Совместимо с оружием</label>
+          <input type="text" id="weaponFilter" placeholder="ak-74, m4a1, mcx…" style="width:100%">
+        </div>
+      </div>
+    </div>
+
+    <div class="layout" id="main" style="display:none">
+      <div class="card">
+        <div class="card-title">Выбор <span id="pickCount" class="meta"></span></div>
+        <div class="pick-list" id="pickList"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Сравнение</div>
+        <div class="selected-bar" id="selectedBar"></div>
+        <div class="compare-wrap" id="compareWrap"><div class="empty">Отметь предметы слева</div></div>
+        <p class="hint">Для модов: укажи ствол (ak-74) — покажет рукояти/приклады, которые лезут на него напрямую или через переходник (1 уровень вложенности).</p>
+      </div>
+    </div>
+  </div>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-compare.js"></script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Таймер рестока торговцев — Tarkov</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Таймер рестока", "description": "Обновление торговцев, пилик, история.", "file": "tarkovtool-restock.html"}
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>Таймер рестока торговцев</h1>
+    <p class="sub">Один запрос API → локальный отсчёт → пик в момент рестока</p>
+    <div class="card">
+      <div class="card-title">Настройки</div>
+      <div class="row">
+        <div class="field"><label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular (PVP)</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ ВРЕМЕНА</button>
+        <button type="button" class="btn-ghost" id="refreshBtn" disabled>Обновить сейчас</button>
+        <button type="button" class="btn-ghost" id="notifBtn">Уведомления</button>
+        <button type="button" class="btn-ghost" id="testSoundBtn">Тест звука</button>
+      </div>
+      <p class="status" id="status">Грузим resetTime один раз, дальше локальный отсчёт.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Торговцы</div>
+      <div id="list"><p class="status">Пока пусто</p></div>
+    </div>
+    <div class="card">
+      <div class="card-title">История рестоков</div>
+      <div id="historyList"><p class="status">Пока пусто</p></div>
+      <button type="button" class="btn-ghost" id="clearHistoryBtn" style="margin-top:10px">Очистить историю</button>
+    </div>
+  </div>
+  <script src="../core/tarkov-state.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-restock.js"></script>
+  <script src="tarkov-restock-boot.js"></script>
+</body>
+</html>

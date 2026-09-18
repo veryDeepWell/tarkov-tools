@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Патроны — пробитие — Tarkov</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #1a1d24;
+      --border: #2a2f3a;
+      --text: #e8eaed;
+      --muted: #9aa0a6;
+      --accent: #c9a227;
+      --green: #3dd68c;
+      --red: #f07178;
+      --yellow: #e6c35c;
+      --input-bg: #12151b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px 14px 40px;
+      line-height: 1.4;
+    }
+    .container { max-width: min(1600px, 92vw); margin: 0 auto; }
+    h1 { font-size: 1.35rem; font-weight: 600; margin-bottom: 4px; }
+    .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 18px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    select, input {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .btn {
+      background: var(--accent);
+      color: #111;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .status { font-size: 0.82rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green); }
+    .status.err { color: var(--red); }
+
+    .calibers {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .cal-btn {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-variant-numeric: tabular-nums;
+    }
+    .cal-btn:hover { border-color: var(--accent); }
+    .cal-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(201,162,39,0.12);
+    }
+    .cal-btn .count {
+      font-weight: 500;
+      color: var(--muted);
+      font-size: 0.75rem;
+      margin-left: 4px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      max-height: 70vh;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      font-variant-numeric: tabular-nums;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      background: var(--input-bg);
+      text-align: left;
+      padding: 9px 10px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      z-index: 1;
+    }
+    th:hover { color: var(--text); }
+    td {
+      padding: 8px 10px;
+      border-top: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .name { font-weight: 600; }
+    .meta { font-size: 0.72rem; color: var(--muted); }
+    .cls {
+      display: inline-flex;
+      gap: 3px;
+    }
+    .cls span {
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .cls span.g {
+      background: rgba(61,214,140,0.2);
+      border-color: var(--green);
+      color: var(--green);
+    }
+    .cls span.y {
+      background: rgba(230,195,92,0.2);
+      border-color: var(--yellow);
+      color: var(--yellow);
+    }
+    .cls span.r {
+      background: rgba(240,113,120,0.12);
+      border-color: #5a3035;
+      color: #8a555a;
+    }
+    .hint { font-size: 0.78rem; color: var(--muted); margin-top: 10px; }
+    .empty { text-align: center; padding: 28px; color: var(--muted); }
+    .ok { color: var(--green); font-weight: 600; }
+    .bad { color: var(--red); font-weight: 600; }
+  
+    .copy-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 3px 7px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .ico {
+      width: 40px; height: 40px;
+      object-fit: contain;
+      background: #0a0c10;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+    .ico-sm { width: 32px; height: 32px; }
+    .name-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .name-cell .txt { min-width: 0; }
+
+    .icon {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+      border-radius: 4px;
+      background: #0a0c10;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+    .icon-sm { width: 28px; height: 28px; }
+    .name-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .name-cell > div { min-width: 0; }
+
+    .ammo-tip-wrap { position: relative; display: inline-flex; align-items: center; gap: 10px; width: 100%; }
+    .ammo-tip {
+      display: none;
+      position: fixed;
+      z-index: 200;
+      min-width: 260px;
+      max-width: 340px;
+      padding: 12px 14px;
+      background: #12151b;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.55);
+      font-size: 0.8rem;
+      line-height: 1.35;
+      pointer-events: none;
+      color: var(--text);
+    }
+    .ammo-tip .tip-title {
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+      font-size: 0.88rem;
+    }
+    .ammo-tip .tip-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 3px 14px;
+    }
+    .ammo-tip .k { color: var(--muted); }
+    .ammo-tip .v { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+    .name-cell { cursor: help; }
+
+</style>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"id": "tarkovtool-ammo.html", "title": "Патроны", "description": "Пробитие по калибрам; скрытые статы патрона по наведению.", "file": "tarkovtool-ammo.html"}
+  </script>
+
+</head>
+<body>
+  <div class="container">
+    <h1>Патроны — класс пробития</h1>
+    <p class="sub">калибр → таблица · pen / урон / бр% · наведение на патрон = скрытые статы</p>
+
+    <div class="card">
+      <div class="card-title">Данные</div>
+      <div class="row">
+        <div class="field">
+          <label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+      </div>
+      <p class="status" id="status">Загрузи данные, потом выбери калибр</p>
+    </div>
+
+    <div class="card" id="calCard" style="display:none;">
+      <div class="card-title">Калибры</div>
+      <div class="calibers" id="calibers"></div>
+    </div>
+
+    <div class="card" id="tableCard" style="display:none;">
+      <div class="card-title" id="tableTitle">Таблица</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th data-k="name">Патрон</th>
+              <th data-k="pen">Pen</th>
+              <th data-k="dmg">Урон</th>
+              <th data-k="ad">Бр%</th>
+              <th data-k="traderPrice">Торговец</th>
+              <th data-k="price">avg 24ч</th>
+              <th data-k="quest">Квест</th>
+              <th data-k="craft">Крафт</th>
+              <th>Классы 1–6</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <p class="hint">
+        Классы — упрощённая шкала по pen (не шанс в игре):
+        <span style="color:var(--green)">зелёный</span> уверенно,
+        <span style="color:var(--yellow)">жёлтый</span> впритык,
+        <span style="color:#8a555a">тёмный</span> слабо.
+        Пороги: 10 / 20 / 30 / 40 / 50 / 60 pen ≈ классы 1–6. «Квест» — покупка у торговца за заданием. «Крафт» — есть рецепт в убежище (если «квест» — рецепт тоже за заданием).
+      </p>
+    </div>
+  </div>
+
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-ammo.js"></script>
+</body>
+</html>

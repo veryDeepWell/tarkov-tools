@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Трекер убежища — Tarkov</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #1a1d24;
+      --border: #2a2f3a;
+      --text: #e8eaed;
+      --muted: #9aa0a6;
+      --accent: #c9a227;
+      --green: #3dd68c;
+      --red: #f07178;
+      --input-bg: #12151b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px 14px 48px;
+      line-height: 1.4;
+    }
+    .container { max-width: min(1600px, 92vw); margin: 0 auto; }
+    h1 { font-size: 1.35rem; font-weight: 600; margin-bottom: 4px; }
+    .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 18px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    select, input[type="text"], input[type="number"] {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .btn {
+      background: var(--accent);
+      color: #111;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+    .status { font-size: 0.82rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green); }
+    .status.err { color: var(--red); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .station {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .station:hover { border-color: var(--muted); }
+    .station.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(201,162,39,0.25);
+    }
+    .station.want {
+      border-color: rgba(61,214,140,0.4);
+    }
+    .station-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .station-name { font-weight: 600; font-size: 0.92rem; }
+    .station-meta { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+    .station-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .station-controls select {
+      padding: 4px 8px;
+      font-size: 0.82rem;
+    }
+    .station-controls label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .req-block {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .req-block h3 {
+      font-size: 0.95rem;
+      margin-bottom: 8px;
+    }
+    .req-line {
+      display: grid;
+      grid-template-columns: 28px 1fr auto auto auto;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 0;
+      border-top: 1px solid var(--border);
+      font-size: 0.84rem;
+    }
+    .req-line:first-of-type { border-top: none; }
+    .req-line.done { opacity: 0.45; }
+    .req-line input[type="checkbox"] {
+      width: 16px; height: 16px;
+      accent-color: var(--accent);
+    }
+    .badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-left: 4px;
+    }
+    .badge.fir { background: rgba(240,113,120,0.15); color: var(--red); }
+    .badge.ok { background: rgba(61,214,140,0.15); color: var(--green); }
+    .badge.bad { background: rgba(240,113,120,0.15); color: var(--red); }
+    .badge.warn { background: rgba(201,162,39,0.15); color: var(--accent); }
+    .meta { font-size: 0.72rem; color: var(--muted); }
+    .ok { color: var(--green); font-weight: 600; }
+    .bad { color: var(--red); font-weight: 600; }
+    .hint { font-size: 0.78rem; color: var(--muted); margin-top: 10px; }
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      max-height: 50vh;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      font-variant-numeric: tabular-nums;
+    }
+    th {
+      position: sticky; top: 0;
+      background: var(--input-bg);
+      text-align: left;
+      padding: 8px 9px;
+      color: var(--muted);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      z-index: 1;
+    }
+    td {
+      padding: 7px 9px;
+      border-top: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .copy-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 3px 7px;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .sum-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+    .sum-bar strong { color: var(--accent); }
+  
+    .ico {
+      width: 40px; height: 40px;
+      object-fit: contain;
+      background: #0a0c10;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+    .ico-sm { width: 32px; height: 32px; }
+    .name-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .name-cell .txt { min-width: 0; }
+</style>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"id": "tarkovtool-hideout.html", "title": "Трекер убежища", "description": "Уровни станций, шоплист апгрейдов, цены.", "file": "tarkovtool-hideout.html"}
+  </script>
+
+</head>
+<body>
+  <div class="container">
+    <h1>Трекер убежища</h1>
+    <p class="sub">Уровни · галочки · следующий уровень · шоплист · цены · блокировки пререквизитов</p>
+
+    <div class="card">
+      <div class="card-title">Данные</div>
+      <div class="row">
+        <div class="field">
+          <label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+        <button type="button" class="btn-ghost" id="resetProgress">Сбросить прогресс</button>
+      </div>
+      <p class="status" id="status">Грузит hideout + items</p>
+    </div>
+
+    <div class="layout" id="main" style="display:none;">
+      <div class="card">
+        <div class="card-title">Станции</div>
+        <div class="field" style="margin-bottom:10px;">
+          <input type="text" id="stationSearch" placeholder="поиск станции…" style="width:100%;">
+        </div>
+        <div id="stationList"></div>
+      </div>
+
+      <div>
+        <div class="card" id="detailCard">
+          <div class="card-title">Следующий уровень</div>
+          <div id="detail">Выбери станцию слева</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Шоплист (станции с галкой «хочу»)</div>
+          <div class="row" style="margin-bottom:10px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--muted);cursor:pointer;">
+              <input type="checkbox" id="shopOnlyMissing" checked>
+              Только не собранное
+            </label>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Предмет</th>
+                  <th>Нужно</th>
+                  <th>FIR</th>
+                  <th>Flea</th>
+                  <th>Торговец</th>
+                  <th>Сумма flea</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="shopBody"></tbody>
+            </table>
+          </div>
+          <div class="sum-bar" id="shopSum"></div>
+          <p class="hint">Галочка «хочу» на станции добавляет её <b>следующий</b> уровень в шоплист. Предметы суммируются.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-hideout.js"></script>
+</body>
+</html>

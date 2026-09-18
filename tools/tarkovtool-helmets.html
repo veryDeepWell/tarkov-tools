@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+
+  <title>Шлемы — Tarkov</title>
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Шлемы", "description": "Класс, зоны, штрафы; наведение — ricochet / blunt / слоты."}
+  </script>
+  <style>
+    .container { max-width: min(1600px, 92vw) !important; margin: 0 auto; padding: 12px 14px 64px; }
+    h1 { margin-bottom: 4px; }
+    .sub { color: var(--muted); margin-bottom: 14px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+    .card-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { flex: 1; min-width: 140px; }
+    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    .status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green); }
+    .status.err { color: var(--red); }
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 10px; max-height: 70vh; }
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: .88rem; }
+    th, td { padding: 9px 10px; border-top: 1px solid var(--border); text-align: left; vertical-align: middle; }
+    th { position: sticky; top: 0; background: var(--input-bg); color: var(--muted); font-size: .72rem; text-transform: uppercase; cursor: pointer; z-index: 1; }
+    .name-cell { display: flex; align-items: center; gap: 10px; }
+    .ico { width: 36px; height: 36px; object-fit: contain; border-radius: 6px; background: var(--input-bg); }
+    .meta { font-size: .75rem; color: var(--muted); }
+    .name { font-weight: 600; }
+    .copy-btn { min-width: auto !important; min-height: 32px !important; }
+    .tip {
+      display: none; position: fixed; z-index: 200; min-width: 240px; max-width: 320px;
+      padding: 12px 14px; background: var(--input-bg); border: 1px solid var(--accent);
+      border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.5); font-size: .8rem; pointer-events: none;
+    }
+    .tip .tip-title { font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+    .tip .tip-grid { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; }
+    .tip .k { color: var(--muted); } .tip .v { font-weight: 600; text-align: right; }
+    .name-cell { cursor: help; }
+    
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Шлемы</h1>
+    <p class="sub">Класс, зоны, штрафы; наведение — ricochet / blunt / слоты.</p>
+    
+    <div class="card">
+      <div class="card-title">Данные</div>
+      <div class="row">
+        <div class="field"><label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">Загрузить</button>
+      </div>
+      <p class="status" id="status">Шлемы и забрала из API. Наведение — ricochet / blunt / penalties.</p>
+    </div>
+    <div class="card" id="tableCard" style="display:none">
+      <div class="row" style="margin-bottom:8px">
+        <input type="search" id="q" placeholder="Поиск…" style="flex:1;min-width:180px">
+        <div class="field" style="flex:0;min-width:120px"><label>Мин. класс</label>
+          <select id="minClass"><option value="0">все</option>
+            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="tbl">
+          <thead><tr>
+            <th data-k="name">Название</th>
+            <th data-k="cls">Класс</th>
+            <th data-k="dur">Прочн.</th>
+            <th data-k="mat">Материал</th>
+            <th data-k="zones">Зоны</th>
+            <th data-k="ergo">Эрга</th>
+            <th data-k="turn">Поворот</th>
+            <th data-k="speed">Скорость</th>
+            <th data-k="blind">Антиблинд</th>
+            <th data-k="avg">avg 24ч</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+  <script src="../core/tarkov-common.js"></script>
+    <script src="tarkovtool-helmets.js"></script>
+</body>
+</html>
