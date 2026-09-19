@@ -45,15 +45,16 @@
   }
 
   function esc(s) {
+    var amp = String.fromCharCode(38);
     return String(s || "")
-      .replace(/&/g, "\u0026" + "amp;")
-      .replace(/</g, "\u0026" + "lt;")
-      .replace(/>/g, "\u0026" + "gt;")
-      .replace(/"/g, "\u0026" + "quot;");
+      .replace(/&/g, amp + "amp;")
+      .replace(/</g, amp + "lt;")
+      .replace(/>/g, amp + "gt;")
+      .replace(/"/g, amp + "quot;");
   }
 
   function fmtRub(n) {
-    return Math.round(Number(n) || 0).toLocaleString("ru-RU") + " \u20BD";
+    return Math.round(Number(n) || 0).toLocaleString("ru-RU") + " RUB";
   }
 
   function fmtClock(ts) {
@@ -68,7 +69,7 @@
 
   function fmtRemain(ms) {
     if (ms == null || isNaN(ms)) return "-";
-    if (ms <= 0) return "now...";
+    if (ms <= 0) return "now";
     var s = Math.floor(ms / 1000);
     var h = Math.floor(s / 3600);
     var m = Math.floor((s % 3600) / 60);
@@ -114,7 +115,7 @@
   async function fetchItems(mode) {
     mode = mode || "pve";
     var res = await fetch("https://json.tarkov.dev/" + mode + "/items", { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status + " json.tarkov.dev");
+    if (!res.ok) throw new Error("HTTP " + res.status);
     var json = await res.json();
     var arr = normalizeItems(json);
     if (!arr.length && window.TarkovAPI && TarkovAPI.items) {
@@ -136,7 +137,7 @@
       };
       req.onblocked = function () {
         var st = $("status");
-        if (st) { st.className = "status err"; st.textContent = "IndexedDB blocked - close other tracker tabs"; }
+        if (st) { st.className = "status err"; st.textContent = "IndexedDB blocked"; }
       };
       req.onsuccess = function () {
         db = req.result;
@@ -156,7 +157,7 @@
         db.onversionchange = function () { try { db.close(); } catch (e) {} db = null; };
         resolve(db);
       };
-      req.onerror = function () { reject(req.error || new Error("IndexedDB open failed")); };
+      req.onerror = function () { reject(req.error || new Error("IDB open failed")); };
     });
   }
 
@@ -193,17 +194,17 @@
     var meta = readMeta();
     var el = $("trackMeta");
     var cd = $("countdown");
-    var last = meta.lastSnap ? fmtClock(meta.lastSnap) : "none yet";
+    var last = meta.lastSnap ? fmtClock(meta.lastSnap) : "-";
     var mins = Number(run.mins) || Number(($("interval") || {}).value) || 30;
     if (el) {
       el.textContent = run.on
-        ? ("BG ON every " + mins + " min mode " + (run.mode || "-") + " last: " + last)
-        : ("BG off last: " + last);
+        ? ("BG ON every " + mins + " min last " + last)
+        : ("BG off last " + last);
     }
     var remainMs = run.on && run.nextSnapAt ? Number(run.nextSnapAt) - Date.now() : null;
     if (cd) {
-      if (run.on) { cd.textContent = "Next snap: " + fmtRemain(remainMs); cd.className = "countdown on"; }
-      else { cd.textContent = "Countdown: bg off"; cd.className = "countdown"; }
+      if (run.on) { cd.textContent = "Next: " + fmtRemain(remainMs); cd.className = "countdown on"; }
+      else { cd.textContent = "Countdown off"; cd.className = "countdown"; }
     }
     try {
       var label = run.on
@@ -244,9 +245,9 @@
     await openDb();
     var mode = (($("gameMode") || {}).value) || "pve";
     var status = $("status");
-    if (status) { status.className = "status"; status.textContent = "Fetching prices..."; }
+    if (status) { status.className = "status"; status.textContent = "Fetching..."; }
     var arr = await fetchItems(mode);
-    if (!arr.length) throw new Error("API returned 0 items (mode=" + mode + ")");
+    if (!arr.length) throw new Error("API 0 items mode=" + mode);
     var n = 0;
     var now = Date.now();
     await new Promise(function (resolve, reject) {
@@ -266,17 +267,17 @@
       tx.oncomplete = resolve;
       tx.onerror = function () { reject(tx.error || new Error("IDB write failed")); };
     });
-    if (n === 0) throw new Error("None of " + arr.length + " items had prices");
+    if (n === 0) throw new Error("No priced items in " + arr.length);
     writeMeta({ lastSnap: now, count: n, mode: mode });
     var run = readRun();
     var mins = Number(run.mins) || Number(($("interval") || {}).value) || 30;
     if (run.on) scheduleNext(mins); else paintStatusUI();
-    if (status) { status.className = "status ok"; status.textContent = "Snap: " + n + " / " + arr.length + " " + fmtClock(now); }
+    if (status) { status.className = "status ok"; status.textContent = "Snap " + n + "/" + arr.length + " " + fmtClock(now); }
     await renderList();
     if (selectedId) drawChart(selectedId);
     try {
       if (typeof Notify === "function") {
-        Notify({ title: "Price track", body: "Snap: " + n + " " + fmtClock(now), tool: "tarkovtool-price-track.html", kind: "price" });
+        Notify({ title: "Price track", body: "Snap " + n + " " + fmtClock(now), tool: "tarkovtool-price-track.html", kind: "price" });
       }
     } catch (e) {}
   }
@@ -296,14 +297,14 @@
     var box = $("itemList");
     if (!box) return;
     if (!list.length) {
-      box.innerHTML = '<p class="meta">Empty. Click Snap now.</p>';
+      box.innerHTML = "<p class=\"meta\">Empty. Click Snap.</p>";
       return;
     }
     box.innerHTML = list.map(function (r) {
-      return '<div class="item-row" data-id="' + esc(r.itemId) + '">'
-        + (r.icon ? '<img src="' + esc(r.icon) + '" alt="">' : "")
-        + '<div class="nm">' + esc(r.name || r.slug || r.itemId) + "</div>"
-        + '<div class="pr">' + fmtRub(r.avg || r.low) + "</div></div>";
+      return "<div class=\"item-row\" data-id=\"" + esc(r.itemId) + "\">"
+        + (r.icon ? "<img src=\"" + esc(r.icon) + "\" alt=\"\">" : "")
+        + "<div class=\"nm\">" + esc(r.name || r.slug || r.itemId) + "</div>"
+        + "<div class=\"pr\">" + fmtRub(r.avg || r.low) + "</div></div>";
     }).join("");
     box.querySelectorAll(".item-row").forEach(function (el) {
       el.onclick = function () {
@@ -331,9 +332,7 @@
       }
       var last = hist[hist.length - 1];
       if (title) title.textContent = last.name || itemId;
-      if (meta) {
-        meta.textContent = hist.length + " pts avg " + fmtRub(last.avg) + " low " + fmtRub(last.low) + " high " + fmtRub(last.high);
-      }
+      if (meta) meta.textContent = hist.length + " pts avg " + fmtRub(last.avg) + " low " + fmtRub(last.low) + " high " + fmtRub(last.high);
       var dpr = window.devicePixelRatio || 1;
       var wrap = canvas.parentElement;
       var cssW = Math.max(280, canvas.clientWidth || 0, wrap ? wrap.clientWidth : 0, 400);
@@ -352,9 +351,7 @@
         i1 = Math.max(i0, Math.min(viewRange.i1, hist.length - 1));
       }
       var slice = hist.slice(i0, i1 + 1);
-      if (slice.length === 1) {
-        slice = [slice[0], Object.assign({}, slice[0], { ts: (slice[0].ts || 0) + 60000 })];
-      }
+      if (slice.length === 1) slice = [slice[0], Object.assign({}, slice[0], { ts: (slice[0].ts || 0) + 60000 })];
       var vals = [];
       slice.forEach(function (h) {
         if (chartSeries.avg && h.avg > 0) vals.push(Number(h.avg));
@@ -364,7 +361,7 @@
       if (!vals.length) {
         ctx.fillStyle = "#f0c14b";
         ctx.font = "14px sans-serif";
-        ctx.fillText("No nonzero prices", 16, H / 2);
+        ctx.fillText("No prices", 16, H / 2);
         return;
       }
       var min = Math.min.apply(null, vals);
@@ -377,8 +374,7 @@
       function tLabel(ts) {
         try {
           var d = new Date(ts);
-          return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" })
-            + " " + d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+          return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
         } catch (e) { return ""; }
       }
       ctx.strokeStyle = "#2a3140";
@@ -507,8 +503,7 @@
     var canvas = $("chart");
     if (!canvas) return;
     canvas.addEventListener("mousemove", function (e) {
-      var rect = canvas.getBoundingClientRect();
-      hoverX = e.clientX - rect.left;
+      hoverX = e.clientX - canvas.getBoundingClientRect().left;
       if (selectedId) drawChart(selectedId);
     });
     canvas.addEventListener("mouseleave", function () {
@@ -540,28 +535,22 @@
       });
     });
     var reset = $("chartResetZoom");
-    if (reset) {
-      reset.onclick = function () { viewRange = null; if (selectedId) drawChart(selectedId); };
-    }
+    if (reset) reset.onclick = function () { viewRange = null; if (selectedId) drawChart(selectedId); };
     window.addEventListener("resize", function () { if (selectedId) drawChart(selectedId); });
   }
 
   function boot() {
-    var startBtn = $("startBtn");
-    var stopBtn = $("stopBtn");
-    var snapBtn = $("snapBtn");
-    var q = $("q");
-    if (startBtn) startBtn.onclick = startBg;
-    if (stopBtn) stopBtn.onclick = stopBg;
-    if (snapBtn) {
-      snapBtn.onclick = function () {
+    if ($("startBtn")) $("startBtn").onclick = startBg;
+    if ($("stopBtn")) $("stopBtn").onclick = stopBg;
+    if ($("snapBtn")) {
+      $("snapBtn").onclick = function () {
         takeSnapshot().catch(function (e) {
           var status = $("status");
           if (status) { status.className = "status err"; status.textContent = e && e.message ? e.message : String(e); }
         });
       };
     }
-    if (q) q.oninput = function () { renderList().catch(function () {}); };
+    if ($("q")) $("q").oninput = function () { renderList().catch(function () {}); };
     openDb()
       .then(function () { return renderList(); })
       .then(function () {
@@ -571,7 +560,7 @@
         return allLatest().then(function (list) {
           if (!list.length) {
             var st = $("status");
-            if (st) { st.className = "status"; st.textContent = "DB empty - auto first snapshot..."; }
+            if (st) { st.className = "status"; st.textContent = "DB empty - auto snap..."; }
             return takeSnapshot().catch(function (e) {
               if (st) { st.className = "status err"; st.textContent = e && e.message ? e.message : String(e); }
             });
@@ -584,9 +573,6 @@
       });
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot);
-  } else {
-    boot();
-  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
 })();
