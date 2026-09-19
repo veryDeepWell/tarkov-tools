@@ -46,35 +46,35 @@
 
   function esc(s) {
     return String(s || "")
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """);
+      .replace(/&/g, "\u0026" + "amp;")
+      .replace(/</g, "\u0026" + "lt;")
+      .replace(/>/g, "\u0026" + "gt;")
+      .replace(/"/g, "\u0026" + "quot;");
   }
 
   function fmtRub(n) {
-    return Math.round(Number(n) || 0).toLocaleString("ru-RU") + " ₽";
+    return Math.round(Number(n) || 0).toLocaleString("ru-RU") + " \u20BD";
   }
 
   function fmtClock(ts) {
-    if (!ts) return "—";
+    if (!ts) return "-";
     try {
       return new Date(ts).toLocaleString("ru-RU", {
         day: "2-digit", month: "2-digit",
         hour: "2-digit", minute: "2-digit", second: "2-digit"
       });
-    } catch (e) { return "—"; }
+    } catch (e) { return "-"; }
   }
 
   function fmtRemain(ms) {
-    if (ms == null || isNaN(ms)) return "—";
-    if (ms <= 0) return "сейчас…";
+    if (ms == null || isNaN(ms)) return "-";
+    if (ms <= 0) return "now...";
     var s = Math.floor(ms / 1000);
     var h = Math.floor(s / 3600);
     var m = Math.floor((s % 3600) / 60);
     var sec = s % 60;
-    if (h > 0) return h + "ч " + String(m).padStart(2, "0") + "м " + String(sec).padStart(2, "0") + "с";
-    return m + "м " + String(sec).padStart(2, "0") + "с";
+    if (h > 0) return h + "h " + String(m).padStart(2, "0") + "m " + String(sec).padStart(2, "0") + "s";
+    return m + "m " + String(sec).padStart(2, "0") + "s";
   }
 
   function readRun() {
@@ -92,7 +92,6 @@
     return next;
   }
 
-  /** json.tarkov.dev: data.items is a dict { [id]: item }, not an array */
   function normalizeItems(raw) {
     if (!raw) return [];
     if (Array.isArray(raw)) return raw;
@@ -119,9 +118,7 @@
     var json = await res.json();
     var arr = normalizeItems(json);
     if (!arr.length && window.TarkovAPI && TarkovAPI.items) {
-      try {
-        arr = normalizeItems(await TarkovAPI.items(mode));
-      } catch (e) {}
+      try { arr = normalizeItems(await TarkovAPI.items(mode)); } catch (e) {}
     }
     return arr;
   }
@@ -130,12 +127,7 @@
     if (db) return Promise.resolve(db);
     return new Promise(function (resolve, reject) {
       var req;
-      try {
-        req = indexedDB.open(DB_NAME, DB_VER);
-      } catch (e) {
-        reject(e);
-        return;
-      }
+      try { req = indexedDB.open(DB_NAME, DB_VER); } catch (e) { reject(e); return; }
       req.onupgradeneeded = function () {
         var d = req.result;
         if (!d.objectStoreNames.contains(STORE)) {
@@ -144,16 +136,12 @@
       };
       req.onblocked = function () {
         var st = $("status");
-        if (st) {
-          st.className = "status err";
-          st.textContent = "IndexedDB занята — закрой другие вкладки трекера";
-        }
+        if (st) { st.className = "status err"; st.textContent = "IndexedDB blocked - close other tracker tabs"; }
       };
       req.onsuccess = function () {
         db = req.result;
         if (!db.objectStoreNames.contains(STORE)) {
-          db.close();
-          db = null;
+          db.close(); db = null;
           var req2 = indexedDB.open(DB_NAME, DB_VER + 1);
           req2.onupgradeneeded = function () {
             var d = req2.result;
@@ -161,35 +149,21 @@
               d.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
             }
           };
-          req2.onsuccess = function () {
-            db = req2.result;
-            resolve(db);
-          };
+          req2.onsuccess = function () { db = req2.result; resolve(db); };
           req2.onerror = function () { reject(req2.error); };
           return;
         }
-        db.onversionchange = function () {
-          try { db.close(); } catch (e) {}
-          db = null;
-        };
+        db.onversionchange = function () { try { db.close(); } catch (e) {} db = null; };
         resolve(db);
       };
-      req.onerror = function () {
-        reject(req.error || new Error("IndexedDB open failed"));
-      };
+      req.onerror = function () { reject(req.error || new Error("IndexedDB open failed")); };
     });
   }
 
   function getAllRows() {
     return new Promise(function (resolve, reject) {
-      if (!db) {
-        reject(new Error("DB not open"));
-        return;
-      }
-      if (!db.objectStoreNames.contains(STORE)) {
-        resolve([]);
-        return;
-      }
+      if (!db) { reject(new Error("DB not open")); return; }
+      if (!db.objectStoreNames.contains(STORE)) { resolve([]); return; }
       var tx = db.transaction(STORE, "readonly");
       var req = tx.objectStore(STORE).getAll();
       req.onsuccess = function () { resolve(req.result || []); };
@@ -199,9 +173,7 @@
 
   function historyFor(itemId) {
     return getAllRows().then(function (rows) {
-      return rows
-        .filter(function (r) { return r.itemId === itemId; })
-        .sort(function (a, b) { return a.ts - b.ts; });
+      return rows.filter(function (r) { return r.itemId === itemId; }).sort(function (a, b) { return a.ts - b.ts; });
     });
   }
 
@@ -221,33 +193,24 @@
     var meta = readMeta();
     var el = $("trackMeta");
     var cd = $("countdown");
-    var last = meta.lastSnap ? fmtClock(meta.lastSnap) : "ещё не было";
+    var last = meta.lastSnap ? fmtClock(meta.lastSnap) : "none yet";
     var mins = Number(run.mins) || Number(($("interval") || {}).value) || 30;
     if (el) {
       el.textContent = run.on
-        ? ("Фон ВКЛ · каждые " + mins + " мин · mode " + (run.mode || "—") + " · последний снимок: " + last)
-        : ("Фон выкл · последний снимок: " + last);
+        ? ("BG ON every " + mins + " min mode " + (run.mode || "-") + " last: " + last)
+        : ("BG off last: " + last);
     }
     var remainMs = run.on && run.nextSnapAt ? Number(run.nextSnapAt) - Date.now() : null;
     if (cd) {
-      if (run.on) {
-        cd.textContent = "До следующего снимка: " + fmtRemain(remainMs);
-        cd.className = "countdown on";
-      } else {
-        cd.textContent = "Обратный отсчёт: фон выключен";
-        cd.className = "countdown";
-      }
+      if (run.on) { cd.textContent = "Next snap: " + fmtRemain(remainMs); cd.className = "countdown on"; }
+      else { cd.textContent = "Countdown: bg off"; cd.className = "countdown"; }
     }
     try {
       var label = run.on
-        ? ("через " + fmtRemain(remainMs) + (meta.lastSnap ? " · был " + fmtClock(meta.lastSnap) : ""))
-        : ("ожидание" + (meta.lastSnap ? " · был " + fmtClock(meta.lastSnap) : ""));
+        ? ("in " + fmtRemain(remainMs) + (meta.lastSnap ? " was " + fmtClock(meta.lastSnap) : ""))
+        : ("idle" + (meta.lastSnap ? " was " + fmtClock(meta.lastSnap) : ""));
       if (window.TarkovMini && TarkovMini.reportStatus) {
-        TarkovMini.reportStatus({
-          running: !!run.on,
-          label: label,
-          tool: "tarkovtool-price-track.html"
-        });
+        TarkovMini.reportStatus({ running: !!run.on, label: label, tool: "tarkovtool-price-track.html" });
       }
     } catch (e) {}
   }
@@ -261,8 +224,7 @@
     mins = Math.max(1, Number(mins) || 30);
     var run = readRun();
     writeRun(Object.assign({}, run, {
-      on: true,
-      mins: mins,
+      on: true, mins: mins,
       mode: (($("gameMode") || {}).value) || run.mode || "pve",
       nextSnapAt: Date.now() + mins * 60 * 1000,
       startedAt: run.startedAt || Date.now()
@@ -282,14 +244,9 @@
     await openDb();
     var mode = (($("gameMode") || {}).value) || "pve";
     var status = $("status");
-    if (status) {
-      status.className = "status";
-      status.textContent = "Снимаю цены с API…";
-    }
+    if (status) { status.className = "status"; status.textContent = "Fetching prices..."; }
     var arr = await fetchItems(mode);
-    if (!arr.length) {
-      throw new Error("API вернул 0 предметов (mode=" + mode + ")");
-    }
+    if (!arr.length) throw new Error("API returned 0 items (mode=" + mode + ")");
     var n = 0;
     var now = Date.now();
     await new Promise(function (resolve, reject) {
@@ -301,42 +258,25 @@
         var p = priceOf(it);
         if (p.avg <= 0 && p.low <= 0 && p.high <= 0) continue;
         os.add({
-          itemId: it.id,
-          ts: now,
-          avg: p.avg,
-          low: p.low,
-          high: p.high,
-          name: itemName(it),
-          slug: it.normalizedName || "",
-          icon: it.iconLink || ""
+          itemId: it.id, ts: now, avg: p.avg, low: p.low, high: p.high,
+          name: itemName(it), slug: it.normalizedName || "", icon: it.iconLink || ""
         });
         n++;
       }
       tx.oncomplete = resolve;
       tx.onerror = function () { reject(tx.error || new Error("IDB write failed")); };
     });
-    if (n === 0) {
-      throw new Error("Из " + arr.length + " предметов ни у одного нет цены");
-    }
+    if (n === 0) throw new Error("None of " + arr.length + " items had prices");
     writeMeta({ lastSnap: now, count: n, mode: mode });
     var run = readRun();
     var mins = Number(run.mins) || Number(($("interval") || {}).value) || 30;
-    if (run.on) scheduleNext(mins);
-    else paintStatusUI();
-    if (status) {
-      status.className = "status ok";
-      status.textContent = "Снимок: " + n + " / " + arr.length + " · " + fmtClock(now);
-    }
+    if (run.on) scheduleNext(mins); else paintStatusUI();
+    if (status) { status.className = "status ok"; status.textContent = "Snap: " + n + " / " + arr.length + " " + fmtClock(now); }
     await renderList();
     if (selectedId) drawChart(selectedId);
     try {
       if (typeof Notify === "function") {
-        Notify({
-          title: "Динамика цен",
-          body: "Снимок: " + n + " · " + fmtClock(now),
-          tool: "tarkovtool-price-track.html",
-          kind: "price"
-        });
+        Notify({ title: "Price track", body: "Snap: " + n + " " + fmtClock(now), tool: "tarkovtool-price-track.html", kind: "price" });
       }
     } catch (e) {}
   }
@@ -352,13 +292,11 @@
           || (r.itemId || "").toLowerCase().indexOf(q) >= 0;
       });
     }
-    list.sort(function (a, b) {
-      return (a.name || "").localeCompare(b.name || "", "ru");
-    });
+    list.sort(function (a, b) { return (a.name || "").localeCompare(b.name || "", "ru"); });
     var box = $("itemList");
     if (!box) return;
     if (!list.length) {
-      box.innerHTML = '<p class="meta">Список пуст. Нажми <b>«Снять сейчас»</b> — после обновления БД старые снимки сброшены.</p>';
+      box.innerHTML = '<p class="meta">Empty. Click Snap now.</p>';
       return;
     }
     box.innerHTML = list.map(function (r) {
@@ -387,15 +325,14 @@
       if (!canvas) return;
       var ctx = canvas.getContext("2d");
       if (!hist.length) {
-        if (title) title.textContent = "Нет данных";
+        if (title) title.textContent = "No data";
         if (meta) meta.textContent = "";
         return;
       }
       var last = hist[hist.length - 1];
       if (title) title.textContent = last.name || itemId;
       if (meta) {
-        meta.textContent = hist.length + " точек · avg " + fmtRub(last.avg)
-          + " · low " + fmtRub(last.low) + " · high " + fmtRub(last.high);
+        meta.textContent = hist.length + " pts avg " + fmtRub(last.avg) + " low " + fmtRub(last.low) + " high " + fmtRub(last.high);
       }
       var dpr = window.devicePixelRatio || 1;
       var wrap = canvas.parentElement;
@@ -409,7 +346,6 @@
       var W = cssW, H = cssH;
       ctx.fillStyle = "#12151c";
       ctx.fillRect(0, 0, W, H);
-
       var i0 = 0, i1 = hist.length - 1;
       if (viewRange) {
         i0 = Math.max(0, Math.min(viewRange.i0, hist.length - 1));
@@ -428,7 +364,7 @@
       if (!vals.length) {
         ctx.fillStyle = "#f0c14b";
         ctx.font = "14px sans-serif";
-        ctx.fillText("Нет ненулевых цен", 16, H / 2);
+        ctx.fillText("No nonzero prices", 16, H / 2);
         return;
       }
       var min = Math.min.apply(null, vals);
@@ -474,8 +410,7 @@
           var v = Number(slice[i][key]) || 0;
           if (v <= 0) continue;
           var x = xAt(i), y = yAt(v);
-          if (!started) { ctx.moveTo(x, y); started = true; }
-          else ctx.lineTo(x, y);
+          if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
         }
         if (started) ctx.stroke();
         for (var j = 0; j < slice.length; j++) {
@@ -503,33 +438,24 @@
         ctx.stroke();
         var h = slice[hi];
         var tipText = tLabel(h.ts)
-          + (chartSeries.avg ? " · avg " + fmtRub(h.avg) : "")
-          + (chartSeries.low ? " · low " + fmtRub(h.low) : "")
-          + (chartSeries.high ? " · high " + fmtRub(h.high) : "");
+          + (chartSeries.avg ? " avg " + fmtRub(h.avg) : "")
+          + (chartSeries.low ? " low " + fmtRub(h.low) : "")
+          + (chartSeries.high ? " high " + fmtRub(h.high) : "");
         if (tip) { tip.style.display = "block"; tip.textContent = tipText; }
-      } else if (tip) {
-        tip.style.display = "none";
-      }
+      } else if (tip) { tip.style.display = "none"; }
     }).catch(function (e) {
       var title = $("chartTitle");
-      if (title) title.textContent = "Ошибка графика: " + (e && e.message ? e.message : e);
+      if (title) title.textContent = "Chart error: " + (e && e.message ? e.message : e);
     });
   }
 
   function clearPollTimer() {
-    if (timer) {
-      clearTimeout(timer);
-      clearInterval(timer);
-      timer = null;
-    }
+    if (timer) { clearTimeout(timer); clearInterval(timer); timer = null; }
   }
-
   function armPollTimer(mins) {
     clearPollTimer();
     mins = Math.max(1, Number(mins) || 30);
-    timer = setInterval(function () {
-      takeSnapshot().catch(function () {});
-    }, mins * 60 * 1000);
+    timer = setInterval(function () { takeSnapshot().catch(function () {}); }, mins * 60 * 1000);
   }
 
   function startBg() {
@@ -538,41 +464,22 @@
     var mins = Math.max(1, Number(($("interval") || {}).value) || Number(readRun().mins) || 30);
     if ($("interval")) $("interval").value = mins;
     window.__ttPollMins = mins;
-    writeRun({
-      on: true,
-      mins: mins,
-      mode: (($("gameMode") || {}).value) || "pve",
-      startedAt: Date.now(),
-      nextSnapAt: Date.now()
-    });
+    writeRun({ on: true, mins: mins, mode: (($("gameMode") || {}).value) || "pve", startedAt: Date.now(), nextSnapAt: Date.now() });
     takeSnapshot()
       .then(function () { armPollTimer(mins); scheduleNext(mins); })
       .catch(function (e) {
         var status = $("status");
-        if (status) {
-          status.className = "status err";
-          status.textContent = e && e.message ? e.message : String(e);
-        }
-        armPollTimer(mins);
-        scheduleNext(mins);
+        if (status) { status.className = "status err"; status.textContent = e && e.message ? e.message : String(e); }
+        armPollTimer(mins); scheduleNext(mins);
       })
-      .then(function () {
-        window.__ttStartLock = false;
-        paintStatusUI();
-      });
+      .then(function () { window.__ttStartLock = false; paintStatusUI(); });
   }
 
   function stopBg() {
     window.__ttStartLock = false;
     clearPollTimer();
     var prev = readRun();
-    writeRun({
-      on: false,
-      mins: prev.mins || Number(($("interval") || {}).value) || 30,
-      mode: prev.mode || (($("gameMode") || {}).value) || "pve",
-      nextSnapAt: null,
-      startedAt: prev.startedAt || null
-    });
+    writeRun({ on: false, mins: prev.mins || Number(($("interval") || {}).value) || 30, mode: prev.mode || (($("gameMode") || {}).value) || "pve", nextSnapAt: null, startedAt: prev.startedAt || null });
     paintStatusUI();
   }
 
@@ -586,15 +493,11 @@
     var next = Number(run.nextSnapAt) || 0;
     var now = Date.now();
     if (!next || next <= now) {
-      takeSnapshot()
-        .then(function () { armPollTimer(mins); scheduleNext(mins); })
-        .catch(function () { armPollTimer(mins); scheduleNext(mins); });
+      takeSnapshot().then(function () { armPollTimer(mins); scheduleNext(mins); }).catch(function () { armPollTimer(mins); scheduleNext(mins); });
     } else {
       clearPollTimer();
       timer = setTimeout(function () {
-        takeSnapshot()
-          .then(function () { armPollTimer(mins); scheduleNext(mins); })
-          .catch(function () { armPollTimer(mins); scheduleNext(mins); });
+        takeSnapshot().then(function () { armPollTimer(mins); scheduleNext(mins); }).catch(function () { armPollTimer(mins); scheduleNext(mins); });
       }, next - now);
     }
     paintStatusUI();
@@ -638,14 +541,9 @@
     });
     var reset = $("chartResetZoom");
     if (reset) {
-      reset.onclick = function () {
-        viewRange = null;
-        if (selectedId) drawChart(selectedId);
-      };
+      reset.onclick = function () { viewRange = null; if (selectedId) drawChart(selectedId); };
     }
-    window.addEventListener("resize", function () {
-      if (selectedId) drawChart(selectedId);
-    });
+    window.addEventListener("resize", function () { if (selectedId) drawChart(selectedId); });
   }
 
   function boot() {
@@ -659,18 +557,11 @@
       snapBtn.onclick = function () {
         takeSnapshot().catch(function (e) {
           var status = $("status");
-          if (status) {
-            status.className = "status err";
-            status.textContent = e && e.message ? e.message : String(e);
-          }
+          if (status) { status.className = "status err"; status.textContent = e && e.message ? e.message : String(e); }
         });
       };
     }
-    if (q) {
-      q.oninput = function () {
-        renderList().catch(function () {});
-      };
-    }
+    if (q) q.oninput = function () { renderList().catch(function () {}); };
     openDb()
       .then(function () { return renderList(); })
       .then(function () {
@@ -680,25 +571,16 @@
         return allLatest().then(function (list) {
           if (!list.length) {
             var st = $("status");
-            if (st) {
-              st.className = "status";
-              st.textContent = "База пуста — автоматически снимаю первый снимок…";
-            }
+            if (st) { st.className = "status"; st.textContent = "DB empty - auto first snapshot..."; }
             return takeSnapshot().catch(function (e) {
-              if (st) {
-                st.className = "status err";
-                st.textContent = e && e.message ? e.message : String(e);
-              }
+              if (st) { st.className = "status err"; st.textContent = e && e.message ? e.message : String(e); }
             });
           }
         });
       })
       .catch(function (e) {
         var status = $("status");
-        if (status) {
-          status.className = "status err";
-          status.textContent = "DB: " + (e && e.message ? e.message : e);
-        }
+        if (status) { status.className = "status err"; status.textContent = "DB: " + (e && e.message ? e.message : e); }
       });
   }
 
