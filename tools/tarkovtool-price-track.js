@@ -1,7 +1,7 @@
 (function () {
   "use strict";
   var DB_NAME = "tarkovPriceDB";
-  var DB_VER = 3;
+  var DB_VER = 4;
   var STORE = "snapshots";
   var RUN_KEY = "tarkovPriceTrackRunning";
   var META_KEY = "tarkovPriceTrackMeta";
@@ -92,7 +92,40 @@
     return next;
   }
 
-  /** Always getAll — no indexes (avoids broken old DBs). */
+  /** json.tarkov.dev: data.items is a dict { [id]: item }, not an array */
+  function normalizeItems(raw) {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw !== "object") return [];
+    if (raw.data) {
+      if (raw.data.items != null) return normalizeItems(raw.data.items);
+      if (Array.isArray(raw.data)) return raw.data;
+    }
+    if (raw.items != null) return normalizeItems(raw.items);
+    var vals = Object.values(raw);
+    if (!vals.length) return [];
+    var withId = 0;
+    for (var i = 0; i < Math.min(vals.length, 20); i++) {
+      if (vals[i] && typeof vals[i] === "object" && (vals[i].id || vals[i].avg24hPrice != null)) withId++;
+    }
+    if (withId >= Math.min(3, vals.length)) return vals;
+    return [];
+  }
+
+  async function fetchItems(mode) {
+    mode = mode || "pve";
+    var res = await fetch("https://json.tarkov.dev/" + mode + "/items", { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status + " json.tarkov.dev");
+    var json = await res.json();
+    var arr = normalizeItems(json);
+    if (!arr.length && window.TarkovAPI && TarkovAPI.items) {
+      try {
+        arr = normalizeItems(await TarkovAPI.items(mode));
+      } catch (e) {}
+    }
+    return arr;
+  }
+
   function openDb() {
     if (db) return Promise.resolve(db);
     return new Promise(function (resolve, reject) {
@@ -105,24 +138,36 @@
       }
       req.onupgradeneeded = function () {
         var d = req.result;
-        try {
-          if (d.objectStoreNames.contains(STORE)) {
-            d.deleteObjectStore(STORE);
-          }
-        } catch (e) {}
-        try {
+        if (!d.objectStoreNames.contains(STORE)) {
           d.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
-        } catch (e) {}
+        }
       };
       req.onblocked = function () {
         var st = $("status");
         if (st) {
           st.className = "status err";
-          st.textContent = "IndexedDB занята другой вкладкой — закрой дубликаты трекера";
+          st.textContent = "IndexedDB занята — закрой другие вкладки трекера";
         }
       };
       req.onsuccess = function () {
         db = req.result;
+        if (!db.objectStoreNames.contains(STORE)) {
+          db.close();
+          db = null;
+          var req2 = indexedDB.open(DB_NAME, DB_VER + 1);
+          req2.onupgradeneeded = function () {
+            var d = req2.result;
+            if (!d.objectStoreNames.contains(STORE)) {
+              d.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
+            }
+          };
+          req2.onsuccess = function () {
+            db = req2.result;
+            resolve(db);
+          };
+          req2.onerror = function () { reject(req2.error); };
+          return;
+        }
         db.onversionchange = function () {
           try { db.close(); } catch (e) {}
           db = null;
@@ -139,6 +184,10 @@
     return new Promise(function (resolve, reject) {
       if (!db) {
         reject(new Error("DB not open"));
+        return;
+      }
+      if (!db.objectStoreNames.contains(STORE)) {
+        resolve([]);
         return;
       }
       var tx = db.transaction(STORE, "readonly");
@@ -160,6 +209,7 @@
     return getAllRows().then(function (rows) {
       var map = {};
       rows.forEach(function (r) {
+        if (!r || !r.itemId) return;
         if (!map[r.itemId] || r.ts > map[r.itemId].ts) map[r.itemId] = r;
       });
       return Object.keys(map).map(function (k) { return map[k]; });
@@ -221,23 +271,24 @@
     paintStatusUI();
   }
 
+  function priceOf(it) {
+    var avg = Number(it.avg24hPrice) || 0;
+    var low = Number(it.lastLowPrice) || Number(it.low24hPrice) || 0;
+    var high = Number(it.high24hPrice) || avg || 0;
+    return { avg: avg, low: low, high: high };
+  }
+
   async function takeSnapshot() {
     await openDb();
     var mode = (($("gameMode") || {}).value) || "pve";
     var status = $("status");
     if (status) {
       status.className = "status";
-      status.textContent = "Снимаю цены…";
+      status.textContent = "Снимаю цены с API…";
     }
-    var arr;
-    if (window.TarkovAPI && TarkovAPI.items) {
-      arr = await TarkovAPI.items(mode);
-    } else {
-      var res = await fetch("https://json.tarkov.dev/" + mode + "/items", { cache: "no-store" });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      var json = await res.json();
-      var raw = json && json.data && (json.data.items || json.data);
-      arr = Array.isArray(raw) ? raw : Object.values(raw || {});
+    var arr = await fetchItems(mode);
+    if (!arr.length) {
+      throw new Error("API вернул 0 предметов (mode=" + mode + ")");
     }
     var n = 0;
     var now = Date.now();
@@ -247,16 +298,14 @@
       for (var i = 0; i < arr.length; i++) {
         var it = arr[i];
         if (!it || !it.id) continue;
-        var avg = Number(it.avg24hPrice) || 0;
-        var low = Number(it.lastLowPrice) || 0;
-        var high = Number(it.high24hPrice || it.avg24hPrice) || 0;
-        if (avg <= 0 && low <= 0) continue;
+        var p = priceOf(it);
+        if (p.avg <= 0 && p.low <= 0 && p.high <= 0) continue;
         os.add({
           itemId: it.id,
           ts: now,
-          avg: avg,
-          low: low,
-          high: high,
+          avg: p.avg,
+          low: p.low,
+          high: p.high,
           name: itemName(it),
           slug: it.normalizedName || "",
           icon: it.iconLink || ""
@@ -264,8 +313,11 @@
         n++;
       }
       tx.oncomplete = resolve;
-      tx.onerror = function () { reject(tx.error); };
+      tx.onerror = function () { reject(tx.error || new Error("IDB write failed")); };
     });
+    if (n === 0) {
+      throw new Error("Из " + arr.length + " предметов ни у одного нет цены");
+    }
     writeMeta({ lastSnap: now, count: n, mode: mode });
     var run = readRun();
     var mins = Number(run.mins) || Number(($("interval") || {}).value) || 30;
@@ -273,7 +325,7 @@
     else paintStatusUI();
     if (status) {
       status.className = "status ok";
-      status.textContent = "Снимок: " + n + " предметов · " + fmtClock(now);
+      status.textContent = "Снимок: " + n + " / " + arr.length + " · " + fmtClock(now);
     }
     await renderList();
     if (selectedId) drawChart(selectedId);
@@ -306,7 +358,7 @@
     var box = $("itemList");
     if (!box) return;
     if (!list.length) {
-      box.innerHTML = '<p class="meta">Пока пусто — нажми «Снять сейчас» или «Старт фона»</p>';
+      box.innerHTML = '<p class="meta">Список пуст. Нажми <b>«Снять сейчас»</b> — после обновления БД старые снимки сброшены.</p>';
       return;
     }
     box.innerHTML = list.map(function (r) {
@@ -620,13 +672,26 @@
       };
     }
     openDb()
-      .then(function () {
-        return renderList();
-      })
+      .then(function () { return renderList(); })
       .then(function () {
         wireChart();
         startCountdownLoop();
         resumeIfNeeded();
+        return allLatest().then(function (list) {
+          if (!list.length) {
+            var st = $("status");
+            if (st) {
+              st.className = "status";
+              st.textContent = "База пуста — автоматически снимаю первый снимок…";
+            }
+            return takeSnapshot().catch(function (e) {
+              if (st) {
+                st.className = "status err";
+                st.textContent = e && e.message ? e.message : String(e);
+              }
+            });
+          }
+        });
       })
       .catch(function (e) {
         var status = $("status");
