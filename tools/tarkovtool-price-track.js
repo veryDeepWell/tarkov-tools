@@ -352,21 +352,21 @@
     var box = $("itemList");
     if (!box) return;
     if (!total) {
-      box.innerHTML = '<p class="meta">Empty. Click Snap.</p>';
+      box.innerHTML = "<p class=meta>Empty. Click Snap.</p>";
       return;
     }
     var html = "";
     if (total > LIST_LIMIT && !q) {
-      html += '<p class="meta">Top ' + LIST_LIMIT + " / " + total + " by price. Type to search.</p>';
+      html += "<p class=meta>Top " + LIST_LIMIT + " / " + total + " by price. Type to search.</p>";
     } else if (q) {
-      html += '<p class="meta">' + total + " match</p>';
+      html += "<p class=meta>" + total + " match</p>";
     }
     for (var i = 0; i < shown.length; i++) {
       var r = shown[i];
-      html += '<div class="item-row" data-id="' + esc(r.itemId) + '">'
-        + (r.icon ? '<img loading="lazy" src="' + esc(r.icon) + '" alt="">' : "")
-        + '<div class="nm">' + esc(r.name || r.slug || r.itemId) + "</div>"
-        + '<div class="pr">' + fmtRub(r.avg || r.low) + "</div></div>";
+      html += "<div class=item-row data-id=\"" + esc(r.itemId) + "\">"
+        + (r.icon ? "<img loading=lazy src=\"" + esc(r.icon) + "\" alt=\"\">" : "")
+        + "<div class=nm>" + esc(r.name || r.slug || r.itemId) + "</div>"
+        + "<div class=pr>" + fmtRub(r.avg || r.low) + "</div></div>";
     }
     box.innerHTML = html;
     box.onclick = function (ev) {
