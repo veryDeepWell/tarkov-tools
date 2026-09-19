@@ -1,10 +1,12 @@
 (function () {
   "use strict";
   var DB_NAME = "tarkovPriceDB";
-  var DB_VER = 4;
-  var STORE = "snapshots";
+  var DB_VER = 5;
+  var STORE = "series";
   var RUN_KEY = "tarkovPriceTrackRunning";
   var META_KEY = "tarkovPriceTrackMeta";
+  var MAX_POINTS = 48;
+  var LIST_LIMIT = 100;
 
   var db = null;
   var timer = null;
@@ -14,6 +16,9 @@
   var viewRange = null;
   var lastHist = [];
   var hoverX = null;
+  var hoverRaf = 0;
+  var latestCache = null;
+  var listFilter = "";
 
   function $(id) { return document.getElementById(id); }
 
@@ -74,7 +79,7 @@
     var h = Math.floor(s / 3600);
     var m = Math.floor((s % 3600) / 60);
     var sec = s % 60;
-    if (h > 0) return h + "h " + String(m).padStart(2, "0") + "m " + String(sec).padStart(2, "0") + "s";
+    if (h > 0) return h + "h " + String(m).padStart(2, "0") + "m";
     return m + "m " + String(sec).padStart(2, "0") + "s";
   }
 
@@ -118,9 +123,7 @@
     if (!res.ok) throw new Error("HTTP " + res.status);
     var json = await res.json();
     var arr = normalizeItems(json);
-    if (!arr.length && window.TarkovAPI && TarkovAPI.items) {
-      try { arr = normalizeItems(await TarkovAPI.items(mode)); } catch (e) {}
-    }
+    json = null;
     return arr;
   }
 
@@ -131,8 +134,11 @@
       try { req = indexedDB.open(DB_NAME, DB_VER); } catch (e) { reject(e); return; }
       req.onupgradeneeded = function () {
         var d = req.result;
+        try {
+          if (d.objectStoreNames.contains("snapshots")) d.deleteObjectStore("snapshots");
+        } catch (e) {}
         if (!d.objectStoreNames.contains(STORE)) {
-          d.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
+          d.createObjectStore(STORE, { keyPath: "itemId" });
         }
       };
       req.onblocked = function () {
@@ -142,16 +148,9 @@
       req.onsuccess = function () {
         db = req.result;
         if (!db.objectStoreNames.contains(STORE)) {
-          db.close(); db = null;
-          var req2 = indexedDB.open(DB_NAME, DB_VER + 1);
-          req2.onupgradeneeded = function () {
-            var d = req2.result;
-            if (!d.objectStoreNames.contains(STORE)) {
-              d.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
-            }
-          };
-          req2.onsuccess = function () { db = req2.result; resolve(db); };
-          req2.onerror = function () { reject(req2.error); };
+          db.close();
+          db = null;
+          reject(new Error("series store missing"));
           return;
         }
         db.onversionchange = function () { try { db.close(); } catch (e) {} db = null; };
@@ -161,10 +160,17 @@
     });
   }
 
-  function getAllRows() {
+  function getSeries(itemId) {
     return new Promise(function (resolve, reject) {
-      if (!db) { reject(new Error("DB not open")); return; }
-      if (!db.objectStoreNames.contains(STORE)) { resolve([]); return; }
+      var tx = db.transaction(STORE, "readonly");
+      var req = tx.objectStore(STORE).get(itemId);
+      req.onsuccess = function () { resolve(req.result || null); };
+      req.onerror = function () { reject(req.error); };
+    });
+  }
+
+  function getAllSeries() {
+    return new Promise(function (resolve, reject) {
       var tx = db.transaction(STORE, "readonly");
       var req = tx.objectStore(STORE).getAll();
       req.onsuccess = function () { resolve(req.result || []); };
@@ -173,21 +179,49 @@
   }
 
   function historyFor(itemId) {
-    return getAllRows().then(function (rows) {
-      return rows.filter(function (r) { return r.itemId === itemId; }).sort(function (a, b) { return a.ts - b.ts; });
+    return getSeries(itemId).then(function (row) {
+      if (!row || !row.points) return [];
+      return row.points.map(function (p) {
+        return {
+          itemId: itemId,
+          ts: p.ts,
+          avg: p.avg,
+          low: p.low,
+          high: p.high,
+          name: row.name,
+          slug: row.slug,
+          icon: row.icon
+        };
+      });
     });
   }
 
   function allLatest() {
-    return getAllRows().then(function (rows) {
-      var map = {};
-      rows.forEach(function (r) {
-        if (!r || !r.itemId) return;
-        if (!map[r.itemId] || r.ts > map[r.itemId].ts) map[r.itemId] = r;
-      });
-      return Object.keys(map).map(function (k) { return map[k]; });
+    if (latestCache) return Promise.resolve(latestCache);
+    return getAllSeries().then(function (rows) {
+      var list = [];
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        if (!r || !r.points || !r.points.length) continue;
+        var last = r.points[r.points.length - 1];
+        list.push({
+          itemId: r.itemId,
+          name: r.name,
+          slug: r.slug,
+          icon: r.icon,
+          avg: last.avg,
+          low: last.low,
+          high: last.high,
+          ts: last.ts,
+          n: r.points.length
+        });
+      }
+      latestCache = list;
+      return list;
     });
   }
+
+  function invalidateCache() { latestCache = null; }
 
   function paintStatusUI() {
     var run = readRun();
@@ -198,7 +232,7 @@
     var mins = Number(run.mins) || Number(($("interval") || {}).value) || 30;
     if (el) {
       el.textContent = run.on
-        ? ("BG ON every " + mins + " min last " + last)
+        ? ("BG ON every " + mins + " min last " + last + (meta.count != null ? " (" + meta.count + ")" : ""))
         : ("BG off last " + last);
     }
     var remainMs = run.on && run.nextSnapAt ? Number(run.nextSnapAt) - Date.now() : null;
@@ -207,11 +241,12 @@
       else { cd.textContent = "Countdown off"; cd.className = "countdown"; }
     }
     try {
-      var label = run.on
-        ? ("in " + fmtRemain(remainMs) + (meta.lastSnap ? " was " + fmtClock(meta.lastSnap) : ""))
-        : ("idle" + (meta.lastSnap ? " was " + fmtClock(meta.lastSnap) : ""));
       if (window.TarkovMini && TarkovMini.reportStatus) {
-        TarkovMini.reportStatus({ running: !!run.on, label: label, tool: "tarkovtool-price-track.html" });
+        TarkovMini.reportStatus({
+          running: !!run.on,
+          label: run.on ? ("in " + fmtRemain(remainMs)) : "idle",
+          tool: "tarkovtool-price-track.html"
+        });
       }
     } catch (e) {}
   }
@@ -225,7 +260,8 @@
     mins = Math.max(1, Number(mins) || 30);
     var run = readRun();
     writeRun(Object.assign({}, run, {
-      on: true, mins: mins,
+      on: true,
+      mins: mins,
       mode: (($("gameMode") || {}).value) || run.mode || "pve",
       nextSnapAt: Date.now() + mins * 60 * 1000,
       startedAt: run.startedAt || Date.now()
@@ -248,31 +284,47 @@
     if (status) { status.className = "status"; status.textContent = "Fetching..."; }
     var arr = await fetchItems(mode);
     if (!arr.length) throw new Error("API 0 items mode=" + mode);
-    var n = 0;
     var now = Date.now();
+    var n = 0;
+    var existing = await getAllSeries();
+    var byId = {};
+    for (var i = 0; i < existing.length; i++) byId[existing[i].itemId] = existing[i];
+    existing = null;
     await new Promise(function (resolve, reject) {
       var tx = db.transaction(STORE, "readwrite");
       var os = tx.objectStore(STORE);
-      for (var i = 0; i < arr.length; i++) {
-        var it = arr[i];
+      for (var j = 0; j < arr.length; j++) {
+        var it = arr[j];
         if (!it || !it.id) continue;
         var p = priceOf(it);
         if (p.avg <= 0 && p.low <= 0 && p.high <= 0) continue;
-        os.add({
-          itemId: it.id, ts: now, avg: p.avg, low: p.low, high: p.high,
-          name: itemName(it), slug: it.normalizedName || "", icon: it.iconLink || ""
+        var row = byId[it.id];
+        var points = row && row.points ? row.points.slice() : [];
+        points.push({ ts: now, avg: p.avg, low: p.low, high: p.high });
+        if (points.length > MAX_POINTS) points = points.slice(points.length - MAX_POINTS);
+        os.put({
+          itemId: it.id,
+          name: itemName(it),
+          slug: it.normalizedName || (row && row.slug) || "",
+          icon: it.iconLink || (row && row.icon) || "",
+          points: points
         });
         n++;
       }
       tx.oncomplete = resolve;
       tx.onerror = function () { reject(tx.error || new Error("IDB write failed")); };
     });
-    if (n === 0) throw new Error("No priced items in " + arr.length);
+    arr = null;
+    byId = null;
+    invalidateCache();
     writeMeta({ lastSnap: now, count: n, mode: mode });
     var run = readRun();
     var mins = Number(run.mins) || Number(($("interval") || {}).value) || 30;
     if (run.on) scheduleNext(mins); else paintStatusUI();
-    if (status) { status.className = "status ok"; status.textContent = "Snap " + n + "/" + arr.length + " " + fmtClock(now); }
+    if (status) {
+      status.className = "status ok";
+      status.textContent = "Snap " + n + " items (max " + MAX_POINTS + " pts/item) " + fmtClock(now);
+    }
     await renderList();
     if (selectedId) drawChart(selectedId);
     try {
@@ -285,7 +337,8 @@
   async function renderList() {
     await openDb();
     var list = await allLatest();
-    var q = ((($("q") || {}).value) || "").toLowerCase().trim();
+    var q = listFilter || ((($("q") || {}).value) || "").toLowerCase().trim();
+    listFilter = q;
     if (q) {
       list = list.filter(function (r) {
         return (r.name || "").toLowerCase().indexOf(q) >= 0
@@ -293,26 +346,36 @@
           || (r.itemId || "").toLowerCase().indexOf(q) >= 0;
       });
     }
-    list.sort(function (a, b) { return (a.name || "").localeCompare(b.name || "", "ru"); });
+    list.sort(function (a, b) { return (b.avg || 0) - (a.avg || 0); });
+    var total = list.length;
+    var shown = list.slice(0, LIST_LIMIT);
     var box = $("itemList");
     if (!box) return;
-    if (!list.length) {
-      box.innerHTML = "<p class=\"meta\">Empty. Click Snap.</p>";
+    if (!total) {
+      box.innerHTML = '<p class="meta">Empty. Click Snap.</p>';
       return;
     }
-    box.innerHTML = list.map(function (r) {
-      return "<div class=\"item-row\" data-id=\"" + esc(r.itemId) + "\">"
-        + (r.icon ? "<img src=\"" + esc(r.icon) + "\" alt=\"\">" : "")
-        + "<div class=\"nm\">" + esc(r.name || r.slug || r.itemId) + "</div>"
-        + "<div class=\"pr\">" + fmtRub(r.avg || r.low) + "</div></div>";
-    }).join("");
-    box.querySelectorAll(".item-row").forEach(function (el) {
-      el.onclick = function () {
-        selectedId = el.getAttribute("data-id");
-        viewRange = null;
-        drawChart(selectedId);
-      };
-    });
+    var html = "";
+    if (total > LIST_LIMIT && !q) {
+      html += '<p class="meta">Top ' + LIST_LIMIT + " / " + total + " by price. Type to search.</p>';
+    } else if (q) {
+      html += '<p class="meta">' + total + " match</p>';
+    }
+    for (var i = 0; i < shown.length; i++) {
+      var r = shown[i];
+      html += '<div class="item-row" data-id="' + esc(r.itemId) + '">'
+        + (r.icon ? '<img loading="lazy" src="' + esc(r.icon) + '" alt="">' : "")
+        + '<div class="nm">' + esc(r.name || r.slug || r.itemId) + "</div>"
+        + '<div class="pr">' + fmtRub(r.avg || r.low) + "</div></div>";
+    }
+    box.innerHTML = html;
+    box.onclick = function (ev) {
+      var row = ev.target && ev.target.closest ? ev.target.closest(".item-row") : null;
+      if (!row) return;
+      selectedId = row.getAttribute("data-id");
+      viewRange = null;
+      drawChart(selectedId);
+    };
   }
 
   function drawChart(itemId) {
@@ -332,15 +395,21 @@
       }
       var last = hist[hist.length - 1];
       if (title) title.textContent = last.name || itemId;
-      if (meta) meta.textContent = hist.length + " pts avg " + fmtRub(last.avg) + " low " + fmtRub(last.low) + " high " + fmtRub(last.high);
-      var dpr = window.devicePixelRatio || 1;
+      if (meta) {
+        meta.textContent = hist.length + " pts avg " + fmtRub(last.avg)
+          + " low " + fmtRub(last.low) + " high " + fmtRub(last.high);
+      }
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
       var wrap = canvas.parentElement;
       var cssW = Math.max(280, canvas.clientWidth || 0, wrap ? wrap.clientWidth : 0, 400);
       var cssH = 320;
-      canvas.style.width = cssW + "px";
-      canvas.style.height = cssH + "px";
-      canvas.width = Math.floor(cssW * dpr);
-      canvas.height = Math.floor(cssH * dpr);
+      if (canvas._cssW !== cssW) {
+        canvas._cssW = cssW;
+        canvas.style.width = cssW + "px";
+        canvas.style.height = cssH + "px";
+        canvas.width = Math.floor(cssW * dpr);
+        canvas.height = Math.floor(cssH * dpr);
+      }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       var W = cssW, H = cssH;
       ctx.fillStyle = "#12151c";
@@ -351,13 +420,16 @@
         i1 = Math.max(i0, Math.min(viewRange.i1, hist.length - 1));
       }
       var slice = hist.slice(i0, i1 + 1);
-      if (slice.length === 1) slice = [slice[0], Object.assign({}, slice[0], { ts: (slice[0].ts || 0) + 60000 })];
+      if (slice.length === 1) {
+        slice = [slice[0], Object.assign({}, slice[0], { ts: (slice[0].ts || 0) + 60000 })];
+      }
       var vals = [];
-      slice.forEach(function (h) {
+      for (var vi = 0; vi < slice.length; vi++) {
+        var h = slice[vi];
         if (chartSeries.avg && h.avg > 0) vals.push(Number(h.avg));
         if (chartSeries.low && h.low > 0) vals.push(Number(h.low));
         if (chartSeries.high && h.high > 0) vals.push(Number(h.high));
-      });
+      }
       if (!vals.length) {
         ctx.fillStyle = "#f0c14b";
         ctx.font = "14px sans-serif";
@@ -374,7 +446,8 @@
       function tLabel(ts) {
         try {
           var d = new Date(ts);
-          return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+          return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" })
+            + " " + d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
         } catch (e) { return ""; }
       }
       ctx.strokeStyle = "#2a3140";
@@ -399,22 +472,25 @@
       function strokeSeries(key, color) {
         ctx.strokeStyle = color;
         ctx.fillStyle = color;
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 2;
         ctx.beginPath();
         var started = false;
         for (var i = 0; i < slice.length; i++) {
           var v = Number(slice[i][key]) || 0;
           if (v <= 0) continue;
           var x = xAt(i), y = yAt(v);
-          if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+          if (!started) { ctx.moveTo(x, y); started = true; }
+          else ctx.lineTo(x, y);
         }
         if (started) ctx.stroke();
-        for (var j = 0; j < slice.length; j++) {
-          var v2 = Number(slice[j][key]) || 0;
-          if (v2 <= 0) continue;
-          ctx.beginPath();
-          ctx.arc(xAt(j), yAt(v2), 4, 0, Math.PI * 2);
-          ctx.fill();
+        if (slice.length <= 60) {
+          for (var j = 0; j < slice.length; j++) {
+            var v2 = Number(slice[j][key]) || 0;
+            if (v2 <= 0) continue;
+            ctx.beginPath();
+            ctx.arc(xAt(j), yAt(v2), 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
       }
       if (chartSeries.high) strokeSeries("high", "#ff6b7a");
@@ -432,11 +508,11 @@
         ctx.moveTo(hx, padT);
         ctx.lineTo(hx, padT + plotH);
         ctx.stroke();
-        var h = slice[hi];
-        var tipText = tLabel(h.ts)
-          + (chartSeries.avg ? " avg " + fmtRub(h.avg) : "")
-          + (chartSeries.low ? " low " + fmtRub(h.low) : "")
-          + (chartSeries.high ? " high " + fmtRub(h.high) : "");
+        var hp = slice[hi];
+        var tipText = tLabel(hp.ts)
+          + (chartSeries.avg ? " avg " + fmtRub(hp.avg) : "")
+          + (chartSeries.low ? " low " + fmtRub(hp.low) : "")
+          + (chartSeries.high ? " high " + fmtRub(hp.high) : "");
         if (tip) { tip.style.display = "block"; tip.textContent = tipText; }
       } else if (tip) { tip.style.display = "none"; }
     }).catch(function (e) {
@@ -475,7 +551,13 @@
     window.__ttStartLock = false;
     clearPollTimer();
     var prev = readRun();
-    writeRun({ on: false, mins: prev.mins || Number(($("interval") || {}).value) || 30, mode: prev.mode || (($("gameMode") || {}).value) || "pve", nextSnapAt: null, startedAt: prev.startedAt || null });
+    writeRun({
+      on: false,
+      mins: prev.mins || Number(($("interval") || {}).value) || 30,
+      mode: prev.mode || (($("gameMode") || {}).value) || "pve",
+      nextSnapAt: null,
+      startedAt: prev.startedAt || null
+    });
     paintStatusUI();
   }
 
@@ -489,11 +571,15 @@
     var next = Number(run.nextSnapAt) || 0;
     var now = Date.now();
     if (!next || next <= now) {
-      takeSnapshot().then(function () { armPollTimer(mins); scheduleNext(mins); }).catch(function () { armPollTimer(mins); scheduleNext(mins); });
+      takeSnapshot()
+        .then(function () { armPollTimer(mins); scheduleNext(mins); })
+        .catch(function () { armPollTimer(mins); scheduleNext(mins); });
     } else {
       clearPollTimer();
       timer = setTimeout(function () {
-        takeSnapshot().then(function () { armPollTimer(mins); scheduleNext(mins); }).catch(function () { armPollTimer(mins); scheduleNext(mins); });
+        takeSnapshot()
+          .then(function () { armPollTimer(mins); scheduleNext(mins); })
+          .catch(function () { armPollTimer(mins); scheduleNext(mins); });
       }, next - now);
     }
     paintStatusUI();
@@ -504,7 +590,11 @@
     if (!canvas) return;
     canvas.addEventListener("mousemove", function (e) {
       hoverX = e.clientX - canvas.getBoundingClientRect().left;
-      if (selectedId) drawChart(selectedId);
+      if (hoverRaf) return;
+      hoverRaf = requestAnimationFrame(function () {
+        hoverRaf = 0;
+        if (selectedId) drawChart(selectedId);
+      });
     });
     canvas.addEventListener("mouseleave", function () {
       hoverX = null;
@@ -535,10 +625,23 @@
       });
     });
     var reset = $("chartResetZoom");
-    if (reset) reset.onclick = function () { viewRange = null; if (selectedId) drawChart(selectedId); };
-    window.addEventListener("resize", function () { if (selectedId) drawChart(selectedId); });
+    if (reset) {
+      reset.onclick = function () {
+        viewRange = null;
+        if (selectedId) drawChart(selectedId);
+      };
+    }
+    var resizeT;
+    window.addEventListener("resize", function () {
+      clearTimeout(resizeT);
+      resizeT = setTimeout(function () {
+        if ($("chart")) $("chart")._cssW = 0;
+        if (selectedId) drawChart(selectedId);
+      }, 120);
+    });
   }
 
+  var searchT = 0;
   function boot() {
     if ($("startBtn")) $("startBtn").onclick = startBg;
     if ($("stopBtn")) $("stopBtn").onclick = stopBg;
@@ -546,11 +649,23 @@
       $("snapBtn").onclick = function () {
         takeSnapshot().catch(function (e) {
           var status = $("status");
-          if (status) { status.className = "status err"; status.textContent = e && e.message ? e.message : String(e); }
+          if (status) {
+            status.className = "status err";
+            status.textContent = e && e.message ? e.message : String(e);
+          }
         });
       };
     }
-    if ($("q")) $("q").oninput = function () { renderList().catch(function () {}); };
+    if ($("q")) {
+      $("q").oninput = function () {
+        clearTimeout(searchT);
+        var v = $("q").value;
+        searchT = setTimeout(function () {
+          listFilter = (v || "").toLowerCase().trim();
+          renderList().catch(function () {});
+        }, 200);
+      };
+    }
     openDb()
       .then(function () { return renderList(); })
       .then(function () {
@@ -562,14 +677,20 @@
             var st = $("status");
             if (st) { st.className = "status"; st.textContent = "DB empty - auto snap..."; }
             return takeSnapshot().catch(function (e) {
-              if (st) { st.className = "status err"; st.textContent = e && e.message ? e.message : String(e); }
+              if (st) {
+                st.className = "status err";
+                st.textContent = e && e.message ? e.message : String(e);
+              }
             });
           }
         });
       })
       .catch(function (e) {
         var status = $("status");
-        if (status) { status.className = "status err"; status.textContent = "DB: " + (e && e.message ? e.message : e); }
+        if (status) {
+          status.className = "status err";
+          status.textContent = "DB: " + (e && e.message ? e.message : e);
+        }
       });
   }
 
