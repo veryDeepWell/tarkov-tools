@@ -3,10 +3,19 @@
   function getCatalogList() {
     return window.TarkovHubCATALOG || window.TarkovHubCatalog || window.CATALOG || [];
   }
+  function tt(key, fallback) {
+    try {
+      if (window.TarkovI18n && TarkovI18n.t) {
+        var v = TarkovI18n.t(key);
+        if (v && v !== key) return v;
+      }
+    } catch (e) {}
+    return fallback || key;
+  }
   const CAT_ORDER = ["flea", "loadout", "hideout", "quests", "med", "util", "other"];
   const CAT_TITLE = {
-    flea: "Барахолка", loadout: "Лоадаут", hideout: "Убежка",
-    quests: "Квесты", med: "Мед / еда", util: "Утилиты", other: "Прочее"
+    flea: "Flea market", loadout: "Loadout", hideout: "Hideout",
+    quests: "Quests", med: "Med / food", util: "Utilities", other: "Other"
   };
   const CAT_MAP = {
     "tarkovtool-price-track.html": "flea", "tarkovtool-price-alarm.html": "flea",
@@ -63,6 +72,9 @@
   function card(t, pinned) {
     if (typeof cardHtml === "function") return cardHtml(t, !!pinned);
     var title = t.title || t.file;
+    try {
+      if (window.TarkovI18n && TarkovI18n.toolTitle) title = TarkovI18n.toolTitle(t.file) || title;
+    } catch (e) {}
     return '<div class="tool" data-open="' + t.file + '" role="link" tabindex="0">' +
       '<div class="tool-head"><div class="tool-ico">📎</div>' +
       '<div><h2>' + title + '</h2><p>' + (t.description || "") + '</p></div></div></div>';
@@ -101,7 +113,9 @@
     var CATALOG = getCatalogList();
     if (!CATALOG.length) {
       var grid0 = document.getElementById("grid");
-      if (grid0) grid0.innerHTML = "<p class=meta>Каталог загружается…</p>";
+      if (grid0) {
+        grid0.innerHTML = "<p class=meta>" + tt("hub.catalogLoading", "Loading catalog…") + "</p>";
+      }
       return;
     }
 
@@ -122,7 +136,7 @@
     var count = document.getElementById("count");
     if (count) {
       count.textContent = list.length + " / " + CATALOG.length +
-        (hidden.length ? " · скрыто " + hidden.length : "");
+        (hidden.length ? " " + tt("hub.hiddenCount", "· hidden {n}", { n: hidden.length }).replace("{n}", hidden.length) : "");
     }
 
     var byCat = {};
@@ -140,7 +154,8 @@
     var html = "";
     if (pinned.length) {
       html += '<div class="cat-section" data-cat="__pins__">' +
-        '<div class="cat-head" data-cat="__pins__"><span class="cat-chevron">📌</span><span class="cat-title">Закреплённые</span><span class="cat-count">' + pinned.length + '</span></div>' +
+        '<div class="cat-head" data-cat="__pins__"><span class="cat-chevron">📌</span><span class="cat-title">' +
+        tt("hub.pinned", "Pinned") + '</span><span class="cat-count">' + pinned.length + '</span></div>' +
         '<div class="cat-body grid">' +
         pinned.map(function (t) { return card(t, true); }).join("") +
         "</div></div>";
@@ -150,9 +165,10 @@
       var tools = byCat[c] || [];
       if (!tools.length) return;
       var isCol = collapsed.indexOf(c) >= 0;
-      var title = (window.TarkovHubCATEGORIES && TarkovHubCATEGORIES[c]) || CAT_TITLE[c] || c;
+      var title = CAT_TITLE[c] || c;
       try {
         if (window.TarkovI18n && TarkovI18n.catTitle) title = TarkovI18n.catTitle(c) || title;
+        else if (window.TarkovI18n && TarkovI18n.t) title = TarkovI18n.t("cat." + c) || title;
       } catch (e) {}
       html += '<div class="cat-section" data-cat="' + c + '">' +
         '<div class="cat-head' + (isCol ? " is-collapsed" : "") + '" data-cat="' + c + '">' +
@@ -180,6 +196,9 @@
   });
   window.addEventListener("tarkov-catalog-ready", function () {
     try { boot(); } catch (e) {}
+  });
+  window.addEventListener("tt-lang-changed", function () {
+    try { window.renderCatalog(); } catch (e) {}
   });
 
   function boot() {
