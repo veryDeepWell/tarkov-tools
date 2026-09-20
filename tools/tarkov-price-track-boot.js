@@ -1,5 +1,5 @@
 /**
- * Price-track mini helper — mirrors run state + countdown into mini-tab status.
+ * Price-track mini helper + stuck-state recovery
  */
 (function () {
   var syncTimer = null;
@@ -8,6 +8,9 @@
 
   function readRun() {
     try { return JSON.parse(localStorage.getItem(RUN_KEY) || "{}") || {}; } catch (e) { return {}; }
+  }
+  function writeRun(o) {
+    try { localStorage.setItem(RUN_KEY, JSON.stringify(o)); } catch (e) {}
   }
   function readMeta() {
     try { return JSON.parse(localStorage.getItem(META_KEY) || "{}") || {}; } catch (e) { return {}; }
@@ -36,6 +39,16 @@
     return m + "м " + String(sec).padStart(2, "0") + "с";
   }
 
+  function scheduleNext(mins) {
+    mins = Math.max(1, Number(mins) || 30);
+    var run = readRun();
+    writeRun(Object.assign({}, run, {
+      on: run.on !== false,
+      mins: mins,
+      nextSnapAt: Date.now() + mins * 60 * 1000
+    }));
+  }
+
   function reportMini(running, label) {
     try {
       var tool = "tarkovtool-price-track.html";
@@ -47,11 +60,6 @@
       if (window.parent && window.parent !== window) {
         window.parent.postMessage(payload, location.origin);
       }
-      try {
-        var bc = new BroadcastChannel("tarkov-tools");
-        bc.postMessage(payload);
-        bc.close();
-      } catch (e) {}
     } catch (e) {}
   }
 
@@ -71,14 +79,49 @@
     }
   }
 
+  function fixStuck() {
+    var run = readRun();
+    if (!run.on) return;
+    var mins = Math.max(1, Number(run.mins) || 30);
+    var next = Number(run.nextSnapAt) || 0;
+    if (!next || next <= Date.now()) {
+      scheduleNext(mins);
+    }
+    var st = document.getElementById("status");
+    if (st && /Fetching/i.test(st.textContent || "")) {
+      if (!window.__ttFetchStarted) window.__ttFetchStarted = Date.now();
+      if (Date.now() - window.__ttFetchStarted > 50000) {
+        st.className = "status err";
+        st.textContent = "Snap timeout — Стоп/Старт или «Снять сейчас»";
+        scheduleNext(mins);
+        window.__ttFetchStarted = 0;
+      }
+    } else {
+      window.__ttFetchStarted = 0;
+    }
+  }
+
+  function armButtons() {
+    ["snapBtn", "startBtn"].forEach(function (id) {
+      var b = document.getElementById(id);
+      if (!b || b.__ttHot) return;
+      b.__ttHot = true;
+      b.addEventListener("click", function () {
+        window.__ttFetchStarted = Date.now();
+        var run = readRun();
+        var mins = Math.max(1, Number(run.mins) || Number((document.getElementById("interval") || {}).value) || 30);
+        scheduleNext(mins);
+      }, true);
+    });
+  }
+
   setTimeout(sync, 300);
-  syncTimer = setInterval(sync, 1000);
+  syncTimer = setInterval(function () { sync(); fixStuck(); }, 1000);
+  armButtons();
+  setTimeout(armButtons, 800);
 
   window.addEventListener("message", function (ev) {
     if (ev.origin !== location.origin) return;
     if (ev.data && ev.data.type === "tt-ping-status") sync();
-  });
-  window.addEventListener("pagehide", function () {
-    if (syncTimer) clearInterval(syncTimer);
   });
 })();
