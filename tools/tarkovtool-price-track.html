@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Динамика цен</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Динамика цен", "description": "Снимки flea avg/low/high, график, фон, countdown."}
+  </script>
+  <style>
+    .item-row { display:flex; gap:10px; align-items:center; padding:8px 10px; border-bottom:1px solid var(--border); cursor:pointer; }
+    .item-row:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+    .item-row img { width:36px; height:36px; object-fit:contain; }
+    .item-row .nm { flex:1; font-size:.92rem; }
+    .item-row .pr { font-variant-numeric:tabular-nums; color:var(--accent); white-space:nowrap; }
+    #itemList { max-height:420px; overflow:auto; }
+    .chart-toolbar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; align-items:center; }
+    .chart-toolbar .chip { border:1px solid var(--border); background:var(--input-bg); color:var(--muted); border-radius:999px; padding:4px 12px; cursor:pointer; font-size:.85rem; }
+    .chart-toolbar .chip.on { border-color:var(--accent); color:var(--text); background:color-mix(in srgb, var(--accent) 18%, transparent); }
+    .chart-wrap { position:relative; min-height:320px; background:#12151c; border-radius:10px; border:1px solid var(--border); overflow:hidden; }
+    #chart { display:block; width:100%; height:320px; }
+    .chart-tip { position:absolute; left:12px; top:12px; background:rgba(15,17,21,.92); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:.8rem; pointer-events:none; max-width:90%; }
+    .countdown { font-weight:700; font-variant-numeric:tabular-nums; margin-top:8px; color:var(--muted); }
+    .countdown.on { color:var(--accent); }
+    .chart-stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; margin:10px 0 4px; }
+    .chart-stats .stat { background:var(--input-bg); border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
+    .chart-stats .stat .k { font-size:.72rem; color:var(--muted); text-transform:uppercase; }
+    .chart-stats .stat .v { font-size:.95rem; font-variant-numeric:tabular-nums; margin-top:2px; }
+    .chart-stats .stat .v.up { color:#3dd68c; }
+    .chart-stats .stat .v.down { color:#ff6b7a; }
+    .layout { display:grid; grid-template-columns:minmax(240px,320px) 1fr; gap:14px; }
+    @media (max-width:900px) { .layout { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="card-title">Динамика цен</div>
+      <div class="row" style="gap:10px;flex-wrap:wrap;align-items:end">
+        <label>Интервал (мин)
+          <input type="number" id="interval" value="30" min="1" max="1440" style="width:90px">
+        </label>
+        <label>Режим
+          <select id="gameMode"><option value="pve">PvE</option><option value="pvp">PvP</option></select>
+        </label>
+        <button type="button" class="btn" id="startBtn">Старт фона</button>
+        <button type="button" class="btn-ghost" id="stopBtn">Стоп</button>
+        <button type="button" class="btn-ghost" id="snapBtn">Снять сейчас</button>
+      </div>
+      <p class="meta" id="trackMeta">—</p>
+      <p class="countdown" id="countdown" data-poll-prefix="Следующий снимок: ">Следующий снимок: —</p>
+      <p class="status" id="status"></p>
+    </div>
+    <div class="layout">
+      <div class="card">
+        <div class="card-title">Предметы</div>
+        <input type="search" id="q" placeholder="Фильтр…" style="margin-bottom:8px">
+        <div id="itemList" class="meta">Пока пусто</div>
+      </div>
+      <div class="card">
+        <div class="card-title" id="chartTitle">Выбери предмет</div>
+        <div class="chart-toolbar">
+          <button type="button" class="chip" data-range="1d">1 день</button>
+          <button type="button" class="chip" data-range="3d">3 дня</button>
+          <button type="button" class="chip on" data-range="7d">Неделя</button>
+          <button type="button" class="chip" data-range="all">Всё время</button>
+          <button type="button" class="chip on" data-series="avg">avg</button>
+          <button type="button" class="chip on" data-series="low">low</button>
+          <button type="button" class="chip on" data-series="high">high</button>
+          <button type="button" class="btn-ghost" id="chartResetZoom" style="min-width:auto;min-height:28px;padding:0 10px">Сброс зума</button>
+        </div>
+        <div class="chart-stats" id="chartStats" hidden></div>
+        <div class="chart-wrap">
+          <canvas id="chart" width="900" height="320"></canvas>
+          <div id="chartTip" class="chart-tip" style="display:none"></div>
+        </div>
+        <p class="meta" id="chartMeta"></p>
+      </div>
+    </div>
+  </div>
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-poll.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-state.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-price-track.js"></script>
+  <script src="tarkov-price-track-boot.js"></script>
+</body>
+</html>
