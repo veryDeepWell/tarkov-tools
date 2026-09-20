@@ -22,6 +22,7 @@
   var hoverRaf = 0;
   var latestCache = null;
   var listFilter = "";
+  var snapInFlight = null;
 
   function $(id) { return document.getElementById(id); }
 
@@ -62,7 +63,7 @@
   }
 
   function fmtRub(n) {
-    return Math.round(Number(n) || 0).toLocaleString("ru-RU") + " RUB";
+    return Math.round(Number(n) || 0).toLocaleString("ru-RU") + " ₽";
   }
 
   function fmtClock(ts) {
@@ -77,13 +78,13 @@
 
   function fmtRemain(ms) {
     if (ms == null || isNaN(ms)) return "-";
-    if (ms <= 0) return "now";
+    if (ms <= 0) return "сейчас";
     var s = Math.floor(ms / 1000);
     var h = Math.floor(s / 3600);
     var m = Math.floor((s % 3600) / 60);
     var sec = s % 60;
-    if (h > 0) return h + "h " + String(m).padStart(2, "0") + "m";
-    return m + "m " + String(sec).padStart(2, "0") + "s";
+    if (h > 0) return h + "ч " + String(m).padStart(2, "0") + "м";
+    return m + "м " + String(sec).padStart(2, "0") + "с";
   }
 
   function median(arr) {
@@ -132,9 +133,7 @@
     var res = await fetch("https://json.tarkov.dev/" + mode + "/items", { cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     var json = await res.json();
-    var arr = normalizeItems(json);
-    json = null;
-    return arr;
+    return normalizeItems(json);
   }
 
   function openDb() {
@@ -151,15 +150,10 @@
           d.createObjectStore(STORE, { keyPath: "itemId" });
         }
       };
-      req.onblocked = function () {
-        var st = $("status");
-        if (st) { st.className = "status err"; st.textContent = "IndexedDB blocked"; }
-      };
       req.onsuccess = function () {
         db = req.result;
         if (!db.objectStoreNames.contains(STORE)) {
-          db.close();
-          db = null;
+          db.close(); db = null;
           reject(new Error("series store missing"));
           return;
         }
@@ -209,14 +203,8 @@
       if (!row || !row.points) return [];
       return row.points.map(function (p) {
         return {
-          itemId: itemId,
-          ts: p.ts,
-          avg: p.avg,
-          low: p.low,
-          high: p.high,
-          name: row.name,
-          slug: row.slug,
-          icon: row.icon
+          itemId: itemId, ts: p.ts, avg: p.avg, low: p.low, high: p.high,
+          name: row.name, slug: row.slug, icon: row.icon
         };
       });
     });
@@ -234,9 +222,7 @@
     if (!hist || hist.length <= maxN) return hist;
     var out = [];
     var step = (hist.length - 1) / (maxN - 1);
-    for (var i = 0; i < maxN; i++) {
-      out.push(hist[Math.round(i * step)]);
-    }
+    for (var i = 0; i < maxN; i++) out.push(hist[Math.round(i * step)]);
     return out;
   }
 
@@ -249,15 +235,8 @@
         if (!r || !r.points || !r.points.length) continue;
         var last = r.points[r.points.length - 1];
         list.push({
-          itemId: r.itemId,
-          name: r.name,
-          slug: r.slug,
-          icon: r.icon,
-          avg: last.avg,
-          low: last.low,
-          high: last.high,
-          ts: last.ts,
-          n: r.points.length
+          itemId: r.itemId, name: r.name, slug: r.slug, icon: r.icon,
+          avg: last.avg, low: last.low, high: last.high, ts: last.ts, n: r.points.length
         });
       }
       latestCache = list;
@@ -276,16 +255,16 @@
     var mins = Number(run.mins) || Number(($("interval") || {}).value) || 30;
     if (el) {
       el.textContent = run.on
-        ? ("BG ON every " + mins + " min last " + last + (meta.count != null ? " (" + meta.count + ")" : ""))
-        : ("BG off last " + last);
+        ? ("Фон ВКЛ · каждые " + mins + " мин · последний " + last + (meta.count != null ? " (" + meta.count + ")" : ""))
+        : ("Фон выкл · последний " + last);
     }
     var remainMs = run.on && run.nextSnapAt ? Number(run.nextSnapAt) - Date.now() : null;
     if (cd) {
       if (run.on) {
-        cd.textContent = "Next: " + fmtRemain(remainMs);
+        cd.textContent = "След.: " + fmtRemain(remainMs);
         cd.className = "countdown on";
       } else {
-        cd.textContent = "Countdown off";
+        cd.textContent = "Отсчёт выкл";
         cd.className = "countdown";
       }
     }
@@ -293,7 +272,7 @@
       if (window.TarkovMini && TarkovMini.reportStatus) {
         TarkovMini.reportStatus({
           running: !!run.on,
-          label: run.on ? ("in " + fmtRemain(remainMs)) : "idle",
+          label: run.on ? ("через " + fmtRemain(remainMs)) : "idle",
           tool: "tarkovtool-price-track.html"
         });
       }
@@ -327,11 +306,31 @@
   }
 
   async function takeSnapshot() {
+    if (snapInFlight) return snapInFlight;
+    snapInFlight = doTakeSnapshot().finally(function () { snapInFlight = null; });
+    return snapInFlight;
+  }
+
+  async function doTakeSnapshot() {
+    var mins0 = Math.max(1, Number((readRun().mins) || (($("interval") || {}).value) || 30));
+    scheduleNext(mins0);
     await openDb();
     var mode = (($("gameMode") || {}).value) || "pve";
     var status = $("status");
-    if (status) { status.className = "status"; status.textContent = "Fetching..."; }
-    var arr = await fetchItems(mode);
+    if (status) { status.className = "status"; status.textContent = "Fetching…"; }
+    var arr;
+    try {
+      arr = await Promise.race([
+        fetchItems(mode),
+        new Promise(function (_, rej) {
+          setTimeout(function () { rej(new Error("API timeout 45s")); }, 45000);
+        })
+      ]);
+    } catch (e) {
+      scheduleNext(mins0);
+      if (status) { status.className = "status err"; status.textContent = String(e.message || e); }
+      throw e;
+    }
     if (!arr.length) throw new Error("API 0 items mode=" + mode);
     var now = Date.now();
     var n = 0;
@@ -367,23 +366,16 @@
     byId = null;
     invalidateCache();
     writeMeta({ lastSnap: now, count: n, mode: mode });
-    var run = readRun();
-    var mins = Number(run.mins) || Number(($("interval") || {}).value) || 30;
-    if (run.on) scheduleNext(mins); else paintStatusUI();
+    scheduleNext(mins0);
     if (status) {
       status.className = "status ok";
-      status.textContent = "Snap " + n + " items (cap " + MAX_POINTS + " pts) " + fmtClock(now);
+      status.textContent = "Snap " + n + " · " + fmtClock(now);
     }
     await renderList();
     if (selectedId) drawChart(selectedId);
     try {
       if (typeof Notify === "function") {
-        Notify({
-          title: "Price track",
-          body: "Snap " + n + " " + fmtClock(now),
-          tool: "tarkovtool-price-track.html",
-          kind: "price"
-        });
+        Notify({ title: "Price track", body: "Snap " + n + " · " + fmtClock(now), tool: "tarkovtool-price-track.html", kind: "price" });
       }
     } catch (e) {}
   }
@@ -406,14 +398,14 @@
     var box = $("itemList");
     if (!box) return;
     if (!total) {
-      box.innerHTML = "<p class=meta>Empty. Click Snap.</p>";
+      box.innerHTML = "<p class=meta>Пусто. Сними снимок.</p>";
       return;
     }
     var html = "";
     if (total > LIST_LIMIT && !q) {
-      html += "<p class=meta>Top " + LIST_LIMIT + " / " + total + " by price. Type to search.</p>";
+      html += "<p class=meta>Топ " + LIST_LIMIT + " / " + total + ". Фильтр — поиск.</p>";
     } else if (q) {
-      html += "<p class=meta>" + total + " match</p>";
+      html += "<p class=meta>" + total + " найдено</p>";
     }
     for (var i = 0; i < shown.length; i++) {
       var r = shown[i];
@@ -435,11 +427,7 @@
   function paintStats(hist) {
     var box = $("chartStats");
     if (!box) return;
-    if (!hist || hist.length < 1) {
-      box.hidden = true;
-      box.innerHTML = "";
-      return;
-    }
+    if (!hist || hist.length < 1) { box.hidden = true; box.innerHTML = ""; return; }
     var avgs = [];
     for (var i = 0; i < hist.length; i++) {
       var a = Number(hist[i].avg) || 0;
@@ -455,12 +443,12 @@
     var dTxt = (delta >= 0 ? "+" : "") + delta.toFixed(1) + "%";
     box.hidden = false;
     box.innerHTML =
-      "<div class=stat><div class=k>Now</div><div class=v>" + fmtRub(cur) + "</div></div>" +
-      "<div class=stat><div class=k>Median</div><div class=v>" + fmtRub(med) + "</div></div>" +
-      "<div class=stat><div class=k>Min</div><div class=v>" + fmtRub(mn) + "</div></div>" +
-      "<div class=stat><div class=k>Max</div><div class=v>" + fmtRub(mx) + "</div></div>" +
-      "<div class=stat><div class=k>Change</div><div class=\"v " + dCls + "\">" + dTxt + "</div></div>" +
-      "<div class=stat><div class=k>Points</div><div class=v>" + hist.length + "</div></div>";
+      "<div class=stat><div class=k>Сейчас</div><div class=v>" + fmtRub(cur) + "</div></div>" +
+      "<div class=stat><div class=k>Медиана</div><div class=v>" + fmtRub(med) + "</div></div>" +
+      "<div class=stat><div class=k>Мин</div><div class=v>" + fmtRub(mn) + "</div></div>" +
+      "<div class=stat><div class=k>Макс</div><div class=v>" + fmtRub(mx) + "</div></div>" +
+      "<div class=stat><div class=k>Δ</div><div class=\"v " + dCls + "\">" + dTxt + "</div></div>" +
+      "<div class=stat><div class=k>Точек</div><div class=v>" + hist.length + "</div></div>";
   }
 
   function drawChart(itemId) {
@@ -470,13 +458,12 @@
       lastHist = hist;
       var title = $("chartTitle");
       var meta = $("chartMeta");
-      var tip = $("chartTip");
       var canvas = $("chart");
       if (!canvas) return;
       var ctx = canvas.getContext("2d");
       if (!hist.length) {
-        if (title) title.textContent = "No data in range";
-        if (meta) meta.textContent = full.length ? ("Stored: " + full.length + " — change range") : "";
+        if (title) title.textContent = "Нет данных в диапазоне";
+        if (meta) meta.textContent = full.length ? ("В базе: " + full.length) : "";
         paintStats(null);
         return;
       }
@@ -484,10 +471,9 @@
       if (title) title.textContent = last.name || itemId;
       paintStats(hist);
       if (meta) {
-        meta.textContent = hist.length + " pts in range / " + full.length + " stored · avg "
-          + fmtRub(last.avg) + " · low " + fmtRub(last.low) + " · high " + fmtRub(last.high);
+        meta.textContent = hist.length + " т. / " + full.length + " · avg " + fmtRub(last.avg) +
+          " · low " + fmtRub(last.low) + " · high " + fmtRub(last.high);
       }
-
       var drawHist = hist;
       if (viewRange) {
         var i0 = Math.max(0, Math.min(viewRange.i0, hist.length - 1));
@@ -498,7 +484,6 @@
       if (slice.length === 1) {
         slice = [slice[0], Object.assign({}, slice[0], { ts: (slice[0].ts || 0) + 60000 })];
       }
-
       var dpr = Math.min(window.devicePixelRatio || 1, 2);
       var wrap = canvas.parentElement;
       var cssW = Math.max(280, canvas.clientWidth || 0, wrap ? wrap.clientWidth : 0, 400);
@@ -514,7 +499,6 @@
       var W = cssW, H = cssH;
       ctx.fillStyle = "#12151c";
       ctx.fillRect(0, 0, W, H);
-
       var vals = [];
       for (var vi = 0; vi < slice.length; vi++) {
         var h = slice[vi];
@@ -525,7 +509,7 @@
       if (!vals.length) {
         ctx.fillStyle = "#f0c14b";
         ctx.font = "14px sans-serif";
-        ctx.fillText("No prices", 16, H / 2);
+        ctx.fillText("Нет цен", 16, H / 2);
         return;
       }
       var min = Math.min.apply(null, vals);
@@ -535,35 +519,15 @@
       var plotW = W - padL - padR, plotH = H - padT - padB;
       function xAt(i) { return padL + (plotW * i) / Math.max(1, slice.length - 1); }
       function yAt(v) { return padT + plotH * (1 - (v - min) / (max - min || 1)); }
-      function tLabel(ts) {
-        try {
-          var d = new Date(ts);
-          return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" })
-            + " " + d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-        } catch (e) { return ""; }
-      }
-      ctx.strokeStyle = "#2a3140";
-      ctx.fillStyle = "#9aa3b2";
-      ctx.font = "11px sans-serif";
-      ctx.textAlign = "right";
-      ctx.textBaseline = "middle";
+      ctx.strokeStyle = "#2a2f3a";
+      ctx.lineWidth = 1;
       for (var g = 0; g <= 4; g++) {
         var gy = padT + (plotH * g) / 4;
-        var gv = max - ((max - min) * g) / 4;
-        ctx.beginPath();
-        ctx.moveTo(padL, gy);
-        ctx.lineTo(W - padR, gy);
-        ctx.stroke();
-        ctx.fillText(Math.round(gv).toLocaleString("ru-RU"), padL - 8, gy);
+        ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(W - padR, gy); ctx.stroke();
       }
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      [0, Math.floor(slice.length / 2), slice.length - 1].forEach(function (idx) {
-        if (slice[idx]) ctx.fillText(tLabel(slice[idx].ts), xAt(idx), H - padB + 8);
-      });
       function strokeSeries(key, color) {
+        if (!chartSeries[key]) return;
         ctx.strokeStyle = color;
-        ctx.fillStyle = color;
         ctx.lineWidth = 2;
         ctx.beginPath();
         var started = false;
@@ -575,53 +539,33 @@
           else ctx.lineTo(x, y);
         }
         if (started) ctx.stroke();
-        if (slice.length <= 80) {
-          for (var j = 0; j < slice.length; j++) {
-            var v2 = Number(slice[j][key]) || 0;
-            if (v2 <= 0) continue;
-            ctx.beginPath();
-            ctx.arc(xAt(j), yAt(v2), 3, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
       }
-      if (chartSeries.high) strokeSeries("high", "#ff6b7a");
-      if (chartSeries.avg) strokeSeries("avg", "#f0c14b");
-      if (chartSeries.low) strokeSeries("low", "#3dd68c");
-      ctx.strokeStyle = "#3a4254";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
-      if (hoverX != null && slice.length) {
-        var rel = (hoverX - padL) / (plotW || 1);
-        var hi = Math.max(0, Math.min(slice.length - 1, Math.round(rel * (slice.length - 1))));
-        var hx = xAt(hi);
-        ctx.strokeStyle = "rgba(255,255,255,0.35)";
-        ctx.beginPath();
-        ctx.moveTo(hx, padT);
-        ctx.lineTo(hx, padT + plotH);
-        ctx.stroke();
-        var hp = slice[hi];
-        var tipText = tLabel(hp.ts)
-          + (chartSeries.avg ? " avg " + fmtRub(hp.avg) : "")
-          + (chartSeries.low ? " low " + fmtRub(hp.low) : "")
-          + (chartSeries.high ? " high " + fmtRub(hp.high) : "");
-        if (tip) { tip.style.display = "block"; tip.textContent = tipText; }
-      } else if (tip) {
-        tip.style.display = "none";
-      }
-    }).catch(function (e) {
-      var title = $("chartTitle");
-      if (title) title.textContent = "Chart error: " + (e && e.message ? e.message : e);
-    });
+      strokeSeries("high", "#5b8def");
+      strokeSeries("avg", "#f0c14b");
+      strokeSeries("low", "#3dd68c");
+      ctx.fillStyle = "#9aa3b2";
+      ctx.font = "11px sans-serif";
+      ctx.fillText(fmtRub(max), 4, padT + 10);
+      ctx.fillText(fmtRub(min), 4, padT + plotH);
+    }).catch(function () {});
   }
 
   function clearPollTimer() {
     if (timer) { clearTimeout(timer); clearInterval(timer); timer = null; }
   }
+
   function armPollTimer(mins) {
     clearPollTimer();
     mins = Math.max(1, Number(mins) || 30);
-    timer = setInterval(function () { takeSnapshot().catch(function () {}); }, mins * 60 * 1000);
+    window.__ttPollMins = mins;
+    timer = setInterval(function () {
+      var run = readRun();
+      if (!run.on) return;
+      var next = Number(run.nextSnapAt) || 0;
+      if (next && next > Date.now()) return;
+      if (snapInFlight) return;
+      takeSnapshot().catch(function () {});
+    }, 15000);
   }
 
   function startBg() {
@@ -633,18 +577,18 @@
     writeRun({
       on: true, mins: mins,
       mode: (($("gameMode") || {}).value) || "pve",
-      startedAt: Date.now(), nextSnapAt: Date.now()
+      startedAt: Date.now(),
+      nextSnapAt: Date.now() + mins * 60 * 1000
     });
+    armPollTimer(mins);
+    paintStatusUI();
     takeSnapshot()
-      .then(function () { armPollTimer(mins); scheduleNext(mins); })
       .catch(function (e) {
         var status = $("status");
         if (status) {
           status.className = "status err";
           status.textContent = e && e.message ? e.message : String(e);
         }
-        armPollTimer(mins);
-        scheduleNext(mins);
       })
       .then(function () {
         window.__ttStartLock = false;
@@ -673,90 +617,38 @@
     if ($("interval")) $("interval").value = mins;
     if (run.mode && $("gameMode")) $("gameMode").value = run.mode;
     window.__ttPollMins = mins;
+    armPollTimer(mins);
     var next = Number(run.nextSnapAt) || 0;
-    var now = Date.now();
-    if (!next || next <= now) {
-      takeSnapshot()
-        .then(function () { armPollTimer(mins); scheduleNext(mins); })
-        .catch(function () { armPollTimer(mins); scheduleNext(mins); });
-    } else {
-      clearPollTimer();
-      timer = setTimeout(function () {
-        takeSnapshot()
-          .then(function () { armPollTimer(mins); scheduleNext(mins); })
-          .catch(function () { armPollTimer(mins); scheduleNext(mins); });
-      }, next - now);
+    if ((!next || next <= Date.now()) && !snapInFlight) {
+      takeSnapshot().catch(function () {});
     }
     paintStatusUI();
   }
 
   function wireChart() {
-    var canvas = $("chart");
-    if (!canvas) return;
-    canvas.addEventListener("mousemove", function (e) {
-      hoverX = e.clientX - canvas.getBoundingClientRect().left;
-      if (hoverRaf) return;
-      hoverRaf = requestAnimationFrame(function () {
-        hoverRaf = 0;
-        if (selectedId) drawChart(selectedId);
-      });
-    });
-    canvas.addEventListener("mouseleave", function () {
-      hoverX = null;
-      if (selectedId) drawChart(selectedId);
-    });
-    canvas.addEventListener("wheel", function (e) {
-      if (!lastHist.length || lastHist.length < 4) return;
-      e.preventDefault();
-      var len = lastHist.length;
-      var i0 = viewRange ? viewRange.i0 : 0;
-      var i1 = viewRange ? viewRange.i1 : len - 1;
-      var span = i1 - i0;
-      var mid = (i0 + i1) / 2;
-      if (e.deltaY < 0) span = Math.max(3, Math.floor(span * 0.7));
-      else span = Math.min(len - 1, Math.ceil(span / 0.7));
-      i0 = Math.max(0, Math.round(mid - span / 2));
-      i1 = Math.min(len - 1, i0 + span);
-      viewRange = { i0: i0, i1: i1 };
-      if (i0 === 0 && i1 === len - 1) viewRange = null;
-      if (selectedId) drawChart(selectedId);
-    }, { passive: false });
-    document.querySelectorAll("[data-series]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var k = btn.getAttribute("data-series");
-        chartSeries[k] = !chartSeries[k];
-        btn.classList.toggle("on", chartSeries[k]);
-        if (selectedId) drawChart(selectedId);
-      });
-    });
     document.querySelectorAll("[data-range]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
+      btn.onclick = function () {
         chartRange = btn.getAttribute("data-range") || "7d";
         document.querySelectorAll("[data-range]").forEach(function (b) {
-          b.classList.toggle("on", b.getAttribute("data-range") === chartRange);
+          b.classList.toggle("on", b === btn);
         });
         viewRange = null;
         if (selectedId) drawChart(selectedId);
-      });
+      };
     });
-    var reset = $("chartResetZoom");
-    if (reset) {
-      reset.onclick = function () {
-        viewRange = null;
+    document.querySelectorAll("[data-series]").forEach(function (btn) {
+      btn.onclick = function () {
+        var k = btn.getAttribute("data-series");
+        if (!k) return;
+        chartSeries[k] = !chartSeries[k];
+        btn.classList.toggle("on", !!chartSeries[k]);
         if (selectedId) drawChart(selectedId);
       };
-    }
-    var resizeT;
-    window.addEventListener("resize", function () {
-      clearTimeout(resizeT);
-      resizeT = setTimeout(function () {
-        if ($("chart")) $("chart")._cssW = 0;
-        if (selectedId) drawChart(selectedId);
-      }, 120);
     });
+    var rz = $("chartResetZoom");
+    if (rz) rz.onclick = function () { viewRange = null; if (selectedId) drawChart(selectedId); };
   }
 
-  var searchT = 0;
   function boot() {
     if ($("startBtn")) $("startBtn").onclick = startBg;
     if ($("stopBtn")) $("stopBtn").onclick = stopBg;
@@ -773,42 +665,24 @@
     }
     if ($("q")) {
       $("q").oninput = function () {
-        clearTimeout(searchT);
-        var v = $("q").value;
-        searchT = setTimeout(function () {
-          listFilter = (v || "").toLowerCase().trim();
-          renderList().catch(function () {});
-        }, 200);
+        listFilter = (($("q") || {}).value || "").toLowerCase().trim();
+        renderList().catch(function () {});
       };
     }
+    wireChart();
+    startCountdownLoop();
     openDb()
       .then(function () { return renderList(); })
-      .then(function () {
-        wireChart();
-        startCountdownLoop();
-        resumeIfNeeded();
-        return allLatest().then(function (list) {
-          if (!list.length) {
-            var st = $("status");
-            if (st) {
-              st.className = "status";
-              st.textContent = "DB empty - auto snap...";
-            }
-            return takeSnapshot().catch(function (e) {
-              if (st) {
-                st.className = "status err";
-                st.textContent = e && e.message ? e.message : String(e);
-              }
-            });
-          }
-        });
-      })
       .catch(function (e) {
         var status = $("status");
         if (status) {
           status.className = "status err";
-          status.textContent = "DB: " + (e && e.message ? e.message : e);
+          status.textContent = "DB: " + (e && e.message ? e.message : String(e));
         }
+      })
+      .then(function () {
+        resumeIfNeeded();
+        paintStatusUI();
       });
   }
 
