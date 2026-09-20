@@ -1,26 +1,13 @@
-/** Tarkov Tools — shared runtime */
+/*! Tarkov Tools common — theme, i18n helpers, sound, Notify, settings bar */
 (function (global) {
+  "use strict";
 
-  /** Resolve URL relative to site root (works from /tools/* and /). */
   function ttRoot() {
     try {
-      var scripts = document.getElementsByTagName("script");
-      for (var i = scripts.length - 1; i >= 0; i--) {
-        var src = scripts[i].src || "";
-        var m = src.match(/^(.*\/)(?:core\/)?tarkov-common\.js(?:\?.*)?$/);
-        if (m) {
-          var base = m[1];
-          if (/\/core\/$/.test(base)) base = base.replace(/\/core\/$/, "/");
-          return base;
-        }
-      }
+      var p = location.pathname || "";
+      if (p.indexOf("/tools/") >= 0) return "../";
     } catch (e) {}
-    try {
-      var path = location.pathname || "/";
-      if (path.indexOf("/tools/") >= 0) return path.replace(/\/tools\/[^/]*$/, "/");
-      if (path.indexOf("/hub/") >= 0) return path.replace(/\/hub\/[^/]*$/, "/");
-      return path.replace(/\/[^/]*$/, "/");
-    } catch (e2) { return "/"; }
+    return "";
   }
   function ttUrl(rel) {
     var root = ttRoot();
@@ -46,27 +33,30 @@
     en: { settings:"Settings", theme:"Theme", themeDark:"Dark", themeLight:"Light", lang:"Language", sound:"Sound", soundOn:"On", soundOff:"Off", mode:"Default mode", close:"Close", export:"Export", import:"Import", importOk:"Import done", importFail:"Import failed", search:"Filter table…", welcomeTitle:"Tarkov Tools settings", welcomeBody:"Theme, language, sound, mode and accent.", apply:"Apply", hub:"Hub", accent:"Accent", tips:"Tool tips", tipsOn:"On", tipsOff:"Off", volume:"Volume", testSound:"Test" }
   };
 
-  function get(k, d) {
-    try { var v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; }
+  function get(k, def) {
+    try {
+      var v = localStorage.getItem(k);
+      return v == null ? def : v;
+    } catch (e) { return def; }
   }
-  function set(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
+  function set(k, v) {
+    try { localStorage.setItem(k, String(v)); } catch (e) {}
+  }
 
   function lang() {
+    try {
+      if (window.TarkovI18n && TarkovI18n.current) return TarkovI18n.current;
+    } catch (e) {}
     var v = get(KEYS.lang, "ru") || "ru";
-    var known = ["en", "ru", "uk", "de", "zh-CN"];
-    if (known.indexOf(v) >= 0) return v;
-    var low = String(v).toLowerCase();
-    if (low === "zh" || low.indexOf("zh") === 0) return "zh-CN";
-    if (known.indexOf(low) >= 0) return low;
-    return "ru";
+    return v;
   }
   function t(key) {
     try {
       if (window.TarkovI18n && TarkovI18n.t) {
-        var v = TarkovI18n.t("common." + key);
-        if (v && v !== "common." + key && v !== key) return v;
-        v = TarkovI18n.t(key);
+        var v = TarkovI18n.t(key);
         if (v && v !== key) return v;
+        v = TarkovI18n.t("common." + key);
+        if (v && v !== "common." + key) return v;
       }
     } catch (e) {}
     var pack = I18N[lang()] || I18N.ru;
@@ -88,22 +78,109 @@
     if (ACCENTS[acc]) document.documentElement.style.setProperty("--accent", ACCENTS[acc]);
   }
 
+  function unlockAudio() {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      var ctx = beep._ctx || (beep._ctx = new Ctx());
+      if (ctx.state === "suspended") {
+        try { ctx.resume(); } catch (e) {}
+      }
+      return ctx;
+    } catch (e) { return null; }
+  }
+
+  function tone(ctx, freq, start, dur, vol, type) {
+    var o = ctx.createOscillator();
+    var g = ctx.createGain();
+    o.type = type || "sine";
+    o.frequency.value = freq;
+    o.connect(g);
+    g.connect(ctx.destination);
+    var v = Math.max(0.0001, vol);
+    g.gain.setValueAtTime(v, start);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    o.start(start);
+    o.stop(start + dur + 0.02);
+  }
+
   function beep(kind) {
     if (!soundEnabled()) return;
     try {
-      var Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return;
-      var ctx = beep._ctx || (beep._ctx = new Ctx());
-      var o = ctx.createOscillator();
-      var g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
+      var ctx = unlockAudio();
+      if (!ctx) return;
       var now = ctx.currentTime;
-      var vol = volume() * 0.15;
-      if (kind === "ok") { o.frequency.value = 880; g.gain.setValueAtTime(vol, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.12); o.start(now); o.stop(now + 0.12); }
-      else if (kind === "restock") { o.frequency.value = 660; g.gain.setValueAtTime(vol, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.25); o.start(now); o.stop(now + 0.25); }
-      else { o.frequency.value = 440; g.gain.setValueAtTime(vol, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.08); o.start(now); o.stop(now + 0.08); }
+      var vol = volume() * 0.22;
+      kind = kind || "ok";
+      if (kind === "ok" || kind === "price") {
+        tone(ctx, 880, now, 0.1, vol);
+        tone(ctx, 1174, now + 0.1, 0.12, vol * 0.9);
+      } else if (kind === "restock") {
+        tone(ctx, 523, now, 0.12, vol);
+        tone(ctx, 659, now + 0.14, 0.14, vol);
+        tone(ctx, 784, now + 0.3, 0.18, vol);
+      } else if (kind === "alarm" || kind === "warn") {
+        tone(ctx, 440, now, 0.15, vol, "square");
+        tone(ctx, 440, now + 0.2, 0.15, vol, "square");
+        tone(ctx, 330, now + 0.4, 0.25, vol * 1.1, "square");
+      } else if (kind === "error") {
+        tone(ctx, 220, now, 0.2, vol, "sawtooth");
+        tone(ctx, 180, now + 0.18, 0.25, vol, "sawtooth");
+      } else {
+        tone(ctx, 520, now, 0.1, vol);
+      }
     } catch (e) {}
   }
+
+  function pushNotifLocal(opts) {
+    opts = opts || {};
+    try {
+      if (window.TarkovState && TarkovState.notify) {
+        return TarkovState.notify(opts);
+      }
+    } catch (e) {}
+    try {
+      var key = "tarkovNotifications.v1";
+      var list = [];
+      try { list = JSON.parse(localStorage.getItem(key) || "[]") || []; } catch (e2) {}
+      var item = {
+        id: "n" + Date.now() + Math.random().toString(36).slice(2, 6),
+        ts: Date.now(),
+        read: false,
+        tool: String(opts.tool || "").split("/").pop(),
+        title: opts.title || "",
+        body: opts.body || "",
+        kind: opts.kind || ""
+      };
+      list.unshift(item);
+      localStorage.setItem(key, JSON.stringify(list.slice(0, 200)));
+      return item;
+    } catch (e) { return null; }
+  }
+
+  function Notify(opts) {
+    opts = opts || {};
+    pushNotifLocal(opts);
+    if (opts.silent !== true) {
+      var kind = opts.kind || opts.sound || "ok";
+      if (kind === "price") kind = "ok";
+      beep(kind);
+    }
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: "tt-notify",
+          title: opts.title || "",
+          body: opts.body || "",
+          tool: opts.tool || "",
+          kind: opts.kind || "ok",
+          silent: !!opts.silent
+        }, location.origin);
+      }
+    } catch (e) {}
+    return opts;
+  }
+  window.Notify = Notify;
 
   function exportAll() {
     var data = {};
@@ -128,7 +205,6 @@
           if (k.indexOf("tarkov") === 0) localStorage.setItem(k, data[k]);
         });
         applyTheme();
-        if (TarkovTools._paintBar) TarkovTools._paintBar();
         alert(t("importOk"));
       } catch (e) { alert(t("importFail")); }
     };
@@ -136,100 +212,47 @@
   }
 
   function openSettings() {
-    var bg = document.getElementById("tt-settings-bg");
-    if (!bg) {
-      bg = document.createElement("div");
-      bg.id = "tt-settings-bg";
-      bg.className = "modal-bg";
-      bg.innerHTML = '<div class="modal" id="tt-settings-modal"></div>';
-      document.body.appendChild(bg);
-      bg.addEventListener("click", function (e) { if (e.target === bg) bg.classList.remove("show"); });
+    if (window.TarkovSettingsTabs && TarkovSettingsTabs.open) {
+      TarkovSettingsTabs.open();
+      return;
     }
-    var modal = document.getElementById("tt-settings-modal");
-    modal.innerHTML =
-      "<h2>" + t("settings") + "</h2>" +
-      '<div class="field"><label>' + t("theme") + '</label><select id="tt-set-theme"><option value="dark">' + t("themeDark") + '</option><option value="light">' + t("themeLight") + '</option></select></div>' +
-      '<div class="field"><label>' + t("lang") + '</label><select id="tt-set-lang"><option value="ru">RU</option><option value="en">EN</option></select></div>' +
-      '<div class="field"><label>' + t("sound") + '</label><select id="tt-set-sound"><option value="1">' + t("soundOn") + '</option><option value="0">' + t("soundOff") + '</option></select></div>' +
-      '<div class="field"><label>' + t("volume") + '</label><input type="range" id="tt-set-vol" min="0" max="1" step="0.05"></div>' +
-      '<div class="field"><label>' + t("mode") + '</label><select id="tt-set-mode"><option value="pve">pve</option><option value="regular">regular</option><option value="pvp-season">pvp-season</option></select></div>' +
-      '<div class="field"><label>' + t("tips") + '</label><select id="tt-set-tips"><option value="1">' + t("tipsOn") + '</option><option value="0">' + t("tipsOff") + '</option></select></div>' +
-      '<div class="row" style="margin-top:12px"><button type="button" class="btn" id="tt-set-apply">' + t("apply") + '</button>' +
-      '<button type="button" class="btn-ghost" id="tt-set-export">' + t("export") + '</button>' +
-      '<label class="btn-ghost" style="cursor:pointer">' + t("import") + '<input type="file" id="tt-set-import" accept="application/json" hidden></label>' +
-      '<button type="button" class="btn-ghost" id="tt-set-close">' + t("close") + '</button></div>';
-    document.getElementById("tt-set-theme").value = get(KEYS.theme, "dark");
-    document.getElementById("tt-set-lang").value = lang() === "en" ? "en" : "ru";
-    document.getElementById("tt-set-sound").value = soundEnabled() ? "1" : "0";
-    document.getElementById("tt-set-vol").value = String(volume());
-    document.getElementById("tt-set-mode").value = preferredMode();
-    document.getElementById("tt-set-tips").value = tipsEnabled() ? "1" : "0";
-    document.getElementById("tt-set-apply").onclick = function () {
-      set(KEYS.theme, document.getElementById("tt-set-theme").value);
-      set(KEYS.lang, document.getElementById("tt-set-lang").value);
-      set(KEYS.sound, document.getElementById("tt-set-sound").value);
-      set(KEYS.volume, document.getElementById("tt-set-vol").value);
-      set(KEYS.mode, document.getElementById("tt-set-mode").value);
-      set(KEYS.tips, document.getElementById("tt-set-tips").value);
+    // legacy fallback modal stripped — settings-tabs preferred
+  }
+
+  function paintBar() {
+    var bar = document.getElementById("tt-tools-bar");
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.id = "tt-tools-bar";
+      bar.className = "tt-tools-bar";
+      bar.innerHTML =
+        '<button type="button" class="btn-ghost" id="tt-bar-settings" title="Settings">⚙</button>' +
+        '<button type="button" class="btn-ghost" id="tt-bar-theme" title="Theme">🌓</button>' +
+        '<button type="button" class="btn-ghost" id="tt-bar-lang" title="Language">🌐</button>';
+      document.body.appendChild(bar);
+    }
+    var btnS = document.getElementById("tt-bar-settings");
+    var btnT = document.getElementById("tt-bar-theme");
+    var btnL = document.getElementById("tt-bar-lang");
+    if (btnS) btnS.onclick = function () { openSettings(); };
+    if (btnT) btnT.onclick = function () {
+      var th = get(KEYS.theme, "dark") === "light" ? "dark" : "light";
+      set(KEYS.theme, th);
       applyTheme();
-      if (TarkovTools._paintBar) TarkovTools._paintBar();
-      bg.classList.remove("show");
     };
-    document.getElementById("tt-set-export").onclick = exportAll;
-    document.getElementById("tt-set-import").onchange = function (e) { if (e.target.files[0]) importAll(e.target.files[0]); };
-    document.getElementById("tt-set-close").onclick = function () { bg.classList.remove("show"); };
-    bg.classList.add("show");
-  }
-
-  function isMiniFrame() {
-    try { return !!(window.parent && window.parent !== window && window.parent.TarkovHubMini); } catch (e) { return false; }
-  }
-
-  function injectBar() {
-    if (document.getElementById("tt-bar")) return;
-    if (isMiniFrame()) return;
-    var bar = document.createElement("div");
-    bar.id = "tt-bar";
-    bar.className = "tt-bar";
-    bar.innerHTML = "<button type=\"button\" class=\"btn-ghost\" id=\"tt-bar-settings\"></button><button type=\"button\" class=\"btn-ghost\" id=\"tt-bar-theme\"></button><button type=\"button\" class=\"btn-ghost\" id=\"tt-bar-lang\"></button><span class=\"spacer\"></span><a class=\"btn-ghost\" href=\"tarkovtool-hub.html\" id=\"tt-bar-hub\"></a>";
-    document.body.insertBefore(bar, document.body.firstChild);
-    function paint() {
-      document.getElementById("tt-bar-settings").textContent = t("settings");
-      document.getElementById("tt-bar-theme").textContent = get(KEYS.theme, "dark") === "light" ? t("themeLight") : t("themeDark");
-      document.getElementById("tt-bar-lang").textContent = lang().toUpperCase();
-      document.getElementById("tt-bar-hub").textContent = t("hub");
-      var hub = document.getElementById("tt-bar-hub");
-      if (hub) hub.href = ttUrl("tarkovtool-hub.html");
-    }
-    TarkovTools._paintBar = paint;
-    paint();
-    document.getElementById("tt-bar-settings").onclick = function () { TarkovTools.openSettings(); };
-    document.getElementById("tt-bar-theme").onclick = function () {
-      set(KEYS.theme, get(KEYS.theme, "dark") === "light" ? "dark" : "light");
-      applyTheme(); paint();
-    };
-    document.getElementById("tt-bar-lang").onclick = function () {
-      var order = ["ru", "en", "uk", "de", "zh-CN"];
+    if (btnL) btnL.onclick = function () {
       var cur = lang();
-      var i = order.indexOf(cur);
-      var next = order[(i + 1) % order.length];
+      var next = cur === "ru" ? "en" : "ru";
       set(KEYS.lang, next);
       if (window.TarkovI18n && TarkovI18n.setLang) {
         TarkovI18n.setLang(next).then(function () {
           try { TarkovI18n.applyDom(document); } catch (e) {}
-          paint();
           try { window.dispatchEvent(new CustomEvent("tt-lang-changed", { detail: { lang: next } })); } catch (e) {}
-        }).catch(paint);
-      } else paint();
+        });
+      } else {
+        try { window.dispatchEvent(new CustomEvent("tt-lang-changed", { detail: { lang: next } })); } catch (e) {}
+      }
     };
-  }
-
-  function wireGameModeSelects() {
-    var def = preferredMode();
-    document.querySelectorAll("select#gameMode, select[id*=gameMode], select[id*=GameMode]").forEach(function (sel) {
-      if ([].some.call(sel.options, function (o) { return o.value === def; })) sel.value = def;
-      sel.addEventListener("change", function () { set(KEYS.mode, sel.value); });
-    });
   }
 
   function enhanceTable(table, filterInput) {
@@ -294,24 +317,39 @@
     tipsEnabled: tipsEnabled,
     applyTheme: applyTheme,
     beep: beep,
+    Notify: Notify,
+    unlockAudio: unlockAudio,
     exportAll: exportAll,
     importAll: importAll,
     openSettings: openSettings,
     enhanceTable: enhanceTable,
     hiddenTools: hiddenTools,
     setHiddenTools: setHiddenTools,
-    ttRoot: ttRoot,
     ttUrl: ttUrl
   };
 
   applyTheme();
+  try {
+    var unlockOnce = function () { unlockAudio(); };
+    document.addEventListener("pointerdown", unlockOnce, { passive: true });
+    document.addEventListener("keydown", unlockOnce, { passive: true });
+  } catch (e) {}
+  try {
+    if (window.TarkovI18n && TarkovI18n.ready) {
+      TarkovI18n.ready.then(function () {
+        try { TarkovI18n.applyDom(document); } catch (e) {}
+      });
+    }
+  } catch (e) {}
+  window.addEventListener("tt-lang-changed", function () {
+    try {
+      if (window.TarkovI18n && TarkovI18n.applyDom) TarkovI18n.applyDom(document);
+    } catch (e) {}
+  });
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function () {
-      injectBar();
-      wireGameModeSelects();
-    });
+    document.addEventListener("DOMContentLoaded", function () { try { paintBar(); } catch (e) {} });
   } else {
-    injectBar();
-    wireGameModeSelects();
+    try { paintBar(); } catch (e) {}
   }
 })(window);
