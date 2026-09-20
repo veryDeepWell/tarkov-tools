@@ -5,14 +5,17 @@
   var STORE = "series";
   var RUN_KEY = "tarkovPriceTrackRunning";
   var META_KEY = "tarkovPriceTrackMeta";
-  var MAX_POINTS = 48;
+  var MAX_POINTS = 672;
   var LIST_LIMIT = 100;
+  var DRAW_MAX = 240;
+  var RANGE_MS = { "1d": 86400000, "3d": 259200000, "7d": 604800000, "all": 0 };
 
   var db = null;
   var timer = null;
   var countdownTimer = null;
   var selectedId = null;
   var chartSeries = { avg: true, low: true, high: true };
+  var chartRange = "7d";
   var viewRange = null;
   var lastHist = [];
   var hoverX = null;
@@ -81,6 +84,13 @@
     var sec = s % 60;
     if (h > 0) return h + "h " + String(m).padStart(2, "0") + "m";
     return m + "m " + String(sec).padStart(2, "0") + "s";
+  }
+
+  function median(arr) {
+    if (!arr || !arr.length) return 0;
+    var a = arr.slice().sort(function (x, y) { return x - y; });
+    var mid = Math.floor(a.length / 2);
+    return a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2;
   }
 
   function readRun() {
@@ -178,6 +188,22 @@
     });
   }
 
+  function thinPoints(points) {
+    if (!points || points.length <= MAX_POINTS) return points || [];
+    var out = points.slice();
+    while (out.length > MAX_POINTS) {
+      var keep = [];
+      var tail = Math.min(96, Math.floor(out.length * 0.25));
+      var head = out.slice(0, out.length - tail);
+      var rest = out.slice(out.length - tail);
+      for (var i = 0; i < head.length; i++) {
+        if (i % 2 === 0) keep.push(head[i]);
+      }
+      out = keep.concat(rest);
+    }
+    return out;
+  }
+
   function historyFor(itemId) {
     return getSeries(itemId).then(function (row) {
       if (!row || !row.points) return [];
@@ -194,6 +220,24 @@
         };
       });
     });
+  }
+
+  function filterByRange(hist) {
+    if (!hist || !hist.length) return [];
+    var ms = RANGE_MS[chartRange] || 0;
+    if (!ms) return hist;
+    var cut = Date.now() - ms;
+    return hist.filter(function (h) { return h.ts >= cut; });
+  }
+
+  function downsample(hist, maxN) {
+    if (!hist || hist.length <= maxN) return hist;
+    var out = [];
+    var step = (hist.length - 1) / (maxN - 1);
+    for (var i = 0; i < maxN; i++) {
+      out.push(hist[Math.round(i * step)]);
+    }
+    return out;
   }
 
   function allLatest() {
@@ -237,8 +281,13 @@
     }
     var remainMs = run.on && run.nextSnapAt ? Number(run.nextSnapAt) - Date.now() : null;
     if (cd) {
-      if (run.on) { cd.textContent = "Next: " + fmtRemain(remainMs); cd.className = "countdown on"; }
-      else { cd.textContent = "Countdown off"; cd.className = "countdown"; }
+      if (run.on) {
+        cd.textContent = "Next: " + fmtRemain(remainMs);
+        cd.className = "countdown on";
+      } else {
+        cd.textContent = "Countdown off";
+        cd.className = "countdown";
+      }
     }
     try {
       if (window.TarkovMini && TarkovMini.reportStatus) {
@@ -301,7 +350,7 @@
         var row = byId[it.id];
         var points = row && row.points ? row.points.slice() : [];
         points.push({ ts: now, avg: p.avg, low: p.low, high: p.high });
-        if (points.length > MAX_POINTS) points = points.slice(points.length - MAX_POINTS);
+        points = thinPoints(points);
         os.put({
           itemId: it.id,
           name: itemName(it),
@@ -323,13 +372,18 @@
     if (run.on) scheduleNext(mins); else paintStatusUI();
     if (status) {
       status.className = "status ok";
-      status.textContent = "Snap " + n + " items (max " + MAX_POINTS + " pts/item) " + fmtClock(now);
+      status.textContent = "Snap " + n + " items (cap " + MAX_POINTS + " pts) " + fmtClock(now);
     }
     await renderList();
     if (selectedId) drawChart(selectedId);
     try {
       if (typeof Notify === "function") {
-        Notify({ title: "Price track", body: "Snap " + n + " " + fmtClock(now), tool: "tarkovtool-price-track.html", kind: "price" });
+        Notify({
+          title: "Price track",
+          body: "Snap " + n + " " + fmtClock(now),
+          tool: "tarkovtool-price-track.html",
+          kind: "price"
+        });
       }
     } catch (e) {}
   }
@@ -378,9 +432,41 @@
     };
   }
 
+  function paintStats(hist) {
+    var box = $("chartStats");
+    if (!box) return;
+    if (!hist || hist.length < 1) {
+      box.hidden = true;
+      box.innerHTML = "";
+      return;
+    }
+    var avgs = [];
+    for (var i = 0; i < hist.length; i++) {
+      var a = Number(hist[i].avg) || 0;
+      if (a > 0) avgs.push(a);
+    }
+    var cur = Number(hist[hist.length - 1].avg) || Number(hist[hist.length - 1].low) || 0;
+    var first = Number(hist[0].avg) || Number(hist[0].low) || 0;
+    var med = median(avgs);
+    var mn = avgs.length ? Math.min.apply(null, avgs) : 0;
+    var mx = avgs.length ? Math.max.apply(null, avgs) : 0;
+    var delta = first > 0 ? ((cur - first) / first) * 100 : 0;
+    var dCls = delta > 0.5 ? "up" : (delta < -0.5 ? "down" : "");
+    var dTxt = (delta >= 0 ? "+" : "") + delta.toFixed(1) + "%";
+    box.hidden = false;
+    box.innerHTML =
+      "<div class=stat><div class=k>Now</div><div class=v>" + fmtRub(cur) + "</div></div>" +
+      "<div class=stat><div class=k>Median</div><div class=v>" + fmtRub(med) + "</div></div>" +
+      "<div class=stat><div class=k>Min</div><div class=v>" + fmtRub(mn) + "</div></div>" +
+      "<div class=stat><div class=k>Max</div><div class=v>" + fmtRub(mx) + "</div></div>" +
+      "<div class=stat><div class=k>Change</div><div class=\"v " + dCls + "\">" + dTxt + "</div></div>" +
+      "<div class=stat><div class=k>Points</div><div class=v>" + hist.length + "</div></div>";
+  }
+
   function drawChart(itemId) {
     if (!itemId) return;
-    historyFor(itemId).then(function (hist) {
+    historyFor(itemId).then(function (full) {
+      var hist = filterByRange(full);
       lastHist = hist;
       var title = $("chartTitle");
       var meta = $("chartMeta");
@@ -389,16 +475,30 @@
       if (!canvas) return;
       var ctx = canvas.getContext("2d");
       if (!hist.length) {
-        if (title) title.textContent = "No data";
-        if (meta) meta.textContent = "";
+        if (title) title.textContent = "No data in range";
+        if (meta) meta.textContent = full.length ? ("Stored: " + full.length + " — change range") : "";
+        paintStats(null);
         return;
       }
       var last = hist[hist.length - 1];
       if (title) title.textContent = last.name || itemId;
+      paintStats(hist);
       if (meta) {
-        meta.textContent = hist.length + " pts avg " + fmtRub(last.avg)
-          + " low " + fmtRub(last.low) + " high " + fmtRub(last.high);
+        meta.textContent = hist.length + " pts in range / " + full.length + " stored · avg "
+          + fmtRub(last.avg) + " · low " + fmtRub(last.low) + " · high " + fmtRub(last.high);
       }
+
+      var drawHist = hist;
+      if (viewRange) {
+        var i0 = Math.max(0, Math.min(viewRange.i0, hist.length - 1));
+        var i1 = Math.max(i0, Math.min(viewRange.i1, hist.length - 1));
+        drawHist = hist.slice(i0, i1 + 1);
+      }
+      var slice = downsample(drawHist, DRAW_MAX);
+      if (slice.length === 1) {
+        slice = [slice[0], Object.assign({}, slice[0], { ts: (slice[0].ts || 0) + 60000 })];
+      }
+
       var dpr = Math.min(window.devicePixelRatio || 1, 2);
       var wrap = canvas.parentElement;
       var cssW = Math.max(280, canvas.clientWidth || 0, wrap ? wrap.clientWidth : 0, 400);
@@ -414,15 +514,7 @@
       var W = cssW, H = cssH;
       ctx.fillStyle = "#12151c";
       ctx.fillRect(0, 0, W, H);
-      var i0 = 0, i1 = hist.length - 1;
-      if (viewRange) {
-        i0 = Math.max(0, Math.min(viewRange.i0, hist.length - 1));
-        i1 = Math.max(i0, Math.min(viewRange.i1, hist.length - 1));
-      }
-      var slice = hist.slice(i0, i1 + 1);
-      if (slice.length === 1) {
-        slice = [slice[0], Object.assign({}, slice[0], { ts: (slice[0].ts || 0) + 60000 })];
-      }
+
       var vals = [];
       for (var vi = 0; vi < slice.length; vi++) {
         var h = slice[vi];
@@ -483,7 +575,7 @@
           else ctx.lineTo(x, y);
         }
         if (started) ctx.stroke();
-        if (slice.length <= 60) {
+        if (slice.length <= 80) {
           for (var j = 0; j < slice.length; j++) {
             var v2 = Number(slice[j][key]) || 0;
             if (v2 <= 0) continue;
@@ -514,7 +606,9 @@
           + (chartSeries.low ? " low " + fmtRub(hp.low) : "")
           + (chartSeries.high ? " high " + fmtRub(hp.high) : "");
         if (tip) { tip.style.display = "block"; tip.textContent = tipText; }
-      } else if (tip) { tip.style.display = "none"; }
+      } else if (tip) {
+        tip.style.display = "none";
+      }
     }).catch(function (e) {
       var title = $("chartTitle");
       if (title) title.textContent = "Chart error: " + (e && e.message ? e.message : e);
@@ -536,15 +630,26 @@
     var mins = Math.max(1, Number(($("interval") || {}).value) || Number(readRun().mins) || 30);
     if ($("interval")) $("interval").value = mins;
     window.__ttPollMins = mins;
-    writeRun({ on: true, mins: mins, mode: (($("gameMode") || {}).value) || "pve", startedAt: Date.now(), nextSnapAt: Date.now() });
+    writeRun({
+      on: true, mins: mins,
+      mode: (($("gameMode") || {}).value) || "pve",
+      startedAt: Date.now(), nextSnapAt: Date.now()
+    });
     takeSnapshot()
       .then(function () { armPollTimer(mins); scheduleNext(mins); })
       .catch(function (e) {
         var status = $("status");
-        if (status) { status.className = "status err"; status.textContent = e && e.message ? e.message : String(e); }
-        armPollTimer(mins); scheduleNext(mins);
+        if (status) {
+          status.className = "status err";
+          status.textContent = e && e.message ? e.message : String(e);
+        }
+        armPollTimer(mins);
+        scheduleNext(mins);
       })
-      .then(function () { window.__ttStartLock = false; paintStatusUI(); });
+      .then(function () {
+        window.__ttStartLock = false;
+        paintStatusUI();
+      });
   }
 
   function stopBg() {
@@ -624,6 +729,16 @@
         if (selectedId) drawChart(selectedId);
       });
     });
+    document.querySelectorAll("[data-range]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        chartRange = btn.getAttribute("data-range") || "7d";
+        document.querySelectorAll("[data-range]").forEach(function (b) {
+          b.classList.toggle("on", b.getAttribute("data-range") === chartRange);
+        });
+        viewRange = null;
+        if (selectedId) drawChart(selectedId);
+      });
+    });
     var reset = $("chartResetZoom");
     if (reset) {
       reset.onclick = function () {
@@ -675,7 +790,10 @@
         return allLatest().then(function (list) {
           if (!list.length) {
             var st = $("status");
-            if (st) { st.className = "status"; st.textContent = "DB empty - auto snap..."; }
+            if (st) {
+              st.className = "status";
+              st.textContent = "DB empty - auto snap...";
+            }
             return takeSnapshot().catch(function (e) {
               if (st) {
                 st.className = "status err";
