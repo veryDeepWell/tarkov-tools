@@ -1,4 +1,4 @@
-/*! Hub catalog — sync from #catalog-embed, then refresh catalog.json */
+/*! Hub catalog — __TT_CATALOG_DATA / #catalog-embed / catalog.json */
 (function (global) {
   "use strict";
   global.TarkovHubCATALOG = global.TarkovHubCATALOG || [];
@@ -17,9 +17,12 @@
     } catch (e) {}
   }
 
+  if (global.__TT_CATALOG_DATA) {
+    try { apply(global.__TT_CATALOG_DATA); } catch (e) {}
+  }
   try {
     var el = document.getElementById("catalog-embed");
-    if (el && el.textContent) {
+    if (el && el.textContent && el.textContent.indexOf("PLACEHOLDER") < 0) {
       apply(JSON.parse(el.textContent));
     }
   } catch (e) {}
