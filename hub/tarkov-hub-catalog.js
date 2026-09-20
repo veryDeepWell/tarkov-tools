@@ -1,4 +1,4 @@
-/*! Hub catalog — embedded FALLBACK + async catalog.json refresh */
+/*! Hub catalog — sync from #catalog-embed, then refresh catalog.json */
 (function (global) {
   "use strict";
   global.TarkovHubCATALOG = global.TarkovHubCATALOG || [];
@@ -7,6 +7,7 @@
   function apply(data) {
     if (!data || typeof data !== "object") return;
     var tools = data.tools || (Array.isArray(data) ? data : []);
+    if (!tools.length) return;
     global.TarkovHubCATALOG = tools;
     global.TarkovHubCatalog = tools;
     global.CATALOG = tools;
@@ -16,15 +17,18 @@
     } catch (e) {}
   }
 
-  var FALLBACK = {"version":1,"categories":{"flea":"Барахолка","loadout":"Лоадаут","hideout":"Убежка","quests":"Квесты","med":"Мед / еда","util":"Утилиты","other":"Прочее"},"tools":[]};
-
-  apply(FALLBACK);
+  try {
+    var el = document.getElementById("catalog-embed");
+    if (el && el.textContent) {
+      apply(JSON.parse(el.textContent));
+    }
+  } catch (e) {}
 
   try {
     fetch("catalog.json", { cache: "no-cache" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
-        if (!data || !data.tools || !data.tools.length) return;
+        if (!data) return;
         apply(data);
         try {
           if (typeof window.renderCatalog === "function") window.renderCatalog();
