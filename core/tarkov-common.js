@@ -158,6 +158,7 @@
     } catch (e) { return null; }
   }
 
+  /** Platform Notify — sole owner of notification sound (hub must not beep on tt-notify). */
   function Notify(opts) {
     opts = opts || {};
     pushNotifLocal(opts);
@@ -216,7 +217,6 @@
       TarkovSettingsTabs.open();
       return;
     }
-    // legacy fallback modal stripped — settings-tabs preferred
   }
 
   function paintBar() {
