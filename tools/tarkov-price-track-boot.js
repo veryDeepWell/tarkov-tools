@@ -1,8 +1,5 @@
-/**
- * Price-track mini helper + stuck-state recovery
- */
+/** Price-track boot: mini status + i18n overlay */
 (function () {
-  var syncTimer = null;
   var RUN_KEY = "tarkovPriceTrackRunning";
   var META_KEY = "tarkovPriceTrackMeta";
 
@@ -16,10 +13,26 @@
     try { return JSON.parse(localStorage.getItem(META_KEY) || "{}") || {}; } catch (e) { return {}; }
   }
 
+  function tt(key, fallback, params) {
+    var text = fallback || key;
+    try {
+      if (window.TarkovI18n && TarkovI18n.t) {
+        var v = TarkovI18n.t(key);
+        if (v && v !== key) text = v;
+      }
+    } catch (e) {}
+    if (params) {
+      Object.keys(params).forEach(function (k) {
+        text = String(text).split("{" + k + "}").join(String(params[k]));
+      });
+    }
+    return text;
+  }
+
   function fmtClock(ts) {
     if (!ts) return "";
     try {
-      return new Date(ts).toLocaleString("ru-RU", {
+      return new Date(ts).toLocaleString(undefined, {
         day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"
       });
     } catch (e) { return ""; }
@@ -27,16 +40,19 @@
 
   function fmtRemain(ms) {
     if (ms == null || isNaN(ms)) return "—";
-    if (ms <= 0) return "сейчас";
+    var isRu = (document.documentElement.lang || "").indexOf("ru") === 0;
+    if (ms <= 0) return isRu ? "сейчас" : "now";
     var s = Math.floor(ms / 1000);
     var m = Math.floor(s / 60);
     var sec = s % 60;
     if (m >= 60) {
       var h = Math.floor(m / 60);
       m = m % 60;
-      return h + "ч " + m + "м";
+      return isRu ? (h + "ч " + m + "м") : (h + "h " + String(m).padStart(2, "0") + "m");
     }
-    return m + "м " + String(sec).padStart(2, "0") + "с";
+    return isRu
+      ? (m + "м " + String(sec).padStart(2, "0") + "с")
+      : (m + "m " + String(sec).padStart(2, "0") + "s");
   }
 
   function scheduleNext(mins) {
@@ -53,29 +69,40 @@
     try {
       var tool = "tarkovtool-price-track.html";
       var payload = { type: "tt-status", tool: tool, running: !!running, label: label || "" };
-      window.__ttLastStatus = { running: !!running, label: label || "", tool: tool };
-      if (window.TarkovMini && TarkovMini.reportStatus) {
-        TarkovMini.reportStatus({ running: !!running, label: label || "", tool: tool });
-      }
       if (window.parent && window.parent !== window) {
         window.parent.postMessage(payload, location.origin);
       }
     } catch (e) {}
   }
 
-  function sync() {
+  function paintStatus() {
     var run = readRun();
     var meta = readMeta();
-    var last = fmtClock(meta.lastSnap);
+    var el = document.getElementById("trackMeta");
+    var cd = document.getElementById("countdown");
+    var mins = Number(run.mins) || Number((document.getElementById("interval") || {}).value) || 30;
+    var last = meta.lastSnap ? fmtClock(meta.lastSnap) : "-";
+    var countStr = meta.count != null ? " (" + meta.count + ")" : "";
+    if (el) {
+      el.textContent = run.on
+        ? tt("priceTrack.bgOn", "BG ON · every {mins} min · last {last}{count}", { mins: mins, last: last, count: countStr })
+        : tt("priceTrack.bgOff", "BG off · last {last}", { last: last });
+    }
+    if (cd) {
+      if (run.on) {
+        var remain = run.nextSnapAt ? Number(run.nextSnapAt) - Date.now() : 0;
+        cd.textContent = tt("priceTrack.next", "Next: {remain}", { remain: fmtRemain(remain) });
+        cd.className = "countdown on";
+      } else {
+        cd.textContent = tt("priceTrack.countdownOff", "Countdown off");
+        cd.className = "countdown";
+      }
+    }
     if (run.on) {
-      var remain = run.nextSnapAt ? Number(run.nextSnapAt) - Date.now() : null;
-      var label = "через " + fmtRemain(remain);
-      if (last) label += " · был " + last;
-      reportMini(true, label);
+      var rem = run.nextSnapAt ? Number(run.nextSnapAt) - Date.now() : null;
+      reportMini(true, tt("priceTrack.next", "Next: {remain}", { remain: fmtRemain(rem) }));
     } else {
-      var label2 = "ожидание";
-      if (last) label2 += " · был " + last;
-      reportMini(false, label2);
+      reportMini(false, tt("priceTrack.idle", "idle"));
     }
   }
 
@@ -84,15 +111,13 @@
     if (!run.on) return;
     var mins = Math.max(1, Number(run.mins) || 30);
     var next = Number(run.nextSnapAt) || 0;
-    if (!next || next <= Date.now()) {
-      scheduleNext(mins);
-    }
+    if (!next || next <= Date.now()) scheduleNext(mins);
     var st = document.getElementById("status");
     if (st && /Fetching/i.test(st.textContent || "")) {
       if (!window.__ttFetchStarted) window.__ttFetchStarted = Date.now();
       if (Date.now() - window.__ttFetchStarted > 50000) {
         st.className = "status err";
-        st.textContent = "Snap timeout — Стоп/Старт или «Снять сейчас»";
+        st.textContent = tt("priceTrack.snapErr", "Snap error: {msg}", { msg: "timeout" });
         scheduleNext(mins);
         window.__ttFetchStarted = 0;
       }
@@ -101,27 +126,22 @@
     }
   }
 
-  function armButtons() {
-    ["snapBtn", "startBtn"].forEach(function (id) {
-      var b = document.getElementById(id);
-      if (!b || b.__ttHot) return;
-      b.__ttHot = true;
-      b.addEventListener("click", function () {
-        window.__ttFetchStarted = Date.now();
-        var run = readRun();
-        var mins = Math.max(1, Number(run.mins) || Number((document.getElementById("interval") || {}).value) || 30);
-        scheduleNext(mins);
-      }, true);
-    });
+  function applyI18n() {
+    try {
+      if (window.TarkovI18n && TarkovI18n.applyDom) TarkovI18n.applyDom(document);
+    } catch (e) {}
+    paintStatus();
   }
 
-  setTimeout(sync, 300);
-  syncTimer = setInterval(function () { sync(); fixStuck(); }, 1000);
-  armButtons();
-  setTimeout(armButtons, 800);
-
-  window.addEventListener("message", function (ev) {
-    if (ev.origin !== location.origin) return;
-    if (ev.data && ev.data.type === "tt-ping-status") sync();
-  });
+  setInterval(function () { paintStatus(); fixStuck(); }, 1000);
+  function bootI18n() {
+    if (window.TarkovI18n && TarkovI18n.ready) {
+      TarkovI18n.ready.then(applyI18n);
+    } else {
+      applyI18n();
+    }
+  }
+  bootI18n();
+  setTimeout(bootI18n, 600);
+  window.addEventListener("tt-lang-changed", applyI18n);
 })();
