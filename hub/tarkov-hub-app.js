@@ -1,7 +1,7 @@
 window.TarkovHubMini = true;
 
 function getCatalog() { return window.TarkovHubCATALOG || []; }
-var CHANGELOG = [{"date":"2026-09-17","items":["Mini tabs, notifications, soft-state","Catalog categories","Price Alarm, food, loadouts","TarkovAPI, TarkovNames"]}];
+var CHANGELOG = [{"date":"2026-09-17","items":["Mini tabs, notifications","Catalog categories","TarkovAPI, TarkovNames"]}];
 var ICONS = [[/btc/i,"₿"],[/cultist/i,"⛧"],[/my-tarkov/i,"👤"],[/helmet/i,"🪖"],[/nvg/i,"🌑"],[/price-track/i,"📈"],[/price-alarm/i,"🔔"],[/food/i,"🍖"],[/random-loadout/i,"🎲"],[/loadout-budget/i,"💰"],[/loadout-builder/i,"🧰"],[/drip-builder/i,"🎨"],[/drip-loadout/i,"✨"],[/ammo/i,"🔫"],[/armor/i,"🛡️"],[/barter/i,"🧮"],[/boss/i,"👹"],[/compare/i,"⚖️"],[/container/i,"🎒"],[/craft/i,"🔧"],[/drip/i,"🕶️"],[/gun/i,"🛠️"],[/hideout/i,"🏗️"],[/key/i,"🔑"],[/lang/i,"🌐"],[/loot/i,"📦"],[/item-use/i,"💡"],[/mag/i,"📟"],[/med/i,"💊"],[/mods/i,"🔩"],[/plate/i,"🧱"],[/quest/i,"📜"],[/raid/i,"✅"],[/restock/i,"⏰"],[/scope/i,"🔭"],[/short/i,"🏷️"],[/skill/i,"📈"],[/stim/i,"💉"],[/streamer/i,"📺"],[/trader/i,"🏪"]];
 
 function iconFor(file, title) {
@@ -45,12 +45,6 @@ function pushMiniTab(file) {
         var list = (TarkovState.getMiniTabs() || []).filter(function (t) { return t.file !== file; });
         list.push(tab);
         TarkovState.setMiniTabs(list);
-        return;
-      }
-      if (TarkovState.setMini) {
-        var list2 = ((TarkovState.getMini && TarkovState.getMini()) || []).filter(function (t) { return t.file !== file; });
-        list2.push(tab);
-        TarkovState.setMini(list2);
       }
     }
   } catch (e) {}
@@ -68,6 +62,7 @@ function dropMiniTab(file) {
 
 var frames = Object.create(null);
 var expanded = null;
+var statusMap = Object.create(null);
 
 function ensureFrame(file) {
   if (frames[file]) return frames[file];
@@ -159,8 +154,6 @@ function unreadItems(file) {
     }).slice(0, 5);
   } catch (e) { return []; }
 }
-
-var statusMap = Object.create(null);
 function frameStatus(file) {
   return statusMap[toolKey(file)] || { ready: false, running: false, label: "", ts: 0 };
 }
@@ -231,6 +224,11 @@ function hideTip() {
 
 function bootMini() {
   if (!window.TarkovState) { setTimeout(bootMini, 40); return; }
+  var tabs = getMiniTabs();
+  for (var i = 0; i < tabs.length; i++) {
+    var f = (tabs[i] && tabs[i].file) || tabs[i];
+    if (f) { try { ensureFrame(f); } catch (e) {} }
+  }
   renderMiniList();
   try {
     if (TarkovState.on) {
