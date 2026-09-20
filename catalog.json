@@ -10,320 +10,50 @@
     "other": "Прочее"
   },
   "tools": [
-    {
-      "file": "tools/tarkovtool-my-tarkov.html",
-      "title": "My Tarkov",
-      "description": "Личный дашборд: заметки, быстрые ссылки и сводка по прогрессу",
-      "icon": "my-tarkov",
-      "cat": "util"
-    },
-    {
-      "file": "tools/tarkovtool-cultist.html",
-      "title": "Круг культистов",
-      "description": "Калькулятор обмена в круге: слоты, порог 350k, подбор предметов",
-      "icon": "cultist",
-      "cat": "hideout"
-    },
-    {
-      "file": "tools/tarkovtool-price-track.html",
-      "title": "Динамика цен",
-      "description": "График и история flea-цен по предметам, опрос по таймеру, уведомления",
-      "icon": "price-track",
-      "cat": "flea"
-    },
-    {
-      "file": "tools/tarkovtool-price-alarm.html",
-      "title": "Price Alarm",
-      "description": "Сирена: цена ≤/≥ N или число офферов — пилик в фоне",
-      "icon": "price-alarm",
-      "cat": "flea"
-    },
-    {
-      "file": "tools/tarkovtool-food.html",
-      "title": "Еда и вода",
-      "description": "Пища / вода / оба: цена, голод/жажда, итоговый рейтинг",
-      "icon": "food",
-      "cat": "med"
-    },
-    {
-      "file": "tools/tarkovtool-random-loadout.html",
-      "title": "Рандомный лоадаут",
-      "description": "Случайный ган (без модов), броня, разгрузка — paperdoll",
-      "icon": "random-loadout",
-      "cat": "loadout"
-    },
-    {
-      "file": "tools/tarkovtool-drip-loadout.html",
-      "title": "Дрип-лоадаут",
-      "description": "Случайный вид по стилю: дикий, профи, лесное чучело…",
-      "icon": "drip-loadout",
-      "cat": "loadout"
-    },
-    {
-      "file": "tools/tarkovtool-drip-builder.html",
-      "title": "Дрип-билдер",
-      "description": "Поиск обвесов по цветам (заглушка — в разработке)",
-      "icon": "drip-builder",
-      "cat": "loadout"
-    },
-    {
-      "file": "tools/tarkovtool-loadout-budget.html",
-      "title": "Лоадаут за N ₽",
-      "description": "Кит под бюджет: ган + броня + разгрузка (заглушка)",
-      "icon": "loadout-budget",
-      "cat": "loadout"
-    },
-    {
-      "file": "tools/tarkovtool-loadout-builder.html",
-      "title": "Лоадаут-билдер",
-      "description": "Сборка экипа по слотам как в игре, сохранение пресетов",
-      "icon": "loadout-builder",
-      "cat": "loadout"
-    },
-    {
-      "file": "tools/tarkovtool-nvg.html",
-      "title": "ПНВ",
-      "description": "Сравнение приборов ночного видения: слот, вес, цена",
-      "icon": "nvg",
-      "cat": "loadout"
-    },
-    {
-      "file": "tools/tarkovtool-helmets.html",
-      "title": "Шлемы",
-      "description": "Рейтинг шлемов: класс, зоны, рикошет, цена",
-      "icon": "helmets",
-      "cat": "loadout"
-    },
-    {
-      "file": "tools/tarkovtool-ammo.html",
-      "title": "Патроны",
-      "description": "Таблица патронов: урон, бронепробитие, фраг, цена",
-      "icon": "ammo",
-      "cat": "loadout"
-    },
-    {
-      "file": "tools/tarkovtool-armor.html",
-      "title": "Броня",
-      "description": "Бронежилеты: класс, зоны, прочность, цена за защиту",
-      "icon": "armor",
-      "cat": "loadout"
-    },
-    {
-      "file": "tools/tarkovtool-barter-calc.html",
-      "title": "Бартер (ручной)",
-      "description": "Калькулятор бартера с ручными ценами и комиссией flea",
-      "icon": "barter-calc",
-      "cat": "flea"
-    },
-    {
-      "file": "tools/tarkovtool-barter-live.html",
-      "title": "Бартер (live)",
-      "description": "Бартеры с API: профит, курс, актуальные цены",
-      "icon": "barter-live",
-      "cat": "flea"
-    },
-    {
-      "file": "tools/tarkovtool-bosses.html",
-      "title": "Боссы",
-      "description": "Шансы спавна боссов, карта, лут и свита",
-      "icon": "bosses",
-      "cat": "quests"
-    },
-    {
-      "file": "tools/tarkovtool-btc-farm.html",
-      "title": "Биткоин-ферма",
-      "description": "Доходность GPU-фермы: слоты, электричество, ₽/сутки",
-      "icon": "btc-farm",
-      "cat": "hideout"
-    },
-    {
-      "file": "tools/tarkovtool-compare.html",
-      "title": "Сравнение",
-      "description": "Сравнить 2–4 предмета бок о бок по характеристикам",
-      "icon": "compare",
-      "cat": "util"
-    },
-    {
-      "file": "tools/tarkovtool-containers.html",
-      "title": "Контейнеры",
-      "description": "Контейнеры: слоты, ₽/клетка, что выгоднее носить",
-      "icon": "containers",
-      "cat": "flea"
-    },
-    {
-      "file": "tools/tarkovtool-crafts.html",
-      "title": "Крафты",
-      "description": "Крафты убежища: время, ингредиенты, профит после крафта",
-      "icon": "crafts",
-      "cat": "hideout"
-    },
-    {
-      "file": "tools/tarkovtool-drip.html",
-      "title": "Дрип",
-      "description": "Подбор одежды и экипа по цветовой гамме",
-      "icon": "drip",
-      "cat": "loadout"
-    },
-    {
-      "file": "tools/tarkovtool-gun-budget.html",
-      "title": "Сборка за N",
-      "description": "Сборка оружия под бюджет: база + ключевые моды",
-      "icon": "gun-budget",
-      "cat": "loadout"
-    },
-    {
-      "file": "tools/tarkovtool-gun-builder.html",
-      "title": "Gun Builder",
-      "description": "Конструктор ствола: обвесы, эргономика, отдача, цена",
-      "icon": "gun-builder",
-      "cat": "loadout"
-    },
-    {
-      "file": "tools/tarkovtool-hideout-mgmt.html",
-      "title": "Hideout Mgmt",
-      "description": "Управление модулями убежища и требованиями к скиллам",
-      "icon": "hideout-mgmt",
-      "cat": "hideout"
-    },
-    {
-      "file": "tools/tarkovtool-hideout.html",
-      "title": "Трекер убежища",
-      "description": "Прогресс модулей: что строить, ресурсы, очереди",
-      "icon": "hideout",
-      "cat": "hideout"
-    },
-    {
-      "file": "tools/tarkovtool-item-use.html",
-      "title": "Что с предметом",
-      "description": "Куда уходит предмет: квесты, крафты, бартеры, убежище",
-      "icon": "item-use",
-      "cat": "util"
-    },
-    {
-      "file": "tools/tarkovtool-keys.html",
-      "title": "Ключи",
-      "description": "Ключи от дверей: карта, редкость, цена, стоит ли тащить",
-      "icon": "keys",
-      "cat": "util"
-    },
-    {
-      "file": "tools/tarkovtool-lang-search.html",
-      "title": "Локализатор",
-      "description": "Поиск предметов и квестов по именам в выбранных языках API",
-      "icon": "lang-search",
-      "cat": "util"
-    },
-    {
-      "file": "tools/tarkovtool-loot-slot.html",
-      "title": "Лут ₽/слот",
-      "description": "Ценность лута за клетку инвентаря — что брать в первую очередь",
-      "icon": "loot-slot",
-      "cat": "flea"
-    },
-    {
-      "file": "tools/tarkovtool-mags.html",
-      "title": "Магазины",
-      "description": "Магазины: ёмкость, эрго, совместимость, цена",
-      "icon": "mags",
-      "cat": "loadout"
-    },
-    {
-      "file": "tools/tarkovtool-medkits.html",
-      "title": "Аптечки",
-      "description": "Аптечки: HP, эффекты, цена лечения",
-      "icon": "medkits",
-      "cat": "med"
-    },
-    {
-      "file": "tools/tarkovtool-mods.html",
-      "title": "Моды",
-      "description": "Обвесы оружия: слоты, бонусы, цена",
-      "icon": "mods",
-      "cat": "loadout"
-    },
-    {
-      "file": "tools/tarkovtool-plates.html",
-      "title": "Плиты",
-      "description": "Бронеплиты: класс, зоны, вес, цена",
-      "icon": "plates",
-      "cat": "loadout"
-    },
-    {
-      "file": "tools/tarkovtool-quest-items.html",
-      "title": "Квест-предметы",
-      "description": "FIR-предметы для квестов: где найти, сколько нужно",
-      "icon": "quest-items",
-      "cat": "quests"
-    },
-    {
-      "file": "tools/tarkovtool-quests.html",
-      "title": "Квесты",
-      "description": "Цепочки квестов, требования, награды, торговцы",
-      "icon": "quests",
-      "cat": "quests"
-    },
-    {
-      "file": "tools/tarkovtool-raid-checklist.html",
-      "title": "Чек-лист рейда",
-      "description": "Собраться в рейд: мед, патроны, ключи, галочки",
-      "icon": "raid-checklist",
-      "cat": "quests"
-    },
-    {
-      "file": "tools/tarkovtool-restock.html",
-      "title": "Таймер рестока",
-      "description": "Когда обновятся торговцы; уведомление в фоне",
-      "icon": "restock",
-      "cat": "util"
-    },
-    {
-      "file": "tools/tarkovtool-scopes.html",
-      "title": "Прицелы",
-      "description": "Оптика и коллиматоры: кратность, эрго, цена",
-      "icon": "scopes",
-      "cat": "loadout"
-    },
-    {
-      "file": "tools/tarkovtool-shortname.html",
-      "title": "Короткие имена",
-      "description": "Свои короткие названия предметов — используются во всех тулзах",
-      "icon": "shortname",
-      "cat": "util"
-    },
-    {
-      "file": "tools/tarkovtool-skills.html",
-      "title": "Скиллы",
-      "description": "Прокачка навыков: формулы, бонусы, что качать",
-      "icon": "skills",
-      "cat": "util"
-    },
-    {
-      "file": "tools/tarkovtool-stim-combos.html",
-      "title": "Комбо стимов",
-      "description": "Связки стимуляторов: эффекты, конфликты, цена забега",
-      "icon": "stim-combos",
-      "cat": "med"
-    },
-    {
-      "file": "tools/tarkovtool-stims.html",
-      "title": "Стимуляторы",
-      "description": "Инъекторы: бафы, дебафы, длительность, цена",
-      "icon": "stims",
-      "cat": "med"
-    },
-    {
-      "file": "tools/tarkovtool-streamer-flip.html",
-      "title": "Стример-флип",
-      "description": "Предметы со стримерских ивентов: скупка / перепродажа",
-      "icon": "streamer-flip",
-      "cat": "flea"
-    },
-    {
-      "file": "tools/tarkovtool-trader-flip.html",
-      "title": "Трейдер-флип",
-      "description": "Покупка у торговца → продажа на flea: маржа и лимиты",
-      "icon": "trader-flip",
-      "cat": "flea"
-    }
+    {"file": "tools/tarkovtool-my-tarkov.html", "title": "My Tarkov", "description": "Личный дашборд", "icon": "my-tarkov", "cat": "util", "kind": "static"},
+    {"file": "tools/tarkovtool-cultist.html", "title": "Круг культистов", "description": "Калькулятор обмена в круге", "icon": "cultist", "cat": "hideout", "kind": "static"},
+    {"file": "tools/tarkovtool-price-track.html", "title": "Динамика цен", "description": "График и история flea-цен", "icon": "price-track", "cat": "flea", "kind": "live"},
+    {"file": "tools/tarkovtool-price-alarm.html", "title": "Price Alarm", "description": "Сирена по цене", "icon": "price-alarm", "cat": "flea", "kind": "live"},
+    {"file": "tools/tarkovtool-food.html", "title": "Еда и вода", "description": "Пища / вода / рейтинг", "icon": "food", "cat": "med", "kind": "static"},
+    {"file": "tools/tarkovtool-random-loadout.html", "title": "Рандомный лоадаут", "description": "Случайный кит", "icon": "random-loadout", "cat": "loadout", "kind": "static"},
+    {"file": "tools/tarkovtool-drip-loadout.html", "title": "Дрип-лоадаут", "description": "Случайный вид по стилю", "icon": "drip-loadout", "cat": "loadout", "kind": "static"},
+    {"file": "tools/tarkovtool-drip-builder.html", "title": "Дрип-билдер", "description": "Обвесы по цветам", "icon": "drip-builder", "cat": "loadout", "kind": "static"},
+    {"file": "tools/tarkovtool-loadout-budget.html", "title": "Лоадаут за N ₽", "description": "Кит под бюджет", "icon": "loadout-budget", "cat": "loadout", "kind": "static"},
+    {"file": "tools/tarkovtool-loadout-builder.html", "title": "Лоадаут-билдер", "description": "Сборка по слотам", "icon": "loadout-builder", "cat": "loadout", "kind": "static"},
+    {"file": "tools/tarkovtool-gun-builder.html", "title": "Сборка оружия", "description": "Обвесы и слоты", "icon": "gun-builder", "cat": "loadout", "kind": "static"},
+    {"file": "tools/tarkovtool-gun-budget.html", "title": "Оружие за N ₽", "description": "Сборка под бюджет", "icon": "gun-budget", "cat": "loadout", "kind": "static"},
+    {"file": "tools/tarkovtool-ammo.html", "title": "Патроны", "description": "Пробитие, урон, цена", "icon": "ammo", "cat": "loadout", "kind": "static"},
+    {"file": "tools/tarkovtool-armor.html", "title": "Броня", "description": "Класс, зоны, цена", "icon": "armor", "cat": "loadout", "kind": "static"},
+    {"file": "tools/tarkovtool-helmets.html", "title": "Шлемы", "description": "Класс, рикошет, цена", "icon": "helmets", "cat": "loadout", "kind": "static"},
+    {"file": "tools/tarkovtool-barter-calc.html", "title": "Бартер (ручной)", "description": "Калькулятор бартера", "icon": "barter", "cat": "flea", "kind": "static"},
+    {"file": "tools/tarkovtool-barter-live.html", "title": "Бартер (live)", "description": "Живые бартеры API", "icon": "barter", "cat": "flea", "kind": "static"},
+    {"file": "tools/tarkovtool-bosses.html", "title": "Боссы", "description": "Карты, лут, охрана", "icon": "boss", "cat": "quests", "kind": "static"},
+    {"file": "tools/tarkovtool-btc-farm.html", "title": "BTC Farm", "description": "Окупаемость фермы", "icon": "btc", "cat": "hideout", "kind": "static"},
+    {"file": "tools/tarkovtool-compare.html", "title": "Сравнение", "description": "Сравнить предметы", "icon": "compare", "cat": "util", "kind": "static"},
+    {"file": "tools/tarkovtool-containers.html", "title": "Контейнеры", "description": "Слоты и эффективность", "icon": "container", "cat": "flea", "kind": "static"},
+    {"file": "tools/tarkovtool-crafts.html", "title": "Крафты", "description": "Верстак и окупаемость", "icon": "craft", "cat": "hideout", "kind": "static"},
+    {"file": "tools/tarkovtool-drip.html", "title": "Дрип", "description": "Скины и кастомизация", "icon": "drip", "cat": "loadout", "kind": "static"},
+    {"file": "tools/tarkovtool-hideout.html", "title": "Убежище", "description": "Станции и апгрейды", "icon": "hideout", "cat": "hideout", "kind": "static"},
+    {"file": "tools/tarkovtool-hideout-mgmt.html", "title": "Управление убежищем", "description": "Планы апгрейдов", "icon": "hideout", "cat": "hideout", "kind": "static"},
+    {"file": "tools/tarkovtool-item-use.html", "title": "Применение", "description": "Где используется предмет", "icon": "item-use", "cat": "util", "kind": "static"},
+    {"file": "tools/tarkovtool-keys.html", "title": "Ключи", "description": "Карты и ценность", "icon": "key", "cat": "util", "kind": "static"},
+    {"file": "tools/tarkovtool-lang-search.html", "title": "Поиск по языкам", "description": "Имена в локалях", "icon": "lang", "cat": "util", "kind": "static"},
+    {"file": "tools/tarkovtool-loot-slot.html", "title": "Лут-слоты", "description": "Что лутать", "icon": "loot", "cat": "flea", "kind": "static"},
+    {"file": "tools/tarkovtool-mags.html", "title": "Магазины", "description": "Ёмкость и совместимость", "icon": "mag", "cat": "loadout", "kind": "static"},
+    {"file": "tools/tarkovtool-medkits.html", "title": "Аптечки", "description": "HP и цена лечения", "icon": "med", "cat": "med", "kind": "static"},
+    {"file": "tools/tarkovtool-mods.html", "title": "Моды", "description": "Обвесы оружия", "icon": "mods", "cat": "loadout", "kind": "static"},
+    {"file": "tools/tarkovtool-nvg.html", "title": "ПНВ", "description": "Ночное видение", "icon": "nvg", "cat": "loadout", "kind": "static"},
+    {"file": "tools/tarkovtool-plates.html", "title": "Плиты", "description": "Класс и зоны", "icon": "plate", "cat": "loadout", "kind": "static"},
+    {"file": "tools/tarkovtool-quest-items.html", "title": "Квест-предметы", "description": "FIR для квестов", "icon": "quest", "cat": "quests", "kind": "static"},
+    {"file": "tools/tarkovtool-quests.html", "title": "Квесты", "description": "Цепочки и награды", "icon": "quest", "cat": "quests", "kind": "static"},
+    {"file": "tools/tarkovtool-raid-checklist.html", "title": "Чек-лист рейда", "description": "Собраться в рейд", "icon": "raid", "cat": "quests", "kind": "static"},
+    {"file": "tools/tarkovtool-restock.html", "title": "Таймер рестока", "description": "Обновление торговцев", "icon": "restock", "cat": "util", "kind": "live"},
+    {"file": "tools/tarkovtool-scopes.html", "title": "Прицелы", "description": "Кратность и эрго", "icon": "scope", "cat": "loadout", "kind": "static"},
+    {"file": "tools/tarkovtool-shortname.html", "title": "Короткие имена", "description": "Свои названия", "icon": "short", "cat": "util", "kind": "static"},
+    {"file": "tools/tarkovtool-skills.html", "title": "Скиллы", "description": "Прокачка навыков", "icon": "skill", "cat": "util", "kind": "static"},
+    {"file": "tools/tarkovtool-stim-combos.html", "title": "Комбо стимов", "description": "Связки стимуляторов", "icon": "stim", "cat": "med", "kind": "static"},
+    {"file": "tools/tarkovtool-stims.html", "title": "Стимуляторы", "description": "Бафы и дебафы", "icon": "stim", "cat": "med", "kind": "static"},
+    {"file": "tools/tarkovtool-streamer-flip.html", "title": "Стример-флип", "description": "Ивент-предметы", "icon": "streamer", "cat": "flea", "kind": "static"},
+    {"file": "tools/tarkovtool-trader-flip.html", "title": "Трейдер-флип", "description": "Покупка у торговца → flea", "icon": "trader", "cat": "flea", "kind": "static"}
   ]
 }
