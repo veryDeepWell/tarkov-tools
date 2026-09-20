@@ -13,6 +13,12 @@
   </script>
   <style>
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    #grid.catalog-root, .catalog-root { display: block !important; }
+    .catalog-root .cat-body.grid, .cat-body.grid {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
     .tool {
       display: flex; flex-direction: column; text-decoration: none; color: inherit;
       background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px;
@@ -40,10 +46,8 @@
       border-color: var(--accent) !important; color: var(--accent) !important;
       background: color-mix(in srgb, var(--accent) 12%, transparent) !important;
     }
-    .pins-label, .cat-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 4px 0 8px; font-weight: 600; }
     .tool p { font-size: .9rem; color: var(--muted); margin: 0; line-height: 1.4; }
-    .cat-block { margin-bottom: 16px; }
-    .cat-head { cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 6px 0; user-select: none; }
+    .cat-section { margin: 0 0 18px; }
     .cat-count { color: var(--muted); font-size: .8rem; }
   </style>
 </head>
@@ -64,7 +68,7 @@
             <div class="row"><input type="search" id="q" placeholder="Search…" data-i18n-placeholder="hub.searchPlaceholder" autocomplete="off"></div>
             <p class="meta" id="count" style="margin-top:8px"></p>
           </div>
-          <div class="grid" id="grid"></div>
+          <div class="grid catalog-root" id="grid"></div>
           <div class="changelog" id="changelog"></div>
         </div>
         <div class="hub-expand" id="hubExpand">
@@ -93,6 +97,7 @@
   <script defer src="core/tarkov-state.js"></script>
   <script defer src="core/tarkov-names.js"></script>
   <script defer src="core/tarkov-api.js"></script>
+  <script defer src="core/tarkov-poll.js"></script>
   <script defer src="core/tarkov-i18n.js"></script>
   <script defer src="core/tarkov-common.js"></script>
   <script defer src="core/tarkov-i18n-bridge.js"></script>
@@ -100,7 +105,7 @@
   <script defer src="hub/catalog-data.js?v=1"></script>
   <script defer src="hub/tarkov-hub-catalog.js?v=4"></script>
   <script defer src="hub/tarkov-hub-app.js"></script>
-  <script defer src="hub/tarkov-hub-cats.js?v=7"></script>
+  <script defer src="hub/tarkov-hub-cats.js?v=8"></script>
   <script defer src="hub/tarkov-settings-tabs.js"></script>
   <script defer src="hub/tarkov-hub-notif.js"></script>
 </body>
