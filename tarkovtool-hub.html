@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tarkov Tools</title>
+  <link rel="icon" href="data:,">
+  <link rel="preload" href="core/tarkov-common.css?v=8" as="style">
+  <link rel="preload" href="catalog.json" as="fetch" crossorigin>
+  <link rel="stylesheet" href="core/tarkov-common.css?v=8">
+  <link rel="stylesheet" href="core/tarkov-i18n.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Hub", "description": "All Tarkov tools in one place."}
+  </script>
+  <style>
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .tool {
+      display: flex; flex-direction: column; text-decoration: none; color: inherit;
+      background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; min-height: 120px; transition: border-color .15s, transform .12s;
+      position: relative;
+    }
+    .tool:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .tool-head { display: flex; gap: 12px; align-items: flex-start; flex: 1; }
+    .tool-ico {
+      flex-shrink: 0; width: 48px; height: 48px; border-radius: 12px;
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+      display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+    }
+    .tool h2 { font-size: 1.05rem; margin: 0 0 6px; color: var(--accent); }
+    .tool-pin {
+      position: absolute; top: 10px; right: 10px;
+      width: 36px; height: 36px; min-width: 36px !important; min-height: 36px !important;
+      border-radius: 8px !important; padding: 0 !important;
+      background: transparent !important; border: 1px solid var(--border) !important;
+      color: var(--muted) !important; font-size: 1.1rem !important; cursor: pointer;
+      display: flex !important; align-items: center; justify-content: center;
+    }
+    .tool-pin:hover, .tool-pin.on {
+      border-color: var(--accent) !important; color: var(--accent) !important;
+      background: color-mix(in srgb, var(--accent) 12%, transparent) !important;
+    }
+    .pins-label {
+      font-size: .78rem; text-transform: uppercase; letter-spacing: .05em;
+      color: var(--muted); margin: 4px 0 8px; font-weight: 600;
+    }
+    .tool p { font-size: .9rem; color: var(--muted); margin: 0; line-height: 1.4; }
+  </style>
+</head>
+<body>
+  <div class="hub-shell">
+    <div style="padding:12px 14px 0">
+      <div class="hub-top-row">
+        <h1 style="margin:0" data-i18n="hub.title">Tarkov Tools</h1>
+        <button type="button" class="btn-ghost" id="btnNotif" data-i18n-title="hub.notifications" title="Notifications">🔔 <span id="notifCount">0</span></button>
+      </div>
+
+      <div class="mini-bar" id="miniBar" hidden>
+        <div class="mini-bar-label" data-i18n="hub.mini">Mini</div>
+        <div class="mini-bar-list" id="miniList"></div>
+      </div>
+
+      <div class="hub-work" id="hubWork">
+        <div class="hub-main" id="hubMain">
+          <div class="card" style="margin-top:0">
+            <div class="row"><input type="search" id="q" placeholder="Search…" data-i18n-placeholder="hub.searchPlaceholder" autocomplete="off"></div>
+            <p class="meta" id="count" style="margin-top:8px"></p>
+          </div>
+          <div class="grid" id="grid"></div>
+          <div class="changelog" id="changelog"></div>
+        </div>
+
+        <div class="hub-expand" id="hubExpand">
+          <div class="hub-expand-bar">
+            <span class="title" id="expandTitle">—</span>
+            <button type="button" class="btn-ghost" id="btnCollapse" data-i18n="hub.collapse">Collapse</button>
+            <button type="button" class="btn-ghost" id="btnCloseExpand" data-i18n="hub.closeTab">Close</button>
+          </div>
+          <div id="expandHost" style="flex:1;min-height:0;position:relative"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hub-frames" id="framePool" aria-hidden="true"></div>
+  <div class="mini-tip" id="miniTip"></div>
+  <div class="modal-bg" id="notifPanelBg">
+    <div class="modal" id="notifPanel" style="max-width:520px">
+      <div class="row" style="align-items:center;margin-bottom:12px">
+        <h2 style="margin:0;flex:1" data-i18n="hub.notifications">Notifications</h2>
+        <button type="button" class="btn-ghost" id="notifMarkAll" data-i18n="hub.markAllRead">Mark all read</button>
+        <button type="button" class="btn-ghost" id="notifClose" data-i18n="common.close">Close</button>
+      </div>
+      <div id="notifList" class="meta" data-i18n="common.empty">Empty</div>
+    </div>
+  </div>
+
+  <script defer src="core/tarkov-state.js"></script>
+  <script defer src="core/tarkov-names.js"></script>
+  <script defer src="core/tarkov-api.js"></script>
+  <script defer src="core/tarkov-i18n.js"></script>
+  <script defer src="core/tarkov-common.js"></script>
+  <script defer src="core/tarkov-i18n-bridge.js"></script>
+  <script defer src="core/tarkov-icons.js"></script>
+  <script defer src="hub/tarkov-hub-catalog.js"></script>
+  <script defer src="hub/tarkov-hub-app.js"></script>
+  <script defer src="hub/tarkov-hub-cats.js?v=6"></script>
+  <script defer src="hub/tarkov-settings-tabs.js"></script>
+  <script defer src="hub/tarkov-hub-notif.js"></script>
+</body>
+</html>
