@@ -6,12 +6,12 @@
   <title>Tarkov Tools</title>
   <link rel="icon" href="data:,">
   <link rel="preload" href="core/tarkov-common.css?v=8" as="style">
-  <link rel="preload" href="catalog.json" as="fetch" crossorigin>
   <link rel="stylesheet" href="core/tarkov-common.css?v=8">
   <link rel="stylesheet" href="core/tarkov-i18n.css">
   <script type="application/json" id="tarkovtool-meta">
   {"title": "Hub", "description": "All Tarkov tools in one place."}
   </script>
+  <script type="application/json" id="catalog-embed">PLACEHOLDER_CATALOG</script>
   <style>
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
     .tool {
@@ -41,11 +41,11 @@
       border-color: var(--accent) !important; color: var(--accent) !important;
       background: color-mix(in srgb, var(--accent) 12%, transparent) !important;
     }
-    .pins-label {
-      font-size: .78rem; text-transform: uppercase; letter-spacing: .05em;
-      color: var(--muted); margin: 4px 0 8px; font-weight: 600;
-    }
+    .pins-label, .cat-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 4px 0 8px; font-weight: 600; }
     .tool p { font-size: .9rem; color: var(--muted); margin: 0; line-height: 1.4; }
+    .cat-block { margin-bottom: 16px; }
+    .cat-head { cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 6px 0; user-select: none; }
+    .cat-count { color: var(--muted); font-size: .8rem; }
   </style>
 </head>
 <body>
@@ -55,12 +55,10 @@
         <h1 style="margin:0" data-i18n="hub.title">Tarkov Tools</h1>
         <button type="button" class="btn-ghost" id="btnNotif" data-i18n-title="hub.notifications" title="Notifications">🔔 <span id="notifCount">0</span></button>
       </div>
-
       <div class="mini-bar" id="miniBar" hidden>
         <div class="mini-bar-label" data-i18n="hub.mini">Mini</div>
         <div class="mini-bar-list" id="miniList"></div>
       </div>
-
       <div class="hub-work" id="hubWork">
         <div class="hub-main" id="hubMain">
           <div class="card" style="margin-top:0">
@@ -70,7 +68,6 @@
           <div class="grid" id="grid"></div>
           <div class="changelog" id="changelog"></div>
         </div>
-
         <div class="hub-expand" id="hubExpand">
           <div class="hub-expand-bar">
             <span class="title" id="expandTitle">—</span>
@@ -82,7 +79,6 @@
       </div>
     </div>
   </div>
-
   <div class="hub-frames" id="framePool" aria-hidden="true"></div>
   <div class="mini-tip" id="miniTip"></div>
   <div class="modal-bg" id="notifPanelBg">
@@ -95,7 +91,6 @@
       <div id="notifList" class="meta" data-i18n="common.empty">Empty</div>
     </div>
   </div>
-
   <script defer src="core/tarkov-state.js"></script>
   <script defer src="core/tarkov-names.js"></script>
   <script defer src="core/tarkov-api.js"></script>
@@ -103,9 +98,9 @@
   <script defer src="core/tarkov-common.js"></script>
   <script defer src="core/tarkov-i18n-bridge.js"></script>
   <script defer src="core/tarkov-icons.js"></script>
-  <script defer src="hub/tarkov-hub-catalog.js"></script>
+  <script defer src="hub/tarkov-hub-catalog.js?v=3"></script>
   <script defer src="hub/tarkov-hub-app.js"></script>
-  <script defer src="hub/tarkov-hub-cats.js?v=6"></script>
+  <script defer src="hub/tarkov-hub-cats.js?v=7"></script>
   <script defer src="hub/tarkov-settings-tabs.js"></script>
   <script defer src="hub/tarkov-hub-notif.js"></script>
 </body>
