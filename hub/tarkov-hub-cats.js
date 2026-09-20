@@ -1,5 +1,8 @@
-/*! Hub categories: same square cards, collapsible sections (Prism-style) */
+/*! Hub categories: collapsible sections */
 (function () {
+  function getCatalogList() {
+    return window.TarkovHubCATALOG || window.TarkovHubCatalog || window.CATALOG || [];
+  }
   const CAT_ORDER = ["flea", "loadout", "hideout", "quests", "med", "util", "other"];
   const CAT_TITLE = {
     flea: "Барахолка", loadout: "Лоадаут", hideout: "Убежка",
@@ -32,11 +35,13 @@
   };
 
   function ensureCat(t) {
-    if (!t.cat) t.cat = CAT_MAP[t.file] || "other";
+    if (!t.cat) {
+      var base = String(t.file || "").split("/").pop();
+      t.cat = CAT_MAP[base] || CAT_MAP[t.file] || "other";
+    }
     return t;
   }
 
-  // Direct localStorage — never call TarkovTools.* from these (recursion)
   function readHidden() {
     try { return JSON.parse(localStorage.getItem("tarkovHiddenTools") || "[]") || []; } catch (e) { return []; }
   }
@@ -51,9 +56,11 @@
   }
 
   function publishCatalog() {
-    if (typeof CATALOG === "undefined") return;
-    CATALOG.forEach(ensureCat);
-    window.TarkovHubCatalog = CATALOG;
+    var list = getCatalogList();
+    list.forEach(ensureCat);
+    window.TarkovHubCATALOG = list;
+    window.TarkovHubCatalog = list;
+    window.CATALOG = list;
   }
 
   function card(t, pinned) {
@@ -72,7 +79,7 @@
     });
     document.querySelectorAll(".tool[data-open]").forEach(function (el) {
       el.onclick = function (e) {
-        if (e.target.closest(".tool-pin")) return;
+        if (e.target.closest && e.target.closest(".tool-pin")) return;
         var f = el.getAttribute("data-open");
         if (e.ctrlKey || e.metaKey) { window.open(f, "_blank"); return; }
         if (typeof openToolAsMini === "function") openToolAsMini(f);
@@ -94,94 +101,87 @@
 
   window.renderCatalog = function () {
     publishCatalog();
-    if (typeof CATALOG === "undefined") return;
+    var CATALOG = getCatalogList();
+    if (!CATALOG.length) {
+      var grid0 = document.getElementById("grid");
+      if (grid0) grid0.innerHTML = "<p class=meta>Каталог загружается…</p>";
+      return;
+    }
 
     var qEl = document.getElementById("q");
     var q = ((qEl && qEl.value) || "").toLowerCase().trim();
-    var pins = typeof loadPins === "function" ? loadPins() : (function () {
-      try { return JSON.parse(localStorage.getItem("tarkovHubPins") || "[]"); } catch (e) { return []; }
-    })();
     var hidden = readHidden();
     var collapsed = readCollapsed();
+    var pins = [];
+    try {
+      pins = JSON.parse(localStorage.getItem("tarkovHubPins") || "[]") || [];
+    } catch (e) {}
 
     var list = CATALOG.filter(function (t) {
-      return hidden.indexOf(t.file) < 0;
-    }).map(ensureCat);
-
-    if (q) {
-      list = list.filter(function (t) {
-        return (t.title + " " + (t.description || "") + " " + (t.cat || "")).toLowerCase().includes(q);
-      });
-    }
-
-    var pinned = list.filter(function (t) { return pins.indexOf(t.file) >= 0; });
-    var rest = list.filter(function (t) { return pins.indexOf(t.file) < 0; });
-    pinned.sort(function (a, b) { return pins.indexOf(a.file) - pins.indexOf(b.file); });
+      if (hidden.indexOf(t.file) >= 0) return false;
+      if (!q) return true;
+      var s = ((t.title || "") + " " + (t.description || "") + " " + (t.file || "")).toLowerCase();
+      return s.indexOf(q) >= 0;
+    });
 
     var count = document.getElementById("count");
     if (count) {
-      count.textContent = list.length + " / " + CATALOG.length + (hidden.length ? " · скрыто " + hidden.length : "");
+      count.textContent = list.length + " / " + CATALOG.length +
+        (hidden.length ? " · скрыто " + hidden.length : "");
     }
 
-    function group(arr) {
-      var map = {};
-      arr.forEach(function (t) {
-        var c = t.cat || "other";
-        if (!map[c]) map[c] = [];
-        map[c].push(t);
-      });
-      return map;
-    }
+    var byCat = {};
+    CAT_ORDER.forEach(function (c) { byCat[c] = []; });
+    list.forEach(function (t) {
+      ensureCat(t);
+      var c = t.cat || "other";
+      if (!byCat[c]) byCat[c] = [];
+      byCat[c].push(t);
+    });
+
+    var pinned = list.filter(function (t) { return pins.indexOf(t.file) >= 0; });
+    pinned.sort(function (a, b) { return pins.indexOf(a.file) - pins.indexOf(b.file); });
 
     var html = "";
     if (pinned.length) {
-      html += '<section class="cat-section">' +
-        '<div class="cat-head" data-cat="__pins__">' +
-        '<span class="cat-title">📌 Закреплённые</span>' +
-        '<span class="cat-count">' + pinned.length + '</span></div>' +
-        '<div class="cat-body"><div class="grid">' +
+      html += '<div class="cat-block" data-cat="__pins__">' +
+        '<div class="cat-head" data-cat="__pins__"><span class="cat-title">Закреплённые</span></div>' +
+        '<div class="grid cat-body">' +
         pinned.map(function (t) { return card(t, true); }).join("") +
-        '</div></div></section>';
+        "</div></div>";
     }
 
-    var groups = group(rest);
     CAT_ORDER.forEach(function (c) {
-      var tools = groups[c];
-      if (!tools || !tools.length) return;
-      var isCol = !q && collapsed.indexOf(c) >= 0;
-      html += '<section class="cat-section">' +
-        '<div class="cat-head' + (isCol ? " is-collapsed" : "") + '" data-cat="' + c + '" role="button" tabindex="0">' +
-        '<span class="cat-chevron">' + (isCol ? "▸" : "▾") + '</span>' +
-        '<span class="cat-title">' + (CAT_TITLE[c] || c) + '</span>' +
+      var tools = byCat[c] || [];
+      if (!tools.length) return;
+      var isCol = collapsed.indexOf(c) >= 0;
+      var title = (window.TarkovHubCATEGORIES && TarkovHubCATEGORIES[c]) || CAT_TITLE[c] || c;
+      try {
+        if (window.TarkovI18n && TarkovI18n.catTitle) title = TarkovI18n.catTitle(c) || title;
+      } catch (e) {}
+      html += '<div class="cat-block' + (isCol ? " collapsed" : "") + '" data-cat="' + c + '">' +
+        '<div class="cat-head" data-cat="' + c + '">' +
+        '<span class="cat-chev">' + (isCol ? "▶" : "▼") + '</span> ' +
+        '<span class="cat-title">' + title + '</span> ' +
         '<span class="cat-count">' + tools.length + '</span></div>' +
-        '<div class="cat-body' + (isCol ? " is-collapsed" : "") + '"><div class="grid">' +
-        tools.map(function (t) { return card(t, false); }).join("") +
-        '</div></div></section>';
+        '<div class="grid cat-body"' + (isCol ? ' style="display:none"' : "") + '>' +
+        tools.map(function (t) { return card(t, pins.indexOf(t.file) >= 0); }).join("") +
+        "</div></div>";
     });
 
-    var host = document.getElementById("grid");
-    if (host) {
-      host.className = "catalog-root";
-      host.innerHTML = html || '<p class="meta">Ничего не найдено</p>';
-    }
+    var grid = document.getElementById("grid");
+    if (grid) grid.innerHTML = html;
     wireCards();
   };
-
-  if (!window.TarkovTools) window.TarkovTools = {};
-  TarkovTools.hiddenTools = readHidden;
-  TarkovTools.setHiddenTools = function (arr) {
-    writeHidden(arr);
-    try { window.dispatchEvent(new CustomEvent("tt-hidden-changed")); } catch (e) {}
-  };
-  TarkovTools.isToolHidden = function (f) { return readHidden().indexOf(f) >= 0; };
-  TarkovTools.collapsedCats = readCollapsed;
-  TarkovTools.setCollapsedCats = writeCollapsed;
 
   window.addEventListener("tt-hidden-changed", function () {
     try { window.renderCatalog(); } catch (e) {}
   });
   window.addEventListener("tt-settings-applied", function () {
     try { window.renderCatalog(); } catch (e) {}
+  });
+  window.addEventListener("tarkov-catalog-ready", function () {
+    try { boot(); } catch (e) {}
   });
 
   function boot() {
