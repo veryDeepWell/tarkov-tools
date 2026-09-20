@@ -139,36 +139,94 @@ function closeTab(file) {
   var ifr = frames[file];
   if (ifr && ifr.parentNode) ifr.parentNode.removeChild(ifr);
   delete frames[file];
+  delete statusMap[toolKey(file)];
   dropMiniTab(file);
   renderMiniList();
 }
 
+function unreadCount(file) {
+  try {
+    if (window.TarkovState && TarkovState.unreadForTool) return TarkovState.unreadForTool(toolKey(file)) || 0;
+  } catch (e) {}
+  return 0;
+}
+function unreadItems(file) {
+  try {
+    if (!window.TarkovState || !TarkovState.notifications) return [];
+    var key = toolKey(file);
+    return (TarkovState.notifications() || []).filter(function (n) {
+      return !n.read && toolKey(n.tool || "") === key;
+    }).slice(0, 5);
+  } catch (e) { return []; }
+}
+
+var statusMap = Object.create(null);
+function frameStatus(file) {
+  return statusMap[toolKey(file)] || { ready: false, running: false, label: "", ts: 0 };
+}
+
 function renderMiniList() {
-  var bar = document.getElementById("miniBar");
   var list = document.getElementById("miniList");
-  if (!bar || !list) return;
+  var bar = document.getElementById("miniBar");
+  if (!list || !bar) return;
   var tabs = getMiniTabs();
-  if (!tabs.length) {
-    bar.hidden = true;
-    list.innerHTML = "";
-    return;
-  }
+  if (!tabs.length) { bar.hidden = true; list.innerHTML = ""; return; }
   bar.hidden = false;
   list.innerHTML = tabs.map(function (t) {
     var f = (t && t.file) || t;
+    var n = unreadCount(f);
+    var st = frameStatus(f);
+    var act = expanded === f ? " active" : "";
+    var run = st.running ? " running" : "";
     var title = (t && t.title) || metaFor(f).title || toolKey(f);
-    var on = expanded === f ? " active" : "";
-    return '<button type="button" class="mini-chip' + on + '" data-file="' + esc(f) + '">' +
-      '<span class="ico">' + iconFor(f, title) + '</span> ' + esc(title) +
-      ' <span class="x" data-close="' + esc(f) + '">×</span></button>';
+    return '<button type="button" class="mini-chip' + act + run + '" data-file="' + esc(f) + '" aria-label="' + esc(title) + '">' +
+      '<span class="ico">' + iconFor(f, title) + '</span>' +
+      (n ? '<span class="badge">' + n + '</span>' : '') +
+      (st.running ? '<span class="dot-run"></span>' : '') +
+      '</button>';
   }).join("");
   list.querySelectorAll(".mini-chip").forEach(function (btn) {
-    btn.onclick = function (e) {
-      var close = e.target && e.target.getAttribute && e.target.getAttribute("data-close");
-      if (close) { closeTab(close); return; }
-      expandTab(btn.getAttribute("data-file"));
+    var file = btn.getAttribute("data-file");
+    btn.onclick = function () { expandTab(file); };
+    btn.onmouseenter = function (e) { showChipTip(e, file); };
+    btn.onmouseleave = hideTip;
+    btn.oncontextmenu = function (e) {
+      e.preventDefault();
+      closeTab(file);
+      hideTip();
     };
   });
+}
+
+function showChipTip(e, file) {
+  var tip = document.getElementById("miniTip");
+  if (!tip) return;
+  var st = frameStatus(file);
+  var items = unreadItems(file);
+  var title = metaFor(file).title || toolKey(file);
+  var statusLine;
+  if (!frames[file]) statusLine = "не загружен";
+  else if (!st.ready && !st.running) statusLine = "загрузка…";
+  else if (st.running) statusLine = "● запущен" + (st.label ? " · " + st.label : "");
+  else statusLine = "загружен (фон)";
+  var html = '<div class="tip-title">' + esc(title) + '</div>';
+  html += '<div class="tip-status' + (st.running ? " on" : "") + '">' + esc(statusLine) + '</div>';
+  if (items.length) {
+    html += items.map(function (n) {
+      return '<div class="row-n"><div class="t">' + esc(n.title) + '</div><div class="b">' + esc(n.body || "") + '</div></div>';
+    }).join("");
+  } else {
+    html += '<div class="b" style="color:var(--muted)">Нет непрочитанных</div>';
+  }
+  html += '<div class="b" style="margin-top:6px;color:var(--muted)">ПКМ — закрыть вкладку</div>';
+  tip.innerHTML = html;
+  tip.style.display = "block";
+  tip.style.left = Math.min(e.clientX + 12, window.innerWidth - 320) + "px";
+  tip.style.top = Math.min(e.clientY + 14, window.innerHeight - 160) + "px";
+}
+function hideTip() {
+  var tip = document.getElementById("miniTip");
+  if (tip) tip.style.display = "none";
 }
 
 function bootMini() {
@@ -179,6 +237,24 @@ function bootMini() {
       TarkovState.on("mini", function () { renderMiniList(); });
       TarkovState.on("notification", function () { renderMiniList(); });
     }
+  } catch (e) {}
+  try {
+    window.addEventListener("message", function (ev) {
+      if (ev.origin !== location.origin) return;
+      var d = ev.data;
+      if (!d || typeof d !== "object") return;
+      if (d.type === "tt-status" || d.type === "tt-tool-status") {
+        var key = toolKey(d.tool || d.file || "");
+        if (!key) return;
+        statusMap[key] = {
+          ready: d.ready !== false,
+          running: !!d.running,
+          label: d.label || "",
+          ts: Date.now()
+        };
+        renderMiniList();
+      }
+    });
   } catch (e) {}
 }
 
