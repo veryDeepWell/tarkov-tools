@@ -1,4 +1,4 @@
-/*! Hub categories: collapsible sections */
+/*! Hub categories: collapsible sections + horizontal card grids */
 (function () {
   function getCatalogList() {
     return window.TarkovHubCATALOG || window.TarkovHubCatalog || window.CATALOG || [];
@@ -44,9 +44,6 @@
 
   function readHidden() {
     try { return JSON.parse(localStorage.getItem("tarkovHiddenTools") || "[]") || []; } catch (e) { return []; }
-  }
-  function writeHidden(arr) {
-    try { localStorage.setItem("tarkovHiddenTools", JSON.stringify(arr || [])); } catch (e) {}
   }
   function readCollapsed() {
     try { return JSON.parse(localStorage.getItem("tarkovCollapsedCats") || "[]") || []; } catch (e) { return []; }
@@ -113,9 +110,7 @@
     var hidden = readHidden();
     var collapsed = readCollapsed();
     var pins = [];
-    try {
-      pins = JSON.parse(localStorage.getItem("tarkovHubPins") || "[]") || [];
-    } catch (e) {}
+    try { pins = JSON.parse(localStorage.getItem("tarkovHubPins") || "[]") || []; } catch (e) {}
 
     var list = CATALOG.filter(function (t) {
       if (hidden.indexOf(t.file) >= 0) return false;
@@ -144,9 +139,9 @@
 
     var html = "";
     if (pinned.length) {
-      html += '<div class="cat-block" data-cat="__pins__">' +
-        '<div class="cat-head" data-cat="__pins__"><span class="cat-title">Закреплённые</span></div>' +
-        '<div class="grid cat-body">' +
+      html += '<div class="cat-section" data-cat="__pins__">' +
+        '<div class="cat-head" data-cat="__pins__"><span class="cat-chevron">📌</span><span class="cat-title">Закреплённые</span><span class="cat-count">' + pinned.length + '</span></div>' +
+        '<div class="cat-body grid">' +
         pinned.map(function (t) { return card(t, true); }).join("") +
         "</div></div>";
     }
@@ -159,18 +154,21 @@
       try {
         if (window.TarkovI18n && TarkovI18n.catTitle) title = TarkovI18n.catTitle(c) || title;
       } catch (e) {}
-      html += '<div class="cat-block' + (isCol ? " collapsed" : "") + '" data-cat="' + c + '">' +
-        '<div class="cat-head" data-cat="' + c + '">' +
-        '<span class="cat-chev">' + (isCol ? "▶" : "▼") + '</span> ' +
-        '<span class="cat-title">' + title + '</span> ' +
+      html += '<div class="cat-section" data-cat="' + c + '">' +
+        '<div class="cat-head' + (isCol ? " is-collapsed" : "") + '" data-cat="' + c + '">' +
+        '<span class="cat-chevron">' + (isCol ? "▶" : "▼") + '</span>' +
+        '<span class="cat-title">' + title + '</span>' +
         '<span class="cat-count">' + tools.length + '</span></div>' +
-        '<div class="grid cat-body"' + (isCol ? ' style="display:none"' : "") + '>' +
+        '<div class="cat-body grid' + (isCol ? " is-collapsed" : "") + '">' +
         tools.map(function (t) { return card(t, pins.indexOf(t.file) >= 0); }).join("") +
         "</div></div>";
     });
 
     var grid = document.getElementById("grid");
-    if (grid) grid.innerHTML = html;
+    if (grid) {
+      grid.classList.add("catalog-root");
+      grid.innerHTML = html;
+    }
     wireCards();
   };
 
