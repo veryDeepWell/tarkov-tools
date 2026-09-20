@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Динамика цен</title>
+  <title>Price track</title>
   <link rel="stylesheet" href="../core/tarkov-common.css">
   <script type="application/json" id="tarkovtool-meta">
-  {"title": "Динамика цен", "description": "Снимки flea avg/low/high, график, фон, countdown."}
+  {"title": "Price track", "description": "Flea price history, background snapshots, countdown."}
   </script>
   <style>
     .item-row { display:flex; gap:10px; align-items:center; padding:8px 10px; border-bottom:1px solid var(--border); cursor:pointer; }
@@ -36,39 +36,39 @@
 <body>
   <div class="container">
     <div class="card">
-      <div class="card-title">Динамика цен</div>
+      <div class="card-title" data-i18n="priceTrack.title">Price track</div>
       <div class="row" style="gap:10px;flex-wrap:wrap;align-items:end">
-        <label>Интервал (мин)
+        <label><span data-i18n="common.interval">Interval (min)</span>
           <input type="number" id="interval" value="30" min="1" max="1440" style="width:90px">
         </label>
-        <label>Режим
+        <label><span data-i18n="common.mode">Mode</span>
           <select id="gameMode"><option value="pve">PvE</option><option value="pvp">PvP</option></select>
         </label>
-        <button type="button" class="btn" id="startBtn">Старт фона</button>
-        <button type="button" class="btn-ghost" id="stopBtn">Стоп</button>
-        <button type="button" class="btn-ghost" id="snapBtn">Снять сейчас</button>
+        <button type="button" class="btn" id="startBtn" data-i18n="priceTrack.startBg">Start background</button>
+        <button type="button" class="btn-ghost" id="stopBtn" data-i18n="priceTrack.stopBg">Stop</button>
+        <button type="button" class="btn-ghost" id="snapBtn" data-i18n="priceTrack.snapNow">Snap now</button>
       </div>
       <p class="meta" id="trackMeta">—</p>
-      <p class="countdown" id="countdown" data-poll-prefix="Следующий снимок: ">Следующий снимок: —</p>
+      <p class="countdown" id="countdown" data-i18n="priceTrack.nextPrefix">Next snap: —</p>
       <p class="status" id="status"></p>
     </div>
     <div class="layout">
       <div class="card">
-        <div class="card-title">Предметы</div>
-        <input type="search" id="q" placeholder="Фильтр…" style="margin-bottom:8px">
-        <div id="itemList" class="meta">Пока пусто</div>
+        <div class="card-title" data-i18n="priceTrack.items">Items</div>
+        <input type="search" id="q" placeholder="Filter…" data-i18n-placeholder="common.filter" style="margin-bottom:8px">
+        <div id="itemList" class="meta">—</div>
       </div>
       <div class="card">
-        <div class="card-title" id="chartTitle">Выбери предмет</div>
+        <div class="card-title" id="chartTitle" data-i18n="priceTrack.pickItem">Select an item</div>
         <div class="chart-toolbar">
-          <button type="button" class="chip" data-range="1d">1 день</button>
-          <button type="button" class="chip" data-range="3d">3 дня</button>
-          <button type="button" class="chip on" data-range="7d">Неделя</button>
-          <button type="button" class="chip" data-range="all">Всё время</button>
+          <button type="button" class="chip" data-range="1d" data-i18n="priceTrack.range1d">1 day</button>
+          <button type="button" class="chip" data-range="3d" data-i18n="priceTrack.range3d">3 days</button>
+          <button type="button" class="chip on" data-range="7d" data-i18n="priceTrack.range7d">Week</button>
+          <button type="button" class="chip" data-range="all" data-i18n="priceTrack.rangeAll">All time</button>
           <button type="button" class="chip on" data-series="avg">avg</button>
           <button type="button" class="chip on" data-series="low">low</button>
           <button type="button" class="chip on" data-series="high">high</button>
-          <button type="button" class="btn-ghost" id="chartResetZoom" style="min-width:auto;min-height:28px;padding:0 10px">Сброс зума</button>
+          <button type="button" class="btn-ghost" id="chartResetZoom" data-i18n="priceTrack.resetZoom" style="min-width:auto;min-height:28px;padding:0 10px">Reset zoom</button>
         </div>
         <div class="chart-stats" id="chartStats" hidden></div>
         <div class="chart-wrap">
@@ -84,6 +84,7 @@
   <script src="../core/tarkov-poll.js"></script>
   <script src="../core/tarkov-ui.js"></script>
   <script src="../core/tarkov-state.js"></script>
+  <script src="../core/tarkov-i18n.js"></script>
   <script src="../core/tarkov-common.js"></script>
   <script src="tarkovtool-price-track.js"></script>
   <script src="tarkov-price-track-boot.js"></script>
