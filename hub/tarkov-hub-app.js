@@ -308,6 +308,27 @@ function bootMini(attempt) {
           };
           renderMiniList();
         }
+        if (d.type === "tt-notify") {
+          try {
+            if (window.TarkovState && TarkovState.notify) {
+              TarkovState.notify({
+                title: d.title || "",
+                body: d.body || "",
+                tool: d.tool || "",
+                kind: d.kind || "ok"
+              });
+            }
+          } catch (e) {}
+          try {
+            if (!d.silent && window.TarkovTools && TarkovTools.beep) {
+              var k = d.kind || "ok";
+              if (k === "price") k = "ok";
+              TarkovTools.beep(k);
+            }
+          } catch (e) {}
+          try { if (typeof updateNotifBell === "function") updateNotifBell(); } catch (e) {}
+          try { renderMiniList(); } catch (e) {}
+        }
       });
     } catch (e) {}
   }
