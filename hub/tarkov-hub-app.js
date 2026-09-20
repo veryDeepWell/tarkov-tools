@@ -25,6 +25,11 @@ function metaFor(file) {
   var c = getCatalog().find(function (x) { return x.file === file; });
   return c || { file: file, title: toolKey(file), description: "" };
 }
+function isLiveTool(file) {
+  try { if (window.TarkovToolKind) return TarkovToolKind.isLive(file); } catch (e) {}
+  var k = toolKey(file);
+  return k === "tarkovtool-price-track.html" || k === "tarkovtool-price-alarm.html" || k === "tarkovtool-restock.html";
+}
 
 function getMiniTabs() {
   var tabs = [];
@@ -53,7 +58,6 @@ function pushMiniTab(file) {
       }
     }
   } catch (e) {}
-  // always mirror to LS
   try {
     var cur = JSON.parse(localStorage.getItem("tarkovMiniTabs.v1") || "[]") || [];
     cur = cur.filter(function (t) { return (t.file || t) !== file; });
@@ -195,12 +199,12 @@ function renderMiniList() {
     var n = unreadCount(f);
     var st = frameStatus(f);
     var act = expanded === f ? " active" : "";
-    var run = st.running ? " running" : "";
+    var run = (isLiveTool(f) && st.running) ? " running" : "";
     var title = (t && t.title) || metaFor(f).title || toolKey(f);
     return '<button type="button" class="mini-chip' + act + run + '" data-file="' + esc(f) + '" aria-label="' + esc(title) + '">' +
       '<span class="ico">' + iconFor(f, title) + '</span>' +
       (n ? '<span class="badge">' + n + '</span>' : '') +
-      (st.running ? '<span class="dot-run"></span>' : '') +
+      (isLiveTool(f) && st.running ? '<span class="dot-run"></span>' : '') +
       '</button>';
   }).join("");
   list.querySelectorAll(".mini-chip").forEach(function (btn) {
@@ -222,13 +226,15 @@ function showChipTip(e, file) {
   var st = frameStatus(file);
   var items = unreadItems(file);
   var title = metaFor(file).title || toolKey(file);
+  var live = isLiveTool(file);
   var statusLine;
   if (!frames[file]) statusLine = "не загружен";
   else if (!st.ready && !st.running) statusLine = "загрузка…";
-  else if (st.running) statusLine = "● запущен" + (st.label ? " · " + st.label : "");
-  else statusLine = "загружен (фон)";
+  else if (live && st.running) statusLine = "● запущен" + (st.label ? " · " + st.label : "");
+  else if (live) statusLine = "загружен (фон)";
+  else statusLine = "открыт";
   var html = '<div class="tip-title">' + esc(title) + '</div>';
-  html += '<div class="tip-status' + (st.running ? " on" : "") + '">' + esc(statusLine) + '</div>';
+  html += '<div class="tip-status' + (live && st.running ? " on" : "") + '">' + esc(statusLine) + '</div>';
   if (items.length) {
     html += items.map(function (n) {
       return '<div class="row-n"><div class="t">' + esc(n.title) + '</div><div class="b">' + esc(n.body || "") + '</div></div>';
@@ -266,7 +272,15 @@ function bootMini(attempt) {
     try {
       ensureFrame(f);
       var k = toolKey(f);
-      if (!statusMap[k]) statusMap[k] = { ready: false, running: false, label: "восстановление…", ts: Date.now() };
+      if (!statusMap[k]) {
+        var live = isLiveTool(f);
+        statusMap[k] = {
+          ready: !live,
+          running: false,
+          label: live ? "восстановление…" : "",
+          ts: Date.now()
+        };
+      }
     } catch (e) {}
   }
   renderMiniList();
@@ -391,7 +405,9 @@ setInterval(function () {
   if (!keys.length) return;
   for (var i = 0; i < keys.length; i++) {
     try {
-      var ifr = frames[keys[i]];
+      var f = keys[i];
+      if (!isLiveTool(f)) continue;
+      var ifr = frames[f];
       if (ifr && ifr.contentWindow) ifr.contentWindow.postMessage({ type: "tt-ping-status" }, location.origin);
     } catch (e) {}
   }
