@@ -1,7 +1,7 @@
 window.TarkovHubMini = true;
 
 function getCatalog() { return window.TarkovHubCATALOG || []; }
-var CHANGELOG = [{"date":"2026-09-17","items":["Mini tabs, notifications","Catalog categories","TarkovAPI, TarkovNames"]}];
+var CHANGELOG = [{"date":"2026-09-17","items":["Mini tabs, notifications","Catalog categories","TarkovAPI, TarkovNames"]},{"date":"2026-09-20","items":["Stage 0 platform contract","kind live|static","single sound owner"]}];
 var ICONS = [[/btc/i,"₿"],[/cultist/i,"⛧"],[/my-tarkov/i,"👤"],[/helmet/i,"🪖"],[/nvg/i,"🌑"],[/price-track/i,"📈"],[/price-alarm/i,"🔔"],[/food/i,"🍖"],[/random-loadout/i,"🎲"],[/loadout-budget/i,"💰"],[/loadout-builder/i,"🧰"],[/drip-builder/i,"🎨"],[/drip-loadout/i,"✨"],[/ammo/i,"🔫"],[/armor/i,"🛡️"],[/barter/i,"🧮"],[/boss/i,"👹"],[/compare/i,"⚖️"],[/container/i,"🎒"],[/craft/i,"🔧"],[/drip/i,"🕶️"],[/gun/i,"🛠️"],[/hideout/i,"🏗️"],[/key/i,"🔑"],[/lang/i,"🌐"],[/loot/i,"📦"],[/item-use/i,"💡"],[/mag/i,"📟"],[/med/i,"💊"],[/mods/i,"🔩"],[/plate/i,"🧱"],[/quest/i,"📜"],[/raid/i,"✅"],[/restock/i,"⏰"],[/scope/i,"🔭"],[/short/i,"🏷️"],[/skill/i,"📈"],[/stim/i,"💉"],[/streamer/i,"📺"],[/trader/i,"🏪"]];
 
 function iconFor(file, title) {
@@ -309,6 +309,7 @@ function bootMini(attempt) {
           renderMiniList();
         }
         if (d.type === "tt-notify") {
+          // Sound ownership: ONLY Notify()/TarkovTools.beep in the tool frame — hub must not beep again.
           try {
             if (window.TarkovState && TarkovState.notify) {
               TarkovState.notify({
@@ -317,13 +318,6 @@ function bootMini(attempt) {
                 tool: d.tool || "",
                 kind: d.kind || "ok"
               });
-            }
-          } catch (e) {}
-          try {
-            if (!d.silent && window.TarkovTools && TarkovTools.beep) {
-              var k = d.kind || "ok";
-              if (k === "price") k = "ok";
-              TarkovTools.beep(k);
             }
           } catch (e) {}
           try { if (typeof updateNotifBell === "function") updateNotifBell(); } catch (e) {}
