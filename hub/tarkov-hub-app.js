@@ -1,7 +1,7 @@
 window.TarkovHubMini = true;
 
 function getCatalog() { return window.TarkovHubCATALOG || []; }
-var CHANGELOG = [{"date":"2026-09-17","items":["Mini tabs, notifications","Catalog categories","TarkovAPI, TarkovNames"]},{"date":"2026-09-20","items":["Stage 0 platform contract","kind live|static","single sound owner"]}];
+var CHANGELOG = [{"date":"2026-09-17","items":["Mini tabs, notifications","Catalog categories","TarkovAPI, TarkovNames"]},{"date":"2026-09-20","items":["Stage 0 platform contract","kind live|static","single sound owner"]},{"date":"2026-09-21","items":["Stage 1 live runtime","dedup notifications","mini ready on load"]}];
 var ICONS = [[/btc/i,"₿"],[/cultist/i,"⛧"],[/my-tarkov/i,"👤"],[/helmet/i,"🪖"],[/nvg/i,"🌑"],[/price-track/i,"📈"],[/price-alarm/i,"🔔"],[/food/i,"🍖"],[/random-loadout/i,"🎲"],[/loadout-budget/i,"💰"],[/loadout-builder/i,"🧰"],[/drip-builder/i,"🎨"],[/drip-loadout/i,"✨"],[/ammo/i,"🔫"],[/armor/i,"🛡️"],[/barter/i,"🧮"],[/boss/i,"👹"],[/compare/i,"⚖️"],[/container/i,"🎒"],[/craft/i,"🔧"],[/drip/i,"🕶️"],[/gun/i,"🛠️"],[/hideout/i,"🏗️"],[/key/i,"🔑"],[/lang/i,"🌐"],[/loot/i,"📦"],[/item-use/i,"💡"],[/mag/i,"📟"],[/med/i,"💊"],[/mods/i,"🔩"],[/plate/i,"🧱"],[/quest/i,"📜"],[/raid/i,"✅"],[/restock/i,"⏰"],[/scope/i,"🔭"],[/short/i,"🏷️"],[/skill/i,"📈"],[/stim/i,"💉"],[/streamer/i,"📺"],[/trader/i,"🏪"]];
 
 function iconFor(file, title) {
@@ -85,6 +85,19 @@ var frames = Object.create(null);
 var expanded = null;
 var statusMap = Object.create(null);
 
+function markFrameReady(file, opts) {
+  opts = opts || {};
+  var k = toolKey(file);
+  var prev = statusMap[k] || {};
+  statusMap[k] = {
+    ready: opts.ready !== false,
+    running: opts.running != null ? !!opts.running : !!prev.running,
+    label: opts.label != null ? opts.label : (prev.label || ""),
+    ts: Date.now()
+  };
+  try { renderMiniList(); } catch (e) {}
+}
+
 function ensureFrame(file) {
   if (frames[file]) return frames[file];
   var pool = document.getElementById("framePool");
@@ -94,6 +107,21 @@ function ensureFrame(file) {
   ifr.title = metaFor(file).title || file;
   ifr.dataset.tool = file;
   ifr.style.cssText = "width:1100px;height:800px;border:0;background:#0f1115;opacity:0;pointer-events:none;";
+  var k = toolKey(file);
+  if (!statusMap[k]) {
+    statusMap[k] = { ready: false, running: false, label: "", ts: Date.now() };
+  }
+  ifr.addEventListener("load", function () {
+    var live = isLiveTool(file);
+    var prev = statusMap[k] || {};
+    statusMap[k] = {
+      ready: true,
+      running: live ? !!prev.running : false,
+      label: prev.label || "",
+      ts: Date.now()
+    };
+    try { renderMiniList(); } catch (e) {}
+  });
   pool.appendChild(ifr);
   ifr.src = file;
   frames[file] = ifr;
@@ -231,7 +259,7 @@ function showChipTip(e, file) {
   if (!frames[file]) statusLine = "не загружен";
   else if (!st.ready && !st.running) statusLine = "загрузка…";
   else if (live && st.running) statusLine = "● запущен" + (st.label ? " · " + st.label : "");
-  else if (live) statusLine = "загружен (фон)";
+  else if (live) statusLine = "загружен (фон)" + (st.label ? " · " + st.label : "");
   else statusLine = "открыт";
   var html = '<div class="tip-title">' + esc(title) + '</div>';
   html += '<div class="tip-status' + (live && st.running ? " on" : "") + '">' + esc(statusLine) + '</div>';
@@ -275,7 +303,7 @@ function bootMini(attempt) {
       if (!statusMap[k]) {
         var live = isLiveTool(f);
         statusMap[k] = {
-          ready: !live,
+          ready: false,
           running: false,
           label: live ? "восстановление…" : "",
           ts: Date.now()
@@ -309,17 +337,7 @@ function bootMini(attempt) {
           renderMiniList();
         }
         if (d.type === "tt-notify") {
-          // Sound ownership: ONLY Notify()/TarkovTools.beep in the tool frame — hub must not beep again.
-          try {
-            if (window.TarkovState && TarkovState.notify) {
-              TarkovState.notify({
-                title: d.title || "",
-                body: d.body || "",
-                tool: d.tool || "",
-                kind: d.kind || "ok"
-              });
-            }
-          } catch (e) {}
+          // Dedup: tool frame already wrote TarkovState/LS. Hub only refreshes UI — no second notify, no beep.
           try { if (typeof updateNotifBell === "function") updateNotifBell(); } catch (e) {}
           try { renderMiniList(); } catch (e) {}
         }
