@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Price Alarm</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Price Alarm", "description": "Сирена: цена ≤/≥ N или число офферов — пилик в фоне"}
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="card-title">Price Alarm</div>
+      <div class="row" style="flex-wrap:wrap;gap:10px;align-items:end">
+        <label>Интервал (мин)
+          <input type="number" id="interval" value="5" min="1" max="1440" style="width:90px">
+        </label>
+        <label>Режим
+          <select id="gameMode">
+            <option value="pve">PvE</option>
+            <option value="pvp">PvP</option>
+          </select>
+        </label>
+        <button type="button" class="btn" id="startBtn">Старт фона</button>
+        <button type="button" class="btn-ghost" id="stopBtn">Стоп</button>
+        <button type="button" class="btn-ghost" id="checkBtn">Проверить сейчас</button>
+      </div>
+      <p class="countdown" id="countdown" data-poll-prefix="Следующая проверка: ">Следующая проверка: —</p>
+      <p class="status" id="status"></p>
+    </div>
+    <div class="card">
+      <div class="card-title">Правила</div>
+      <div id="rules"></div>
+      <button type="button" class="btn-ghost" id="addRule" style="margin-top:8px">+ Правило</button>
+    </div>
+  </div>
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-poll.js"></script>
+  <script src="../core/tarkov-state.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-price-alarm.js"></script>
+</body>
+</html>
