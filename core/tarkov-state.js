@@ -81,52 +81,62 @@
     emit('notification', null);
     broadcast({ type: 'notification' });
   }
+
   function markToolRead(tool) {
+    const key = String(tool || '').split('/').pop();
     const list = getNotifications().map(function (x) {
-      return x.tool === tool && !x.read ? Object.assign({}, x, { read: true }) : x;
+      const t = String(x.tool || '').split('/').pop();
+      return t === key ? Object.assign({}, x, { read: true }) : x;
     });
     write(NOTIF, list);
     emit('notification', null);
     broadcast({ type: 'notification' });
   }
+
   function clearNotifications() {
     write(NOTIF, []);
     emit('notification', null);
     broadcast({ type: 'notification' });
   }
+
   function unreadForTool(tool) {
-    return getNotifications().filter(function (x) { return x.tool === tool && !x.read; });
+    const key = String(tool || '').split('/').pop();
+    return getNotifications().filter(function (x) {
+      return !x.read && String(x.tool || '').split('/').pop() === key;
+    }).length;
   }
-  function unreadCount(tool) { return unreadForTool(tool).length; }
+
+  function unreadCount() {
+    return getNotifications().filter(function (x) { return !x.read; }).length;
+  }
 
   function getMiniTabs() { return read(MINI, []); }
   function setMiniTabs(tabs) {
-    write(MINI, tabs);
+    write(MINI, Array.isArray(tabs) ? tabs : []);
     emit('mini', tabs);
     broadcast({ type: 'mini' });
   }
   function addMiniTab(tab) {
     const tabs = getMiniTabs().filter(function (t) { return t.file !== tab.file; });
-    tabs.push({ file: tab.file, title: tab.title || tab.file });
+    tabs.push(tab);
     setMiniTabs(tabs);
-    return tabs;
   }
   function removeMiniTab(file) {
     setMiniTabs(getMiniTabs().filter(function (t) { return t.file !== file; }));
   }
 
-  const listeners = {};
+  const listeners = Object.create(null);
   function on(ev, fn) {
-    (listeners[ev] = listeners[ev] || []).push(fn);
+    if (!listeners[ev]) listeners[ev] = [];
+    listeners[ev].push(fn);
     return function () {
       listeners[ev] = (listeners[ev] || []).filter(function (f) { return f !== fn; });
     };
   }
   function emit(ev, data) {
-    (listeners[ev] || []).forEach(function (fn) { try { fn(data); } catch (e) {} });
-    try {
-      window.dispatchEvent(new CustomEvent('tarkov-state', { detail: { ev: ev, data: data } }));
-    } catch (e) {}
+    (listeners[ev] || []).forEach(function (fn) {
+      try { fn(data); } catch (e) {}
+    });
   }
   function broadcast(msg) {
     try { if (bc) bc.postMessage(msg); } catch (e) {}
@@ -164,6 +174,8 @@
     setMiniTabs: setMiniTabs,
     addMiniTab: addMiniTab,
     removeMiniTab: removeMiniTab,
+    getMini: getMiniTabs,
+    setMini: setMiniTabs,
     on: on,
     KEYS: { ROOT: ROOT, NOTIF: NOTIF, MINI: MINI }
   };
