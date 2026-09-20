@@ -253,6 +253,14 @@
     var cd = $("countdown");
     var last = meta.lastSnap ? fmtClock(meta.lastSnap) : "-";
     var mins = Number(run.mins) || Number(($("interval") || {}).value) || 30;
+
+    if (run.on && !snapInFlight) {
+      var due = Number(run.nextSnapAt) || 0;
+      if (!due || due <= Date.now()) {
+        takeSnapshot().catch(function () {});
+      }
+    }
+
     if (el) {
       el.textContent = run.on
         ? ("Фон ВКЛ · каждые " + mins + " мин · последний " + last + (meta.count != null ? " (" + meta.count + ")" : ""))
@@ -261,8 +269,13 @@
     var remainMs = run.on && run.nextSnapAt ? Number(run.nextSnapAt) - Date.now() : null;
     if (cd) {
       if (run.on) {
-        cd.textContent = "След.: " + fmtRemain(remainMs);
-        cd.className = "countdown on";
+        if (snapInFlight) {
+          cd.textContent = "След.: идёт снимок…";
+          cd.className = "countdown on";
+        } else {
+          cd.textContent = "След.: " + fmtRemain(remainMs);
+          cd.className = "countdown on";
+        }
       } else {
         cd.textContent = "Отсчёт выкл";
         cd.className = "countdown";
@@ -303,11 +316,12 @@
     snapInFlight = doTakeSnapshot().finally(function () { snapInFlight = null; });
     return snapInFlight;
   }
+  window.__ttTakeSnapshot = takeSnapshot;
+  window.__ttSnapInFlight = function () { return !!snapInFlight; };
 
   async function doTakeSnapshot() {
     var run0 = readRun();
     var mins0 = Math.max(1, Number(run0.mins) || Number(($("interval") || {}).value) || 30);
-    if (run0.on) scheduleNext(mins0, { forceOn: true });
 
     await openDb();
     var mode = (($("gameMode") || {}).value) || run0.mode || "pve";
@@ -598,7 +612,7 @@
       if (next && next > Date.now()) return;
       if (snapInFlight) return;
       takeSnapshot().catch(function () {});
-    }, 15000);
+    }, 2000);
   }
 
   function startBg() {
