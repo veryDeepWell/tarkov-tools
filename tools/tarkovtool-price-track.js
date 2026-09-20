@@ -268,15 +268,6 @@
         cd.className = "countdown";
       }
     }
-    try {
-      if (window.TarkovMini && TarkovMini.reportStatus) {
-        TarkovMini.reportStatus({
-          running: !!run.on,
-          label: run.on ? ("через " + fmtRemain(remainMs)) : "idle",
-          tool: "tarkovtool-price-track.html"
-        });
-      }
-    } catch (e) {}
   }
 
   function startCountdownLoop() {
@@ -284,15 +275,17 @@
     countdownTimer = setInterval(paintStatusUI, 1000);
   }
 
-  function scheduleNext(mins) {
+  function scheduleNext(mins, opts) {
+    opts = opts || {};
     mins = Math.max(1, Number(mins) || 30);
     var run = readRun();
+    var nextOn = opts.forceOn ? true : (opts.keepOff ? false : !!run.on);
     writeRun(Object.assign({}, run, {
-      on: true,
+      on: nextOn,
       mins: mins,
       mode: (($("gameMode") || {}).value) || run.mode || "pve",
-      nextSnapAt: Date.now() + mins * 60 * 1000,
-      startedAt: run.startedAt || Date.now()
+      nextSnapAt: nextOn ? (Date.now() + mins * 60 * 1000) : null,
+      startedAt: run.startedAt || (nextOn ? Date.now() : run.startedAt)
     }));
     window.__ttPollMins = mins;
     paintStatusUI();
@@ -312,61 +305,96 @@
   }
 
   async function doTakeSnapshot() {
-    var mins0 = Math.max(1, Number((readRun().mins) || (($("interval") || {}).value) || 30));
-    scheduleNext(mins0);
+    var run0 = readRun();
+    var mins0 = Math.max(1, Number(run0.mins) || Number(($("interval") || {}).value) || 30);
+    if (run0.on) scheduleNext(mins0, { forceOn: true });
+
     await openDb();
-    var mode = (($("gameMode") || {}).value) || "pve";
+    var mode = (($("gameMode") || {}).value) || run0.mode || "pve";
     var status = $("status");
     if (status) { status.className = "status"; status.textContent = "Fetching…"; }
+
     var arr;
     try {
-      arr = await Promise.race([
-        fetchItems(mode),
-        new Promise(function (_, rej) {
-          setTimeout(function () { rej(new Error("API timeout 45s")); }, 45000);
-        })
-      ]);
+      if (window.TarkovAPI && TarkovAPI.getJson) {
+        var raw = await Promise.race([
+          TarkovAPI.getJson("/" + mode + "/items", { ttl: 60 * 1000 }),
+          new Promise(function (_, rej) {
+            setTimeout(function () { rej(new Error("API timeout 45s")); }, 45000);
+          })
+        ]);
+        arr = normalizeItems(raw);
+      } else {
+        arr = await Promise.race([
+          fetchItems(mode),
+          new Promise(function (_, rej) {
+            setTimeout(function () { rej(new Error("API timeout 45s")); }, 45000);
+          })
+        ]);
+      }
     } catch (e) {
-      scheduleNext(mins0);
-      if (status) { status.className = "status err"; status.textContent = String(e.message || e); }
+      if (run0.on) scheduleNext(mins0, { forceOn: true });
+      if (status) {
+        status.className = "status err";
+        status.textContent = String(e.message || e);
+      }
       throw e;
     }
-    if (!arr.length) throw new Error("API 0 items mode=" + mode);
+    if (!arr || !arr.length) throw new Error("API 0 items mode=" + mode);
+
     var now = Date.now();
     var n = 0;
     var existing = await getAllSeries();
-    var byId = {};
-    for (var i = 0; i < existing.length; i++) byId[existing[i].itemId] = existing[i];
+    var byId = Object.create(null);
+    for (var i = 0; i < existing.length; i++) {
+      if (existing[i] && existing[i].itemId) byId[existing[i].itemId] = existing[i];
+    }
     existing = null;
-    await new Promise(function (resolve, reject) {
-      var tx = db.transaction(STORE, "readwrite");
-      var os = tx.objectStore(STORE);
-      for (var j = 0; j < arr.length; j++) {
-        var it = arr[j];
-        if (!it || !it.id) continue;
-        var p = priceOf(it);
-        if (p.avg <= 0 && p.low <= 0 && p.high <= 0) continue;
-        var row = byId[it.id];
-        var points = row && row.points ? row.points.slice() : [];
-        points.push({ ts: now, avg: p.avg, low: p.low, high: p.high });
-        points = thinPoints(points);
-        os.put({
-          itemId: it.id,
-          name: itemName(it),
-          slug: it.normalizedName || (row && row.slug) || "",
-          icon: it.iconLink || (row && row.icon) || "",
-          points: points
-        });
-        n++;
-      }
-      tx.oncomplete = resolve;
-      tx.onerror = function () { reject(tx.error || new Error("IDB write failed")); };
-    });
+
+    var pending = [];
+    for (var j = 0; j < arr.length; j++) {
+      var it = arr[j];
+      if (!it || !it.id) continue;
+      var p = priceOf(it);
+      if (p.avg <= 0 && p.low <= 0 && p.high <= 0) continue;
+      var row = byId[it.id];
+      var points = row && row.points ? row.points.slice() : [];
+      points.push({ ts: now, avg: p.avg, low: p.low, high: p.high });
+      points = thinPoints(points);
+      pending.push({
+        itemId: it.id,
+        name: itemName(it),
+        slug: it.normalizedName || (row && row.slug) || "",
+        icon: it.iconLink || (row && row.icon) || "",
+        points: points
+      });
+    }
     arr = null;
     byId = null;
+
+    var CHUNK = 200;
+    for (var c = 0; c < pending.length; c += CHUNK) {
+      var slice = pending.slice(c, c + CHUNK);
+      await new Promise(function (resolve, reject) {
+        var tx = db.transaction(STORE, "readwrite");
+        var os = tx.objectStore(STORE);
+        for (var k = 0; k < slice.length; k++) os.put(slice[k]);
+        tx.oncomplete = resolve;
+        tx.onerror = function () { reject(tx.error || new Error("IDB write failed")); };
+        tx.onabort = function () { reject(tx.error || new Error("IDB abort")); };
+      });
+      n += slice.length;
+      if (status && c + CHUNK < pending.length) {
+        status.textContent = "Saving… " + n + "/" + pending.length;
+      }
+    }
+    pending = null;
+
     invalidateCache();
     writeMeta({ lastSnap: now, count: n, mode: mode });
-    scheduleNext(mins0);
+    if (readRun().on) scheduleNext(mins0, { forceOn: true });
+    else paintStatusUI();
+
     if (status) {
       status.className = "status ok";
       status.textContent = "Snap " + n + " · " + fmtClock(now);
@@ -375,7 +403,12 @@
     if (selectedId) drawChart(selectedId);
     try {
       if (typeof Notify === "function") {
-        Notify({ title: "Price track", body: "Snap " + n + " · " + fmtClock(now), tool: "tarkovtool-price-track.html", kind: "price" });
+        Notify({
+          title: "Price track",
+          body: "Snap " + n + " · " + fmtClock(now),
+          tool: "tarkovtool-price-track.html",
+          kind: "price"
+        });
       }
     } catch (e) {}
   }
