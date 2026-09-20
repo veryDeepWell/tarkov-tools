@@ -27,13 +27,18 @@ function metaFor(file) {
 }
 
 function getMiniTabs() {
+  var tabs = [];
   try {
     if (window.TarkovState) {
-      if (TarkovState.getMiniTabs) return TarkovState.getMiniTabs() || [];
-      if (TarkovState.getMini) return TarkovState.getMini() || [];
+      if (TarkovState.getMiniTabs) tabs = TarkovState.getMiniTabs() || [];
+      else if (TarkovState.getMini) tabs = TarkovState.getMini() || [];
     }
   } catch (e) {}
-  return [];
+  if (tabs && tabs.length) return tabs;
+  try {
+    tabs = JSON.parse(localStorage.getItem("tarkovMiniTabs.v1") || "[]") || [];
+  } catch (e) { tabs = []; }
+  return Array.isArray(tabs) ? tabs : [];
 }
 function pushMiniTab(file) {
   var meta = metaFor(file);
@@ -48,6 +53,13 @@ function pushMiniTab(file) {
       }
     }
   } catch (e) {}
+  // always mirror to LS
+  try {
+    var cur = JSON.parse(localStorage.getItem("tarkovMiniTabs.v1") || "[]") || [];
+    cur = cur.filter(function (t) { return (t.file || t) !== file; });
+    cur.push(tab);
+    localStorage.setItem("tarkovMiniTabs.v1", JSON.stringify(cur));
+  } catch (e2) {}
 }
 function dropMiniTab(file) {
   try {
@@ -58,6 +70,11 @@ function dropMiniTab(file) {
       }
     }
   } catch (e) {}
+  try {
+    var cur = JSON.parse(localStorage.getItem("tarkovMiniTabs.v1") || "[]") || [];
+    cur = cur.filter(function (t) { return (t.file || t) !== file; });
+    localStorage.setItem("tarkovMiniTabs.v1", JSON.stringify(cur));
+  } catch (e2) {}
 }
 
 var frames = Object.create(null);
@@ -69,12 +86,12 @@ function ensureFrame(file) {
   var pool = document.getElementById("framePool");
   if (!pool) return null;
   var ifr = document.createElement("iframe");
-  ifr.setAttribute("loading", "lazy");
-  ifr.src = file;
+  ifr.setAttribute("loading", "eager");
   ifr.title = metaFor(file).title || file;
   ifr.dataset.tool = file;
-  ifr.style.cssText = "display:none;width:100%;height:100%;border:0;background:#0f1115";
+  ifr.style.cssText = "width:1100px;height:800px;border:0;background:#0f1115;opacity:0;pointer-events:none;";
   pool.appendChild(ifr);
+  ifr.src = file;
   frames[file] = ifr;
   return ifr;
 }
@@ -96,11 +113,15 @@ function expandTab(file) {
   if (!host || !exp) return;
   Object.keys(frames).forEach(function (f) {
     frames[f].style.display = f === file ? "block" : "none";
+    frames[f].style.opacity = f === file ? "1" : "0";
+    frames[f].style.pointerEvents = f === file ? "auto" : "none";
   });
   var ifr = ensureFrame(file);
   if (ifr && ifr.parentNode !== host) host.appendChild(ifr);
   if (ifr) {
     ifr.style.display = "block";
+    ifr.style.opacity = "1";
+    ifr.style.pointerEvents = "auto";
     ifr.style.width = "100%";
     ifr.style.height = "100%";
     ifr.style.border = "0";
@@ -124,7 +145,11 @@ function collapseExpand() {
   Object.keys(frames).forEach(function (f) {
     var ifr = frames[f];
     if (pool && ifr.parentNode !== pool) pool.appendChild(ifr);
-    ifr.style.display = "none";
+    ifr.style.display = "";
+    ifr.style.opacity = "0";
+    ifr.style.pointerEvents = "none";
+    ifr.style.width = "1100px";
+    ifr.style.height = "800px";
   });
   renderMiniList();
 }
@@ -222,38 +247,69 @@ function hideTip() {
   if (tip) tip.style.display = "none";
 }
 
-function bootMini() {
-  if (!window.TarkovState) { setTimeout(bootMini, 40); return; }
-  var tabs = getMiniTabs();
-  for (var i = 0; i < tabs.length; i++) {
-    var f = (tabs[i] && tabs[i].file) || tabs[i];
-    if (f) { try { ensureFrame(f); } catch (e) {} }
+function bootMini(attempt) {
+  attempt = attempt || 0;
+  var pool = document.getElementById("framePool");
+  if ((!window.TarkovState || !pool) && attempt < 80) {
+    setTimeout(function () { bootMini(attempt + 1); }, 40);
+    return;
   }
-  renderMiniList();
+  var tabs = getMiniTabs();
   try {
-    if (TarkovState.on) {
-      TarkovState.on("mini", function () { renderMiniList(); });
-      TarkovState.on("notification", function () { renderMiniList(); });
+    if (window.TarkovState && TarkovState.setMiniTabs && tabs.length) {
+      TarkovState.setMiniTabs(tabs);
     }
   } catch (e) {}
-  try {
-    window.addEventListener("message", function (ev) {
-      if (ev.origin !== location.origin) return;
-      var d = ev.data;
-      if (!d || typeof d !== "object") return;
-      if (d.type === "tt-status" || d.type === "tt-tool-status") {
-        var key = toolKey(d.tool || d.file || "");
-        if (!key) return;
-        statusMap[key] = {
-          ready: d.ready !== false,
-          running: !!d.running,
-          label: d.label || "",
-          ts: Date.now()
-        };
-        renderMiniList();
+  for (var i = 0; i < tabs.length; i++) {
+    var f = (tabs[i] && tabs[i].file) || tabs[i];
+    if (!f) continue;
+    try {
+      ensureFrame(f);
+      var k = toolKey(f);
+      if (!statusMap[k]) statusMap[k] = { ready: false, running: false, label: "восстановление…", ts: Date.now() };
+    } catch (e) {}
+  }
+  renderMiniList();
+  if (!bootMini._wired) {
+    bootMini._wired = true;
+    try {
+      if (window.TarkovState && TarkovState.on) {
+        TarkovState.on("mini", function () { renderMiniList(); });
+        TarkovState.on("notification", function () { renderMiniList(); });
       }
-    });
-  } catch (e) {}
+    } catch (e) {}
+    try {
+      window.addEventListener("message", function (ev) {
+        if (ev.origin !== location.origin) return;
+        var d = ev.data;
+        if (!d || typeof d !== "object") return;
+        if (d.type === "tt-status" || d.type === "tt-tool-status") {
+          var key = toolKey(d.tool || d.file || "");
+          if (!key) return;
+          statusMap[key] = {
+            ready: d.ready !== false,
+            running: !!d.running,
+            label: d.label || "",
+            ts: Date.now()
+          };
+          renderMiniList();
+        }
+      });
+    } catch (e) {}
+  }
+  if (attempt < 5) {
+    setTimeout(function () {
+      var later = getMiniTabs();
+      var changed = false;
+      for (var j = 0; j < later.length; j++) {
+        var ff = (later[j] && later[j].file) || later[j];
+        if (ff && !frames[ff]) {
+          try { ensureFrame(ff); changed = true; } catch (e) {}
+        }
+      }
+      if (changed || later.length) renderMiniList();
+    }, 300 + attempt * 200);
+  }
 }
 
 var PINS_KEY = "tarkovHubPins";
@@ -306,6 +362,8 @@ function renderCatalog() {
   });
 }
 window.renderCatalog = renderCatalog;
+window.cardHtml = cardHtml;
+window.togglePin = togglePin;
 
 function renderChangelog() {
   var el = document.getElementById("changelog");
