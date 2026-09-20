@@ -1,4 +1,4 @@
-/*! Hub catalog — instant FALLBACK, async refresh (no sync XHR) */
+/*! Hub catalog — embedded FALLBACK + async catalog.json refresh */
 (function (global) {
   "use strict";
   global.TarkovHubCATALOG = global.TarkovHubCATALOG || [];
@@ -8,6 +8,8 @@
     if (!data || typeof data !== "object") return;
     var tools = data.tools || (Array.isArray(data) ? data : []);
     global.TarkovHubCATALOG = tools;
+    global.TarkovHubCatalog = tools;
+    global.CATALOG = tools;
     if (data.categories) global.TarkovHubCATEGORIES = data.categories;
     try {
       global.dispatchEvent(new CustomEvent("tarkov-catalog-ready", { detail: data }));
@@ -22,7 +24,7 @@
     fetch("catalog.json", { cache: "no-cache" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
-        if (!data) return;
+        if (!data || !data.tools || !data.tools.length) return;
         apply(data);
         try {
           if (typeof window.renderCatalog === "function") window.renderCatalog();
