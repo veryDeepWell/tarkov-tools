@@ -1,1 +1,38 @@
-PLACEHOLDER_STREAMER
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Streamer flip — Tarkov</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Streamer flip", "description": "Флипы стримерских предметов."}
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>Streamer flip</h1>
+    <p class="sub">Флипы предметов стримеров</p>
+    <div class="card">
+      <div class="row">
+        <div class="field"><label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+      </div>
+      <p class="status" id="status"></p>
+    </div>
+    <div class="card"><div id="out"></div></div>
+  </div>
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-state.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-streamer-flip.js"></script>
+</body>
+</html>
