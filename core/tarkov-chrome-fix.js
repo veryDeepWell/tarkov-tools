@@ -8,10 +8,6 @@
         return;
       }
     } catch (e) {}
-    try {
-      var btn = document.getElementById("tt-open-settings");
-      if (btn) { btn.click(); return; }
-    } catch (e) {}
   }
   function paintBarFixed() {
     var bar = document.getElementById("tt-tools-bar");
@@ -30,7 +26,9 @@
     var btnS = document.getElementById("tt-bar-settings");
     var btnT = document.getElementById("tt-bar-theme");
     var btnL = document.getElementById("tt-bar-lang");
+    var btnHdr = document.getElementById("tt-open-settings");
     if (btnS) btnS.onclick = function (e) { e.preventDefault(); e.stopPropagation(); callOpenSettings(); };
+    if (btnHdr) btnHdr.onclick = function (e) { e.preventDefault(); callOpenSettings(); };
     if (btnT) btnT.onclick = function (e) {
       e.preventDefault();
       try {
