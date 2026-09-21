@@ -166,7 +166,7 @@
 
   async function hideout(gameMode) {
     var m = gameMode || mode();
-    var json = await getJson("/" + m + "/hideout/stations");
+    var json = await getJson("/" + m + "/hideout");
     return asArray(json && json.data || json);
   }
 

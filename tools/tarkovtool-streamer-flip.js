@@ -146,12 +146,8 @@
       const mode = document.getElementById('gameMode').value || 'regular';
       status.textContent = 'Тяну items…';
       try {
-        const res = await TarkovAPI.request(`/${mode}/items`, { httpCache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        let items = json?.data?.items;
-        if (!items) throw new Error('Нет items');
-        if (!Array.isArray(items)) items = Object.values(items);
+        const items = await TarkovAPI.items(mode);
+        if (!items.length) throw new Error('Нет items');
 
         const priceMode = document.getElementById('buyPrice').value;
         rows = [];
@@ -319,11 +315,11 @@
 
 (function(){
   const KEY = 'tarkovPreferredGameMode';
-  const def = localStorage.getItem(KEY) || 'pve';
+  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
   document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
     if ([...sel.options].some(o => o.value === def)) sel.value = def;
     sel.addEventListener('change', () => {
-      try { localStorage.setItem(KEY, sel.value); } catch(e) {}
+      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
     });
   });
 })();

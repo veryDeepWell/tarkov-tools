@@ -21,13 +21,13 @@
 
     function loadSettings(key, defaults) {
       try {
-        const raw = localStorage.getItem(key);
+        const raw = TarkovStorage.get(key, null);
         if (!raw) return Object.assign({}, defaults);
         return Object.assign({}, defaults, JSON.parse(raw));
       } catch (e) { return Object.assign({}, defaults); }
     }
     function saveSettings(key, obj) {
-      try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {}
+      try { TarkovStorage.set(key, JSON.stringify(obj)); } catch (e) {}
     }
 
     const TRADER_RU = {
@@ -74,12 +74,10 @@
     const editModeEl = document.getElementById('editMode');
 
     function loadOverrides() {
-      try {
-        overrides = JSON.parse(localStorage.getItem('tarkovShortNames') || '{}');
-      } catch { overrides = {}; }
+      overrides = TarkovStorage.getJson('tarkovShortNames', {}) || {};
     }
     function saveOverrides() {
-      localStorage.setItem('tarkovShortNames', JSON.stringify(overrides));
+      TarkovStorage.setJson('tarkovShortNames', overrides);
     }
 
     function formatNum(n) {
@@ -155,12 +153,8 @@
       const mode = document.getElementById('gameMode').value || 'regular';
       statusEl.className = 'status';
       statusEl.textContent = 'Гружу items…';
-      const res = await TarkovAPI.request(`/${mode}/items`, { httpCache: 'no-store' });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const json = await res.json();
-      let items = json?.data?.items;
-      if (!items) throw new Error('Нет data.items');
-      if (!Array.isArray(items)) items = Object.values(items);
+      const items = await TarkovAPI.items(mode);
+      if (!items.length) throw new Error('Нет items');
       catalog = items.map(normalizeItem);
       // try pull short names from overrides count
       const withShort = catalog.filter(i => getShort(i)).length;
@@ -436,11 +430,11 @@
 
 (function(){
   const KEY = 'tarkovPreferredGameMode';
-  const def = localStorage.getItem(KEY) || 'pve';
+  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
   document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
     if ([...sel.options].some(o => o.value === def)) sel.value = def;
     sel.addEventListener('change', () => {
-      try { localStorage.setItem(KEY, sel.value); } catch(e) {}
+      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
     });
   });
 })();

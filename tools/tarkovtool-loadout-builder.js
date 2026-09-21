@@ -36,21 +36,13 @@
       return itemName(it) || '';
     }
     function status(m,ok){ var el=document.getElementById('status'); el.className='status'+(ok===true?' ok':ok===false?' err':''); el.textContent=m||''; }
-    function presets(){ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ return []; } }
-    function savePresets(list){ try{ localStorage.setItem(KEY, JSON.stringify(list)); }catch(e){} renderPresets(); }
+    function presets(){ return TarkovStorage.getJson(KEY, []) || []; }
+    function savePresets(list){ try{ TarkovStorage.setJson(KEY, list); }catch(e){} renderPresets(); }
     async function ensureCatalog() {
       if (catalog) return catalog;
       status('Каталог…');
       var mode = document.getElementById('gameMode').value || 'pve';
-      var arr;
-      if (window.TarkovAPI && TarkovAPI.items) arr = await TarkovAPI.items(mode);
-      else {
-        var res = await TarkovAPI.request('/' + mode + '/items', { httpCache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        var json = await res.json();
-        var raw = json && json.data && (json.data.items || json.data);
-        arr = Array.isArray(raw) ? raw : Object.values(raw || {});
-      }
+      var arr = await TarkovAPI.items(mode);
       catalog = arr.map(function(it){
         return { id:it.id, name:it.name||'', shortName:it.shortName||'', normalizedName:it.normalizedName||'', iconLink:it.iconLink||'', avg:Number(it.avg24hPrice)||Number(it.lastLowPrice)||0 };
       });

@@ -173,8 +173,8 @@ Controller связывает repository, domain query, view model и renderer. 
 1. `mods`, `gun-builder`, `compare` — item compatibility/weapon projections.
   `mods`, `gun-builder` и `compare` domain/repository migration выполнена.
 2. `ammo`, `mags`, `scopes`, `helmets`, `medkits`, `stims`, `plates` — item projections. **Выполнено для всей группы.**
-3. `crafts`, `hideout`, `barter`, `quests` — recipes/requirements projections. `crafts/hideout/hideout-mgmt/barter-live` и quest-семейство (`quests`, `quest-items`, `loot-slot`, `item-use`, `bosses`, `raid-checklist`) выполнено; далее loadout/util.
-4. loadout/util tools — composition over shared projections.
+3. `crafts`, `hideout`, `barter`, `quests` — recipes/requirements projections. `crafts/hideout/hideout-mgmt/barter-live` и quest-семейство (`quests`, `quest-items`, `loot-slot`, `item-use`, `bosses`, `raid-checklist`) и flea/barter/misc (`barter-calc`, `price-alarm`, `restock`, `btc-farm`, `cultist`, `desk`) выполнено; далее loadout/util.
+4. loadout/util tools — composition over shared projections. All remaining tools (ammo, crafts, hideout, hideout-mgmt, drip, drip-loadout, compare, price-track, streamer-flip, trader-flip, shortname, skills, my-tarkov) now use TarkovAPI endpoint methods and TarkovStorage. loadout-budget remains a stub page (no JS).
 
 Каждое семейство получает domain projection, view-model builder, fake-repository browser check и только потом перенос tool UI.
 

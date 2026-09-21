@@ -26,8 +26,8 @@
 
       let hs = 'Открой трекер убежища и сохрани прогресс — здесь появится сводка.';
       try {
-        const raw = localStorage.getItem('tarkovHideout') || localStorage.getItem('tarkovHideoutSettings');
-        if (raw) hs = 'Есть сохранённые данные трекера (localStorage).';
+        const raw = TarkovStorage.get('tarkovHideout', null) || TarkovStorage.get('tarkovHideoutSettings', null);
+        if (raw) hs = 'Есть сохранённые данные трекера.';
       } catch(e){}
       document.getElementById('hideoutSum').textContent = hs;
 
@@ -61,7 +61,7 @@
         level: Number(document.getElementById('level').value)||1,
         gameMode: document.getElementById('gameMode').value
       }});
-      try { localStorage.setItem('tarkovPreferredGameMode', document.getElementById('gameMode').value); } catch(e){}
+      try { TarkovStorage.set('tarkovPreferredGameMode', document.getElementById('gameMode').value); } catch(e){}
       paint();
       if (window.TarkovTools&&TarkovTools.beep) TarkovTools.beep('ok');
     };

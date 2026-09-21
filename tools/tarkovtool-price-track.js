@@ -95,17 +95,17 @@
   }
 
   function readRun() {
-    try { return JSON.parse(localStorage.getItem(RUN_KEY) || "{}") || {}; } catch (e) { return {}; }
+    return TarkovStorage.getJson(RUN_KEY, {}) || {};
   }
   function writeRun(o) {
-    try { localStorage.setItem(RUN_KEY, JSON.stringify(o)); } catch (e) {}
+    try { TarkovStorage.setJson(RUN_KEY, o); } catch (e) {}
   }
   function readMeta() {
-    try { return JSON.parse(localStorage.getItem(META_KEY) || "{}") || {}; } catch (e) { return {}; }
+    return TarkovStorage.getJson(META_KEY, {}) || {};
   }
   function writeMeta(patch) {
     var next = Object.assign({}, readMeta(), patch || {});
-    try { localStorage.setItem(META_KEY, JSON.stringify(next)); } catch (e) {}
+    try { TarkovStorage.setJson(META_KEY, next); } catch (e) {}
     return next;
   }
 
@@ -130,10 +130,7 @@
 
   async function fetchItems(mode) {
     mode = mode || "pve";
-    var res = await TarkovAPI.request("/" + mode + "/items", { httpCache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    var json = await res.json();
-    return normalizeItems(json);
+    return await TarkovAPI.items(mode);
   }
 
   function openDb() {
@@ -330,22 +327,12 @@
 
     var arr;
     try {
-      if (window.TarkovAPI && TarkovAPI.getJson) {
-        var raw = await Promise.race([
-          TarkovAPI.getJson("/" + mode + "/items", { ttl: 60 * 1000 }),
-          new Promise(function (_, rej) {
-            setTimeout(function () { rej(new Error("API timeout 45s")); }, 45000);
-          })
-        ]);
-        arr = normalizeItems(raw);
-      } else {
-        arr = await Promise.race([
-          fetchItems(mode),
-          new Promise(function (_, rej) {
-            setTimeout(function () { rej(new Error("API timeout 45s")); }, 45000);
-          })
-        ]);
-      }
+      arr = await Promise.race([
+        fetchItems(mode),
+        new Promise(function (_, rej) {
+          setTimeout(function () { rej(new Error("API timeout 45s")); }, 45000);
+        })
+      ]);
     } catch (e) {
       if (run0.on) scheduleNext(mins0, { forceOn: true });
       if (status) {

@@ -171,8 +171,8 @@
     loadTabs();
     render();
     try {
-      if (!localStorage.getItem('tarkovDeskWelcome')) {
-        localStorage.setItem('tarkovDeskWelcome','1');
+      if (!TarkovStorage.get('tarkovDeskWelcome', null)) {
+        TarkovStorage.set('tarkovDeskWelcome','1');
         if (window.TarkovState) TarkovState.notify({
           title: 'Desk готов',
           body: 'Открывай инструменты мини-вкладками. Состояние общее (localStorage).',

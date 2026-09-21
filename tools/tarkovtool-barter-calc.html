@@ -306,28 +306,6 @@
   </style>
   <link rel="stylesheet" href="../core/tarkov-common.css">
   <script type="application/json" id="tarkovtool-meta">
-    /* P2: shared TarkovUI — local wrappers keep call sites stable */
-    function fleaTax(basePrice, offerPrice, count, opts) {
-      return (window.TarkovUI || {}).fleaTax ? TarkovUI.fleaTax(basePrice, offerPrice, count, opts) : 0;
-    }
-    function fleaNet(basePrice, offerPrice, count, opts) {
-      return (window.TarkovUI || {}).fleaNet ? TarkovUI.fleaNet(basePrice, offerPrice, count, opts)
-        : ((Number(offerPrice)||0)*(Number(count)||1) - fleaTax(basePrice, offerPrice, count, opts));
-    }
-    function formatNum(n) {
-      return (window.TarkovUI || {}).fmtNum ? TarkovUI.fmtNum(n) : String(Math.round(Number(n)||0));
-    }
-    function escapeHtml(s) {
-      return (window.TarkovUI || {}).esc ? TarkovUI.esc(s) : String(s||'');
-    }
-    function loadSettings(key, defaults) {
-      return (window.TarkovUI || {}).loadSettings ? TarkovUI.loadSettings(key, defaults)
-        : Object.assign({}, defaults||{});
-    }
-    function saveSettings(key, obj) {
-      if ((window.TarkovUI || {}).saveSettings) TarkovUI.saveSettings(key, obj);
-    }
-
   {"id": "tarkovtool-barter-calc.html", "title": "Бартер (ручной)", "description": "Калькулятор выгодности бартера: компоненты, комиссия flea.", "file": "tarkovtool-barter-calc.html"}
   </script>
 
@@ -401,6 +379,7 @@
   </div>
 
   <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-storage.js"></script>
   <script src="../core/tarkov-api.js"></script>
   <script src="../core/tarkov-ui.js"></script>
   <script src="../core/tarkov-state.js"></script>

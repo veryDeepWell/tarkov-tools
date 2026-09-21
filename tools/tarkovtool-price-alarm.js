@@ -25,16 +25,16 @@
   }
 
   function loadRules() {
-    try { return JSON.parse(localStorage.getItem(RULES_KEY) || "[]") || []; } catch (e) { return []; }
+    return TarkovStorage.getJson(RULES_KEY, []) || [];
   }
   function saveRules(rules) {
-    try { localStorage.setItem(RULES_KEY, JSON.stringify(rules)); } catch (e) {}
+    try { TarkovStorage.setJson(RULES_KEY, rules); } catch (e) {}
   }
   function readRun() {
-    try { return JSON.parse(localStorage.getItem(RUN_KEY) || "{}") || {}; } catch (e) { return {}; }
+    return TarkovStorage.getJson(RUN_KEY, {}) || {};
   }
   function writeRun(o) {
-    try { localStorage.setItem(RUN_KEY, JSON.stringify(o)); } catch (e) {}
+    try { TarkovStorage.setJson(RUN_KEY, o); } catch (e) {}
   }
 
   function reportMini(running, label) {
@@ -53,16 +53,7 @@
 
   async function loadCatalog() {
     var mode = (document.getElementById("gameMode") || {}).value || "pve";
-    if (window.TarkovAPI && TarkovAPI.items) {
-      catalog = await TarkovAPI.items(mode);
-    } else if (window.TarkovAPI && TarkovAPI.getJson) {
-      var raw = await TarkovAPI.getJson("/" + mode + "/items");
-      catalog = TarkovAPI.asArray
-        ? TarkovAPI.asArray(raw)
-        : (Array.isArray(raw) ? raw : Object.values(raw || {}));
-    } else {
-      throw new Error("TarkovAPI missing");
-    }
+    catalog = await TarkovAPI.items(mode);
     if (!Array.isArray(catalog)) catalog = [];
   }
 

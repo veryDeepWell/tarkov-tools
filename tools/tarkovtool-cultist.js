@@ -252,15 +252,10 @@ function wire(){
     loadBtn.disabled = true; st.className='status'; st.textContent='Гружу items + barters…';
     try{
       const mode = document.getElementById('gameMode').value||'pve';
-      const [ri, rb] = await Promise.all([
-        TarkovAPI.request('/'+mode+'/items',{httpCache:'no-store'}),
-        TarkovAPI.request('/'+mode+'/barters',{httpCache:'no-store'})
+      const [items, bars0] = await Promise.all([
+        TarkovAPI.items(mode),
+        TarkovAPI.barters(mode)
       ]);
-      if(!ri.ok) throw new Error('items HTTP '+ri.status);
-      if(!rb.ok) throw new Error('barters HTTP '+rb.status);
-      const ji = await ri.json(), jb = await rb.json();
-      let raw = ji?.data?.items;
-      const items = Array.isArray(raw)?raw:Object.values(raw||{});
       byId = {};
       items.forEach(it=>{
         byId[it.id] = {
@@ -273,12 +268,7 @@ function wire(){
         };
       });
 
-      let bars = jb?.data?.barters;
-      if(!bars) bars = jb?.data;
-      if(typeof bars === 'object' && !Array.isArray(bars)){
-        for(const k of Object.keys(bars)){ if(Array.isArray(bars[k])){ bars=bars[k]; break; } }
-      }
-      if(!Array.isArray(bars)) bars = [];
+      let bars = Array.isArray(bars0) ? bars0 : [];
       bartersByReward = {};
       bars.forEach(b=>{
         const rewardItems = b.rewardItems || b.rewards || (b.offeredItem ? [b.offeredItem] : []);

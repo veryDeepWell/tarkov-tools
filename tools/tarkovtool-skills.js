@@ -130,8 +130,7 @@
     }
 
     function load() {
-      try { return JSON.parse(localStorage.getItem('tarkovSkillLevels') || '{}'); }
-      catch { return {}; }
+      return TarkovStorage.getJson('tarkovSkillLevels', {}) || {};
     }
 
     function render() {
@@ -162,12 +161,12 @@
       document.querySelectorAll('#skillList input[data-id]').forEach(inp => {
         st[inp.dataset.id] = Number(inp.value) || 0;
       });
-      localStorage.setItem('tarkovSkillLevels', JSON.stringify(st));
+      TarkovStorage.setJson('tarkovSkillLevels', st);
       alert('Сохранено');
     };
     document.getElementById('resetSkills').onclick = () => {
       if (!confirm('Сбросить все уровни в трекере?')) return;
-      localStorage.removeItem('tarkovSkillLevels');
+      TarkovStorage.remove('tarkovSkillLevels');
       render();
     };
 

@@ -165,7 +165,7 @@
 
     function save() {
       try {
-        localStorage.setItem('tarkovBtcFarm', JSON.stringify({
+        TarkovStorage.setJson('tarkovBtcFarm', {
           gpus: document.getElementById('gpus').value,
           farmLv: document.getElementById('farmLv').value,
           hm: document.getElementById('hm').value,
@@ -176,12 +176,12 @@
           solar: document.getElementById('solar').checked,
           jaegerFuel: document.getElementById('jaegerFuel').checked,
           mode: document.getElementById('gameMode').value
-        }));
+        });
       } catch (e) {}
     }
     function load() {
       try {
-        const s = JSON.parse(localStorage.getItem('tarkovBtcFarm') || '{}');
+        const s = TarkovStorage.getJson('tarkovBtcFarm', {}) || {};
         ['gpus','farmLv','hm','craft','btcPrice','gpuPrice','fuelPrice'].forEach(k => {
           if (s[k] != null) document.getElementById(k).value = s[k];
         });
@@ -196,11 +196,7 @@
       st.className = 'status'; st.textContent = 'Тяну prices…';
       try {
         const mode = document.getElementById('gameMode').value || 'pve';
-        const res = await TarkovAPI.request('/' + mode + '/items', { httpCache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        let raw = json?.data?.items;
-        const arr = Array.isArray(raw) ? raw : Object.values(raw || {});
+        const arr = await TarkovAPI.items(mode);
         const byNorm = {};
         arr.forEach(it => { if (it.normalizedName) byNorm[it.normalizedName] = it; });
         // common ids/names
@@ -268,10 +264,10 @@
   }
 
       const KEY = 'tarkovPreferredGameMode';
-      const def = localStorage.getItem(KEY) || 'pve';
+      const def = TarkovStorage.get(KEY, 'pve') || 'pve';
       document.querySelectorAll('select#gameMode').forEach(sel => {
         if ([...sel.options].some(o => o.value === def)) sel.value = def;
-        sel.addEventListener('change', () => { try { localStorage.setItem(KEY, sel.value); } catch (e) {} });
+        sel.addEventListener('change', () => { try { TarkovStorage.set(KEY, sel.value); } catch (e) {} });
       });
     })();
 

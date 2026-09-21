@@ -20,13 +20,15 @@
     const loadBtn = document.getElementById('loadBtn');
     const refreshBtn = document.getElementById('refreshBtn');
 
-    function loadEnabled() { try { return JSON.parse(localStorage.getItem('restockEnabled')||'{}'); } catch(e){ return {}; } }
-    function saveEnabled() { const map={}; traders.forEach(t=>{ map[t.key]=t.enabled; }); localStorage.setItem('restockEnabled', JSON.stringify(map)); }
+    function loadEnabled() { return TarkovStorage.getJson('restockEnabled', {}) || {}; }
+    function saveEnabled() { const map={}; traders.forEach(t=>{ map[t.key]=t.enabled; }); TarkovStorage.setJson('restockEnabled', map); }
     function loadHistory() {
-      try { const raw=JSON.parse(localStorage.getItem('restockHistory')||'{}'); restockHistory={}; Object.entries(raw).forEach(([k,v])=>{ if(v&&v.happenedAt) restockHistory[k]={key:k,name:v.name||k,happenedAt:Number(v.happenedAt)}; }); } catch(e){ restockHistory={}; }
-      try { fired=JSON.parse(localStorage.getItem('restockFired')||'{}'); } catch(e){ fired={}; }
+      const raw=TarkovStorage.getJson('restockHistory', {}) || {};
+      restockHistory={};
+      Object.entries(raw).forEach(([k,v])=>{ if(v&&v.happenedAt) restockHistory[k]={key:k,name:v.name||k,happenedAt:Number(v.happenedAt)}; });
+      fired=TarkovStorage.getJson('restockFired', {}) || {};
     }
-    function saveHistory() { try { localStorage.setItem('restockHistory', JSON.stringify(restockHistory)); localStorage.setItem('restockFired', JSON.stringify(fired)); } catch(e){} }
+    function saveHistory() { try { TarkovStorage.setJson('restockHistory', restockHistory); TarkovStorage.setJson('restockFired', fired); } catch(e){} }
     function formatRemain(ms) {
       if(ms<=0) return 'сейчас';
       const s=Math.floor(ms/1000); const h=Math.floor(s/3600); const m=Math.floor((s%3600)/60); const sec=s%60;

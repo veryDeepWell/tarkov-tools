@@ -61,23 +61,19 @@
       st.textContent = 'Гружу crafts + items + hideout…';
       try {
         const mode = document.getElementById('gameMode').value || 'pve';
-        const [jc, items, jh] = await Promise.all([
-          TarkovAPI.request('/' + mode + '/crafts', { httpCache: 'no-store' }).then(r => r.json()),
+        const [craftsArr, items, stationList] = await Promise.all([
+          TarkovAPI.crafts(mode),
           TarkovAPI.items(mode),
-          TarkovAPI.request('/' + mode + '/hideout', { httpCache: 'no-store' }).then(r => r.json())
+          TarkovAPI.hideout(mode)
         ]);
 
         byId = {};
         items.forEach(i => { byId[i.id] = i; });
 
-        let rawCrafts = jc?.data;
-        if (rawCrafts && !Array.isArray(rawCrafts) && rawCrafts.crafts) rawCrafts = rawCrafts.crafts;
-        if (!Array.isArray(rawCrafts) && jc?.data && Array.isArray(jc.data)) rawCrafts = jc.data;
-        crafts = Array.isArray(rawCrafts) ? rawCrafts : Object.values(rawCrafts || {});
+        crafts = Array.isArray(craftsArr) ? craftsArr : [];
 
         stationMap = {};
-        let hd = jh?.data ?? jh;
-        const stations = Array.isArray(hd) ? hd : Object.values(hd || {});
+        const stations = Array.isArray(stationList) ? stationList : [];
         stations.forEach(s => {
           if (s && s.id) {
             stationMap[s.id] = humanize(s.normalizedName || s.name || s.id);

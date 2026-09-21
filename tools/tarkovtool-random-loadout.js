@@ -143,15 +143,7 @@
   async function ensure() {
     status("Гружу предметы…");
     var mode = document.getElementById("gameMode").value || "pve";
-    var arr;
-    if (window.TarkovAPI && TarkovAPI.items) arr = await TarkovAPI.items(mode);
-    else {
-      var res = await TarkovAPI.request("/" + mode + "/items", { httpCache: "no-store" });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      var json = await res.json();
-      var raw = json && json.data && (json.data.items || json.data);
-      arr = Array.isArray(raw) ? raw : Object.values(raw || {});
-    }
+    var arr = await TarkovAPI.items(mode);
     pool = filterPool(arr);
     status(
       "Пул: gun " + pool.gun.length +

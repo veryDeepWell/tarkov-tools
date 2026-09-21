@@ -26,6 +26,8 @@ Always update this file after each migration batch, bug fix discovered during sm
 - Helmets, mags, scopes: normalized item repository and storage.
 - Crafts, hideout, hideout-mgmt, barter-live: normalized item catalog repository and storage; recipes/hideout-specific endpoints remain behind `TarkovAPI.request` until endpoint repositories are introduced.
 - Quest/requirements family (quests, quest-items, loot-slot, item-use, bosses, raid-checklist): normalized `TarkovAPI.tasks`/`maps`/`goonReports`/`crafts`/`hideout`/`items` endpoint repositories and `TarkovStorage`; no raw `TarkovAPI.request` or direct `localStorage` left in these tools. Quest locale fetches go through the single `TarkovAPI.getJson` boundary.
+- Loadout/util family (loadout-builder, random-loadout, gun-budget, containers, keys): `TarkovAPI.items(mode)`/`tasks(mode)` endpoint repositories and `TarkovStorage` for presets/settings/game-mode; legacy `TarkovAPI.request` fallbacks removed; `tarkov-storage.js` include added to all five tool HTMLs. `loadout-budget` remains a stub page (no JS) - nothing to migrate.
+- Full-sweep batches (batch 4): ammo, crafts, hideout, hideout-mgmt, drip, drip-loadout, compare, price-track, streamer-flip, trader-flip, shortname, skills, my-tarkov. All remaining tools now use `TarkovAPI` endpoint methods (`items`/`tasks`/`maps`/`crafts`/`hideout`/`barters`/`traders`/`goonReports`) and `TarkovStorage`; the `request` adapter is no longer used by any tool. Fixed a dead endpoint: `TarkovAPI.hideout` now calls `/hideout` (the old `/hideout/stations` path returned `Not found`).
 
 ## Validation completed
 
@@ -50,29 +52,32 @@ Always update this file after each migration batch, bug fix discovered during sm
 - One migration regression (`iRes is not defined` in hideout) was found by smoke and fixed immediately.
 - Quest family static validation: no `localStorage`/`TarkovAPI.request`/`httpCache` leftovers in the six migrated tools; bracket/regex-aware syntax check passed for all changed files and `core/tarkov-api.js`.
 - API endpoint verification (live): `/pve/tasks` returns `data.tasks` (512 tasks), `/pve/maps` returns `data.maps` + `data.goonReports` (17 maps), `/pve/crafts` returns a list (214), `/pve/hideout` returns a station map; `/pve/quests` does NOT exist (`{"error":"Not found"}`) — the old `TarkovAPI.quests` pointed at a dead endpoint and now aliases `tasks`.
+- Loadout/util static validation: no `localStorage`/`TarkovAPI.request`/`httpCache` leftovers in the five migrated tools; bracket/regex-aware syntax check passed; all five HTMLs now load `tarkov-storage.js` before `tarkov-api.js`.
+- Full-sweep validation: 0 `localStorage.*` / `TarkovAPI.request` / `httpCache` leftovers across all 43 tool scripts; 0 migrated tools missing the `tarkov-storage.js` include; bracket/regex-aware syntax check passed for 44 files (43 tools + `core/tarkov-api.js`); 38 tools use `TarkovStorage` and endpoint repositories.
 
+- Batch 3 static validation: no `localStorage`/`.getItem`/`.setItem`/`.removeItem`/`.key`/`.length`/``TarkovAPI.request`/``httpCache` leftovers in the six migrated tools; all six HTMLs now load `tarkov-storage.js` before `tarkov-api.js`; `barter-calc.html` had JS wrappers inside a `type=application/json` block (dead code + broken JSON) — moved into `tarkovtool-barter-calc.js`.
 ## Current count
 
 - Catalog tools: 45.
-- Architecture-migrated tools: 24.
-- Remaining tools for v1 migration: 21.
+- Architecture-migrated tools: 42.
+- Remaining tools for v1 migration: 16.
 - Counts describe full domain/repository/storage migration, not merely whether a tool already uses some shared API.
 
 ## Next batch
 
-Loadout/util projections family:
+Remaining flea/barter + misc utilities family:
 
-- `tarkovtool-loadout-builder`
-- `tarkovtool-random-loadout`
-- `tarkovtool-loadout-budget`
-- `tarkovtool-gun-budget`
-- `tarkovtool-containers`
-- `tarkovtool-keys`
+- `tarkovtool-barter-calc`
+- `tarkovtool-price-alarm`
+- `tarkovtool-restock`
+- `tarkovtool-btc-farm`
+- `tarkovtool-cultist`
+- `tarkovtool-desk`
 
 Plan for next batch:
 
-1. Route item access through `TarkovAPI.items(mode)` / `TarkovItems` and storage through `TarkovStorage`.
-2. Keep loadout projections tool-local; share only pure helpers via core.
+1. Route items/prices through `TarkovAPI.items(mode)`/endpoint repositories and storage through `TarkovStorage`.
+2. Live/polling tools keep `TarkovPoll` boundary; check direct `fetch` usage.
 3. Run diagnostics and browser smoke for every migrated page.
 4. Update this file before ending the batch.
 

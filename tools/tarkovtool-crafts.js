@@ -122,12 +122,6 @@
       return avg || low || 0;
     }
 
-    async function fetchJson(url) {
-      const res = await TarkovAPI.request(url, { httpCache: 'no-store' });
-      if (!res.ok) throw new Error('HTTP ' + res.status + ' · ' + url);
-      return res.json();
-    }
-
     document.getElementById('loadBtn').addEventListener('click', async () => {
       const btn = document.getElementById('loadBtn');
       btn.disabled = true;
@@ -136,21 +130,19 @@
       statusEl.textContent = 'Гружу crafts + items + hideout…';
 
       try {
-        const [craftsJ, items, hideoutJ] = await Promise.all([
-          fetchJson(`/${mode}/crafts`),
+        const [crafts, items, stationList] = await Promise.all([
+          TarkovAPI.crafts(mode),
           TarkovAPI.items(mode),
-          fetchJson(`/${mode}/hideout`)
+          TarkovAPI.hideout(mode)
         ]);
-
-        let crafts = craftsJ.data;
-        if (crafts && crafts.crafts) crafts = crafts.crafts;
-        if (!Array.isArray(crafts)) crafts = Object.values(crafts || {});
 
         itemsMap = {};
         items.forEach(it => { itemsMap[it.id] = it; });
 
-        stationsMap = hideoutJ.data || {};
-        if (stationsMap.stations) stationsMap = stationsMap.stations;
+        stationsMap = {};
+        (Array.isArray(stationList) ? stationList : []).forEach(s => {
+          if (s && s.id) stationsMap[s.id] = s;
+        });
 
         const priceIn = document.getElementById('priceIn').value;
         const priceOut = document.getElementById('priceOut').value;

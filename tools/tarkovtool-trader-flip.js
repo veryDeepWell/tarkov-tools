@@ -78,7 +78,7 @@
   }
 
       try {
-        const s = JSON.parse(localStorage.getItem('tarkovFlipSettings') || '{}');
+        const s = TarkovStorage.getJson('tarkovFlipSettings', {}) || {};
         return s.traderLevels || {};
       } catch (e) { return {}; }
     })();
@@ -100,13 +100,13 @@
       div.querySelector('select').addEventListener('change', () => {
         // persist LL immediately
         try {
-          const s = JSON.parse(localStorage.getItem('tarkovFlipSettings') || '{}');
+          const s = TarkovStorage.getJson('tarkovFlipSettings', {}) || {};
           s.traderLevels = s.traderLevels || {};
           TRADERS_UI.forEach(tr => {
             const sel = tradersEl.querySelector(`select[data-trader="${tr.id}"]`);
             if (sel) s.traderLevels[tr.id] = Number(sel.value);
           });
-          localStorage.setItem('tarkovFlipSettings', JSON.stringify(s));
+          TarkovStorage.setJson('tarkovFlipSettings', s);
         } catch (e) {}
       });
     });
@@ -156,12 +156,6 @@
 
 
 
-    async function fetchJson(url) {
-      const res = await TarkovAPI.request(url, { httpCache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status} · ${url}`);
-      return res.json();
-    }
-
     fetchBtn.addEventListener('click', async () => {
       fetchBtn.disabled = true;
       statusEl.className = 'status';
@@ -171,24 +165,15 @@
 
       try {
         setProgress(15, 'Качаю items…', true);
-        const itemsPromise = fetchJson(`/${mode}/items`);
-        const tradersPromise = fetchJson(`/${mode}/traders`).catch(() => null);
+        const itemsPromise = TarkovAPI.items(mode);
+        const tradersPromise = TarkovAPI.traders(mode).catch(() => null);
 
-        const [itemsJson, tradersJson] = await Promise.all([itemsPromise, tradersPromise]);
+        const [items, tradersList] = await Promise.all([itemsPromise, tradersPromise]);
         setProgress(55, 'Разбираю ответ…', false);
 
-        if (tradersJson && tradersJson.data) {
-          const tdata = tradersJson.data.traders || tradersJson.data;
-          if (tdata && typeof tdata === 'object') {
-            for (const [id, t] of Object.entries(tdata)) {
-              if (t && t.normalizedName) traderIdMap[id] = t.normalizedName;
-            }
-          }
-        }
-
-        let items = itemsJson?.data?.items;
-        if (!items) throw new Error('В ответе нет data.items');
-        if (!Array.isArray(items)) items = Object.values(items);
+        (tradersList || []).forEach(t => {
+          if (t && t.id && t.normalizedName) traderIdMap[t.id] = t.normalizedName;
+        });
 
         setProgress(75, `Считаю флипы · ${items.length} предметов…`, false);
         // yield so the browser can paint the progress bar
@@ -477,11 +462,11 @@
 
 (function(){
   const KEY = 'tarkovPreferredGameMode';
-  const def = localStorage.getItem(KEY) || 'pve';
+  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
   document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
     if ([...sel.options].some(o => o.value === def)) sel.value = def;
     sel.addEventListener('change', () => {
-      try { localStorage.setItem(KEY, sel.value); } catch(e) {}
+      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
     });
   });
 })();

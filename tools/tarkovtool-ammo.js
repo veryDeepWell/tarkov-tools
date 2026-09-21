@@ -81,31 +81,25 @@
       const mode = document.getElementById('gameMode').value || 'regular';
       try {
         status.textContent = 'Гружу items + crafts…';
-        const [items, craftsRes] = await Promise.all([
+        const [items, craftsList] = await Promise.all([
           TarkovAPI.items(mode),
-          TarkovAPI.request(`/${mode}/crafts`, { httpCache: 'no-store' })
+          TarkovAPI.crafts(mode)
         ]);
 
         // crafts by product item id
         const craftByProduct = {};
-        if (craftsRes.ok) {
-          const cj = await craftsRes.json();
-          let crafts = cj.data;
-          if (crafts && crafts.crafts) crafts = crafts.crafts;
-          if (!Array.isArray(crafts)) crafts = Object.values(crafts || {});
-          crafts.forEach(c => {
-            const pid = c.productItem && c.productItem.item;
-            if (!pid) return;
-            const entry = {
-              count: Number(c.productItem.count) || 1,
-              quest: !!(c.taskUnlock),
-              station: c.station,
-              level: c.level
-            };
-            if (!craftByProduct[pid]) craftByProduct[pid] = [];
-            craftByProduct[pid].push(entry);
-          });
-        }
+        craftsList.forEach(c => {
+          const pid = c.productItem && c.productItem.item;
+          if (!pid) return;
+          const entry = {
+            count: Number(c.productItem.count) || 1,
+            quest: !!(c.taskUnlock),
+            station: c.station,
+            level: c.level
+          };
+          if (!craftByProduct[pid]) craftByProduct[pid] = [];
+          craftByProduct[pid].push(entry);
+        });
 
         const TRADER_ID = {
           '54cb50c76803fa8b248b4571': 'Прапор',

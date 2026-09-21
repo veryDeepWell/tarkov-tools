@@ -137,20 +137,15 @@
       const mode = document.getElementById('gameMode').value || 'regular';
       status.textContent = 'Гружу hideout + items…';
       try {
-        const [hRes, items] = await Promise.all([
-          TarkovAPI.request(`/${mode}/hideout`, { httpCache: 'no-store' }),
+        const [stationList, items] = await Promise.all([
+          TarkovAPI.hideout(mode),
           TarkovAPI.items(mode)
         ]);
-        if (!hRes.ok) throw new Error('hideout HTTP ' + hRes.status);
-        const hJson = await hRes.json();
-        let hData = hJson.data;
-        if (!hData) throw new Error('Нет hideout data');
-        if (hData.hideout) hData = hData.hideout;
-        if (Array.isArray(hData)) {
-          const map = {};
-          hData.forEach(s => { map[s.id] = s; });
-          hData = map;
-        }
+        const hData = {};
+        (Array.isArray(stationList) ? stationList : []).forEach(s => {
+          if (s && s.id) hData[s.id] = s;
+        });
+        if (!Object.keys(hData).length) throw new Error('Нет hideout data');
         itemsById = {};
         items.forEach(it => { itemsById[it.id] = it; });
 
