@@ -1,4 +1,4 @@
-/*! Tarkov tool shell — Stage 3 complete: header ?, progress, ui.css, help for all tools */
+/*! Tarkov tool shell — Stage 4: i18n-aware help, progress, ui.css */
 (function () {
   "use strict";
 
@@ -111,54 +111,28 @@
         try {
           if (window.TarkovUI && TarkovUI.toolHelpFromI18n) h = TarkovUI.toolHelpFromI18n(id);
         } catch (e) {}
+        var title = h.title || id || "Help";
+        var body = h.body || "";
+        try {
+          if (window.TarkovI18n && TarkovI18n.t) {
+            var th = TarkovI18n.t("tool." + id + ".title");
+            var hh = TarkovI18n.t("tool." + id + ".help");
+            var dh = TarkovI18n.t("tool." + id + ".description");
+            if (th && th.indexOf("tool.") !== 0) title = th;
+            if (hh && hh.indexOf("tool.") !== 0) body = hh;
+            else if (dh && dh.indexOf("tool.") !== 0) body = dh;
+          }
+        } catch (e3) {}
         var fallbacks = {
-          "ammo": "Таблица патронов: пробитие, урон, цена",
-          "armor": "Классы брони и материалы",
-          "barter-calc": "Офлайн-калькулятор бартера с налогом flea",
-          "barter-live": "Бартер с живыми ценами барахолки",
-          "bosses": "Боссы, шансы, карта",
-          "btc-farm": "Ферма BTC / доход",
-          "compare": "Сравнение предметов",
-          "containers": "Ёмкость контейнеров и ценность за слот",
-          "crafts": "Крафты убежища и профит",
-          "cultist": "Калькулятор обмена в круге",
-          "drip": "Внешний вид экипировки",
-          "drip-builder": "Сборка drip",
-          "drip-loadout": "Drip loadout",
-          "food": "Еда и гидрация",
-          "gun-budget": "Оружие в бюджете",
-          "gun-builder": "Конструктор оружия",
-          "helmets": "Шлемы: защита и слоты",
-          "hideout": "Модули убежища",
-          "hideout-mgmt": "Управление убежищем",
-          "item-use": "Применение предметов",
-          "keys": "Ключи и локации",
-          "lang-search": "Поиск по языкам",
-          "loadout-budget": "Лоадаут в бюджете",
-          "loadout-builder": "Конструктор лоадаута",
-          "loot-slot": "Профит за клетку инвентаря",
-          "mags": "Магазины",
-          "medkits": "Аптечки и лечение",
-          "mods": "Обвесы и моды",
-          "my-tarkov": "Личный дашборд",
-          "nvg": "ПНВ / тепловизоры",
-          "plates": "Бронеплиты и совместимость",
-          "price-alarm": "Сирена по цене / офферам",
-          "price-track": "График и история flea-цен",
-          "quest-items": "Квестовые предметы",
-          "quests": "Список квестов",
-          "raid-checklist": "Собраться в рейд",
-          "random-loadout": "Случайный кит",
-          "restock": "Обновление торговцев",
-          "scopes": "Кратность и эрго",
-          "shortname": "Свои названия",
-          "skills": "Прокачка навыков",
-          "stim-combos": "Связки стимуляторов",
-          "stims": "Бафы и дебафы",
-          "streamer-flip": "Ивент-предметы",
-          "trader-flip": "Покупка у торговца → flea"
+          "ammo": "Ammo chart",
+          "armor": "Armor classes",
+          "barter-calc": "Offline barter calculator",
+          "barter-live": "Live barter prices",
+          "price-track": "Flea price history",
+          "price-alarm": "Price alarm",
+          "restock": "Trader restock"
         };
-        showHelpLocal(h.title || id || "Help", h.body || fallbacks[id] || "Tarkov Tools utility.");
+        showHelpLocal(title, body || fallbacks[id] || "Tarkov Tools utility.");
       } catch (e) {}
     };
   }
