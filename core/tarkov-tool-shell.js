@@ -1,4 +1,4 @@
-/*! Tarkov tool shell — Stage 3.1: header ?, progress host, ui.css (live tools) */
+/*! Tarkov tool shell — Stage 3.1/3.2: header ?, progress host, ui.css */
 (function () {
   "use strict";
 
@@ -6,8 +6,9 @@
     if (document.querySelector('link[href*="tarkov-ui.css"]')) return;
     var link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "../core/tarkov-ui.css?v=3";
-    document.head.appendChild(link);
+    var path = location.pathname || "";
+    link.href = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-ui.css?v=3";
+    (document.head || document.documentElement).appendChild(link);
   }
 
   function toolIdFromPath() {
@@ -73,11 +74,17 @@
         var fallbacks = {
           "price-track": "Background flea price snapshots, charts, and countdown. Start BG to poll; open an item for history.",
           "price-alarm": "Rules on avg/low/offers. When a rule hits, you get Notify + sound. Start background to poll on an interval.",
-          "restock": "Load trader reset times once, count down locally, Notify on restock. Enable traders you care about."
+          "restock": "Load trader reset times once, count down locally, Notify on restock. Enable traders you care about.",
+          "barter-calc": "Offline barter calculator with flea tax.",
+          "barter-live": "Live barter with flea prices from the API.",
+          "containers": "Container capacity and value density.",
+          "loot-slot": "Profit per inventory slot (flea / trader).",
+          "trader-flip": "Buy from traders, sell on flea.",
+          "streamer-flip": "Streamer item flips."
         };
         TarkovUI.helpModal({
           title: h.title || id || "Help",
-          body: h.body || fallbacks[id] || "Live tool."
+          body: h.body || fallbacks[id] || "Tool help."
         });
       } catch (e) {}
     };
