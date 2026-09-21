@@ -7,7 +7,7 @@
     var link = document.createElement("link");
     link.rel = "stylesheet";
     var path = location.pathname || "";
-    link.href = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-ui.css?v=3";
+    link.href = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-ui.css?v=4";
     (document.head || document.documentElement).appendChild(link);
   }
 
@@ -156,7 +156,7 @@
       btn.setAttribute("aria-label", "Help");
       btn.textContent = "?";
       btn.style.cssText =
-        "min-width:36px!important;width:36px;min-height:36px;padding:0;border-radius:50%";
+        "min-width:36px!important;width:36px;min-height:36px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center";
       act.appendChild(btn);
     }
     var hb = document.getElementById("helpBtn");
@@ -232,6 +232,8 @@
     ensureUiJs();
     ensureI18n().then(function () {
       ensureHelp();
+      setTimeout(ensureHelp, 100);
+      setTimeout(ensureHelp, 500);
       ensureProgress();
       markPrimaryButtons();
       try {
