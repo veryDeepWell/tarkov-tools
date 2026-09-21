@@ -55,7 +55,7 @@
   function loadLocale(code) {
     code = normalizeCode(code);
     if (cache[code]) return Promise.resolve(cache[code]);
-    const url = (location.pathname.indexOf('/tools/')>=0?'../locales/':'locales/') + "" + code + ".json";
+    const url = (location.pathname.indexOf("/tools/") >= 0 ? "../locales/" : "locales/") + code + ".json";
     return fetch(url, { cache: "no-cache" })
       .then(function (r) {
         if (!r.ok) throw new Error("locale " + code + " " + r.status);
@@ -78,32 +78,22 @@
     code = normalizeCode(code);
     const baseFlat = flatten(cache[BASE] || {});
     const total = Object.keys(baseFlat).length || 1;
-    if (code === BASE) return { code: code, done: total, total: total, pct: 100 };
-    const locFlat = flatten(cache[code] || {});
-    let done = 0;
+    const flat = flatten(cache[code] || {});
+    let filled = 0;
     Object.keys(baseFlat).forEach(function (k) {
-      if (locFlat[k] != null && String(locFlat[k]).length > 0) done++;
+      if (flat[k] != null && String(flat[k]).length) filled++;
     });
-    return {
-      code: code,
-      done: done,
-      total: total,
-      pct: Math.round((100 * done) / total)
-    };
+    return Math.round((filled / total) * 100);
   }
 
   function listLocales() {
     return KNOWN.map(function (code) {
-      const data = cache[code];
-      const meta = (data && data._meta) || { code: code, name: code, nativeName: code };
-      const c = completeness(code);
+      const meta = (cache[code] && cache[code]._meta) || {};
       return {
         code: code,
         name: meta.name || code,
         nativeName: meta.nativeName || meta.name || code,
-        done: c.done,
-        total: c.total,
-        pct: c.pct
+        complete: completeness(code)
       };
     });
   }
@@ -124,9 +114,8 @@
   }
 
   function toolIdFromFile(file) {
-    return String(file || "")
-      .replace(/^tarkovtool-/, "")
-      .replace(/\.html$/, "");
+    const f = String(file || "").split("/").pop() || "";
+    return f.replace(/^tarkovtool-/, "").replace(/\.html$/, "").replace(/\.js$/, "");
   }
 
   function toolTitle(file) {
@@ -180,6 +169,9 @@
             fn(code);
           } catch (e) {}
         });
+        try {
+          window.dispatchEvent(new CustomEvent("tt-lang-changed", { detail: { lang: code } }));
+        } catch (e) {}
         return code;
       });
   }
@@ -232,6 +224,12 @@
     onChange: onChange,
     toolTitle: toolTitle,
     toolDesc: toolDesc,
+    toolHelp: function (id) {
+      id = toolIdFromFile(id || "");
+      var h = t("tool." + id + ".help");
+      if (!h || h.indexOf("tool.") === 0) h = t("tool." + id + ".description");
+      return h;
+    },
     catTitle: catTitle,
     toolIdFromFile: toolIdFromFile,
     ready: function () {
