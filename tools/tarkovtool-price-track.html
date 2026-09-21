@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Price track</title>
-  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <link rel="stylesheet" href="../core/tarkov-common.css?v=10">
+  <link rel="stylesheet" href="../core/tarkov-ui.css?v=3">
   <script type="application/json" id="tarkovtool-meta">
   {"title": "Price track", "description": "Flea price history, background snapshots, countdown."}
   </script>
@@ -16,7 +17,7 @@
     .item-row .pr { font-variant-numeric:tabular-nums; color:var(--accent); white-space:nowrap; }
     #itemList { max-height:420px; overflow:auto; }
     .chart-toolbar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; align-items:center; }
-    .chart-toolbar .chip { border:1px solid var(--border); background:var(--input-bg); color:var(--muted); border-radius:999px; padding:4px 12px; cursor:pointer; font-size:.85rem; }
+    .chart-toolbar .chip { border:1px solid var(--border); background:var(--input-bg); color:var(--muted); border-radius:999px; padding:4px 12px; cursor:pointer; font-size:.85rem; min-width:auto!important; min-height:auto!important; }
     .chart-toolbar .chip.on { border-color:var(--accent); color:var(--text); background:color-mix(in srgb, var(--accent) 18%, transparent); }
     .chart-wrap { position:relative; min-height:320px; background:#12151c; border-radius:10px; border:1px solid var(--border); overflow:hidden; }
     #chart { display:block; width:100%; height:320px; }
@@ -35,47 +36,46 @@
 </head>
 <body>
   <div class="container">
+    <h1 data-i18n="priceTrack.title">Price track</h1>
+    <p class="sub" data-i18n="priceTrack.sub">Flea history · background snapshots</p>
     <div class="card">
-      <div class="card-title" data-i18n="priceTrack.title">Price track</div>
-      <div class="row" style="gap:10px;flex-wrap:wrap;align-items:end">
-        <label><span data-i18n="common.interval">Interval (min)</span>
+      <div class="card-title">Background</div>
+      <div class="row" style="flex-wrap:wrap;gap:10px;align-items:end">
+        <label>Interval (min)
           <input type="number" id="interval" value="30" min="1" max="1440" style="width:90px">
         </label>
-        <label><span data-i18n="common.mode">Mode</span>
-          <select id="gameMode"><option value="pve">PvE</option><option value="pvp">PvP</option></select>
+        <label>Mode
+          <select id="gameMode">
+            <option value="pve">PvE</option>
+            <option value="pvp">PvP</option>
+          </select>
         </label>
-        <button type="button" class="btn" id="startBtn" data-i18n="priceTrack.startBg">Start background</button>
-        <button type="button" class="btn-ghost" id="stopBtn" data-i18n="priceTrack.stopBg">Stop</button>
-        <button type="button" class="btn-ghost" id="snapBtn" data-i18n="priceTrack.snapNow">Snap now</button>
+        <button type="button" class="btn" id="startBtn">Start BG</button>
+        <button type="button" class="btn-ghost" id="stopBtn">Stop</button>
+        <button type="button" class="btn-ghost" id="snapBtn">Snap now</button>
       </div>
-      <p class="meta" id="trackMeta">—</p>
-      <p class="countdown" id="countdown" data-i18n="priceTrack.nextPrefix">Next snap: —</p>
+      <p class="countdown" id="countdown">—</p>
       <p class="status" id="status"></p>
     </div>
     <div class="layout">
       <div class="card">
-        <div class="card-title" data-i18n="priceTrack.items">Items</div>
-        <input type="search" id="q" placeholder="Filter…" data-i18n-placeholder="common.filter" style="margin-bottom:8px">
-        <div id="itemList" class="meta">—</div>
+        <div class="card-title">Items</div>
+        <input type="search" id="itemFilter" placeholder="Filter…" style="margin-bottom:8px">
+        <div id="itemList"></div>
       </div>
       <div class="card">
-        <div class="card-title" id="chartTitle" data-i18n="priceTrack.pickItem">Select an item</div>
-        <div class="chart-toolbar">
-          <button type="button" class="chip" data-range="1d" data-i18n="priceTrack.range1d">1 day</button>
-          <button type="button" class="chip" data-range="3d" data-i18n="priceTrack.range3d">3 days</button>
-          <button type="button" class="chip on" data-range="7d" data-i18n="priceTrack.range7d">Week</button>
-          <button type="button" class="chip" data-range="all" data-i18n="priceTrack.rangeAll">All time</button>
-          <button type="button" class="chip on" data-series="avg">avg</button>
-          <button type="button" class="chip on" data-series="low">low</button>
-          <button type="button" class="chip on" data-series="high">high</button>
-          <button type="button" class="btn-ghost" id="chartResetZoom" data-i18n="priceTrack.resetZoom" style="min-width:auto;min-height:28px;padding:0 10px">Reset zoom</button>
+        <div class="card-title">Chart</div>
+        <div class="chart-toolbar" id="rangeBtns">
+          <button type="button" class="chip on" data-range="1d">1d</button>
+          <button type="button" class="chip" data-range="3d">3d</button>
+          <button type="button" class="chip" data-range="7d">7d</button>
+          <button type="button" class="chip" data-range="all">All</button>
         </div>
-        <div class="chart-stats" id="chartStats" hidden></div>
+        <div class="chart-stats" id="chartStats"></div>
         <div class="chart-wrap">
-          <canvas id="chart" width="900" height="320"></canvas>
-          <div id="chartTip" class="chart-tip" style="display:none"></div>
+          <canvas id="chart" width="800" height="320"></canvas>
+          <div class="chart-tip" id="chartTip" style="display:none"></div>
         </div>
-        <p class="meta" id="chartMeta"></p>
       </div>
     </div>
   </div>
@@ -88,5 +88,6 @@
   <script src="../core/tarkov-common.js"></script>
   <script src="tarkovtool-price-track.js"></script>
   <script src="tarkov-price-track-boot.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
 </body>
 </html>
