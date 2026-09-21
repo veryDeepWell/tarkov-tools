@@ -80,12 +80,18 @@ body.tt-expand-open .hub-shell {
   overflow: hidden !important; padding-bottom: 8px !important;
   display: flex !important; flex-direction: column !important; box-sizing: border-box !important;
 }
-body.tt-expand-open .hub-shell > div {
+body.tt-expand-open .hub-shell > .hub-work {
   flex: 1 1 auto !important; min-height: 0 !important; display: flex !important;
   flex-direction: column !important; overflow: hidden !important; padding-bottom: 0 !important;
 }
 body.tt-expand-open .hub-top-row,
-body.tt-expand-open .mini-bar { flex-shrink: 0 !important; }
+body.tt-expand-open .mini-bar {
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+}
 body.tt-expand-open .hub-work {
   flex: 1 1 auto !important; min-height: 0 !important; max-height: none !important;
   height: auto !important; margin-top: 8px !important; overflow: hidden !important; position: relative !important;
@@ -239,4 +245,15 @@ html.tt-mini-frame body { min-height: 100% !important; }
 .tool-pin:hover, .tool-pin.on {
   border-color: var(--accent) !important; color: var(--accent) !important;
   background: color-mix(in srgb, var(--accent) 12%, transparent) !important;
+}
+
+
+/* Class aliases (hub HTML uses mini-label/list; CSS uses mini-bar-*) */
+.mini-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; flex-shrink: 0; }
+.mini-list { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; flex: 1; min-width: 0; }
+.mini-bar {
+  flex: 0 0 auto !important;
+  height: auto !important;
+  max-height: none !important;
+  align-self: stretch;
 }
