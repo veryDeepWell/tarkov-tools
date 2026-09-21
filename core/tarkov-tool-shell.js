@@ -25,6 +25,16 @@
   function ensureHelp() {
     if (document.getElementById("helpBtn")) return;
     var h1 = document.querySelector(".container h1, main h1, h1");
+    if (!h1) {
+      var title = document.querySelector(".container .card-title, .card-title");
+      if (title) {
+        h1 = document.createElement("h1");
+        h1.textContent = title.textContent || "Tool";
+        h1.style.cssText = "font-size:1.25rem;margin:0 0 8px";
+        var box = document.querySelector(".container");
+        if (box) box.insertBefore(h1, box.firstChild);
+      }
+    }
     if (!h1) return;
     var parent = h1.parentNode;
     if (!parent) return;
