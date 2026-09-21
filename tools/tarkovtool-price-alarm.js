@@ -167,16 +167,16 @@
     }
     box.innerHTML = rules.map(function (r, i) {
       return '<div class="row" style="gap:8px;margin:6px 0;flex-wrap:wrap;align-items:center">' +
-        '<input data-i="' + i + '" data-k="q" value="' + (r.q || "").replace(/"/g, """) + '" placeholder="name or id" style="flex:1;min-width:120px">' +
+        '<input data-i="' + i + '" data-k="q" value="' + String(r.q || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;") + '" placeholder="name or id" style="flex:1;min-width:120px">' +
         '<select data-i="' + i + '" data-k="metric">' +
-        '<option value="avg"' + (r.metric !== "low" && r.metric !== "offers" ? " selected" : "") + ">avg</option>' +
-        '<option value="low"' + (r.metric === "low" ? " selected" : "") + ">low</option>' +
-        '<option value="offers"' + (r.metric === "offers" ? " selected" : "") + ">offers</option></select>' +
+        '<option value="avg"' + (r.metric !== "low" && r.metric !== "offers" ? " selected" : "") + '>avg</option>' +
+        '<option value="low"' + (r.metric === "low" ? " selected" : "") + '>low</option>' +
+        '<option value="offers"' + (r.metric === "offers" ? " selected" : "") + '>offers</option></select>' +
         '<select data-i="' + i + '" data-k="op">' +
-        '<option value="<="' + (r.op !== ">=" ? " selected" : "") + "><=</option>" +
-        '<option value=">="' + (r.op === ">=" ? " selected" : "") + ">=</option></select>' +
+        '<option value="<="' + (r.op !== ">=" ? " selected" : "") + '>&lt;=</option>' +
+        '<option value=">="' + (r.op === ">=" ? " selected" : "") + '>&gt;=</option></select>' +
         '<input type="number" data-i="' + i + '" data-k="threshold" value="' + (r.threshold || 0) + '" style="width:100px">' +
-        '<button type="button" class="btn-ghost" data-del="' + i + '">×</button></div>';
+        '<button type="button" class="btn-ghost" data-del="' + i + '">\u00d7</button></div>';
     }).join("");
     box.querySelectorAll("input,select").forEach(function (el) {
       el.onchange = el.oninput = function () {

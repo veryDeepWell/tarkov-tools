@@ -220,6 +220,15 @@
   }
 
   function paintBar() {
+    /* Settings/theme/lang chrome is hub-only — not inside tools */
+    try {
+      var path = location.pathname || "";
+      if (/tarkovtool-/.test(path) && !/tarkovtool-hub\.html$/i.test(path)) {
+        var existing = document.getElementById("tt-tools-bar");
+        if (existing) existing.remove();
+        return;
+      }
+    } catch (e) {}
     var bar = document.getElementById("tt-tools-bar");
     if (!bar) {
       bar = document.createElement("div");

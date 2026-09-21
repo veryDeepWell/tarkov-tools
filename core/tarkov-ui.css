@@ -1,4 +1,4 @@
-/* TarkovUI — no floating bar; hub bar; category collapse; help; mini */
+/* TarkovUI — fixes: left integrated chrome off tools, collapse cats, help */
 :root {
   --btn-h: 40px;
   --btn-min-w: 7rem;
@@ -6,10 +6,8 @@
   --z-modal: 300;
 }
 
-/* Floating tools-bar: HIDDEN — chrome is hub .tt-bar only */
-.tt-tools-bar {
-  display: none !important;
-}
+/* Floating tools-bar: HIDDEN (chrome lives in hub .tt-bar only) */
+.tt-tools-bar { display: none !important; }
 
 /* Hub top bar */
 .tt-bar {
@@ -23,16 +21,14 @@
   top: 0;
   z-index: 100;
 }
-.tt-bar .spacer {
-  flex: 1;
-}
+.tt-bar .spacer { flex: 1; }
 .tt-bar .btn-ghost {
   min-width: 40px;
   min-height: 36px;
   padding: 6px 12px;
 }
 
-/* Category collapse — must beat .cat-body.grid { display:grid !important } */
+/* Category collapse */
 .cat-head {
   cursor: pointer;
   user-select: none;
@@ -42,28 +38,24 @@
   display: none !important;
 }
 
-/* Buttons */
-.btn-primary,
-button.btn-primary {
+/* Button hierarchy */
+.btn-primary, button.btn-primary {
   background: var(--accent) !important;
   color: #111 !important;
   border: 1px solid var(--accent) !important;
 }
-.btn-secondary,
-button.btn-secondary {
+.btn-secondary, button.btn-secondary {
   background: transparent !important;
   color: var(--accent) !important;
   border: 1px solid var(--accent) !important;
 }
-.btn-ghost,
-button.btn-ghost {
+.btn-ghost, button.btn-ghost {
   background: transparent !important;
   color: var(--muted) !important;
   border: 1px solid var(--border) !important;
 }
 
-button.tt-set-tab,
-.tt-set-tab {
+button.tt-set-tab, .tt-set-tab {
   background: transparent !important;
   color: var(--muted) !important;
   border: 0 !important;
@@ -72,48 +64,29 @@ button.tt-set-tab,
   min-width: auto !important;
   box-shadow: none !important;
 }
-button.tt-set-tab.on,
-.tt-set-tab.on {
+button.tt-set-tab.on, .tt-set-tab.on {
   color: var(--accent) !important;
   border-bottom-color: var(--accent) !important;
   background: transparent !important;
 }
 
 /* Progress */
-.progress-wrap,
-.tt-progress {
-  margin: 8px 0;
-  display: none;
-}
-.progress-wrap.on,
-.tt-progress.on {
-  display: block;
-}
-.progress-track,
-.tt-progress-track {
-  height: 6px;
-  border-radius: 4px;
+.progress-wrap, .tt-progress { margin: 8px 0; display: none; }
+.progress-wrap.on, .tt-progress.on { display: block; }
+.progress-track, .tt-progress-track {
+  height: 6px; border-radius: 4px;
   background: var(--input-bg, #12151b);
-  overflow: hidden;
-  border: 1px solid var(--border);
+  overflow: hidden; border: 1px solid var(--border);
 }
-.progress-bar,
-.tt-progress-bar {
-  height: 100%;
-  width: 0%;
-  background: var(--accent);
-  transition: width 0.2s ease;
+.progress-bar, .tt-progress-bar {
+  height: 100%; width: 0%; background: var(--accent); transition: width 0.2s ease;
 }
-.progress-label,
-.tt-progress-label {
-  font-size: 0.78rem;
-  color: var(--muted);
-  margin-top: 4px;
+.progress-label, .tt-progress-label {
+  font-size: 0.78rem; color: var(--muted); margin-top: 4px;
 }
 
 /* Help */
-.tt-help-btn,
-#helpBtn {
+.tt-help-btn, #helpBtn {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -131,7 +104,7 @@ button.tt-set-tab.on,
   margin-bottom: 8px !important;
 }
 
-/* MINI */
+/* MINI bar size */
 body.tt-expand-open .hub-shell > .hub-work {
   flex: 1 1 auto !important;
   min-height: 0 !important;
@@ -143,9 +116,9 @@ body.tt-expand-open .hub-shell > .hub-work {
   min-height: 52px !important;
 }
 .mini-label {
-  font-size: 0.68rem;
+  font-size: .68rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: .06em;
   color: var(--muted);
   font-weight: 700;
   flex-shrink: 0;

@@ -21,6 +21,7 @@
   }
 
   function wireHubBar() {
+    /* remove floating bar if present */
     try {
       var float = document.getElementById("tt-tools-bar");
       if (float) float.remove();
@@ -61,35 +62,29 @@
     var btnS = document.getElementById("tt-open-settings");
     var btnT = document.getElementById("tt-bar-theme");
     var btnL = document.getElementById("tt-bar-lang");
-    if (btnS)
-      btnS.onclick = function (e) {
-        e.preventDefault();
-        callOpenSettings();
-      };
-    if (btnT)
-      btnT.onclick = function (e) {
-        e.preventDefault();
-        try {
-          var th = (localStorage.getItem("tarkovTheme") || "dark") === "light" ? "dark" : "light";
-          localStorage.setItem("tarkovTheme", th);
-          if (window.TarkovTools && TarkovTools.applyTheme) TarkovTools.applyTheme();
-          else document.documentElement.setAttribute("data-theme", th);
-        } catch (err) {}
-      };
-    if (btnL)
-      btnL.onclick = function (e) {
-        e.preventDefault();
-        try {
-          var cur =
-            (window.TarkovI18n && TarkovI18n.lang && TarkovI18n.lang()) ||
-            localStorage.getItem("tarkovLang") ||
-            "ru";
-          var next = cur === "ru" ? "en" : "ru";
-          localStorage.setItem("tarkovLang", next);
-          if (window.TarkovI18n && TarkovI18n.setLang) TarkovI18n.setLang(next);
-          else location.reload();
-        } catch (err) {}
-      };
+    if (btnS) btnS.onclick = function (e) { e.preventDefault(); callOpenSettings(); };
+    if (btnT) btnT.onclick = function (e) {
+      e.preventDefault();
+      try {
+        var th = (localStorage.getItem("tarkovTheme") || "dark") === "light" ? "dark" : "light";
+        localStorage.setItem("tarkovTheme", th);
+        if (window.TarkovTools && TarkovTools.applyTheme) TarkovTools.applyTheme();
+        else document.documentElement.setAttribute("data-theme", th);
+      } catch (err) {}
+    };
+    if (btnL) btnL.onclick = function (e) {
+      e.preventDefault();
+      try {
+        var cur = (window.TarkovI18n && TarkovI18n.lang && TarkovI18n.lang()) || localStorage.getItem("tarkovLang") || "ru";
+        var next = cur === "ru" ? "en" : "ru";
+        localStorage.setItem("tarkovLang", next);
+        if (window.TarkovI18n && TarkovI18n.setLang) {
+          TarkovI18n.setLang(next);
+        } else {
+          location.reload();
+        }
+      } catch (err) {}
+    };
   }
 
   function boot() {
