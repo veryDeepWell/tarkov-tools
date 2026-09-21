@@ -1,4 +1,4 @@
-/* TarkovUI Stage 3 — chrome, progress, help, mobile, button hierarchy */
+/* TarkovUI — chrome, progress, help, mobile, button hierarchy + audit fixes */
 :root {
   --btn-h: 40px;
   --btn-min-w: 7rem;
@@ -6,11 +6,12 @@
   --z-modal: 300;
 }
 
-/* Tools chrome bar — fixed, always clickable */
+/* Tools chrome bar — fixed LEFT */
 .tt-tools-bar {
   position: fixed !important;
   top: 10px !important;
-  right: 12px !important;
+  left: 12px !important;
+  right: auto !important;
   z-index: var(--z-bar) !important;
   display: flex !important;
   flex-direction: row !important;
@@ -42,7 +43,7 @@
   color: var(--accent) !important;
 }
 
-/* Settings tabs must NEVER get accent fill */
+/* Settings tabs — never accent fill */
 button.tt-set-tab, .tt-set-tab {
   background: transparent !important;
   color: var(--muted) !important;
@@ -58,10 +59,6 @@ button.tt-set-tab, .tt-set-tab {
 button.tt-set-tab.on, .tt-set-tab.on {
   color: var(--accent) !important;
   border-bottom-color: var(--accent) !important;
-  background: transparent !important;
-}
-button.tt-set-tab:hover, .tt-set-tab:hover {
-  color: var(--text) !important;
   background: transparent !important;
 }
 
@@ -83,97 +80,87 @@ button.tt-set-tab:hover, .tt-set-tab:hover {
 }
 .btn-ghost:hover, button.btn-ghost:hover {
   color: var(--text) !important;
-  border-color: var(--muted) !important;
+  border-color: var(--text) !important;
 }
 
 /* Progress */
-.tt-progress, .progress-wrap {
-  display: none;
-  margin: 10px 0 4px;
+.progress-wrap, .tt-progress { margin: 8px 0; display: none; }
+.progress-wrap.on, .tt-progress.on { display: block; }
+.progress-track, .tt-progress-track {
+  height: 6px; border-radius: 4px;
+  background: var(--input-bg, #12151b);
+  overflow: hidden; border: 1px solid var(--border);
 }
-.tt-progress.visible, .tt-progress.tt-progress-visible, .progress-wrap.visible {
-  display: block;
+.progress-bar, .tt-progress-bar {
+  height: 100%; width: 0%; background: var(--accent); transition: width 0.2s ease;
 }
-.tt-progress-track, .progress-track {
-  height: 6px;
-  border-radius: 99px;
-  background: var(--input-bg);
-  border: 1px solid var(--border);
-  overflow: hidden;
-}
-.tt-progress-bar, .progress-bar {
-  height: 100%;
-  width: 0%;
-  border-radius: 99px;
-  background: var(--accent);
-  transition: width .2s ease;
-}
-.tt-progress-bar.fail, .tt-progress.tt-progress-fail .tt-progress-bar {
-  background: var(--red);
-}
-.tt-progress-label, .progress-label {
-  font-size: 0.75rem;
-  color: var(--muted);
-  margin-top: 6px;
+.progress-label, .tt-progress-label {
+  font-size: 0.78rem; color: var(--muted); margin-top: 4px;
 }
 
-/* Help */
-.tt-help-btn {
+/* Help button */
+.tt-help-btn, #helpBtn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   min-width: 36px !important;
   width: 36px !important;
   min-height: 36px !important;
-  padding: 0 !important;
   border-radius: 50% !important;
-  font-weight: 800 !important;
+  font-weight: 700 !important;
   font-size: 1rem !important;
+  z-index: 5;
 }
 .tt-tool-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin-bottom: 8px !important;
+}
+
+/* MINI bar: do not stretch to full viewport height */
+body.tt-expand-open .hub-shell > .hub-work {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+body.tt-expand-open .mini-bar,
+.mini-bar {
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 52px !important;
+  overflow: visible !important;
+}
+.mini-label {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.mini-list {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.tt-tool-header h1 { margin: 0 0 4px; }
-.tt-tool-header-actions { display: flex; gap: 8px; flex-shrink: 0; }
-.tt-help-bg { z-index: var(--z-modal) !important; }
-.tt-help-modal { max-width: min(520px, 94vw); max-height: 80vh; overflow: auto; }
-.tt-help-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px;
-}
-.tt-help-head h2 { margin: 0; font-size: 1.15rem; }
-.tt-help-body { color: var(--text); font-size: 0.95rem; line-height: 1.5; }
-.tt-help-body p { margin: 0 0 10px; color: var(--muted); }
-
-/* Dense chips */
-.tt-chip, .preset-btn {
-  display: inline-flex; align-items: center;
-  background: var(--input-bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 20px;
-  padding: 7px 14px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  min-width: auto !important;
-  min-height: auto !important;
-}
-.tt-chip:hover, .preset-btn:hover { border-color: var(--accent); }
-.tt-chip.active, .preset-btn.active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
 }
 
-/* Mobile */
 @media (max-width: 720px) {
   .container { padding: 10px 10px 72px !important; max-width: 100% !important; }
   .tt-tools-bar {
     top: auto !important;
     bottom: 12px !important;
-    right: 12px !important;
     left: 12px !important;
-    justify-content: center;
+    right: auto !important;
+    justify-content: flex-start;
   }
   .row { flex-direction: column; align-items: stretch; }
   .field { min-width: 0; }
