@@ -1,1 +1,49 @@
-PLACEHOLDER_CONTAINERS
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Контейнеры — Tarkov</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Контейнеры", "description": "Ёмкость, слоты, ценность за клетку."}
+  </script>
+  <style>
+    .container { max-width: min(1600px, 92vw); margin: 0 auto; padding: 16px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { flex: 1; min-width: 140px; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+    .ico { width: 40px; height: 40px; object-fit: contain; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Контейнеры</h1>
+    <p class="sub">Ёмкость и ценность за слот</p>
+    <div class="card">
+      <div class="row">
+        <div class="field"><label>Режим</label>
+          <select id="gameMode">
+            <option value="regular">regular</option>
+            <option value="pvp-season">pvp-season</option>
+            <option value="pve" selected>pve</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+      </div>
+      <p class="status" id="status"></p>
+    </div>
+    <div class="card">
+      <div id="out"></div>
+    </div>
+  </div>
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-state.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-containers.js"></script>
+</body>
+</html>
