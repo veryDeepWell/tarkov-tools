@@ -20,20 +20,20 @@
 
     function loadSettings(key, defaults) {
       try {
-        const raw = localStorage.getItem(key);
+        const raw = TarkovStorage.get(key, null);
         if (!raw) return Object.assign({}, defaults);
         return Object.assign({}, defaults, JSON.parse(raw));
       } catch (e) { return Object.assign({}, defaults); }
     }
     function saveSettings(key, obj) {
-      try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {}
+      try { TarkovStorage.set(key, JSON.stringify(obj)); } catch (e) {}
     }
     function loadProgress() {
-      try { progress = JSON.parse(localStorage.getItem('tarkovHideoutProgress') || '{}'); }
+      try { progress = TarkovStorage.getJson('tarkovHideoutProgress', {}); }
       catch { progress = {}; }
     }
     function saveProgress() {
-      try { localStorage.setItem('tarkovHideoutProgress', JSON.stringify(progress)); } catch (e) {}
+      try { TarkovStorage.setJson('tarkovHideoutProgress', progress); } catch (e) {}
     }
     function humanize(slug) {
       if (!slug) return '?';
@@ -137,14 +137,12 @@
       const mode = document.getElementById('gameMode').value || 'regular';
       status.textContent = 'Гружу hideout + items…';
       try {
-        const [hRes, iRes] = await Promise.all([
-          fetch(`https://json.tarkov.dev/${mode}/hideout`, { cache: 'no-store' }),
-          fetch(`https://json.tarkov.dev/${mode}/items`, { cache: 'no-store' })
+        const [hRes, items] = await Promise.all([
+          TarkovAPI.request(`/${mode}/hideout`, { httpCache: 'no-store' }),
+          TarkovAPI.items(mode)
         ]);
         if (!hRes.ok) throw new Error('hideout HTTP ' + hRes.status);
-        if (!iRes.ok) throw new Error('items HTTP ' + iRes.status);
         const hJson = await hRes.json();
-        const iJson = await iRes.json();
         let hData = hJson.data;
         if (!hData) throw new Error('Нет hideout data');
         if (hData.hideout) hData = hData.hideout;
@@ -153,9 +151,6 @@
           hData.forEach(s => { map[s.id] = s; });
           hData = map;
         }
-        let items = iJson?.data?.items;
-        if (!items) throw new Error('Нет items');
-        if (!Array.isArray(items)) items = Object.values(items);
         itemsById = {};
         items.forEach(it => { itemsById[it.id] = it; });
 
@@ -530,11 +525,11 @@
 
 (function(){
   const KEY = 'tarkovPreferredGameMode';
-  const def = localStorage.getItem(KEY) || 'pve';
+  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
   document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
     if ([...sel.options].some(o => o.value === def)) sel.value = def;
     sel.addEventListener('change', () => {
-      try { localStorage.setItem(KEY, sel.value); } catch(e) {}
+      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
     });
   });
 })();

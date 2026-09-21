@@ -21,6 +21,56 @@
     (document.head || document.documentElement).appendChild(s);
   }
 
+  function ensureItemsJs() {
+    if (window.TarkovItems || document.getElementById("tt-items-js")) return;
+    var path = location.pathname || "";
+    var s = document.createElement("script");
+    s.id = "tt-items-js";
+    s.src = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-items.js";
+    s.async = false;
+    (document.head || document.documentElement).appendChild(s);
+  }
+
+  function ensureStorageJs() {
+    if (window.TarkovStorage || document.getElementById("tt-storage-js")) return;
+    var path = location.pathname || "";
+    var s = document.createElement("script");
+    s.id = "tt-storage-js";
+    s.src = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-storage.js";
+    s.async = false;
+    (document.head || document.documentElement).appendChild(s);
+  }
+
+  function ensureItemDomainJs() {
+    if (window.TarkovItemDomain || document.getElementById("tt-item-domain-js")) return;
+    var path = location.pathname || "";
+    var s = document.createElement("script");
+    s.id = "tt-item-domain-js";
+    s.src = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-item-domain.js";
+    s.async = false;
+    (document.head || document.documentElement).appendChild(s);
+  }
+
+  function ensureItemViewModelsJs() {
+    if (window.TarkovItemViewModels || document.getElementById("tt-item-view-models-js")) return;
+    var path = location.pathname || "";
+    var s = document.createElement("script");
+    s.id = "tt-item-view-models-js";
+    s.src = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-item-view-models.js";
+    s.async = false;
+    (document.head || document.documentElement).appendChild(s);
+  }
+
+  function ensureWeaponDomainJs() {
+    if (window.TarkovWeaponDomain || document.getElementById("tt-weapon-domain-js")) return;
+    var path = location.pathname || "";
+    var s = document.createElement("script");
+    s.id = "tt-weapon-domain-js";
+    s.src = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-weapon-domain.js";
+    s.async = false;
+    (document.head || document.documentElement).appendChild(s);
+  }
+
   function ensureI18n() {
     return new Promise(function (resolve) {
       function done() {
@@ -73,6 +123,22 @@
     } catch (e) {
       return "";
     }
+  }
+
+  function localizeToolChrome() {
+    try {
+      if (!window.TarkovI18n || !TarkovI18n.t) return;
+      var id = toolIdFromPath();
+      if (!id) return;
+      var title = TarkovI18n.t("tool." + id + ".title");
+      var description = TarkovI18n.t("tool." + id + ".description");
+      if (!title || title.indexOf("tool.") === 0) return;
+      document.title = title + " - Tarkov Tools";
+      var heading = document.querySelector("h1");
+      if (heading && !heading.hasAttribute("data-i18n-preserve")) heading.textContent = title;
+      var subtitle = document.querySelector(".sub, .subtitle");
+      if (subtitle && description && description.indexOf("tool.") !== 0) subtitle.textContent = description;
+    } catch (e) {}
   }
 
   function showHelpLocal(title, body) {
@@ -230,6 +296,11 @@
   function boot() {
     ensureCss();
     ensureUiJs();
+    ensureStorageJs();
+    ensureItemsJs();
+    ensureItemDomainJs();
+    ensureItemViewModelsJs();
+    ensureWeaponDomainJs();
     ensureI18n().then(function () {
       ensureHelp();
       setTimeout(ensureHelp, 100);
@@ -238,9 +309,12 @@
       markPrimaryButtons();
       try {
         if (window.TarkovI18n && TarkovI18n.applyDom) TarkovI18n.applyDom(document);
+        localizeToolChrome();
       } catch (e) {}
     });
   }
+
+  window.addEventListener("tt-lang-changed", localizeToolChrome);
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();

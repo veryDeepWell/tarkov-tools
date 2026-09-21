@@ -1,0 +1,197 @@
+# Tarkov Tools v1 Architecture Plan
+
+Цель v1: превратить набор автономных HTML-инструментов в расширяемую static browser platform без backend и без Node.js runtime.
+
+Главный принцип:
+
+```text
+API -> Repository -> Domain model/query -> ViewModel -> Renderer -> DOM
+```
+
+`tools/` не определяет игровые факты. `core/` хранит нормализацию, классификацию, связи, запросы и общие контракты. UI-экран только связывает зависимости и отображает результат.
+
+## Текущий статус
+
+- `TarkovAPI` и `TarkovItems` работают как общие browser-side boundaries.
+- `TarkovItemDomain` добавляет pure classifier, armor/plate projections, metrics и двусторонний compatibility graph.
+- `armor` и `plates` используют общий domain classifier/projection и `TarkovAPI.items(mode)`.
+- Browser smoke подтверждает загрузку обоих экранов на реальных API-данных без page errors.
+- `TarkovStorage` добавлен как browser persistence adapter; API cache использует его и принимает clock seam.
+- `armor` и `plates` не обращаются к `localStorage` напрямую; mode/settings идут через `TarkovStorage`.
+- `TarkovItemViewModels` добавлен для чистых table projections; armor/plates больше не собирают domain rows в controller-коде.
+- `TarkovWeaponDomain` добавлен для weapon/mod slot normalization, reverse compatibility и mod projections; `mods` использует его и `TarkovAPI.items(mode)`.
+- Weapon family (`mods`, `compare`, `gun-builder`) использует общий compatibility boundary; browser smoke подтверждён без page errors.
+- Item projection wave (`helmets`, `mags`, `scopes`) использует `TarkovAPI.items(mode)` и `TarkovStorage`; browser smoke подтверждён без page errors.
+- Расширенная item wave (`ammo`, `medkits`, `stims`, `stim-combos`, `nvg`, `food`) также переведена на `TarkovAPI.items(mode)` и `TarkovStorage`; `ammo` оставляет crafts через API adapter.
+- Recipe/hideout/barter batch (`crafts`, `hideout`, `hideout-mgmt`, `barter-live`) переведён на normalized items repository и storage adapter; browser smoke подтверждён без page errors.
+- Следующий слой: view models/renderers и убрать оставшиеся tool-local domain helpers.
+
+## Архитектурные правила
+
+- Один network boundary: `TarkovAPI`.
+- Один item domain boundary: `TarkovItems`.
+- Один источник классификации предметов.
+- Доменные функции не знают о DOM, `window`, `localStorage` и HTML.
+- UI не вычисляет игровые отношения и рейтинги.
+- Не вводить DI-контейнер ради контейнера: зависимости передаются обычным `deps` object.
+- Не вводить интерфейс на каждую мелкую функцию.
+- Все внешние данные валидируются на входе и нормализуются один раз.
+- `localStorage` и IndexedDB доступны через адаптеры, а не напрямую из домена.
+- HTML/JS tool не хранит второй каталог или вторую копию domain rules.
+- Все API-данные, попадающие в HTML, проходят escaping/DOM API.
+- Game mode берётся из одной настройки и передаётся явно в repository/query.
+
+## Целевая структура
+
+```text
+core/
+  data/
+    tarkov-api.js          # transport, cache, endpoint boundary
+    tarkov-items.js        # repository + catalog/indexes
+  domain/
+    tarkov-item-model.js   # normalized projections
+    tarkov-item-classifier.js
+    tarkov-compatibility.js
+    tarkov-item-queries.js
+    tarkov-metrics.js
+  platform/
+    tarkov-state.js
+    tarkov-storage.js
+    tarkov-i18n.js
+    tarkov-notify.js
+    tarkov-poll.js
+  ui/
+    tarkov-ui.js
+    tarkov-render.js
+    tarkov-tool-shell.js
+
+hub/
+  catalog-data.js          # generated/runtime catalog source
+  tarkov-hub-app.js
+
+tools/
+  <tool>.js                # controller + renderer only
+  <tool>.html              # composition root + markup
+```
+
+Фактическую файловую раскладку можно вводить постепенно; важна граница ответственности.
+
+## Публичные контракты
+
+### TarkovAPI
+
+- `getJson(path, opts)` — cached JSON request.
+- `request(path, opts)` — временный response-compatible adapter для legacy tools.
+- endpoint methods (`items`, `traders`, `quests`, `hideout`) возвращают нормализованные массивы.
+- transport errors — exceptions с endpoint/status context.
+
+### TarkovItems
+
+- `load(mode)` — returns immutable-ish catalog snapshot.
+- `all(catalog)`
+- `byId(catalog, id)`
+- `byType(catalog, type)`
+- `classify(item)`
+- `normalize(item)`
+- cache key всегда включает game mode.
+
+### Item domain
+
+- `classifyItem(item) -> armor | rig | helmet | plate | glasses | other`
+- `toArmorModel(item)`
+- `toPlateModel(item)`
+- `buildArmorPlateCompatibility(items)` returns:
+  - `armorToPlates`
+  - `plateToArmor`
+  - slot metadata
+  - unresolved ids
+- `filterItems(items, specification)` — pure function.
+- `calculateArmorRating(model)` и `calculatePlateScore(model)` — независимые pure metrics.
+
+### UI/Application
+
+```js
+const deps = {
+  api: TarkovAPI,
+  items: TarkovItems,
+  storage: TarkovStorage,
+  i18n: TarkovI18n,
+  ui: TarkovUI,
+  document
+};
+```
+
+Controller связывает repository, domain query, view model и renderer. Renderer не вызывает API.
+
+## Внедрение по этапам
+
+### Phase 1 — domain foundation
+
+- Создать normalized item model.
+- Перенести единый classifier из armor/plates.
+- Вынести armor/plate projections.
+- Вынести общие number/name/icon/price helpers.
+- Добавить compatibility graph в обе стороны.
+- Написать browser-runnable pure checks для classifier/graph/metrics.
+
+### Phase 2 — armor и plates
+
+- `armor` получает `ArmorModel[]` и graph.
+- `plates` получает `PlateModel[]` и graph.
+- Compatibility popup — только renderer concern.
+- Оба экрана используют одинаковую модель и game mode.
+- Удалить локальные `detectKind`, `humanize`, `formatNum`, duplicate plate indexes.
+
+### Phase 3 — repository/cache/state
+
+- Убрать response-compatible adapter из новых tools. **Armor/plates больше его не используют.**
+- Добавить schema guards для API shapes.
+- Включить mode в IndexedDB/localStorage keys.
+- Вынести storage access в `TarkovStorage`. **Выполнено для API cache и armor/plates composition roots.**
+- Свести catalog к одному источнику и проверяемому generated artifact.
+
+### Phase 4 — application/UI platform
+
+- Явные composition roots для tools. **Armor/plates выполнено.**
+- `TarkovItemViewModels` отделяет pure row preparation от DOM renderer. **Armor/plates выполнено.**
+- Общие table/filter/popup renderers.
+- Escape/DOM API policy.
+- Все динамические user-facing strings через i18n.
+- Help, progress, status и errors через platform contracts.
+
+### Phase 5 — hardening
+
+- Browser smoke: hub, F5, mini restore, live tools, armor/plates graph, help, EN/RU.
+- Pure domain checks без backend и Node.js.
+- Проверка отсутствия raw API, duplicate classifiers и прямого DOM из domain.
+- Обновить CONTRIBUTING и архитектурную документацию.
+
+### Следующая волна: item families
+
+Миграция остальных tools выполняется семействами, а не одним массовым rewrite:
+
+1. `mods`, `gun-builder`, `compare` — item compatibility/weapon projections.
+  `mods`, `gun-builder` и `compare` domain/repository migration выполнена.
+2. `ammo`, `mags`, `scopes`, `helmets`, `medkits`, `stims`, `plates` — item projections. **Выполнено для всей группы.**
+3. `crafts`, `hideout`, `barter`, `quests` — recipes/requirements projections. `crafts/hideout/hideout-mgmt/barter-live` и quest-семейство (`quests`, `quest-items`, `loot-slot`, `item-use`, `bosses`, `raid-checklist`) выполнено; далее loadout/util.
+4. loadout/util tools — composition over shared projections.
+
+Каждое семейство получает domain projection, view-model builder, fake-repository browser check и только потом перенос tool UI.
+
+## Acceptance criteria
+
+- Добавление нового relation между item types требует изменения core/domain, а не двух tools.
+- `armor ↔ plates` строится одним graph и доступен в обе стороны.
+- Tool script можно проверить с fake repository, fake storage и fake renderer.
+- Смена API response shape ломает один adapter, а не десятки screens.
+- Смена языка не оставляет literal i18n keys.
+- Ни один domain module не обращается к DOM или browser storage.
+- Все проверки выполняются в браузере на GitHub Pages-compatible static runtime.
+
+## Не делать
+
+- Не добавлять backend.
+- Не добавлять Node.js runtime/build requirement.
+- Не копировать game-engine ECS/event bus/lifecycle scopes.
+- Не создавать BaseClass/Interface/Factory для каждой сущности.
+- Не переписывать все 46 screens до появления устойчивых domain contracts.

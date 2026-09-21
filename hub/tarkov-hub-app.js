@@ -1,6 +1,9 @@
 window.TarkovHubMini = true;
 
 function getCatalog() { return window.TarkovHubCATALOG || []; }
+if (window.TarkovHubCATALOG && !window.TarkovHubCATALOG.some(function (x) { return x && x.file === "tools/tarkovtool-desk.html"; })) {
+  window.TarkovHubCATALOG.push({ file: "tools/tarkovtool-desk.html", title: "Desk", description: "Мини-вкладки инструментов", icon: "desk", cat: "util", kind: "static" });
+}
 var CHANGELOG = [{"date":"2026-09-17","items":["Mini tabs, notifications","Catalog categories","TarkovAPI, TarkovNames"]},{"date":"2026-09-20","items":["Stage 0 platform contract","kind live|static","single sound owner"]},{"date":"2026-09-21","items":["Stage 1 live runtime","Stage 3 UI shell inject"]}];
 var ICONS = [[/btc/i,"₿"],[/cultist/i,"⛧"],[/my-tarkov/i,"👤"],[/helmet/i,"🪖"],[/nvg/i,"🌑"],[/price-track/i,"📈"],[/price-alarm/i,"🔔"],[/food/i,"🍖"],[/random-loadout/i,"🎲"],[/loadout-budget/i,"💰"],[/loadout-builder/i,"🧰"],[/drip-builder/i,"🎨"],[/drip-loadout/i,"✨"],[/ammo/i,"🔫"],[/armor/i,"🛡️"],[/barter/i,"🧮"],[/boss/i,"👹"],[/compare/i,"⚖️"],[/container/i,"🎒"],[/craft/i,"🔧"],[/drip/i,"🕶️"],[/gun/i,"🛠️"],[/hideout/i,"🏗️"],[/key/i,"🔑"],[/lang/i,"🌐"],[/loot/i,"📦"],[/item-use/i,"💡"],[/mag/i,"📟"],[/med/i,"💊"],[/mods/i,"🔩"],[/plate/i,"🧱"],[/quest/i,"📜"],[/raid/i,"✅"],[/restock/i,"⏰"],[/scope/i,"🔭"],[/short/i,"🏷️"],[/skill/i,"📈"],[/stim/i,"💉"],[/streamer/i,"📺"],[/trader/i,"🏪"]];
 

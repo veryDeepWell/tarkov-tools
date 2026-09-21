@@ -103,7 +103,15 @@
       if(!entries.length){ el.innerHTML='<p class="status">Пока пусто</p>'; return; }
       el.innerHTML=entries.map(h=>'<div style="padding:8px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px"><b>'+h.name+'</b> · '+formatAgo(now-h.happenedAt)+'</div>').join('');
     }
-    function startTicks(){ if(tickTimer) clearInterval(tickTimer); tickTimer=setInterval(render,1000); }
+    function startTicks(){
+      if(tickTimer) clearInterval(tickTimer);
+      tickTimer=setInterval(render,1000);
+      if(window.TarkovPoll){
+        TarkovPoll.start('restock',1,function(){
+          return fetchTraders().then(function(){ render(); });
+        },{fireNow:false,label:'restock'});
+      }
+    }
     async function doLoad(){
       loadBtn.disabled=true; statusEl.className='status'; statusEl.textContent='Гружу…';
       try{ await fetchTraders(); statusEl.className='status ok'; statusEl.textContent='Загружено '+traders.length; refreshBtn.disabled=false; render(); startTicks(); try{ if(window.parent&&window.parent!==window) window.parent.postMessage({ type:'tt-status', tool:'tarkovtool-restock.html', running:true, ready:true, label:'watching' }, location.origin); }catch(e){} }
@@ -116,3 +124,7 @@
     document.getElementById('notifBtn').onclick=async()=>{ if(!('Notification' in window)) return; const p=await Notification.requestPermission(); statusEl.textContent=p==='granted'?'OK':'denied'; };
     document.getElementById('testSoundBtn').onclick=()=>playAlertSound();
     loadHistory();
+    window.addEventListener('pagehide',function(){
+      if(tickTimer){ clearInterval(tickTimer); tickTimer=null; }
+      try{ if(window.TarkovPoll) TarkovPoll.stop('restock'); }catch(e){}
+    });

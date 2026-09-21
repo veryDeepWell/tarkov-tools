@@ -65,13 +65,13 @@
 
     function loadSettings(key, defaults) {
       try {
-        const raw = localStorage.getItem(key);
+        const raw = TarkovStorage.get(key, null);
         if (!raw) return Object.assign({}, defaults);
         return Object.assign({}, defaults, JSON.parse(raw));
       } catch (e) { return Object.assign({}, defaults); }
     }
     function saveSettings(key, obj) {
-      try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {}
+      try { TarkovStorage.set(key, JSON.stringify(obj)); } catch (e) {}
     }
     function humanize(slug) {
       if (!slug) return '?';
@@ -119,105 +119,22 @@
       const mode = document.getElementById('gameMode').value || 'regular';
       status.textContent = 'Гружу items, строю совместимость…';
       try {
-        const res = await fetch(`https://json.tarkov.dev/${mode}/items`, { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        let items = json?.data?.items;
-        if (!items) throw new Error('Нет items');
-        if (!Array.isArray(items)) items = Object.values(items);
-
-        // modId -> { slots: Set, weaponIds: Set }
-        const compat = new Map();
-        function addCompat(modId, slotNid, parentId, isWeapon) {
-          if (!modId) return;
-          if (!compat.has(modId)) compat.set(modId, { slots: new Set(), weaponIds: new Set() });
-          const c = compat.get(modId);
-          c.slots.add(normalizeSlot(slotNid));
-          if (isWeapon && parentId) c.weaponIds.add(parentId);
-        }
-
-        weapons = [];
-        items.forEach(it => {
-          const p = it.properties;
-          if (!p || typeof p !== 'object') return;
-          const isWeapon = p.propertiesType === 'ItemPropertiesWeapon';
-          if (isWeapon) {
-            weapons.push({
-              id: it.id,
-              slug: it.normalizedName || '',
-              name: humanize(it.normalizedName)
-            });
-          }
-          // any item with slots can accept mods (weapon, handguard, receiver…)
-          (p.slots || []).forEach(sl => {
-            const nid = sl.nameId || sl.name || '';
-            const allowed = (sl.filters && sl.filters.allowedItems) || [];
-            allowed.forEach(mid => addCompat(mid, nid, it.id, isWeapon));
-          });
-        });
-        weapons.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
-
-        mods = [];
-        items.forEach(it => {
-          const p = it.properties;
-          if (!p || typeof p !== 'object') return;
-          const pt = p.propertiesType;
-          if (!['ItemPropertiesWeaponMod', 'ItemPropertiesBarrel', 'ItemPropertiesScope', 'ItemPropertiesMagazine'].includes(pt)) {
-            // still include if in compat map as mod
-            if (!compat.has(it.id)) return;
-          }
-          // must have some combat-ish stats or be in compat
-          const c = compat.get(it.id);
-          if (!c && pt === 'ItemPropertiesMagazine') {
-            // magazines still useful
-          } else if (!c && !(p.ergonomics || p.recoilModifier || p.accuracyModifier)) {
-            return;
-          }
-
-          const ergo = Number(p.ergonomics) || 0;
-          const recoil = Number(p.recoilModifier) || 0;
-          const acc = Number(p.accuracyModifier) || 0;
-          const slots = c ? [...c.slots] : ['other'];
-          // primary category: first non-other in CAT_ORDER
-          let cat = 'other';
-          for (const k of CAT_ORDER) {
-            if (slots.includes(k)) { cat = k; break; }
-          }
-          // pistolGrip type tag
-          if ((it.types || []).includes('pistolGrip')) cat = 'mod_pistol_grip';
-          if ((it.types || []).includes('suppressor')) cat = 'mod_muzzle';
-
-          const buy = bestBuy(it);
-          const avg = Number(it.avg24hPrice) || 0;
-          const weaponIds = c ? c.weaponIds : new Set();
-          const row = {
-            id: it.id,
-            slug: it.normalizedName || '',
-            name: humanize(it.normalizedName),
-            icon: it.iconLink || it.gridImageLink || '',
-            cat,
-            slots,
-            ergo,
-            recoil,
-            acc,
-            recoilPct: recoil * 100,
-            fits: weaponIds.size,
-            weaponIds,
-            avg,
-            onFlea: avg > 0 || (Number(it.lastLowPrice) || 0) > 0 || !(it.types || []).includes('noFlea'),
-            noFlea: (it.types || []).includes('noFlea'),
-            traderPrice: buy ? buy.price : 0,
-            traderName: buy ? buy.name : '',
-            traderLL: buy ? buy.ll : 0,
-            quest: buy ? buy.quest : false,
-            rating: modRating(ergo, recoil, acc),
-            // magazine extras
-            capacity: Number(p.capacity) || 0
-          };
-          // skip pure trash with zero everything and no fits
-          if (row.fits === 0 && !row.ergo && !row.recoil && !row.acc && !row.capacity) return;
-          mods.push(row);
-        });
+        const items = await TarkovAPI.items(mode);
+        const compat = TarkovWeaponDomain.buildCompatibility(items);
+        weapons = items.filter(it => TarkovWeaponDomain.isWeapon(it)).map(it => ({
+          id: it.id, slug: it.normalizedName || '', name: humanize(it.normalizedName)
+        })).sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+        mods = items.reduce((result, item) => {
+          if (!TarkovWeaponDomain.isMod(item)) return result;
+          const row = TarkovWeaponDomain.modModel(item, compat);
+          const buy = bestBuy(item);
+          row.traderPrice = buy ? buy.price : 0;
+          row.traderName = buy ? buy.name : '';
+          row.traderLL = buy ? buy.ll : 0;
+          row.quest = buy ? buy.quest : false;
+          if (row.fits || row.ergo || row.recoil || row.acc || row.capacity) result.push(row);
+          return result;
+        }, []);
 
         activeCats = new Set(CAT_ORDER.filter(k => mods.some(m => m.cat === k)));
         document.getElementById('filtersCard').style.display = 'block';
@@ -225,7 +142,7 @@
         renderCatChips();
         renderTable();
         status.className = 'status ok';
-        status.textContent = `Модов: ${mods.length} · стволов: ${weapons.length} · связей совместимости: ${compat.size}`;
+        status.textContent = `Модов: ${mods.length} · стволов: ${weapons.length} · связей совместимости: ${Object.keys(compat.modToWeapons).length}`;
       } catch (e) {
         console.error(e);
         status.className = 'status err';
@@ -449,11 +366,11 @@
 
 (function(){
   const KEY = 'tarkovPreferredGameMode';
-  const def = localStorage.getItem(KEY) || 'pve';
+  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
   document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
     if ([...sel.options].some(o => o.value === def)) sel.value = def;
     sel.addEventListener('change', () => {
-      try { localStorage.setItem(KEY, sel.value); } catch(e) {}
+      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
     });
   });
 })();

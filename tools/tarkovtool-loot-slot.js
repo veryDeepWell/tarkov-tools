@@ -1,22 +1,23 @@
-
-    let items=[], byId={}, questItemIds=new Set();
+let items=[], byId={}, questItemIds=new Set();
     function humanize(s){return s?String(s).replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):'?'}
     function formatNum(n){return n==null||Number.isNaN(n)?'—':Math.round(n).toLocaleString('ru-RU')}
-    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+    function esc(s){
+      const AMP=String.fromCharCode(38);
+      return String(s||'').replace(/&/g,AMP+'amp;').replace(/</g,AMP+'lt;').replace(/>/g,AMP+'gt;').replace(/"/g,AMP+'quot;');
+    }
 
     document.getElementById('loadBtn').onclick=async()=>{
-      const st=document.getElementById('status'); st.textContent='Гружу…';
+      const st=document.getElementById('status'); st.className='status'; st.textContent='Гружу…';
       try{
         const mode=document.getElementById('gameMode').value||'pve';
-        const [ji,jt]=await Promise.all([
-          fetch('https://json.tarkov.dev/'+mode+'/items').then(r=>r.json()),
-          fetch('https://json.tarkov.dev/'+mode+'/tasks').then(r=>r.json())
+        const [itemsArr,tasksArr]=await Promise.all([
+          TarkovAPI.items(mode),
+          TarkovAPI.tasks(mode)
         ]);
-        let raw=ji?.data?.items; items=Array.isArray(raw)?raw:Object.values(raw||{});
+        items=Array.isArray(itemsArr)?itemsArr:[];
         byId={}; items.forEach(i=>byId[i.id]=i);
         questItemIds=new Set();
-        let tk=jt?.data?.tasks??jt?.data??jt; tk=Array.isArray(tk)?tk:Object.values(tk||{});
-        tk.forEach(t=>(t.objectives||[]).forEach(o=>{
+        tasksArr.forEach(t=>(t.objectives||[]).forEach(o=>{
           (o.items||[]).forEach(id=>questItemIds.add(id));
           if(o.item) questItemIds.add(o.item);
         }));
@@ -90,24 +91,12 @@
       });
       render();
     });
-  
 
-
-(function(){
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(window.itemName&&window.itemName!==itemName)return window.itemName(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    var s=(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
-    return s||it.id||'';
-  }
-
-  const KEY='tarkovPreferredGameMode';
-  const def=localStorage.getItem(KEY)||'pve';
-  document.querySelectorAll('select#gameMode').forEach(sel=>{
-    if([...sel.options].some(o=>o.value===def)) sel.value=def;
-    sel.addEventListener('change',()=>{try{localStorage.setItem(KEY,sel.value)}catch(e){}});
-  });
-})();
+    (function(){
+      const KEY='tarkovPreferredGameMode';
+      const def=TarkovStorage.get(KEY,'pve')||'pve';
+      document.querySelectorAll('select#gameMode').forEach(sel=>{
+        if([...sel.options].some(o=>o.value===def)) sel.value=def;
+        sel.addEventListener('change',()=>{try{TarkovStorage.set(KEY,sel.value)}catch(e){}});
+      });
+    })();

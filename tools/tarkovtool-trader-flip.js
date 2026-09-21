@@ -134,47 +134,6 @@
     const statusEl = document.getElementById('status');
     const fetchBtn = document.getElementById('fetchBtn');
 
-    function playItemGetSound() {
-      try {
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        if (!Ctx) return;
-        const ctx = playItemGetSound._ctx || (playItemGetSound._ctx = new Ctx());
-        if (ctx.state === 'suspended') ctx.resume();
-
-        // Chiptune-ish "item get" arpeggio (inspired by classic RPG fanfares, not a copy)
-        const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
-        const t0 = ctx.currentTime + 0.02;
-        notes.forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'square';
-          osc.frequency.value = freq;
-          const start = t0 + i * 0.09;
-          const dur = 0.22;
-          gain.gain.setValueAtTime(0.0001, start);
-          gain.gain.exponentialRampToValueAtTime(0.12, start + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start(start);
-          osc.stop(start + dur + 0.02);
-        });
-        // short sparkle
-        const sparkle = ctx.createOscillator();
-        const sg = ctx.createGain();
-        sparkle.type = 'triangle';
-        sparkle.frequency.value = 1568;
-        const s = t0 + 0.38;
-        sg.gain.setValueAtTime(0.0001, s);
-        sg.gain.exponentialRampToValueAtTime(0.08, s + 0.01);
-        sg.gain.exponentialRampToValueAtTime(0.0001, s + 0.25);
-        sparkle.connect(sg);
-        sg.connect(ctx.destination);
-        sparkle.start(s);
-        sparkle.stop(s + 0.28);
-      } catch (e) { /* autoplay / unsupported */ }
-    }
-
     const progressWrap = document.getElementById('progressWrap');
     const progressBar = document.getElementById('progressBar');
     const progressLabel = document.getElementById('progressLabel');
@@ -198,7 +157,7 @@
 
 
     async function fetchJson(url) {
-      const res = await fetch(url, { cache: 'no-store' });
+      const res = await TarkovAPI.request(url, { httpCache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status} · ${url}`);
       return res.json();
     }
@@ -212,8 +171,8 @@
 
       try {
         setProgress(15, 'Качаю items…', true);
-        const itemsPromise = fetchJson(`https://json.tarkov.dev/${mode}/items`);
-        const tradersPromise = fetchJson(`https://json.tarkov.dev/${mode}/traders`).catch(() => null);
+        const itemsPromise = fetchJson(`/${mode}/items`);
+        const tradersPromise = fetchJson(`/${mode}/traders`).catch(() => null);
 
         const [itemsJson, tradersJson] = await Promise.all([itemsPromise, tradersPromise]);
         setProgress(55, 'Разбираю ответ…', false);
@@ -242,7 +201,14 @@
         document.getElementById('resultsCard').style.display = 'block';
         renderFilters();
         renderTable();
-        playItemGetSound();
+        if (typeof Notify === 'function') {
+          Notify({
+            title: 'Trader flip',
+            body: `Loaded ${items.length} items · ${rawRows.length} trader offers`,
+            tool: 'tarkovtool-trader-flip.html',
+            kind: 'ok'
+          });
+        }
         setTimeout(hideProgress, 900);
       } catch (err) {
         console.error(err);

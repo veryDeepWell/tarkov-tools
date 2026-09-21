@@ -88,8 +88,8 @@
 
       try {
         const [itemsRes, tasksRes] = await Promise.all([
-          fetch(`https://json.tarkov.dev/${modeGame}/items`, { cache: 'no-store' }),
-          fetch(`https://json.tarkov.dev/${modeGame}/tasks`, { cache: 'no-store' })
+          TarkovAPI.request(`/${modeGame}/items`, { httpCache: 'no-store' }),
+          TarkovAPI.request(`/${modeGame}/tasks`, { httpCache: 'no-store' })
         ]);
         if (!itemsRes.ok) throw new Error('items HTTP ' + itemsRes.status);
         const itemsJson = await itemsRes.json();

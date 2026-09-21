@@ -91,6 +91,7 @@
   },
   "priceTrack": {
     "title": "Price track",
+    "sub": "Flea history and background snapshots",
     "snap": "Snapshot",
     "bgOn": "BG ON",
     "bgOff": "BG OFF",
@@ -98,6 +99,7 @@
     "fetching": "Fetching…"
   },
   "tool": {
+    "desk": { "title": "Desk", "description": "Mini-tabs for tools", "help": "Open several tools while sharing the same state" },
     "my-tarkov": { "title": "My Tarkov", "description": "Personal dashboard: notes, quick links, progress summary", "help": "Personal dashboard: notes, quick links, progress summary" },
     "cultist": { "title": "Cultist circle", "description": "Circle exchange calculator: slots, 350k threshold, item picker", "help": "Circle exchange calculator: slots, 350k threshold, item picker" },
     "price-track": { "title": "Price track", "description": "Flea price history charts, background snapshots, countdown", "help": "Flea price history charts, background snapshots, countdown" },

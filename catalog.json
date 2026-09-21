@@ -11,6 +11,7 @@
   },
   "tools": [
     {"file": "tools/tarkovtool-my-tarkov.html", "title": "My Tarkov", "description": "Личный дашборд", "icon": "my-tarkov", "cat": "util", "kind": "static"},
+    {"file": "tools/tarkovtool-desk.html", "title": "Desk", "description": "Мини-вкладки инструментов", "icon": "desk", "cat": "util", "kind": "static"},
     {"file": "tools/tarkovtool-cultist.html", "title": "Круг культистов", "description": "Калькулятор обмена в круге", "icon": "cultist", "cat": "hideout", "kind": "static"},
     {"file": "tools/tarkovtool-price-track.html", "title": "Динамика цен", "description": "График и история flea-цен", "icon": "price-track", "cat": "flea", "kind": "live"},
     {"file": "tools/tarkovtool-price-alarm.html", "title": "Price Alarm", "description": "Сирена по цене", "icon": "price-alarm", "cat": "flea", "kind": "live"},

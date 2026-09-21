@@ -6,6 +6,7 @@ Use before merging a tool change or adding a new tool.
 
 - [ ] `tarkov-names.js`
 - [ ] `tarkov-api.js`
+- [ ] `tarkov-items.js` (when item data is used)
 - [ ] `tarkov-state.js`
 - [ ] `tarkov-i18n.js`
 - [ ] `tarkov-common.js`
@@ -13,7 +14,7 @@ Use before merging a tool change or adding a new tool.
 
 ## Data & domain
 
-- [ ] No `fetch("https://json.tarkov.dev/...")` in tool code
+- [ ] No direct `json.tarkov.dev` URL or raw `fetch` for game data in tool code
 - [ ] Network via `TarkovAPI` only
 - [ ] No game-domain rules that another tool will need (those go to core / future `TarkovItems`)
 

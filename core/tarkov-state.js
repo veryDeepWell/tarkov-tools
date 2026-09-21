@@ -174,6 +174,8 @@
     setMiniTabs: setMiniTabs,
     addMiniTab: addMiniTab,
     removeMiniTab: removeMiniTab,
+    getOpenTabs: getMiniTabs,
+    setOpenTabs: setMiniTabs,
     getMini: getMiniTabs,
     setMini: setMiniTabs,
     on: on,

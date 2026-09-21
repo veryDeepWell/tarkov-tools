@@ -61,14 +61,12 @@
       st.textContent = 'Гружу crafts + items + hideout…';
       try {
         const mode = document.getElementById('gameMode').value || 'pve';
-        const [jc, ji, jh] = await Promise.all([
-          fetch('https://json.tarkov.dev/' + mode + '/crafts', { cache: 'no-store' }).then(r => r.json()),
-          fetch('https://json.tarkov.dev/' + mode + '/items', { cache: 'no-store' }).then(r => r.json()),
-          fetch('https://json.tarkov.dev/' + mode + '/hideout', { cache: 'no-store' }).then(r => r.json())
+        const [jc, items, jh] = await Promise.all([
+          TarkovAPI.request('/' + mode + '/crafts', { httpCache: 'no-store' }).then(r => r.json()),
+          TarkovAPI.items(mode),
+          TarkovAPI.request('/' + mode + '/hideout', { httpCache: 'no-store' }).then(r => r.json())
         ]);
 
-        let rawItems = ji?.data?.items;
-        const items = Array.isArray(rawItems) ? rawItems : Object.values(rawItems || {});
         byId = {};
         items.forEach(i => { byId[i.id] = i; });
 
@@ -91,10 +89,10 @@
         st.className = 'status ok';
         st.textContent = 'Крафтов: ' + rows.length + ' · станций: ' + Object.keys(stationMap).length;
         try {
-          localStorage.setItem('tarkovHideoutMgmt', JSON.stringify({
+          TarkovStorage.setJson('tarkovHideoutMgmt', {
             mode: document.getElementById('gameMode').value,
             maxLv: document.getElementById('maxLv').value
-          }));
+          });
         } catch (e) {}
         renderStations();
         render();
@@ -218,7 +216,7 @@
 
     // restore prefs
     try {
-      const s = JSON.parse(localStorage.getItem('tarkovHideoutMgmt') || '{}');
+      const s = TarkovStorage.getJson('tarkovHideoutMgmt', {});
       if (s.mode) document.getElementById('gameMode').value = s.mode;
       if (s.maxLv) document.getElementById('maxLv').value = s.maxLv;
     } catch (e) {}
@@ -235,10 +233,10 @@
   }
 
       const KEY = 'tarkovPreferredGameMode';
-      const def = localStorage.getItem(KEY) || 'pve';
+      const def = TarkovStorage.get(KEY, 'pve') || 'pve';
       document.querySelectorAll('select#gameMode').forEach(sel => {
         if ([...sel.options].some(o => o.value === def)) sel.value = def;
-        sel.addEventListener('change', () => { try { localStorage.setItem(KEY, sel.value); } catch(e) {} });
+        sel.addEventListener('change', () => { try { TarkovStorage.set(KEY, sel.value); } catch(e) {} });
       });
     })();
   

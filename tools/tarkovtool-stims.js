@@ -54,11 +54,7 @@
       btn.disabled=true; status.className='status'; status.textContent='Гружу…';
       try{
         const mode=document.getElementById('gameMode').value||'pve';
-        const res=await fetch('https://json.tarkov.dev/'+mode+'/items',{cache:'no-store'});
-        if(!res.ok) throw new Error('HTTP '+res.status);
-        const json=await res.json();
-        let items=json?.data?.items; if(!items) throw new Error('Нет items');
-        if(!Array.isArray(items)) items=Object.values(items);
+        const items=await TarkovAPI.items(mode);
         stims=[];
         items.forEach(it=>{
           const p=it.properties||{};
@@ -70,7 +66,7 @@
         });
         stims.sort((a,b)=>b.score-a.score);
         status.className='status ok'; status.textContent='Стимов: '+stims.length;
-        try{localStorage.setItem('tarkovtool-stims-settings',JSON.stringify({mode}));}catch(e){}
+        try{TarkovStorage.setJson('tarkovtool-stims-settings',{mode});}catch(e){}
         render();
       }catch(e){status.className='status err'; status.textContent='Ошибка: '+e.message}
       finally{btn.disabled=false}
@@ -115,9 +111,9 @@
   }
 
   const KEY = 'tarkovPreferredGameMode';
-  const def = localStorage.getItem(KEY) || 'pve';
+  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
   document.querySelectorAll('select#gameMode').forEach(sel => {
     if ([...sel.options].some(o => o.value === def)) sel.value = def;
-    sel.addEventListener('change', () => { try { localStorage.setItem(KEY, sel.value); } catch(e) {} });
+    sel.addEventListener('change', () => { try { TarkovStorage.set(KEY, sel.value); } catch(e) {} });
   });
 })();

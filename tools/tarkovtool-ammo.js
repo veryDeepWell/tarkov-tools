@@ -39,13 +39,13 @@
 
     function loadSettings(key, defaults) {
       try {
-        const raw = localStorage.getItem(key);
+        const raw = TarkovStorage.get(key, null);
         if (!raw) return Object.assign({}, defaults);
         return Object.assign({}, defaults, JSON.parse(raw));
       } catch (e) { return Object.assign({}, defaults); }
     }
     function saveSettings(key, obj) {
-      try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {}
+      try { TarkovStorage.set(key, JSON.stringify(obj)); } catch (e) {}
     }
 
     function humanize(slug) {
@@ -81,15 +81,10 @@
       const mode = document.getElementById('gameMode').value || 'regular';
       try {
         status.textContent = 'Гружу items + crafts…';
-        const [itemsRes, craftsRes] = await Promise.all([
-          fetch(`https://json.tarkov.dev/${mode}/items`, { cache: 'no-store' }),
-          fetch(`https://json.tarkov.dev/${mode}/crafts`, { cache: 'no-store' })
+        const [items, craftsRes] = await Promise.all([
+          TarkovAPI.items(mode),
+          TarkovAPI.request(`/${mode}/crafts`, { httpCache: 'no-store' })
         ]);
-        if (!itemsRes.ok) throw new Error('items HTTP ' + itemsRes.status);
-        const json = await itemsRes.json();
-        let items = json?.data?.items;
-        if (!items) throw new Error('Нет data.items');
-        if (!Array.isArray(items)) items = Object.values(items);
 
         // crafts by product item id
         const craftByProduct = {};
@@ -418,11 +413,11 @@
 
 (function(){
   const KEY = 'tarkovPreferredGameMode';
-  const def = localStorage.getItem(KEY) || 'pve';
+  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
   document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
     if ([...sel.options].some(o => o.value === def)) sel.value = def;
     sel.addEventListener('change', () => {
-      try { localStorage.setItem(KEY, sel.value); } catch(e) {}
+      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
     });
   });
 })();

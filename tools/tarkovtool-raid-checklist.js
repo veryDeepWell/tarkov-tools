@@ -82,7 +82,7 @@
 
     function load() {
       try {
-        const raw = JSON.parse(localStorage.getItem(STORAGE) || 'null');
+        const raw = TarkovStorage.getJson(STORAGE, null);
         if (raw && raw.maps) {
           state.maps = raw.maps;
           state.current = raw.current || Object.keys(state.maps)[0] || 'Общий';
@@ -108,11 +108,11 @@
 
     function save() {
       try {
-        localStorage.setItem(STORAGE, JSON.stringify({
+        TarkovStorage.setJson(STORAGE, {
           maps: state.maps,
           current: state.current,
           endsAt: state.endsAt
-        }));
+        });
       } catch (e) {}
     }
 

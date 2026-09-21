@@ -8,17 +8,17 @@
       const st=document.getElementById('status'); st.className='status'; st.textContent='Гружу…';
       try{
         const mode=document.getElementById('gameMode').value||'pve';
-        const [ji,jc,jh,jt]=await Promise.all([
-          fetch('https://json.tarkov.dev/'+mode+'/items').then(r=>r.json()),
-          fetch('https://json.tarkov.dev/'+mode+'/crafts').then(r=>r.json()),
-          fetch('https://json.tarkov.dev/'+mode+'/hideout').then(r=>r.json()),
-          fetch('https://json.tarkov.dev/'+mode+'/tasks').then(r=>r.json())
+        const [itemsArr,craftsArr,hideoutArr,tasksArr]=await Promise.all([
+          TarkovAPI.items(mode),
+          TarkovAPI.crafts(mode),
+          TarkovAPI.hideout(mode),
+          TarkovAPI.tasks(mode)
         ]);
-        let raw=ji?.data?.items; items=Array.isArray(raw)?raw:Object.values(raw||{});
+        items=Array.isArray(itemsArr)?itemsArr:[];
         byId={}; items.forEach(i=>byId[i.id]=i);
-        let cr=jc?.data?.crafts??jc?.data??jc; crafts=Array.isArray(cr)?cr:Object.values(cr||{});
-        let hd=jh?.data??jh; hideoutStations=Array.isArray(hd)?hd:Object.values(hd||{});
-        let tk=jt?.data?.tasks??jt?.data??jt; tasks=Array.isArray(tk)?tk:Object.values(tk||{});
+        crafts=Array.isArray(craftsArr)?craftsArr:[];
+        hideoutStations=Array.isArray(hideoutArr)?hideoutArr:Object.values(hideoutArr||{});
+        tasks=Array.isArray(tasksArr)?tasksArr:[];
         st.className='status ok'; st.textContent=`items ${items.length} · crafts ${crafts.length} · stations ${hideoutStations.length} · tasks ${tasks.length}`;
         document.getElementById('searchCard').style.display='block';
       }catch(e){st.className='status err'; st.textContent=e.message}
@@ -176,9 +176,9 @@
   }
 
   const KEY='tarkovPreferredGameMode';
-  const def=localStorage.getItem(KEY)||'pve';
+  const def=TarkovStorage.get(KEY,'pve')||'pve';
   document.querySelectorAll('select#gameMode').forEach(sel=>{
     if([...sel.options].some(o=>o.value===def)) sel.value=def;
-    sel.addEventListener('change',()=>{try{localStorage.setItem(KEY,sel.value)}catch(e){}});
+    sel.addEventListener('change',()=>{try{TarkovStorage.set(KEY,sel.value)}catch(e){}});
   });
 })();

@@ -29,13 +29,13 @@
 
     function loadSettings(key, defaults) {
       try {
-        const raw = localStorage.getItem(key);
+        const raw = TarkovStorage.get(key, null);
         if (!raw) return Object.assign({}, defaults);
         return Object.assign({}, defaults, JSON.parse(raw));
       } catch (e) { return Object.assign({}, defaults); }
     }
     function saveSettings(key, obj) {
-      try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {}
+      try { TarkovStorage.set(key, JSON.stringify(obj)); } catch (e) {}
     }
 
     function humanize(slug) {
@@ -68,16 +68,6 @@
       return [...tags];
     }
 
-    function detectKind(it, p) {
-      const types = it.types || [];
-      if (types.includes('armorPlate') || p.propertiesType === 'ItemPropertiesArmorAttachment') return 'plate';
-      if (p.propertiesType === 'ItemPropertiesHelmet' || types.includes('helmet')) return 'helmet';
-      if (p.propertiesType === 'ItemPropertiesChestRig' || types.includes('rig')) return 'rig';
-      if (p.propertiesType === 'ItemPropertiesArmor' || types.includes('armor')) return 'armor';
-      if (p.propertiesType === 'ItemPropertiesGlasses') return 'glasses';
-      return 'other';
-    }
-
     function bestBuy(it) {
       const offers = it.buyFromTrader || [];
       if (!offers.length) return null;
@@ -105,114 +95,13 @@
       const mode = document.getElementById('gameMode').value || 'regular';
       status.textContent = 'Гружу items…';
       try {
-        const res = await fetch(`https://json.tarkov.dev/${mode}/items`, { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        let items = json?.data?.items;
-        if (!items) throw new Error('Нет items');
-        if (!Array.isArray(items)) items = Object.values(items);
+        const items = await TarkovAPI.items(mode);
 
-        const itemsById = {};
-        items.forEach(i => { itemsById[i.id] = i; });
-
-        platesById = {};
-        rows = [];
-
-        items.forEach(it => {
-          const p = it.properties;
-          if (!p || typeof p !== 'object') return;
-          const pt = p.propertiesType;
-          const interesting = [
-            'ItemPropertiesArmor',
-            'ItemPropertiesChestRig',
-            'ItemPropertiesHelmet',
-            'ItemPropertiesArmorAttachment',
-            'ItemPropertiesGlasses'
-          ].includes(pt);
-          if (!interesting) return;
-          // skip pure attachments without class (rails etc) — plates have class
-          const cls = Number(p.class) || 0;
-          const kind = detectKind(it, p);
-          if (kind === 'other') return;
-          if (kind === 'plate' && !cls) return;
-          // chest rigs without armor class and without plate slots — ordinary rigs
-          if (kind === 'rig' && !cls && !(p.armorSlots && p.armorSlots.length)) return;
-
-          const slots = p.armorSlots || [];
-          const plateIds = new Set();
-          slots.forEach(s => (s.allowedPlates || []).forEach(id => plateIds.add(id)));
-
-          const buy = bestBuy(it);
-          const avg = Number(it.avg24hPrice) || 0;
-          const onFlea = avg > 0 || (Number(it.lastLowPrice) || 0) > 0;
-          const dur = Number(p.durability) || Number(it.maxDurability) || 0;
-          const speedPen = Math.abs(Number(p.speedPenalty) || 0);
-          const turnPen = Math.abs(Number(p.turnPenalty) || 0);
-          const ergoPen = Math.abs(Number(p.ergoPenalty) || 0);
-          const penalty = 1 + speedPen * 5 + turnPen * 5 + ergoPen * 5;
-          // rating: protection density vs mobility cost
-          const rating = cls > 0
-            ? (cls * cls * Math.sqrt(Math.max(dur, 1))) / penalty
-            : 0;
-
-          const zones = simplifyZones(p.zones || []);
-          const row = {
-            id: it.id,
-            slug: it.normalizedName || '',
-            name: humanize(it.normalizedName),
-            icon: it.iconLink || it.gridImageLink || '',
-            class: cls,
-            dur,
-            kind,
-            armorType: p.armorType || '',
-            material: p.material || '',
-            zones,
-            avg,
-            low: Number(it.lastLowPrice) || 0,
-            onFlea,
-            traderPrice: buy ? buy.price : 0,
-            traderName: buy ? buy.name : '',
-            traderLL: buy ? buy.ll : 0,
-            quest: buy ? buy.quest : false,
-            plateSlots: slots.length,
-            plateIds: [...plateIds],
-            capacity: Number(p.capacity) || 0,
-            speedPenalty: speedPen,
-            rating,
-            blunt: Number(p.bluntThroughput) || 0
-          };
-          rows.push(row);
-
-          if (kind === 'plate') {
-            platesById[it.id] = {
-              id: it.id,
-              name: humanize(it.normalizedName),
-              slug: it.normalizedName,
-              class: cls,
-              dur,
-              material: p.material || '',
-              avg: Number(it.avg24hPrice) || 0
-            };
-          }
+        const view = TarkovItemViewModels.armor(items, {
+          traderLabel: id => TRADER_RU[id] || 'Торговец'
         });
-
-        // also index all plates for lookup even if filtered
-        items.forEach(it => {
-          const p = it.properties;
-          if (!p || p.propertiesType !== 'ItemPropertiesArmorAttachment') return;
-          if (!p.class) return;
-          if (!platesById[it.id]) {
-            platesById[it.id] = {
-              id: it.id,
-              name: humanize(it.normalizedName),
-              slug: it.normalizedName,
-              class: Number(p.class) || 0,
-              dur: Number(p.durability) || 0,
-              material: p.material || '',
-              avg: Number(it.avg24hPrice) || 0
-            };
-          }
-        });
+        rows = view.rows;
+        platesById = view.platesById;
 
         document.getElementById('filtersCard').style.display = 'block';
         document.getElementById('tableCard').style.display = 'block';
@@ -411,11 +300,11 @@
 
 (function(){
   const KEY = 'tarkovPreferredGameMode';
-  const def = localStorage.getItem(KEY) || 'pve';
+  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
   document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
     if ([...sel.options].some(o => o.value === def)) sel.value = def;
     sel.addEventListener('change', () => {
-      try { localStorage.setItem(KEY, sel.value); } catch(e) {}
+      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
     });
   });
 })();

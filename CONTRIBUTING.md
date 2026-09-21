@@ -6,16 +6,19 @@
 2. Новый тул: `tarkovtool-<slug>.html` (+ опционально `.js`).
 3. Добавь карточку в `CATALOG` / `HELP` в `tarkov-hub-app.js`.
 4. Не коммить секреты; только static + public API.
-5. Проверь: `node --check` для своих `.js`, хаб открывается, МИНИ + Notify если нужно.
+5. Проверь в браузере: хаб открывается, в DevTools нет ошибок загрузки/JS, работают МИНИ + Notify если нужно.
 
 ### Чеклист нового тулза
 
 - [ ] `tarkov-common.css` + `tarkov-common.js`
+- [ ] Network access through `TarkovAPI`; item queries through `TarkovItems`
 - [ ] `#tarkovtool-meta` JSON
 - [ ] Имена через `TarkovNames.display` / `search`
 - [ ] Фоновые события → `Notify({ tool: 'tarkovtool-xxx.html', … })`
 - [ ] PVE по умолчанию в select режима
 - [ ] Описание в `HELP` для кнопки «?»
+- [ ] Проверка через GitHub Pages или локальный static server; Node.js не требуется
+- [ ] F5, восстановление mini-tab, EN/RU и IndexedDB/localStorage сценарии проверены в браузере
 
 ### Ключи localStorage
 

@@ -6,9 +6,7 @@
       const status=document.getElementById('status'); status.textContent='Гружу…';
       try{
         const mode=document.getElementById('gameMode').value||'pve';
-        const res=await fetch('https://json.tarkov.dev/'+mode+'/items',{cache:'no-store'});
-        const json=await res.json();
-        let items=json?.data?.items; if(!Array.isArray(items)) items=Object.values(items||{});
+        const items=await TarkovAPI.items(mode);
         const meds=[];
         items.forEach(it=>{
           const p=it.properties||{};
@@ -57,9 +55,9 @@
   }
 
   const KEY = 'tarkovPreferredGameMode';
-  const def = localStorage.getItem(KEY) || 'pve';
+  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
   document.querySelectorAll('select#gameMode').forEach(sel => {
     if ([...sel.options].some(o => o.value === def)) sel.value = def;
-    sel.addEventListener('change', () => { try { localStorage.setItem(KEY, sel.value); } catch(e) {} });
+    sel.addEventListener('change', () => { try { TarkovStorage.set(KEY, sel.value); } catch(e) {} });
   });
 })();

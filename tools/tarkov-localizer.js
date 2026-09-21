@@ -1,6 +1,6 @@
 /*! Localizer v5 — P3 TarkovUI/API */
 (function () {
-  var API = "https://json.tarkov.dev";
+  var API = "";
   var MAX_LANGS = 4;
   var STORE_KEY = "tarkovLocalizerLangs";
   var tab = "items";
@@ -123,7 +123,7 @@
         }
       } catch (e) { /* fall through */ }
     }
-    var res = await fetch(url, { cache: "force-cache" });
+    var res = await TarkovAPI.request(url, { httpCache: "force-cache" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     return res.json();
   }

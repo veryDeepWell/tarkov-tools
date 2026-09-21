@@ -253,8 +253,8 @@ function wire(){
     try{
       const mode = document.getElementById('gameMode').value||'pve';
       const [ri, rb] = await Promise.all([
-        fetch('https://json.tarkov.dev/'+mode+'/items',{cache:'no-store'}),
-        fetch('https://json.tarkov.dev/'+mode+'/barters',{cache:'no-store'})
+        TarkovAPI.request('/'+mode+'/items',{httpCache:'no-store'}),
+        TarkovAPI.request('/'+mode+'/barters',{httpCache:'no-store'})
       ]);
       if(!ri.ok) throw new Error('items HTTP '+ri.status);
       if(!rb.ok) throw new Error('barters HTTP '+rb.status);

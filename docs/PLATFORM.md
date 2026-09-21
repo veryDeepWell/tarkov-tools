@@ -61,6 +61,7 @@ Hub loads the same core modules plus catalog / hub apps (see `tarkovtool-hub.htm
 | API | Notes |
 |-----|--------|
 | `getJson(path, opts?)` | Cached GET; prefer this for custom paths |
+| `request(path, opts?)` | Response-based GET for legacy consumers; URL still resolves through the API boundary |
 | `items(mode?)` | Normalized item list |
 | `barters(mode?)` | Barters |
 | `traders(mode?)` | Traders |
@@ -71,6 +72,8 @@ Hub loads the same core modules plus catalog / hub apps (see `tarkovtool-hub.htm
 | `mode()` | Preferred PvE/PvP from settings |
 
 Tools **must not** bypass this with raw `json.tarkov.dev` URLs.
+
+Response-based consumers must call `TarkovAPI.request(path)`; new code should prefer `getJson()` or `TarkovItems` so caching and normalization are shared.
 
 ---
 
@@ -136,7 +139,13 @@ Tools should ship visible strings via `data-i18n` / `t()` and listen to `tt-lang
 
 **Role:** domain layer — normalized items, indexes, **shared queries** (no DOM).
 
-Intended direction (not implemented in Stage 0):
+Implemented API:
+
+- `load(mode?)` returns `{ all, byId, byType }`.
+- `byId(id, mode?)` and `byType(type, mode?)` provide query-only access.
+- `clear()` drops the in-memory item index.
+
+Rules:
 
 - load once via `TarkovAPI`
 - indexes by id / type / slots

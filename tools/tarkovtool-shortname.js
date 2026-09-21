@@ -155,7 +155,7 @@
       const mode = document.getElementById('gameMode').value || 'regular';
       statusEl.className = 'status';
       statusEl.textContent = 'Гружу items…';
-      const res = await fetch(`https://json.tarkov.dev/${mode}/items`, { cache: 'no-store' });
+      const res = await TarkovAPI.request(`/${mode}/items`, { httpCache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
       let items = json?.data?.items;

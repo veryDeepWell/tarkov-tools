@@ -1,5 +1,4 @@
-
-    const BOSS_RU = {
+const BOSS_RU = {
       bossTagilla:'Тагилла', bossKilla:'Килла', bossBully:'Решала', bossKojaniy:'Штурман',
       bossSanitar:'Санитар', bossGluhar:'Глухарь', bossZryachiy:'Зрячий',
       bossBoar:'Кабан', bossKolontay:'Колонтай', bossKnight:'Рыцарь',
@@ -32,13 +31,11 @@
 
     async function fetchData(){
       const mode=document.getElementById('gameMode').value||'regular';
-      const res=await fetch(`https://json.tarkov.dev/${mode}/maps`,{cache:'no-store'});
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      const json=await res.json();
-      const data=json?.data||{};
-      let maps=data.maps;
-      if(!maps) throw new Error('Нет maps');
-      if(!Array.isArray(maps)) maps=Object.values(maps);
+      const [maps,goons]=await Promise.all([
+        TarkovAPI.maps(mode),
+        TarkovAPI.goonReports(mode)
+      ]);
+      if(!maps.length) throw new Error('Нет maps');
       const byId={};
       mapsData=maps.map(m=>{
         byId[m.id]=m;
@@ -58,7 +55,7 @@
 
       goonMapIds=new Set();
       goonInfo=[];
-      (data.goonReports||[]).forEach(g=>{
+      goons.forEach(g=>{
         const mid=g.map;
         goonMapIds.add(mid);
         const m=byId[mid];
@@ -165,26 +162,12 @@
       render();
     };
     document.getElementById('search').oninput=render;
-  
 
-
-(function(){
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(window.itemName&&window.itemName!==itemName)return window.itemName(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    var s=(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
-    return s||it.id||'';
-  }
-
-  const KEY = 'tarkovPreferredGameMode';
-  const def = localStorage.getItem(KEY) || 'pve';
-  document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
-    if ([...sel.options].some(o => o.value === def)) sel.value = def;
-    sel.addEventListener('change', () => {
-      try { localStorage.setItem(KEY, sel.value); } catch(e) {}
-    });
-  });
-})();
+    (function(){
+      const KEY='tarkovPreferredGameMode';
+      const def=TarkovStorage.get(KEY,'pve')||'pve';
+      document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel=>{
+        if([...sel.options].some(o=>o.value===def)) sel.value=def;
+        sel.addEventListener('change',()=>{try{TarkovStorage.set(KEY,sel.value)}catch(e){}});
+      });
+    })();

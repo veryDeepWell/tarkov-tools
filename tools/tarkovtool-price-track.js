@@ -130,7 +130,7 @@
 
   async function fetchItems(mode) {
     mode = mode || "pve";
-    var res = await fetch("https://json.tarkov.dev/" + mode + "/items", { cache: "no-store" });
+    var res = await TarkovAPI.request("/" + mode + "/items", { httpCache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     var json = await res.json();
     return normalizeItems(json);

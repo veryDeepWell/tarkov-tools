@@ -34,15 +34,7 @@
     async function load() {
       status('Загрузка…');
       var mode = document.getElementById('gameMode').value || 'pve';
-      var arr;
-      if (window.TarkovAPI && TarkovAPI.items) arr = await TarkovAPI.items(mode);
-      else {
-        var res = await fetch('https://json.tarkov.dev/' + mode + '/items', { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        var json = await res.json();
-        var raw = json && json.data && (json.data.items || json.data);
-        arr = Array.isArray(raw) ? raw : Object.values(raw || {});
-      }
+      var arr = await TarkovAPI.items(mode);
       rows = [];
       arr.forEach(function (it) {
         var p = it.properties || {};

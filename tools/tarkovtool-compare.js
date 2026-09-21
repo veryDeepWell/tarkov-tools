@@ -51,28 +51,7 @@
     }
 
     function buildCompatIndex(){
-      modToWeapons={};
-      const weapons=allItems.filter(it=>(it.properties||{}).propertiesType==='ItemPropertiesWeapon');
-      function add(modId, weapId){
-        if(!modToWeapons[modId]) modToWeapons[modId]=new Set();
-        modToWeapons[modId].add(weapId);
-      }
-      weapons.forEach(w=>{
-        const slots=(w.properties&&w.properties.slots)||[];
-        slots.forEach(sl=>{
-          const allowed=((sl.filters||{}).allowedItems)||[];
-          allowed.forEach(mid=>{
-            add(mid, w.id);
-            // one level nested: adapters/mounts that accept further mods
-            const mod=itemsById[mid];
-            if(!mod) return;
-            const nested=(mod.properties&&mod.properties.slots)||[];
-            nested.forEach(ns=>{
-              (((ns.filters||{}).allowedItems)||[]).forEach(mid2=>add(mid2, w.id));
-            });
-          });
-        });
-      });
+      modToWeapons = TarkovWeaponDomain.buildCompatibility(allItems).modToWeapons;
     }
 
     function inCat(it, cat, sub){
@@ -154,19 +133,13 @@
       btn.disabled=true; status.className='status'; status.textContent='Гружу…';
       try{
         const mode=document.getElementById('gameMode').value||'regular';
-        const res=await fetch(`https://json.tarkov.dev/${mode}/items`,{cache:'no-store'});
-        if(!res.ok) throw new Error('HTTP '+res.status);
-        const json=await res.json();
-        let items=json?.data?.items;
-        if(!items) throw new Error('Нет items');
-        if(!Array.isArray(items)) items=Object.values(items);
-        allItems=items; itemsById={}; items.forEach(i=>itemsById[i.id]=i);
+        allItems=await TarkovAPI.items(mode); itemsById={}; allItems.forEach(i=>itemsById[i.id]=i);
         status.textContent='Индекс совместимости модов…';
         buildCompatIndex();
         document.getElementById('catCard').style.display='block';
         document.getElementById('main').style.display='grid';
         status.className='status ok';
-        status.textContent='Предметов: '+items.length;
+        status.textContent='Предметов: '+allItems.length;
         renderCats(); renderSubs(); renderPick(); renderCompare();
       }catch(e){ status.className='status err'; status.textContent='Ошибка: '+e.message; }
       finally{ btn.disabled=false; }

@@ -335,10 +335,10 @@
     function saveBuild() {
       if (!baseWeapon) return;
       try {
-        localStorage.setItem('tarkovGunBuilder', JSON.stringify({
+        TarkovStorage.setJson('tarkovGunBuilder', {
           weaponId: baseWeapon.id,
           installed
-        }));
+        });
       } catch (e) {}
     }
 
@@ -350,31 +350,25 @@
       st.className = 'status'; st.textContent = 'Гружу items…';
       try {
         const mode = document.getElementById('gameMode').value || 'pve';
-        const res = await fetch('https://json.tarkov.dev/' + mode + '/items', { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        let raw = json?.data?.items;
-        const arr = Array.isArray(raw) ? raw : Object.values(raw || {});
+        const arr = await TarkovAPI.items(mode);
         byId = {};
         weapons = [];
         mods = [];
         arr.forEach(it => {
           byId[it.id] = it;
-          const pt = (it.properties || {}).propertiesType;
-          if (pt === 'ItemPropertiesWeapon') weapons.push(it);
-          if (pt === 'ItemPropertiesWeaponMod' || pt === 'ItemPropertiesMagazine' ||
-              (it.types || []).includes('mods') || (it.types || []).includes('magazine')) mods.push(it);
+            if (TarkovWeaponDomain.isWeapon(it)) weapons.push(it);
+            if (TarkovWeaponDomain.isMod(it)) mods.push(it);
         });
         // magazines often separate
         arr.forEach(it => {
-          if ((it.properties || {}).propertiesType === 'ItemPropertiesMagazine') mods.push(it);
+          if (TarkovWeaponDomain.isMod(it) && (it.properties || {}).propertiesType === 'ItemPropertiesMagazine' && mods.indexOf(it) < 0) mods.push(it);
         });
         st.className = 'status ok';
         st.textContent = `Оружий ${weapons.length} · модов ${mods.length}`;
         document.getElementById('pickCard').style.display = 'block';
         // restore
         try {
-          const raw = JSON.parse(localStorage.getItem('tarkovGunBuilder') || 'null');
+          const raw = TarkovStorage.getJson('tarkovGunBuilder', null);
           if (raw && byId[raw.weaponId]) {
             baseWeapon = byId[raw.weaponId];
             installed = raw.installed || {};
@@ -435,9 +429,9 @@
   }
 
   const KEY='tarkovPreferredGameMode';
-  const def=localStorage.getItem(KEY)||'pve';
+  const def=TarkovStorage.get(KEY, 'pve')||'pve';
   document.querySelectorAll('select#gameMode').forEach(sel=>{
     if([...sel.options].some(o=>o.value===def)) sel.value=def;
-    sel.addEventListener('change',()=>{try{localStorage.setItem(KEY,sel.value)}catch(e){}});
+    sel.addEventListener('change',()=>{try{TarkovStorage.set(KEY,sel.value)}catch(e){}});
   });
 })();

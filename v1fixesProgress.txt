@@ -1,0 +1,85 @@
+# v1 migration progress
+
+Updated: 2026-09-21
+
+## Rule
+
+Always update this file after each migration batch, bug fix discovered during smoke, and browser validation pass. This file is the resumable work log; `v1fixes.txt` remains the architecture plan and acceptance criteria.
+
+## Completed architecture slices
+
+### Foundation
+
+- Added `TarkovItems` repository/index boundary.
+- Added `TarkovItemDomain` for item classification, armor/plate models, metrics, filtering and bidirectional armor/plate compatibility.
+- Added `TarkovWeaponDomain` for weapon/mod slot normalization, reverse compatibility and mod projections.
+- Added `TarkovStorage` browser persistence adapter.
+- Updated `TarkovAPI` cache to use storage and clock seams.
+- Added `TarkovItemViewModels` for pure armor/plate table projections.
+- Shell loads shared storage, item domain, weapon domain and view-model dependencies.
+
+### Migrated tools
+
+- Armor and plates: shared classifier, projections, compatibility graph, repository and storage.
+- Mods, compare and gun-builder: shared weapon compatibility boundary, repository and storage.
+- Ammo, medkits, stims, stim-combos, NVG, food: normalized item repository and storage.
+- Helmets, mags, scopes: normalized item repository and storage.
+- Crafts, hideout, hideout-mgmt, barter-live: normalized item catalog repository and storage; recipes/hideout-specific endpoints remain behind `TarkovAPI.request` until endpoint repositories are introduced.
+- Quest/requirements family (quests, quest-items, loot-slot, item-use, bosses, raid-checklist): normalized `TarkovAPI.tasks`/`maps`/`goonReports`/`crafts`/`hideout`/`items` endpoint repositories and `TarkovStorage`; no raw `TarkovAPI.request` or direct `localStorage` left in these tools. Quest locale fetches go through the single `TarkovAPI.getJson` boundary.
+
+## Validation completed
+
+- Armor browser smoke: 326 models, 83 plates, 206 rendered rows, no page errors.
+- Plates browser smoke: 83 rendered rows, no page errors.
+- Mods browser smoke: 300 rendered rows, no page errors.
+- Compare browser smoke: 5312 items, 171 selectable items, no page errors.
+- Gun-builder browser smoke: 171 weapons, 2295 mods, no page errors.
+- Ammo browser smoke: 193 rounds, 30 calibers, no page errors.
+- Medkits browser smoke: 20 items, no page errors.
+- Stims browser smoke: 21 items, no page errors.
+- Stim combos browser smoke: OK, no page errors.
+- NVG browser smoke: 6 items, no page errors.
+- Food browser smoke: 46 items, no page errors.
+- Helmets browser smoke: 109 items, no page errors.
+- Mags browser smoke: 224 magazines, 29 calibers, no page errors.
+- Scopes browser smoke: 230 optics, 38 community tags, no page errors.
+- Crafts browser smoke: 214 crafts, 5312 items, no page errors.
+- Hideout browser smoke: 26 stations, 5312 items, no page errors.
+- Hideout management browser smoke: 214 crafts, 26 stations, no page errors.
+- Barter live browser smoke: prices updated, 3/3 matches, no page errors.
+- One migration regression (`iRes is not defined` in hideout) was found by smoke and fixed immediately.
+- Quest family static validation: no `localStorage`/`TarkovAPI.request`/`httpCache` leftovers in the six migrated tools; bracket/regex-aware syntax check passed for all changed files and `core/tarkov-api.js`.
+- API endpoint verification (live): `/pve/tasks` returns `data.tasks` (512 tasks), `/pve/maps` returns `data.maps` + `data.goonReports` (17 maps), `/pve/crafts` returns a list (214), `/pve/hideout` returns a station map; `/pve/quests` does NOT exist (`{"error":"Not found"}`) — the old `TarkovAPI.quests` pointed at a dead endpoint and now aliases `tasks`.
+
+## Current count
+
+- Catalog tools: 45.
+- Architecture-migrated tools: 24.
+- Remaining tools for v1 migration: 21.
+- Counts describe full domain/repository/storage migration, not merely whether a tool already uses some shared API.
+
+## Next batch
+
+Loadout/util projections family:
+
+- `tarkovtool-loadout-builder`
+- `tarkovtool-random-loadout`
+- `tarkovtool-loadout-budget`
+- `tarkovtool-gun-budget`
+- `tarkovtool-containers`
+- `tarkovtool-keys`
+
+Plan for next batch:
+
+1. Route item access through `TarkovAPI.items(mode)` / `TarkovItems` and storage through `TarkovStorage`.
+2. Keep loadout projections tool-local; share only pure helpers via core.
+3. Run diagnostics and browser smoke for every migrated page.
+4. Update this file before ending the batch.
+
+## Remaining groups after next batch
+
+- Loadout/util projections.
+- Remaining flea/barter tools.
+- Remaining hideout/quest utilities.
+- Live tools and platform hardening.
+- Catalog single-source/generated artifact cleanup.

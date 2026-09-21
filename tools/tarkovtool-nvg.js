@@ -43,10 +43,7 @@
       btn.disabled=true; st.textContent='Гружу…'; st.className='status';
       try{
         const mode=document.getElementById('gameMode').value||'pve';
-        const res=await fetch('https://json.tarkov.dev/'+mode+'/items',{cache:'no-store'});
-        if(!res.ok) throw new Error('HTTP '+res.status);
-        const json=await res.json();
-        let raw=json?.data?.items; const arr=Array.isArray(raw)?raw:Object.values(raw||{});
+        const arr=await TarkovAPI.items(mode);
         rows=[];
         arr.forEach(it=>{
           const p=it.properties||{};

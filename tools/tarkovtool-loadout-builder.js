@@ -45,7 +45,7 @@
       var arr;
       if (window.TarkovAPI && TarkovAPI.items) arr = await TarkovAPI.items(mode);
       else {
-        var res = await fetch('https://json.tarkov.dev/' + mode + '/items', { cache: 'no-store' });
+        var res = await TarkovAPI.request('/' + mode + '/items', { httpCache: 'no-store' });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         var json = await res.json();
         var raw = json && json.data && (json.data.items || json.data);

@@ -6,21 +6,8 @@
       const status=document.getElementById('status'); status.textContent='Гружу…';
       try{
         const mode=document.getElementById('gameMode').value||'pve';
-        const res=await fetch('https://json.tarkov.dev/'+mode+'/items',{cache:'no-store'});
-        const json=await res.json();
-        let items=json?.data?.items; if(!Array.isArray(items)) items=Object.values(items||{});
-        const plates=[];
-        items.forEach(it=>{
-          const p=it.properties||{};
-          if(p.propertiesType!=='ItemPropertiesArmorAttachment') return;
-          if(!(it.types||[]).includes('armorPlate')) return;
-          const cls=Number(p.class)||0, dur=Number(p.durability)||0, weight=Number(it.weight)||0.1;
-          const repair=Number(p.repairCost)||0;
-          const pen=Math.abs(Number(p.speedPenalty)||0)+Math.abs(Number(p.ergoPenalty)||0)+Math.abs(Number(p.turnPenalty)||0);
-          const score=Math.round(((cls*cls*15+dur*0.4)/weight - repair/5000 - pen*5)*10)/10;
-          plates.push({slug:it.normalizedName||'',name:humanize(it.normalizedName),icon:it.iconLink||it.gridImageLink||'',avg:Number(it.avg24hPrice)||0,cls,dur,weight,repair,pen,score});
-        });
-        plates.sort((a,b)=>b.score-a.score);
+        const items=await TarkovAPI.items(mode);
+        const plates = TarkovItemViewModels.plates(items);
         status.className='status ok'; status.textContent='Плит: '+plates.length;
         const body=document.getElementById('plateBody'); body.innerHTML='';
         plates.forEach(p=>{
@@ -55,9 +42,9 @@
   }
 
   const KEY = 'tarkovPreferredGameMode';
-  const def = localStorage.getItem(KEY) || 'pve';
+  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
   document.querySelectorAll('select#gameMode').forEach(sel => {
     if ([...sel.options].some(o => o.value === def)) sel.value = def;
-    sel.addEventListener('change', () => { try { localStorage.setItem(KEY, sel.value); } catch(e) {} });
+    sel.addEventListener('change', () => { try { TarkovStorage.set(KEY, sel.value); } catch(e) {} });
   });
 })();

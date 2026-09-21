@@ -18,10 +18,10 @@
     let activeTypes=new Set();
     let sortKey='minLvl', sortDir=1;
 
-    function loadSettings(k,d){try{const r=localStorage.getItem(k);return r?Object.assign({},d,JSON.parse(r)):Object.assign({},d)}catch(e){return Object.assign({},d)}}
-    function saveSettings(k,o){try{localStorage.setItem(k,JSON.stringify(o))}catch(e){}}
-    function loadDone(){try{done=JSON.parse(localStorage.getItem('tarkovQuestItemsDone')||'{}')}catch{done={}}}
-    function saveDone(){try{localStorage.setItem('tarkovQuestItemsDone',JSON.stringify(done))}catch(e){}}
+    function loadSettings(k,d){try{const r=TarkovStorage.get(k,null);return r?Object.assign({},d,JSON.parse(r)):Object.assign({},d)}catch(e){return Object.assign({},d)}}
+    function saveSettings(k,o){try{TarkovStorage.set(k,JSON.stringify(o))}catch(e){}}
+    function loadDone(){done=TarkovStorage.getJson('tarkovQuestItemsDone',{})||{}}
+    function saveDone(){try{TarkovStorage.setJson('tarkovQuestItemsDone',done)}catch(e){}}
     function humanize(s){return s?String(s).replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):'?'}
     function formatNum(n){return n==null||Number.isNaN(n)?'—':Math.round(n).toLocaleString('ru-RU')}
     function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
@@ -32,19 +32,12 @@
       const mode=document.getElementById('gameMode').value||'regular';
       status.textContent='Гружу tasks + items…';
       try{
-        const [tRes,iRes]=await Promise.all([
-          fetch(`https://json.tarkov.dev/${mode}/tasks`,{cache:'no-store'}),
-          fetch(`https://json.tarkov.dev/${mode}/items`,{cache:'no-store'})
+        const [tasks,items]=await Promise.all([
+          TarkovAPI.tasks(mode),
+          TarkovAPI.items(mode)
         ]);
-        if(!tRes.ok) throw new Error('tasks HTTP '+tRes.status);
-        if(!iRes.ok) throw new Error('items HTTP '+iRes.status);
-        const tJson=await tRes.json(), iJson=await iRes.json();
-        let tasks=tJson?.data?.tasks||tJson?.data;
-        if(!tasks) throw new Error('Нет tasks');
-        if(!Array.isArray(tasks)) tasks=Object.values(tasks);
-        let items=iJson?.data?.items;
-        if(!items) throw new Error('Нет items');
-        if(!Array.isArray(items)) items=Object.values(items);
+        if(!tasks.length) throw new Error('Нет tasks');
+        if(!items.length) throw new Error('Нет items');
         const byId={}; items.forEach(i=>byId[i.id]=i);
 
         rows=[];
@@ -230,11 +223,11 @@
 
 (function(){
   const KEY = 'tarkovPreferredGameMode';
-  const def = localStorage.getItem(KEY) || 'pve';
+  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
   document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
     if ([...sel.options].some(o => o.value === def)) sel.value = def;
     sel.addEventListener('change', () => {
-      try { localStorage.setItem(KEY, sel.value); } catch(e) {}
+      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
     });
   });
 })();

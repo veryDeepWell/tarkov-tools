@@ -26,13 +26,13 @@
 
     function loadSettings(key, defaults) {
       try {
-        const raw = localStorage.getItem(key);
+        const raw = TarkovStorage.get(key, null);
         if (!raw) return Object.assign({}, defaults);
         return Object.assign({}, defaults, JSON.parse(raw));
       } catch (e) { return Object.assign({}, defaults); }
     }
     function saveSettings(key, obj) {
-      try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {}
+      try { TarkovStorage.set(key, JSON.stringify(obj)); } catch (e) {}
     }
 
     const STATION_RU = {
@@ -123,7 +123,7 @@
     }
 
     async function fetchJson(url) {
-      const res = await fetch(url, { cache: 'no-store' });
+      const res = await TarkovAPI.request(url, { httpCache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status + ' · ' + url);
       return res.json();
     }
@@ -136,18 +136,16 @@
       statusEl.textContent = 'Гружу crafts + items + hideout…';
 
       try {
-        const [craftsJ, itemsJ, hideoutJ] = await Promise.all([
-          fetchJson(`https://json.tarkov.dev/${mode}/crafts`),
-          fetchJson(`https://json.tarkov.dev/${mode}/items`),
-          fetchJson(`https://json.tarkov.dev/${mode}/hideout`)
+        const [craftsJ, items, hideoutJ] = await Promise.all([
+          fetchJson(`/${mode}/crafts`),
+          TarkovAPI.items(mode),
+          fetchJson(`/${mode}/hideout`)
         ]);
 
         let crafts = craftsJ.data;
         if (crafts && crafts.crafts) crafts = crafts.crafts;
         if (!Array.isArray(crafts)) crafts = Object.values(crafts || {});
 
-        let items = itemsJ.data?.items || itemsJ.data;
-        if (!Array.isArray(items)) items = Object.values(items || {});
         itemsMap = {};
         items.forEach(it => { itemsMap[it.id] = it; });
 
@@ -461,11 +459,11 @@
 
 (function(){
   const KEY = 'tarkovPreferredGameMode';
-  const def = localStorage.getItem(KEY) || 'pve';
+  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
   document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
     if ([...sel.options].some(o => o.value === def)) sel.value = def;
     sel.addEventListener('change', () => {
-      try { localStorage.setItem(KEY, sel.value); } catch(e) {}
+      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
     });
   });
 })();
