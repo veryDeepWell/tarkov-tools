@@ -1,4 +1,4 @@
-/* TarkovUI — chrome, progress, help, mobile, button hierarchy + audit fixes */
+/* TarkovUI — no floating bar; hub bar; category collapse; help; mini */
 :root {
   --btn-h: 40px;
   --btn-min-w: 7rem;
@@ -6,100 +6,114 @@
   --z-modal: 300;
 }
 
-/* Tools chrome bar — fixed LEFT */
+/* Floating tools-bar: HIDDEN — chrome is hub .tt-bar only */
 .tt-tools-bar {
-  position: fixed !important;
-  top: 10px !important;
-  left: 12px !important;
-  right: auto !important;
-  z-index: var(--z-bar) !important;
-  display: flex !important;
-  flex-direction: row !important;
-  gap: 8px !important;
-  align-items: center !important;
-  padding: 6px !important;
-  background: color-mix(in srgb, var(--card) 92%, transparent) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 12px !important;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 20px rgba(0,0,0,.25);
-  pointer-events: auto !important;
-}
-.tt-tools-bar button,
-.tt-tools-bar .btn-ghost {
-  min-width: 40px !important;
-  width: 40px !important;
-  min-height: 40px !important;
-  padding: 0 !important;
-  font-size: 1.05rem !important;
-  border-radius: 10px !important;
-  background: var(--input-bg) !important;
-  color: var(--text) !important;
-  border: 1px solid var(--border) !important;
-  cursor: pointer !important;
-}
-.tt-tools-bar button:hover {
-  border-color: var(--accent) !important;
-  color: var(--accent) !important;
+  display: none !important;
 }
 
-/* Settings tabs — never accent fill */
-button.tt-set-tab, .tt-set-tab {
+/* Hub top bar */
+.tt-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--card, #171a21);
+  border-bottom: 1px solid var(--border, #2a2f3a);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.tt-bar .spacer {
+  flex: 1;
+}
+.tt-bar .btn-ghost {
+  min-width: 40px;
+  min-height: 36px;
+  padding: 6px 12px;
+}
+
+/* Category collapse — must beat .cat-body.grid { display:grid !important } */
+.cat-head {
+  cursor: pointer;
+  user-select: none;
+}
+.cat-body.is-collapsed,
+.cat-body.grid.is-collapsed {
+  display: none !important;
+}
+
+/* Buttons */
+.btn-primary,
+button.btn-primary {
+  background: var(--accent) !important;
+  color: #111 !important;
+  border: 1px solid var(--accent) !important;
+}
+.btn-secondary,
+button.btn-secondary {
+  background: transparent !important;
+  color: var(--accent) !important;
+  border: 1px solid var(--accent) !important;
+}
+.btn-ghost,
+button.btn-ghost {
+  background: transparent !important;
+  color: var(--muted) !important;
+  border: 1px solid var(--border) !important;
+}
+
+button.tt-set-tab,
+.tt-set-tab {
   background: transparent !important;
   color: var(--muted) !important;
   border: 0 !important;
   border-bottom: 2px solid transparent !important;
   border-radius: 0 !important;
   min-width: auto !important;
-  min-height: 40px !important;
-  padding: 8px 14px !important;
-  font-weight: 600 !important;
   box-shadow: none !important;
 }
-button.tt-set-tab.on, .tt-set-tab.on {
+button.tt-set-tab.on,
+.tt-set-tab.on {
   color: var(--accent) !important;
   border-bottom-color: var(--accent) !important;
   background: transparent !important;
 }
 
-/* Button hierarchy */
-.btn-primary, button.btn-primary {
-  background: var(--accent) !important;
-  color: #111 !important;
-  border: 1px solid var(--accent) !important;
-}
-.btn-secondary, button.btn-secondary {
-  background: transparent !important;
-  color: var(--accent) !important;
-  border: 1px solid var(--accent) !important;
-}
-.btn-ghost, button.btn-ghost {
-  background: transparent !important;
-  color: var(--muted) !important;
-  border: 1px solid var(--border) !important;
-}
-.btn-ghost:hover, button.btn-ghost:hover {
-  color: var(--text) !important;
-  border-color: var(--text) !important;
-}
-
 /* Progress */
-.progress-wrap, .tt-progress { margin: 8px 0; display: none; }
-.progress-wrap.on, .tt-progress.on { display: block; }
-.progress-track, .tt-progress-track {
-  height: 6px; border-radius: 4px;
+.progress-wrap,
+.tt-progress {
+  margin: 8px 0;
+  display: none;
+}
+.progress-wrap.on,
+.tt-progress.on {
+  display: block;
+}
+.progress-track,
+.tt-progress-track {
+  height: 6px;
+  border-radius: 4px;
   background: var(--input-bg, #12151b);
-  overflow: hidden; border: 1px solid var(--border);
+  overflow: hidden;
+  border: 1px solid var(--border);
 }
-.progress-bar, .tt-progress-bar {
-  height: 100%; width: 0%; background: var(--accent); transition: width 0.2s ease;
+.progress-bar,
+.tt-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.2s ease;
 }
-.progress-label, .tt-progress-label {
-  font-size: 0.78rem; color: var(--muted); margin-top: 4px;
+.progress-label,
+.tt-progress-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 4px;
 }
 
-/* Help button */
-.tt-help-btn, #helpBtn {
+/* Help */
+.tt-help-btn,
+#helpBtn {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -108,8 +122,6 @@ button.tt-set-tab.on, .tt-set-tab.on {
   min-height: 36px !important;
   border-radius: 50% !important;
   font-weight: 700 !important;
-  font-size: 1rem !important;
-  z-index: 5;
 }
 .tt-tool-header {
   display: flex !important;
@@ -119,27 +131,21 @@ button.tt-set-tab.on, .tt-set-tab.on {
   margin-bottom: 8px !important;
 }
 
-/* MINI bar: do not stretch to full viewport height */
+/* MINI */
 body.tt-expand-open .hub-shell > .hub-work {
   flex: 1 1 auto !important;
   min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
   overflow: hidden !important;
 }
-body.tt-expand-open .mini-bar,
 .mini-bar {
   flex: 0 0 auto !important;
-  flex-shrink: 0 !important;
   height: auto !important;
-  max-height: none !important;
   min-height: 52px !important;
-  overflow: visible !important;
 }
 .mini-label {
-  font-size: .68rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: .06em;
+  letter-spacing: 0.06em;
   color: var(--muted);
   font-weight: 700;
   flex-shrink: 0;
@@ -151,22 +157,4 @@ body.tt-expand-open .mini-bar,
   align-items: center;
   flex: 1;
   min-width: 0;
-}
-
-@media (max-width: 720px) {
-  .container { padding: 10px 10px 72px !important; max-width: 100% !important; }
-  .tt-tools-bar {
-    top: auto !important;
-    bottom: 12px !important;
-    left: 12px !important;
-    right: auto !important;
-    justify-content: flex-start;
-  }
-  .row { flex-direction: column; align-items: stretch; }
-  .field { min-width: 0; }
-  button.btn, .btn { min-width: 0 !important; }
-  .tt-tools-bar button { width: 44px !important; flex: 0 0 auto; }
-  .tt-tool-header { flex-wrap: wrap; }
-  table { font-size: 0.85rem; }
-  .card, .qcard { padding: 12px 12px !important; }
 }
