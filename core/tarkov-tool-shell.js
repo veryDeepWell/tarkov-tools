@@ -1,4 +1,4 @@
-/*! Tarkov tool shell — Stage 3.1/3.2: header ?, progress host, ui.css */
+/*! Tarkov tool shell — Stage 3 full: header ?, progress, ui.css, local help */
 (function () {
   "use strict";
 
@@ -21,6 +21,34 @@
     } catch (e) {
       return "";
     }
+  }
+
+  function showHelpLocal(title, body) {
+    if (window.TarkovUI && TarkovUI.helpModal) {
+      TarkovUI.helpModal({ title: title, body: body });
+      return;
+    }
+    var id = "tt-help-modal";
+    var bg = document.getElementById(id);
+    if (!bg) {
+      bg = document.createElement("div");
+      bg.id = id;
+      bg.className = "modal-bg";
+      bg.style.cssText = "display:flex;position:fixed;inset:0;background:rgba(0,0,0,.55);align-items:center;justify-content:center;z-index:300;padding:16px";
+      bg.innerHTML = '<div class="modal" style="max-width:min(520px,94vw);max-height:80vh;overflow:auto;background:var(--card,#171a21);border:1px solid var(--border,#2a2f3a);border-radius:12px;padding:16px 18px;color:var(--text,#e8eaed)">' +
+        '<div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:12px"><h2 id="tt-help-title" style="margin:0;font-size:1.15rem"></h2>' +
+        '<button type="button" class="btn-ghost" id="tt-help-x" style="min-width:36px!important;padding:0 10px">\u00d7</button></div>' +
+        '<div id="tt-help-body" style="color:var(--muted,#8b919a);line-height:1.5;font-size:.95rem"></div></div>';
+      document.body.appendChild(bg);
+      bg.addEventListener("click", function (e) { if (e.target === bg) bg.style.display = "none"; });
+      document.getElementById("tt-help-x").onclick = function () { bg.style.display = "none"; };
+    }
+    document.getElementById("tt-help-title").textContent = title || "Help";
+    var bodyEl = document.getElementById("tt-help-body");
+    bodyEl.innerHTML = String(body || "").split(/\n\n+/).map(function (p) {
+      return "<p style=\"margin:0 0 10px\">" + String(p).replace(/</g, "<").replace(/\n/g, "<br>") + "</p>";
+    }).join("");
+    bg.style.display = "flex";
   }
 
   function ensureHelp() {
@@ -69,23 +97,33 @@
     var id = toolIdFromPath();
     hb.onclick = function () {
       try {
-        if (!window.TarkovUI || !TarkovUI.helpModal) return;
-        var h = TarkovUI.toolHelpFromI18n(id);
+        var h = { title: id, body: "" };
+        try {
+          if (window.TarkovUI && TarkovUI.toolHelpFromI18n) h = TarkovUI.toolHelpFromI18n(id);
+        } catch (e) {}
         var fallbacks = {
-          "price-track": "Background flea price snapshots, charts, and countdown. Start BG to poll; open an item for history.",
-          "price-alarm": "Rules on avg/low/offers. When a rule hits, you get Notify + sound. Start background to poll on an interval.",
-          "restock": "Load trader reset times once, count down locally, Notify on restock. Enable traders you care about.",
+          "price-track": "Background flea price snapshots, charts, and countdown.",
+          "price-alarm": "Price rules with background polling and Notify.",
+          "restock": "Trader reset countdown with Notify on restock.",
           "barter-calc": "Offline barter calculator with flea tax.",
           "barter-live": "Live barter with flea prices from the API.",
           "containers": "Container capacity and value density.",
-          "loot-slot": "Profit per inventory slot (flea / trader).",
+          "loot-slot": "Profit per inventory slot.",
           "trader-flip": "Buy from traders, sell on flea.",
-          "streamer-flip": "Streamer item flips."
+          "streamer-flip": "Streamer item flips.",
+          "ammo": "Ammo chart: penetration, damage, cost.",
+          "armor": "Armor classes and material.",
+          "plates": "Armor plates compatibility.",
+          "helmets": "Helmet protection and slots.",
+          "gun-builder": "Weapon build planner.",
+          "loadout-builder": "Full loadout builder.",
+          "hideout": "Hideout modules and upgrades.",
+          "crafts": "Craft profitability.",
+          "quests": "Quest list and requirements.",
+          "medkits": "Medkits and healing.",
+          "stims": "Stimulants effects."
         };
-        TarkovUI.helpModal({
-          title: h.title || id || "Help",
-          body: h.body || fallbacks[id] || "Tool help."
-        });
+        showHelpLocal(h.title || id || "Help", h.body || fallbacks[id] || "Tarkov Tools utility.");
       } catch (e) {}
     };
   }
@@ -106,7 +144,7 @@
   }
 
   function markPrimaryButtons() {
-    var ids = ["fetchPricesBtn", "loadBtn", "startBtn", "checkBtn", "snapBtn"];
+    var ids = ["fetchPricesBtn", "loadBtn", "startBtn", "checkBtn", "snapBtn", "runBtn", "calcBtn", "searchBtn"];
     ids.forEach(function (id) {
       var el = document.getElementById(id);
       if (el && el.classList && !el.classList.contains("btn-primary")) {
