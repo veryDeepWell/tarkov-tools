@@ -1,4 +1,4 @@
-/*! Tarkov tool shell — Stage 3 full: header ?, progress, ui.css, local help */
+/*! Tarkov tool shell — Stage 3 complete: header ?, progress, ui.css, help for all tools */
 (function () {
   "use strict";
 
@@ -9,6 +9,16 @@
     var path = location.pathname || "";
     link.href = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-ui.css?v=3";
     (document.head || document.documentElement).appendChild(link);
+  }
+
+  function ensureUiJs() {
+    if (window.TarkovUI) return;
+    if (document.getElementById("tt-ui-js")) return;
+    var path = location.pathname || "";
+    var s = document.createElement("script");
+    s.id = "tt-ui-js";
+    s.src = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-ui.js";
+    (document.head || document.documentElement).appendChild(s);
   }
 
   function toolIdFromPath() {
@@ -55,10 +65,10 @@
     if (document.getElementById("helpBtn")) return;
     var h1 = document.querySelector(".container h1, main h1, h1");
     if (!h1) {
-      var title = document.querySelector(".container .card-title, .card-title");
-      if (title) {
+      var titleEl = document.querySelector(".container .card-title, .card-title");
+      if (titleEl) {
         h1 = document.createElement("h1");
-        h1.textContent = title.textContent || "Tool";
+        h1.textContent = titleEl.textContent || "Tool";
         h1.style.cssText = "font-size:1.25rem;margin:0 0 8px";
         var box = document.querySelector(".container");
         if (box) box.insertBefore(h1, box.firstChild);
@@ -102,26 +112,51 @@
           if (window.TarkovUI && TarkovUI.toolHelpFromI18n) h = TarkovUI.toolHelpFromI18n(id);
         } catch (e) {}
         var fallbacks = {
-          "price-track": "Background flea price snapshots, charts, and countdown.",
-          "price-alarm": "Price rules with background polling and Notify.",
-          "restock": "Trader reset countdown with Notify on restock.",
-          "barter-calc": "Offline barter calculator with flea tax.",
-          "barter-live": "Live barter with flea prices from the API.",
-          "containers": "Container capacity and value density.",
-          "loot-slot": "Profit per inventory slot.",
-          "trader-flip": "Buy from traders, sell on flea.",
-          "streamer-flip": "Streamer item flips.",
-          "ammo": "Ammo chart: penetration, damage, cost.",
-          "armor": "Armor classes and material.",
-          "plates": "Armor plates compatibility.",
-          "helmets": "Helmet protection and slots.",
-          "gun-builder": "Weapon build planner.",
-          "loadout-builder": "Full loadout builder.",
-          "hideout": "Hideout modules and upgrades.",
-          "crafts": "Craft profitability.",
-          "quests": "Quest list and requirements.",
-          "medkits": "Medkits and healing.",
-          "stims": "Stimulants effects."
+          "ammo": "Таблица патронов: пробитие, урон, цена",
+          "armor": "Классы брони и материалы",
+          "barter-calc": "Офлайн-калькулятор бартера с налогом flea",
+          "barter-live": "Бартер с живыми ценами барахолки",
+          "bosses": "Боссы, шансы, карта",
+          "btc-farm": "Ферма BTC / доход",
+          "compare": "Сравнение предметов",
+          "containers": "Ёмкость контейнеров и ценность за слот",
+          "crafts": "Крафты убежища и профит",
+          "cultist": "Калькулятор обмена в круге",
+          "drip": "Внешний вид экипировки",
+          "drip-builder": "Сборка drip",
+          "drip-loadout": "Drip loadout",
+          "food": "Еда и гидрация",
+          "gun-budget": "Оружие в бюджете",
+          "gun-builder": "Конструктор оружия",
+          "helmets": "Шлемы: защита и слоты",
+          "hideout": "Модули убежища",
+          "hideout-mgmt": "Управление убежищем",
+          "item-use": "Применение предметов",
+          "keys": "Ключи и локации",
+          "lang-search": "Поиск по языкам",
+          "loadout-budget": "Лоадаут в бюджете",
+          "loadout-builder": "Конструктор лоадаута",
+          "loot-slot": "Профит за клетку инвентаря",
+          "mags": "Магазины",
+          "medkits": "Аптечки и лечение",
+          "mods": "Обвесы и моды",
+          "my-tarkov": "Личный дашборд",
+          "nvg": "ПНВ / тепловизоры",
+          "plates": "Бронеплиты и совместимость",
+          "price-alarm": "Сирена по цене / офферам",
+          "price-track": "График и история flea-цен",
+          "quest-items": "Квестовые предметы",
+          "quests": "Список квестов",
+          "raid-checklist": "Собраться в рейд",
+          "random-loadout": "Случайный кит",
+          "restock": "Обновление торговцев",
+          "scopes": "Кратность и эрго",
+          "shortname": "Свои названия",
+          "skills": "Прокачка навыков",
+          "stim-combos": "Связки стимуляторов",
+          "stims": "Бафы и дебафы",
+          "streamer-flip": "Ивент-предметы",
+          "trader-flip": "Покупка у торговца → flea"
         };
         showHelpLocal(h.title || id || "Help", h.body || fallbacks[id] || "Tarkov Tools utility.");
       } catch (e) {}
@@ -144,7 +179,7 @@
   }
 
   function markPrimaryButtons() {
-    var ids = ["fetchPricesBtn", "loadBtn", "startBtn", "checkBtn", "snapBtn", "runBtn", "calcBtn", "searchBtn"];
+    var ids = ["fetchPricesBtn", "loadBtn", "startBtn", "checkBtn", "snapBtn", "runBtn", "calcBtn", "searchBtn", "refreshBtn", "applyBtn", "saveBtn", "buildBtn", "generateBtn", "filterBtn", "goBtn", "submitBtn"];
     ids.forEach(function (id) {
       var el = document.getElementById(id);
       if (el && el.classList && !el.classList.contains("btn-primary")) {
@@ -156,6 +191,7 @@
 
   function boot() {
     ensureCss();
+    ensureUiJs();
     ensureHelp();
     ensureProgress();
     markPrimaryButtons();
