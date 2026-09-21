@@ -1,6 +1,16 @@
-/*! Stage 3 chrome bar — load after common + settings-tabs */
+/*! Hub chrome — settings/theme/lang in .tt-bar only; never on tools */
 (function () {
   "use strict";
+
+  function isHub() {
+    try {
+      var p = location.pathname || "";
+      return /tarkovtool-hub\.html$/i.test(p) || /\/$/.test(p) || /index\.html$/i.test(p);
+    } catch (e) {
+      return false;
+    }
+  }
+
   function callOpenSettings() {
     try {
       if (window.TarkovTools && typeof TarkovTools.openSettings === "function") {
@@ -9,56 +19,82 @@
       }
     } catch (e) {}
   }
-  function paintBarFixed() {
-    var bar = document.getElementById("tt-tools-bar");
-    if (!bar) {
-      bar = document.createElement("div");
-      bar.id = "tt-tools-bar";
-      bar.className = "tt-tools-bar";
-      bar.innerHTML =
-        '<button type="button" class="btn-ghost" id="tt-bar-settings" title="Settings" aria-label="Settings">\u2699</button>' +
-        '<button type="button" class="btn-ghost" id="tt-bar-theme" title="Theme" aria-label="Theme">\uD83C\uDF11</button>' +
-        '<button type="button" class="btn-ghost" id="tt-bar-lang" title="Language" aria-label="Language">\uD83C\uDF10</button>';
-      document.body.appendChild(bar);
-    } else {
-      bar.className = "tt-tools-bar";
+
+  function wireHubBar() {
+    try {
+      var float = document.getElementById("tt-tools-bar");
+      if (float) float.remove();
+    } catch (e) {}
+
+    if (!isHub()) return;
+
+    var bar = document.querySelector(".tt-bar");
+    if (!bar) return;
+
+    if (!document.getElementById("tt-open-settings")) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn-ghost";
+      b.id = "tt-open-settings";
+      b.textContent = "Settings";
+      bar.appendChild(b);
     }
-    var btnS = document.getElementById("tt-bar-settings");
+    if (!document.getElementById("tt-bar-theme")) {
+      var t = document.createElement("button");
+      t.type = "button";
+      t.className = "btn-ghost";
+      t.id = "tt-bar-theme";
+      t.title = "Theme";
+      t.textContent = "\uD83C\uDF11";
+      bar.appendChild(t);
+    }
+    if (!document.getElementById("tt-bar-lang")) {
+      var l = document.createElement("button");
+      l.type = "button";
+      l.className = "btn-ghost";
+      l.id = "tt-bar-lang";
+      l.title = "Language";
+      l.textContent = "\uD83C\uDF10";
+      bar.appendChild(l);
+    }
+
+    var btnS = document.getElementById("tt-open-settings");
     var btnT = document.getElementById("tt-bar-theme");
     var btnL = document.getElementById("tt-bar-lang");
-    var btnHdr = document.getElementById("tt-open-settings");
-    if (btnS) btnS.onclick = function (e) { e.preventDefault(); e.stopPropagation(); callOpenSettings(); };
-    if (btnHdr) btnHdr.onclick = function (e) { e.preventDefault(); callOpenSettings(); };
-    if (btnT) btnT.onclick = function (e) {
-      e.preventDefault();
-      try {
-        var th = (localStorage.getItem("tarkovTheme") || "dark") === "light" ? "dark" : "light";
-        localStorage.setItem("tarkovTheme", th);
-        if (window.TarkovTools && TarkovTools.applyTheme) TarkovTools.applyTheme();
-        else document.documentElement.setAttribute("data-theme", th);
-      } catch (err) {}
-    };
-    if (btnL) btnL.onclick = function (e) {
-      e.preventDefault();
-      try {
-        var cur = (window.TarkovI18n && TarkovI18n.current) || localStorage.getItem("tarkovLang") || "ru";
-        var next = cur === "ru" ? "en" : "ru";
-        localStorage.setItem("tarkovLang", next);
-        if (window.TarkovI18n && TarkovI18n.setLang) {
-          TarkovI18n.setLang(next).then(function () {
-            try { TarkovI18n.applyDom(document); } catch (err) {}
-            try { window.dispatchEvent(new CustomEvent("tt-lang-changed", { detail: { lang: next } })); } catch (err) {}
-          });
-        } else {
-          location.reload();
-        }
-      } catch (err) {}
-    };
+    if (btnS)
+      btnS.onclick = function (e) {
+        e.preventDefault();
+        callOpenSettings();
+      };
+    if (btnT)
+      btnT.onclick = function (e) {
+        e.preventDefault();
+        try {
+          var th = (localStorage.getItem("tarkovTheme") || "dark") === "light" ? "dark" : "light";
+          localStorage.setItem("tarkovTheme", th);
+          if (window.TarkovTools && TarkovTools.applyTheme) TarkovTools.applyTheme();
+          else document.documentElement.setAttribute("data-theme", th);
+        } catch (err) {}
+      };
+    if (btnL)
+      btnL.onclick = function (e) {
+        e.preventDefault();
+        try {
+          var cur =
+            (window.TarkovI18n && TarkovI18n.lang && TarkovI18n.lang()) ||
+            localStorage.getItem("tarkovLang") ||
+            "ru";
+          var next = cur === "ru" ? "en" : "ru";
+          localStorage.setItem("tarkovLang", next);
+          if (window.TarkovI18n && TarkovI18n.setLang) TarkovI18n.setLang(next);
+          else location.reload();
+        } catch (err) {}
+      };
   }
+
   function boot() {
-    paintBarFixed();
-    setTimeout(paintBarFixed, 100);
-    setTimeout(paintBarFixed, 600);
+    wireHubBar();
+    setTimeout(wireHubBar, 200);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
