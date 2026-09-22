@@ -13,12 +13,14 @@
 
   function loadSelected() {
     try {
-      var raw = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+      var raw = window.TarkovStorage ? TarkovStorage.getJson(STORE_KEY, null) : null;
       if (Array.isArray(raw) && raw.length) selected = raw.slice(0, MAX_LANGS);
     } catch (e) {}
   }
   function saveSelected() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(selected)); } catch (e) {}
+    try {
+      if (window.TarkovStorage) TarkovStorage.setJson(STORE_KEY, selected);
+    } catch (e) {}
   }
   function norm(s) {
     return String(s || "").toLowerCase().replace(/\s+/g, " ").trim();

@@ -10,7 +10,7 @@
     var STORE='tarkovtool-nvg-settings';
     function esc(s){
       if(window.TarkovUI&&TarkovUI.esc)return TarkovUI.esc(s);
-      return String(s||'').replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"');
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
     function fmt(n){if(!n)return '—'; return Math.round(n).toLocaleString('ru-RU');}
     function humanize(slug){return (slug||'').replace(/-/g,' ');}

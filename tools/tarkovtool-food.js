@@ -14,7 +14,7 @@
     var STORE = 'tarkovtool-food-settings';
     function esc(s) {
       if (window.TarkovUI && TarkovUI.esc) return TarkovUI.esc(s);
-      return String(s || '').replace(/&/g, '&').replace(/</g, '<').replace(/"/g, '"');
+      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     }
     function status(msg, ok) {
       var el = document.getElementById('status');

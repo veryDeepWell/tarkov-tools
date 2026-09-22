@@ -175,7 +175,7 @@
         TarkovStorage.set('tarkovDeskWelcome','1');
         if (window.TarkovState) TarkovState.notify({
           title: 'Desk готов',
-          body: 'Открывай инструменты мини-вкладками. Состояние общее (localStorage).',
+          body: 'Открывай инструменты мини-вкладками. Состояние общее (TarkovStorage).',
           href: 'tarkovtool-my-tarkov.html'
         });
       }

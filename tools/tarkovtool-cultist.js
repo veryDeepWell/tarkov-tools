@@ -294,6 +294,15 @@ function wire(){
       st.className='status ok';
       st.textContent = 'Предметов: '+Object.keys(byId).length+' · бартеров: '+bars.length+
         ' · с ценой: '+Object.values(byId).filter(x=>isFinite(x._cost)).length;
+      try {
+        TarkovStorage.setJson('tarkovtool-cultist-settings', {
+          mode: mode,
+          costMode: (document.getElementById('costMode')||{}).value,
+          barterDepth: (document.getElementById('barterDepth')||{}).value,
+          allowQuestBarter: !!(document.getElementById('allowQuestBarter')||{}).checked,
+          amulet: !!(document.getElementById('amulet')||{}).checked
+        });
+      } catch(e) {}
     }catch(e){
       st.className='status err'; st.textContent=e.message;
       console.error(e);
@@ -312,6 +321,24 @@ function wire(){
   document.getElementById('fill350')?.addEventListener('click', ()=>fillTo(350001));
   document.getElementById('fill400')?.addEventListener('click', ()=>fillTo(400000));
   renderSlots();
+  try {
+    var saved = TarkovStorage.getJson('tarkovtool-cultist-settings', {}) || {};
+    ['costMode','barterDepth'].forEach(function(id){
+      if (saved[id] && document.getElementById(id)) document.getElementById(id).value = saved[id];
+    });
+    if (saved.allowQuestBarter != null && document.getElementById('allowQuestBarter'))
+      document.getElementById('allowQuestBarter').checked = !!saved.allowQuestBarter;
+    if (saved.amulet != null && document.getElementById('amulet'))
+      document.getElementById('amulet').checked = !!saved.amulet;
+  } catch(e) {}
+  (function(){
+    var KEY='tarkovPreferredGameMode';
+    var def=TarkovStorage.get(KEY,'pve')||'pve';
+    document.querySelectorAll('select#gameMode').forEach(function(sel){
+      if([].some.call(sel.options,function(o){return o.value===def;})) sel.value=def;
+      sel.addEventListener('change',function(){ try{ TarkovStorage.set(KEY, sel.value); }catch(e){} });
+    });
+  })();
 }
 
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);

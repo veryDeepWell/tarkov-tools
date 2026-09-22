@@ -4,13 +4,13 @@
   var META_KEY = "tarkovPriceTrackMeta";
 
   function readRun() {
-    try { return JSON.parse(localStorage.getItem(RUN_KEY) || "{}") || {}; } catch (e) { return {}; }
+    try { return (window.TarkovStorage && TarkovStorage.getJson(RUN_KEY, {})) || {}; } catch (e) { return {}; }
   }
   function writeRun(o) {
-    try { localStorage.setItem(RUN_KEY, JSON.stringify(o)); } catch (e) {}
+    try { if (window.TarkovStorage) TarkovStorage.setJson(RUN_KEY, o); } catch (e) {}
   }
   function readMeta() {
-    try { return JSON.parse(localStorage.getItem(META_KEY) || "{}") || {}; } catch (e) { return {}; }
+    try { return (window.TarkovStorage && TarkovStorage.getJson(META_KEY, {})) || {}; } catch (e) { return {}; }
   }
 
   function tt(key, fallback, params) {

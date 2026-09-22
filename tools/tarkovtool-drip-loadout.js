@@ -2,12 +2,9 @@
   (function () {
   function itemName(it){
     if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(window.itemName&&window.itemName!==itemName)return window.itemName(it);
     if(!it)return '';
     if(typeof it==='string')return it;
-    var s=(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
-    return s||it.id||'';
+    return String(it.shortName||it.name||it.normalizedName||it.id||'').trim();
   }
 
     var STYLES = [
@@ -21,7 +18,18 @@
       { id:'gold', title:'Флекс', desc:'жёлтый / оранж / красный', colors:['yellow','orange','red'] }
     ];
     var styleId = 'pro', pool = null;
-    function esc(s){ return String(s||'').replace(/&/g,'&').replace(/</g,'<').replace(/"/g,'"'); }
+    function persist() {
+      try {
+        TarkovStorage.setJson('tarkovtool-drip-loadout-settings', {
+          mode: (document.getElementById('gameMode') || {}).value || 'pve',
+          styleId: styleId
+        });
+      } catch (e) {}
+    }
+    function esc(s){
+      if (window.TarkovUI && TarkovUI.esc) return TarkovUI.esc(s);
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    }
     function status(m,ok){ var el=document.getElementById('status'); el.className='status'+(ok===true?' ok':ok===false?' err':''); el.textContent=m; }
     function pick(arr){ if(!arr||!arr.length) return null; return arr[Math.floor(Math.random()*arr.length)]; }
     function priceOf(it){ return it ? (Number(it.avg24hPrice)||Number(it.lastLowPrice)||0) : 0; }
@@ -38,12 +46,17 @@
         pdCell('pd-backpack','Рюкзак',s.backpack)+pdCell('pd-sec','Вторичка',s.sec)+
         '<div class="pd-total">Итого ~ '+sum.toLocaleString('ru-RU')+' ₽</div>';
     }
+    try {
+      var saved0 = TarkovStorage.getJson('tarkovtool-drip-loadout-settings', {}) || {};
+      if (saved0.styleId) styleId = saved0.styleId;
+    } catch (e) {}
     document.getElementById('styles').innerHTML = STYLES.map(function(s){
       return '<button type="button" class="style-chip'+(s.id===styleId?' active':'')+'" data-id="'+s.id+'"><div class="t">'+esc(s.title)+'</div><div class="d">'+esc(s.desc)+'</div></button>';
     }).join('');
     document.getElementById('styles').onclick = function(e){
       var b = e.target.closest('.style-chip'); if(!b) return;
       styleId = b.getAttribute('data-id');
+      persist();
       document.querySelectorAll('.style-chip').forEach(function(c){ c.classList.toggle('active', c===b); });
     };
     async function ensure() {
@@ -51,7 +64,7 @@
       status('Гружу…');
       var mode = document.getElementById('gameMode').value || 'pve';
       var arr = await TarkovAPI.items(mode);
-      pool = arr; status('Предметов: ' + arr.length, true); return pool;
+      pool = arr; persist(); status('Предметов: ' + arr.length, true); return pool;
     }
     function byColor(items, colors, pred) {
       var set = {}; colors.forEach(function(c){ set[c]=1; });
@@ -81,6 +94,13 @@
       status(st.title + ' · ' + st.colors.join(', '), true);
     }
     document.getElementById('btnGo').onclick = function(){ go().catch(function(e){ status(String(e.message||e), false); }); };
-    document.getElementById('gameMode').onchange = function(){ pool = null; };
+    document.getElementById('gameMode').onchange = function(){ pool = null; persist(); };
+    (function(){
+      var KEY='tarkovPreferredGameMode';
+      var def=TarkovStorage.get(KEY,'pve')||'pve';
+      document.querySelectorAll('select#gameMode').forEach(function(sel){
+        if([].some.call(sel.options,function(o){return o.value===def;})) sel.value=def;
+        sel.addEventListener('change',function(){ try{ TarkovStorage.set(KEY, sel.value); }catch(e){} });
+      });
+    })();
   })();
-  

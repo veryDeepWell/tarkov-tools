@@ -202,7 +202,28 @@
   document.getElementById("btnGo").onclick = function () {
     go().catch(function (e) { status(String(e.message || e), false); });
   };
-  document.getElementById("gameMode").onchange = function () { pool = null; };
+  document.getElementById("gameMode").onchange = function () { pool = null; persist(); };
   var arena = document.getElementById("excludeArena");
-  if (arena) arena.onchange = function () { pool = null; };
+  if (arena) arena.onchange = function () { pool = null; persist(); };
+
+  function persist() {
+    try {
+      TarkovStorage.setJson("tarkovtool-random-loadout-settings", {
+        mode: (document.getElementById("gameMode") || {}).value || "pve",
+        excludeArena: !!(document.getElementById("excludeArena") || {}).checked
+      });
+    } catch (e) {}
+  }
+  try {
+    var saved = TarkovStorage.getJson("tarkovtool-random-loadout-settings", {}) || {};
+    if (arena && saved.excludeArena != null) arena.checked = !!saved.excludeArena;
+  } catch (e) {}
+  (function () {
+    var KEY = "tarkovPreferredGameMode";
+    var def = TarkovStorage.get(KEY, "pve") || "pve";
+    document.querySelectorAll("select#gameMode").forEach(function (sel) {
+      if ([].some.call(sel.options, function (o) { return o.value === def; })) sel.value = def;
+      sel.addEventListener("change", function () { try { TarkovStorage.set(KEY, sel.value); } catch (e) {} });
+    });
+  })();
 })();
