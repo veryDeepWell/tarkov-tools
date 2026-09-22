@@ -13,12 +13,14 @@
 
   function loadSelected() {
     try {
-      var raw = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+      var raw = window.TarkovStorage ? TarkovStorage.getJson(STORE_KEY, null) : null;
       if (Array.isArray(raw) && raw.length) selected = raw.slice(0, MAX_LANGS);
     } catch (e) {}
   }
   function saveSelected() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(selected)); } catch (e) {}
+    try {
+      if (window.TarkovStorage) TarkovStorage.setJson(STORE_KEY, selected);
+    } catch (e) {}
   }
   function norm(s) {
     return String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -26,10 +28,10 @@
   function esc(s) {
     if (window.TarkovUI && TarkovUI.esc) return TarkovUI.esc(s);
     return String(s == null ? "" : s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+      .replace(/&/g, "&")
+      .replace(/</g, "<")
+      .replace(/>/g, ">")
+      .replace(/"/g, """);
   }
   function humanize(slug) {
     return String(slug || "").split("-").join(" ");
@@ -117,7 +119,6 @@
   async function fetchJson(url) {
     if (window.TarkovAPI && typeof TarkovAPI.getJson === "function") {
       try {
-        // Prefer shared cache layer when URL is under json.tarkov.dev
         if (url.indexOf("json.tarkov.dev") >= 0 || url.charAt(0) === "/") {
           return await TarkovAPI.getJson(url, { httpCache: "force-cache", ttl: 10 * 60 * 1000 });
         }
