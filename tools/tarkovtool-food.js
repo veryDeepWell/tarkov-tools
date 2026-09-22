@@ -2,20 +2,19 @@
   (function () {
   function itemName(it){
     if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(window.itemName&&window.itemName!==itemName)return window.itemName(it);
     if(!it)return '';
     if(typeof it==='string')return it;
-    var s=(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
-    return s||it.id||'';
+    return String(it.shortName||it.name||it.normalizedName||it.id||'').trim();
   }
 
     let rows = [];
     let kind = 'all';
     let sortKey = 'score';
     let sortDir = -1;
+    var STORE = 'tarkovtool-food-settings';
     function esc(s) {
-      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+      if (window.TarkovUI && TarkovUI.esc) return TarkovUI.esc(s);
+      return String(s || '').replace(/&/g, '&').replace(/</g, '<').replace(/"/g, '"');
     }
     function status(msg, ok) {
       var el = document.getElementById('status');
@@ -30,6 +29,14 @@
       var s = (10000 / Math.max(1, per)) * dual;
       if (r.units > 1) s *= 1 + Math.min(0.3, r.units / 100);
       return Math.round(s * 10) / 10;
+    }
+    function persist() {
+      try {
+        TarkovStorage.setJson(STORE, {
+          mode: (document.getElementById('gameMode') || {}).value || 'pve',
+          kind: kind
+        });
+      } catch (e) {}
     }
     async function load() {
       status('Загрузка…');
@@ -60,6 +67,7 @@
         r.score = scoreOf(r);
         rows.push(r);
       });
+      persist();
       status('Найдено: ' + rows.length, true);
       render();
     }
@@ -92,6 +100,7 @@
       var b = e.target.closest('.chip'); if (!b) return;
       kind = b.getAttribute('data-k');
       document.querySelectorAll('#kindChips .chip').forEach(function (c) { c.classList.toggle('active', c === b); });
+      persist();
       render();
     };
     document.querySelectorAll('th[data-s]').forEach(function (th) {
@@ -103,5 +112,17 @@
     });
     document.getElementById('btnLoad').onclick = function () { load().catch(function (e) { status(String(e.message || e), false); }); };
     document.getElementById('q').oninput = render;
+    try {
+      var saved = TarkovStorage.getJson(STORE, {}) || {};
+      if (saved.kind) kind = saved.kind;
+      document.querySelectorAll('#kindChips .chip').forEach(function (c) {
+        c.classList.toggle('active', c.getAttribute('data-k') === kind);
+      });
+    } catch (e) {}
+    var KEY = 'tarkovPreferredGameMode';
+    var def = TarkovStorage.get(KEY, 'pve') || 'pve';
+    document.querySelectorAll('select#gameMode').forEach(function (sel) {
+      if ([].some.call(sel.options, function (o) { return o.value === def; })) sel.value = def;
+      sel.addEventListener('change', function () { try { TarkovStorage.set(KEY, sel.value); } catch (e) {} });
+    });
   })();
-  
