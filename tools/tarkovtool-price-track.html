@@ -4,14 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Price track</title>
-  <link rel="stylesheet" href="../core/tarkov-common.css?v=10">
-  <link rel="stylesheet" href="../core/tarkov-ui.css?v=3">
+  <link rel="stylesheet" href="../core/tarkov-common.css?v=11">
+  <link rel="stylesheet" href="../core/tarkov-ui.css?v=4">
   <script type="application/json" id="tarkovtool-meta">
   {"title": "Price track", "description": "Flea price history, background snapshots, countdown."}
   </script>
   <style>
     .item-row { display:flex; gap:10px; align-items:center; padding:8px 10px; border-bottom:1px solid var(--border); cursor:pointer; }
     .item-row:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+    .item-row.selected { background: color-mix(in srgb, var(--accent) 18%, transparent); border-left: 3px solid var(--accent); }
     .item-row img { width:36px; height:36px; object-fit:contain; }
     .item-row .nm { flex:1; font-size:.92rem; }
     .item-row .pr { font-variant-numeric:tabular-nums; color:var(--accent); white-space:nowrap; }
@@ -32,12 +33,15 @@
     .chart-stats .stat .v.down { color:#ff6b7a; }
     .layout { display:grid; grid-template-columns:minmax(240px,320px) 1fr; gap:14px; }
     @media (max-width:900px) { .layout { grid-template-columns:1fr; } }
+    #chartTitle { font-size:1.05rem; font-weight:700; margin:0 0 4px; }
+    #chartMeta { font-size:.82rem; color:var(--muted); margin:0 0 8px; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1 data-i18n="priceTrack.title">Price track</h1>
     <p class="sub" data-i18n="priceTrack.sub">Flea history · background snapshots</p>
+    <div id="tt-progress" class="tt-progress" hidden></div>
     <div class="card">
       <div class="card-title">Background</div>
       <div class="row" style="flex-wrap:wrap;gap:10px;align-items:end">
@@ -54,6 +58,7 @@
         <button type="button" class="btn-ghost" id="stopBtn">Stop</button>
         <button type="button" class="btn-ghost" id="snapBtn">Snap now</button>
       </div>
+      <p class="meta" id="trackMeta"></p>
       <p class="countdown" id="countdown">—</p>
       <p class="status" id="status"></p>
     </div>
@@ -65,13 +70,15 @@
       </div>
       <div class="card">
         <div class="card-title">Chart</div>
+        <div id="chartTitle">Select an item</div>
+        <div id="chartMeta"></div>
         <div class="chart-toolbar" id="rangeBtns">
-          <button type="button" class="chip on" data-range="1d">1d</button>
+          <button type="button" class="chip" data-range="1d">1d</button>
           <button type="button" class="chip" data-range="3d">3d</button>
-          <button type="button" class="chip" data-range="7d">7d</button>
+          <button type="button" class="chip on" data-range="7d">7d</button>
           <button type="button" class="chip" data-range="all">All</button>
         </div>
-        <div class="chart-stats" id="chartStats"></div>
+        <div class="chart-stats" id="chartStats" hidden></div>
         <div class="chart-wrap">
           <canvas id="chart" width="800" height="320"></canvas>
           <div class="chart-tip" id="chartTip" style="display:none"></div>
@@ -87,8 +94,8 @@
   <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-i18n.js"></script>
   <script src="../core/tarkov-common.js"></script>
-  <script src="tarkovtool-price-track.js"></script>
-  <script src="tarkov-price-track-boot.js"></script>
+  <script src="tarkovtool-price-track.js?v=6"></script>
+  <script src="tarkov-price-track-boot.js?v=6"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>
 </html>
