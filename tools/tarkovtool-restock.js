@@ -2,6 +2,8 @@
   "use strict";
   var POLL_ID = "restock";
   var TOOL = "tarkovtool-restock.html";
+  /** Default trader restock period (EFT: most traders every 3h) */
+  var DEFAULT_CYCLE_MS = 3 * 60 * 60 * 1000;
   var TRADER_RU = {
     prapor: "Прапор",
     therapist: "Терапевт",
@@ -31,22 +33,8 @@
   var restockHistory = {};
   var refetchQueued = false;
   var uiTick = null;
-
-  function itemName(it) {
-    try {
-      if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-    } catch (e) {}
-    if (!it) return "";
-    if (typeof it === "string") return it;
-    var s = String(it.shortName || it.name || "").trim();
-    if (!s || /^[a-f0-9]{20,}$/i.test(s)) {
-      var n = String(it.name || "").trim();
-      var sl = String(it.normalizedName || "").trim();
-      if (n && !/^[a-f0-9]{20,}$/i.test(n)) s = n;
-      else if (sl) s = sl.replace(/[-_]+/g, " ");
-    }
-    return s || it.id || "";
-  }
+  /** key -> last known cycle ms */
+  var cycleMs = {};
 
   var listEl = document.getElementById("list");
   var statusEl = document.getElementById("status");
@@ -78,24 +66,28 @@
     });
     fired =
       (window.TarkovStorage && TarkovStorage.getJson("restockFired", {})) || {};
+    cycleMs =
+      (window.TarkovStorage && TarkovStorage.getJson("restockCycleMs", {})) || {};
   }
   function saveHistory() {
     try {
       if (window.TarkovStorage) {
         TarkovStorage.setJson("restockHistory", restockHistory);
         TarkovStorage.setJson("restockFired", fired);
+        TarkovStorage.setJson("restockCycleMs", cycleMs);
       }
     } catch (e) {}
   }
 
   function formatRemain(ms) {
-    if (ms <= 0) return "сейчас";
+    if (ms <= 0) return "0с";
     var s = Math.floor(ms / 1000);
     var h = Math.floor(s / 3600);
     var m = Math.floor((s % 3600) / 60);
     var sec = s % 60;
     if (h > 0) return h + "ч " + String(m).padStart(2, "0") + "м";
-    return m + "м " + String(sec).padStart(2, "0") + "с";
+    if (m > 0) return m + "м " + String(sec).padStart(2, "0") + "с";
+    return sec + "с";
   }
   function formatAbs(d) {
     try {
@@ -111,6 +103,7 @@
   }
   function formatAgo(ms) {
     var m = Math.floor(ms / 60000);
+    if (m < 1) return "только что";
     if (m < 60) return m + " мин назад";
     var h = Math.floor(m / 60);
     if (h < 24) return h + " ч назад";
@@ -138,6 +131,25 @@
     } catch (e) {}
   }
 
+  function cycleFor(key) {
+    var c = Number(cycleMs[key]) || 0;
+    if (c >= 30 * 60 * 1000 && c <= 12 * 60 * 60 * 1000) return c;
+    return DEFAULT_CYCLE_MS;
+  }
+
+  /** Push resetAt forward until it is strictly in the future. */
+  function rollForward(t, now) {
+    if (!t.resetAt) return;
+    var cycle = cycleFor(t.key);
+    var ts = t.resetAt.getTime();
+    if (ts > now) return;
+    // remember previous reset for cycle learning after API refresh
+    t._prevResetAt = ts;
+    while (ts <= now) ts += cycle;
+    t.resetAt = new Date(ts);
+    t._rolled = true;
+  }
+
   async function fetchTraders() {
     var modeEl = document.getElementById("gameMode");
     var mode = (modeEl && modeEl.value) || "pve";
@@ -147,6 +159,11 @@
     var list = await TarkovAPI.traders(mode);
     if (!list || !list.length) throw new Error("No traders from API");
     var enabledMap = loadEnabled();
+    var now = Date.now();
+    var prevByKey = {};
+    traders.forEach(function (t) {
+      prevByKey[t.key] = t;
+    });
     traders = list
       .map(function (t) {
         var key = (t.normalizedName || t.id || "").toLowerCase();
@@ -154,13 +171,30 @@
         var enabled = enabledMap[key];
         if (enabled === undefined)
           enabled = key !== "fence" && key !== "lightkeeper";
-        return {
+        var row = {
           id: t.id,
           key: key,
           name: TRADER_RU[key] || t.name || key,
           resetAt: resetAt,
           enabled: !!enabled
         };
+        // Learn cycle if we had a previous reset and API gave a new future time
+        var prev = prevByKey[key];
+        if (prev && prev.resetAt && resetAt && !isNaN(resetAt.getTime())) {
+          var oldTs = prev._prevResetAt || prev.resetAt.getTime();
+          var newTs = resetAt.getTime();
+          if (newTs > now && oldTs < newTs) {
+            var delta = newTs - oldTs;
+            if (delta >= 30 * 60 * 1000 && delta <= 12 * 60 * 60 * 1000) {
+              cycleMs[key] = delta;
+            }
+          }
+        }
+        // API still past? roll locally so UI never sticks on «сейчас»
+        if (row.resetAt && row.resetAt.getTime() <= now) {
+          rollForward(row, now);
+        }
+        return row;
       })
       .filter(function (t) {
         return t.resetAt && !isNaN(t.resetAt.getTime());
@@ -173,12 +207,17 @@
       if (ib === -1) return -1;
       return ia - ib;
     });
+    try {
+      if (window.TarkovStorage) TarkovStorage.setJson("restockCycleMs", cycleMs);
+    } catch (e) {}
   }
 
   function onRestock(t) {
-    var iso = t.resetAt.toISOString();
-    if (fired[t.key] === iso) return;
-    fired[t.key] = iso;
+    var iso = t.resetAt ? t.resetAt.toISOString() : String(Date.now());
+    // Use stable fire key from the reset that just passed
+    var fireKey = t._prevResetAt ? String(t._prevResetAt) : iso;
+    if (fired[t.key] === fireKey) return;
+    fired[t.key] = fireKey;
     restockHistory[t.key] = {
       key: t.key,
       name: t.name,
@@ -209,6 +248,7 @@
   function queueRefetch() {
     if (refetchQueued) return;
     refetchQueued = true;
+    // Quick pull so API next-reset corrects our optimistic roll
     setTimeout(async function () {
       refetchQueued = false;
       try {
@@ -225,7 +265,7 @@
           statusEl.textContent = e.message;
         }
       }
-    }, 2500);
+    }, 800);
   }
 
   function render() {
@@ -239,13 +279,22 @@
     listEl.innerHTML = "";
     traders.forEach(function (t) {
       var remain = t.resetAt.getTime() - now;
-      var badge = "";
-      var label = formatRemain(remain);
+
+      // Hit zero → notify once, immediately start next cycle countdown
       if (remain <= 0) {
-        label = "РЕСТОК";
-        badge = ' <span style="color:var(--green)">сейчас</span>';
         if (t.enabled) onRestock(t);
+        rollForward(t, now);
+        remain = t.resetAt.getTime() - now;
       }
+
+      var label = formatRemain(remain);
+      var justFired =
+        restockHistory[t.key] &&
+        now - restockHistory[t.key].happenedAt < 8000;
+      var badge = justFired
+        ? ' <span style="color:var(--green)">обновлён</span>'
+        : "";
+
       var div = document.createElement("div");
       div.style.cssText =
         "display:grid;grid-template-columns:28px 1fr auto auto;gap:12px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;opacity:" +
