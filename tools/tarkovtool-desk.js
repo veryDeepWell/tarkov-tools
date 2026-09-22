@@ -143,7 +143,7 @@
         };
       });
     }
-    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    function esc(s){return String(s||'').replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>');}
 
     document.getElementById('addBtn').onclick = () => {
       document.getElementById('npanel').classList.remove('open');
@@ -175,7 +175,7 @@
         TarkovStorage.set('tarkovDeskWelcome','1');
         if (window.TarkovState) TarkovState.notify({
           title: 'Desk готов',
-          body: 'Открывай инструменты мини-вкладками. Состояние общее (localStorage).',
+          body: 'Открывай инструменты мини-вкладками. Состояние общее (TarkovStorage).',
           href: 'tarkovtool-my-tarkov.html'
         });
       }
