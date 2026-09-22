@@ -3,50 +3,28 @@
   function getCatalogList() {
     return window.TarkovHubCATALOG || window.TarkovHubCatalog || window.CATALOG || [];
   }
-  function tt(key, fallback) {
+  function tt(key, fallback, params) {
     try {
       if (window.TarkovI18n && TarkovI18n.t) {
-        var v = TarkovI18n.t(key);
+        var v = TarkovI18n.t(key, params);
         if (v && v !== key) return v;
       }
     } catch (e) {}
-    return fallback || key;
+    var s = fallback || key;
+    if (params) {
+      Object.keys(params).forEach(function (k) {
+        s = String(s).split("{" + k + "}").join(String(params[k]));
+      });
+    }
+    return s;
   }
-  const CAT_ORDER = ["flea", "loadout", "hideout", "quests", "med", "util", "other"];
-  const CAT_TITLE = {
-    flea: "Flea market", loadout: "Loadout", hideout: "Hideout",
-    quests: "Quests", med: "Med / food", util: "Utilities", other: "Other"
-  };
-  const CAT_MAP = {
-    "tarkovtool-price-track.html": "flea", "tarkovtool-price-alarm.html": "flea",
-    "tarkovtool-barter-calc.html": "flea", "tarkovtool-barter-live.html": "flea",
-    "tarkovtool-trader-flip.html": "flea", "tarkovtool-streamer-flip.html": "flea",
-    "tarkovtool-loot-slot.html": "flea", "tarkovtool-containers.html": "flea",
-    "tarkovtool-random-loadout.html": "loadout", "tarkovtool-drip-loadout.html": "loadout",
-    "tarkovtool-loadout-builder.html": "loadout", "tarkovtool-loadout-budget.html": "loadout",
-    "tarkovtool-gun-builder.html": "loadout", "tarkovtool-gun-budget.html": "loadout",
-    "tarkovtool-drip.html": "loadout", "tarkovtool-drip-builder.html": "loadout",
-    "tarkovtool-armor.html": "loadout", "tarkovtool-helmets.html": "loadout",
-    "tarkovtool-ammo.html": "loadout", "tarkovtool-mods.html": "loadout",
-    "tarkovtool-plates.html": "loadout", "tarkovtool-mags.html": "loadout",
-    "tarkovtool-scopes.html": "loadout", "tarkovtool-nvg.html": "loadout",
-    "tarkovtool-hideout.html": "hideout", "tarkovtool-hideout-mgmt.html": "hideout",
-    "tarkovtool-btc-farm.html": "hideout", "tarkovtool-crafts.html": "hideout",
-    "tarkovtool-cultist.html": "hideout",
-    "tarkovtool-quests.html": "quests", "tarkovtool-quest-items.html": "quests",
-    "tarkovtool-raid-checklist.html": "quests", "tarkovtool-bosses.html": "quests",
-    "tarkovtool-food.html": "med", "tarkovtool-medkits.html": "med",
-    "tarkovtool-stims.html": "med", "tarkovtool-stim-combos.html": "med",
-    "tarkovtool-my-tarkov.html": "util", "tarkovtool-restock.html": "util",
-    "tarkovtool-shortname.html": "util", "tarkovtool-lang-search.html": "util",
-    "tarkovtool-compare.html": "util", "tarkovtool-item-use.html": "util",
-    "tarkovtool-skills.html": "util", "tarkovtool-keys.html": "util"
-  };
+  var CAT_ORDER = ["flea", "loadout", "hideout", "quests", "med", "util", "other"];
 
   function ensureCat(t) {
     if (!t.cat) {
       var base = String(t.file || "").split("/").pop();
-      t.cat = CAT_MAP[base] || CAT_MAP[t.file] || "other";
+      /* Prefer catalog.cat; fallback map removed — single source is catalog.json */
+      t.cat = t.cat || "other";
     }
     return t;
   }
@@ -70,20 +48,28 @@
   }
 
   function card(t, pinned) {
-    if (typeof cardHtml === "function") return cardHtml(t, !!pinned);
+    if (typeof window.cardHtml === "function") return window.cardHtml(t, !!pinned);
     var title = t.title || t.file;
+    var desc = t.description || "";
     try {
-      if (window.TarkovI18n && TarkovI18n.toolTitle) title = TarkovI18n.toolTitle(t.file) || title;
+      if (window.TarkovI18n && TarkovI18n.toolTitle) {
+        var ti = TarkovI18n.toolTitle(t.file);
+        if (ti && ti.indexOf("tool.") !== 0) title = ti;
+      }
+      if (window.TarkovI18n && TarkovI18n.toolDesc) {
+        var de = TarkovI18n.toolDesc(t.file);
+        if (de && de.indexOf("tool.") !== 0) desc = de;
+      }
     } catch (e) {}
     return '<div class="tool" data-open="' + t.file + '" role="link" tabindex="0">' +
       '<div class="tool-head"><div class="tool-ico">📎</div>' +
-      '<div><h2>' + title + '</h2><p>' + (t.description || "") + '</p></div></div></div>';
+      '<div><h2>' + title + '</h2><p>' + desc + '</p></div></div></div>';
   }
 
   function wireCards() {
     document.querySelectorAll(".tool-pin").forEach(function (btn) {
       btn.onclick = function (e) {
-        if (typeof togglePin === "function") togglePin(btn.getAttribute("data-pin"), e);
+        if (typeof window.togglePin === "function") window.togglePin(btn.getAttribute("data-pin"), e);
       };
     });
     document.querySelectorAll(".tool[data-open]").forEach(function (el) {
@@ -91,8 +77,13 @@
         if (e.target.closest && e.target.closest(".tool-pin")) return;
         var f = el.getAttribute("data-open");
         if (e.ctrlKey || e.metaKey) { window.open(f, "_blank"); return; }
-        if (typeof openToolAsMini === "function") openToolAsMini(f);
+        if (typeof window.openToolAsMini === "function") window.openToolAsMini(f);
         else window.location.href = f;
+      };
+      el.onkeydown = function (e) {
+        if (e.key === "Enter" && typeof window.openToolAsMini === "function") {
+          window.openToolAsMini(el.getAttribute("data-open"));
+        }
       };
     });
     document.querySelectorAll(".cat-head[data-cat]").forEach(function (head) {
@@ -114,6 +105,7 @@
     if (!CATALOG.length) {
       var grid0 = document.getElementById("grid");
       if (grid0) {
+        grid0.classList.add("catalog-root");
         grid0.innerHTML = "<p class=meta>" + tt("hub.catalogLoading", "Loading catalog…") + "</p>";
       }
       return;
@@ -129,14 +121,26 @@
     var list = CATALOG.filter(function (t) {
       if (hidden.indexOf(t.file) >= 0) return false;
       if (!q) return true;
-      var s = ((t.title || "") + " " + (t.description || "") + " " + (t.file || "")).toLowerCase();
+      var title = t.title || "";
+      var desc = t.description || "";
+      try {
+        if (window.TarkovI18n) {
+          var ti = TarkovI18n.toolTitle(t.file);
+          var de = TarkovI18n.toolDesc ? TarkovI18n.toolDesc(t.file) : "";
+          if (ti && ti.indexOf("tool.") !== 0) title = ti;
+          if (de && de.indexOf("tool.") !== 0) desc = de;
+        }
+      } catch (e) {}
+      var s = (title + " " + desc + " " + (t.file || "")).toLowerCase();
       return s.indexOf(q) >= 0;
     });
 
     var count = document.getElementById("count");
     if (count) {
-      count.textContent = list.length + " / " + CATALOG.length +
-        (hidden.length ? " " + tt("hub.hiddenCount", "· hidden {n}", { n: hidden.length }).replace("{n}", hidden.length) : "");
+      var extra = hidden.length
+        ? " " + tt("hub.hiddenCount", "· hidden {n}", { n: hidden.length })
+        : "";
+      count.textContent = list.length + " / " + CATALOG.length + extra;
     }
 
     var byCat = {};
@@ -165,7 +169,7 @@
       var tools = byCat[c] || [];
       if (!tools.length) return;
       var isCol = collapsed.indexOf(c) >= 0;
-      var title = CAT_TITLE[c] || c;
+      var title = c;
       try {
         if (window.TarkovI18n && TarkovI18n.catTitle) title = TarkovI18n.catTitle(c) || title;
         else if (window.TarkovI18n && TarkovI18n.t) title = TarkovI18n.t("cat." + c) || title;
@@ -179,6 +183,10 @@
         tools.map(function (t) { return card(t, pins.indexOf(t.file) >= 0); }).join("") +
         "</div></div>";
     });
+
+    if (!html && q) {
+      html = "<p class=meta>" + tt("hub.noResults", "No tools found") + "</p>";
+    }
 
     var grid = document.getElementById("grid");
     if (grid) {

@@ -1,11 +1,29 @@
 window.TarkovHubMini = true;
 
 function getCatalog() { return window.TarkovHubCATALOG || []; }
-if (window.TarkovHubCATALOG && !window.TarkovHubCATALOG.some(function (x) { return x && x.file === "tools/tarkovtool-desk.html"; })) {
-  window.TarkovHubCATALOG.push({ file: "tools/tarkovtool-desk.html", title: "Desk", description: "Мини-вкладки инструментов", icon: "desk", cat: "util", kind: "static" });
+var CHANGELOG = [
+  { date: "2026-09-17", items: ["Mini tabs, notifications", "Catalog categories", "TarkovAPI, TarkovNames"] },
+  { date: "2026-09-20", items: ["Stage 0 platform contract", "kind live|static", "single sound owner"] },
+  { date: "2026-09-21", items: ["Stage 1 live runtime", "Stage 3 UI shell inject"] },
+  { date: "2026-09-22", items: ["Stage 4 i18n + single catalog.json", "Hub category collapse"] }
+];
+var ICONS = [[/btc/i,"₿"],[/cultist/i,"⛧"],[/my-tarkov/i,"👤"],[/helmet/i,"🪖"],[/nvg/i,"🌑"],[/price-track/i,"📈"],[/price-alarm/i,"🔔"],[/food/i,"🍖"],[/random-loadout/i,"🎲"],[/loadout-budget/i,"💰"],[/loadout-builder/i,"🧰"],[/drip-builder/i,"🎨"],[/drip-loadout/i,"✨"],[/ammo/i,"🔫"],[/armor/i,"🛡️"],[/barter/i,"🧮"],[/boss/i,"👹"],[/compare/i,"⚖️"],[/container/i,"🎒"],[/craft/i,"🔧"],[/drip/i,"🕶️"],[/gun/i,"🛠️"],[/hideout/i,"🏗️"],[/key/i,"🔑"],[/lang/i,"🌐"],[/loot/i,"📦"],[/item-use/i,"💡"],[/mag/i,"📟"],[/med/i,"💊"],[/mods/i,"🔩"],[/plate/i,"🧱"],[/quest/i,"📜"],[/raid/i,"✅"],[/restock/i,"⏰"],[/scope/i,"🔭"],[/short/i,"🏷️"],[/skill/i,"📈"],[/stim/i,"💉"],[/streamer/i,"📺"],[/trader/i,"🏪"],[/desk/i,"🗂️"]];
+
+function tt(key, fallback, params) {
+  try {
+    if (window.TarkovI18n && TarkovI18n.t) {
+      var v = TarkovI18n.t(key, params);
+      if (v && v !== key) return v;
+    }
+  } catch (e) {}
+  var s = fallback || key;
+  if (params) {
+    Object.keys(params).forEach(function (k) {
+      s = String(s).split("{" + k + "}").join(String(params[k]));
+    });
+  }
+  return s;
 }
-var CHANGELOG = [{"date":"2026-09-17","items":["Mini tabs, notifications","Catalog categories","TarkovAPI, TarkovNames"]},{"date":"2026-09-20","items":["Stage 0 platform contract","kind live|static","single sound owner"]},{"date":"2026-09-21","items":["Stage 1 live runtime","Stage 3 UI shell inject"]}];
-var ICONS = [[/btc/i,"₿"],[/cultist/i,"⛧"],[/my-tarkov/i,"👤"],[/helmet/i,"🪖"],[/nvg/i,"🌑"],[/price-track/i,"📈"],[/price-alarm/i,"🔔"],[/food/i,"🍖"],[/random-loadout/i,"🎲"],[/loadout-budget/i,"💰"],[/loadout-builder/i,"🧰"],[/drip-builder/i,"🎨"],[/drip-loadout/i,"✨"],[/ammo/i,"🔫"],[/armor/i,"🛡️"],[/barter/i,"🧮"],[/boss/i,"👹"],[/compare/i,"⚖️"],[/container/i,"🎒"],[/craft/i,"🔧"],[/drip/i,"🕶️"],[/gun/i,"🛠️"],[/hideout/i,"🏗️"],[/key/i,"🔑"],[/lang/i,"🌐"],[/loot/i,"📦"],[/item-use/i,"💡"],[/mag/i,"📟"],[/med/i,"💊"],[/mods/i,"🔩"],[/plate/i,"🧱"],[/quest/i,"📜"],[/raid/i,"✅"],[/restock/i,"⏰"],[/scope/i,"🔭"],[/short/i,"🏷️"],[/skill/i,"📈"],[/stim/i,"💉"],[/streamer/i,"📺"],[/trader/i,"🏪"]];
 
 function iconFor(file, title) {
   try {
@@ -26,7 +44,17 @@ function toolKey(file) {
 }
 function metaFor(file) {
   var c = getCatalog().find(function (x) { return x.file === file; });
-  return c || { file: file, title: toolKey(file), description: "" };
+  var base = c || { file: file, title: toolKey(file), description: "" };
+  try {
+    if (window.TarkovI18n) {
+      var id = toolKey(file).replace(/^tarkovtool-/, "").replace(/\.html$/, "");
+      var ti = TarkovI18n.toolTitle(file);
+      var de = TarkovI18n.toolDesc ? TarkovI18n.toolDesc(file) : "";
+      if (ti && ti.indexOf("tool.") !== 0) base = Object.assign({}, base, { title: ti });
+      if (de && de.indexOf("tool.") !== 0) base = Object.assign({}, base, { description: de });
+    }
+  } catch (e) {}
+  return base;
 }
 function isLiveTool(file) {
   try { if (window.TarkovToolKind) return TarkovToolKind.isLive(file); } catch (e) {}
@@ -88,19 +116,6 @@ var frames = Object.create(null);
 var expanded = null;
 var statusMap = Object.create(null);
 
-function markFrameReady(file, opts) {
-  opts = opts || {};
-  var k = toolKey(file);
-  var prev = statusMap[k] || {};
-  statusMap[k] = {
-    ready: opts.ready !== false,
-    running: opts.running != null ? !!opts.running : !!prev.running,
-    label: opts.label != null ? opts.label : (prev.label || ""),
-    ts: Date.now()
-  };
-  try { renderMiniList(); } catch (e) {}
-}
-
 function ensureFrame(file) {
   if (frames[file]) return frames[file];
   var pool = document.getElementById("framePool");
@@ -124,7 +139,6 @@ function ensureFrame(file) {
       ts: Date.now()
     };
     try { renderMiniList(); } catch (e) {}
-    // Stage 3.2: inject UI shell into every tool iframe (help, progress, ui.css)
     try {
       var doc = ifr.contentDocument;
       if (doc && !doc.getElementById("tt-tool-shell")) {
@@ -233,6 +247,8 @@ function renderMiniList() {
   var list = document.getElementById("miniList");
   var bar = document.getElementById("miniBar");
   if (!list || !bar) return;
+  var labelEl = bar.querySelector(".mini-label");
+  if (labelEl) labelEl.textContent = tt("hub.mini", "MINI");
   var tabs = getMiniTabs();
   if (!tabs.length) { bar.hidden = true; list.innerHTML = ""; return; }
   bar.hidden = false;
@@ -270,11 +286,11 @@ function showChipTip(e, file) {
   var title = metaFor(file).title || toolKey(file);
   var live = isLiveTool(file);
   var statusLine;
-  if (!frames[file]) statusLine = "не загружен";
-  else if (!st.ready && !st.running) statusLine = "загрузка…";
-  else if (live && st.running) statusLine = "● запущен" + (st.label ? " · " + st.label : "");
-  else if (live) statusLine = "загружен (фон)" + (st.label ? " · " + st.label : "");
-  else statusLine = "открыт";
+  if (!frames[file]) statusLine = tt("common.notLoaded", "Not loaded");
+  else if (!st.ready && !st.running) statusLine = tt("common.loading", "Loading…");
+  else if (live && st.running) statusLine = "● " + tt("hub.statusRunning", "Running") + (st.label ? " · " + st.label : "");
+  else if (live) statusLine = tt("common.loadedBg", "Background") + (st.label ? " · " + st.label : "");
+  else statusLine = tt("hub.statusLoaded", "Open");
   var html = '<div class="tip-title">' + esc(title) + '</div>';
   html += '<div class="tip-status' + (live && st.running ? " on" : "") + '">' + esc(statusLine) + '</div>';
   if (items.length) {
@@ -282,9 +298,9 @@ function showChipTip(e, file) {
       return '<div class="row-n"><div class="t">' + esc(n.title) + '</div><div class="b">' + esc(n.body || "") + '</div></div>';
     }).join("");
   } else {
-    html += '<div class="b" style="color:var(--muted)">Нет непрочитанных</div>';
+    html += '<div class="b" style="color:var(--muted)">' + esc(tt("common.unreadNone", "No notifications")) + '</div>';
   }
-  html += '<div class="b" style="margin-top:6px;color:var(--muted)">ПКМ — закрыть вкладку</div>';
+  html += '<div class="b" style="margin-top:6px;color:var(--muted)">' + esc(tt("common.closeTabHint", "Right-click to close")) + '</div>';
   tip.innerHTML = html;
   tip.style.display = "block";
   tip.style.left = Math.min(e.clientX + 12, window.innerWidth - 320) + "px";
@@ -319,7 +335,7 @@ function bootMini(attempt) {
         statusMap[k] = {
           ready: false,
           running: false,
-          label: live ? "восстановление…" : "",
+          label: live ? tt("common.restoring", "Restoring…") : "",
           ts: Date.now()
         };
       }
@@ -381,71 +397,75 @@ function togglePin(file, ev) {
   if (pins.indexOf(file) >= 0) pins = pins.filter(function (f) { return f !== file; });
   else pins.push(file);
   savePins(pins);
-  renderCatalog();
+  try { if (typeof window.renderCatalog === "function") window.renderCatalog(); } catch (e) {}
 }
 function cardHtml(t, pinned) {
+  var title = t.title || t.file;
+  var desc = t.description || "";
+  try {
+    if (window.TarkovI18n) {
+      var ti = TarkovI18n.toolTitle(t.file);
+      var de = TarkovI18n.toolDesc ? TarkovI18n.toolDesc(t.file) : "";
+      if (ti && ti.indexOf("tool.") !== 0) title = ti;
+      if (de && de.indexOf("tool.") !== 0) desc = de;
+    }
+  } catch (e) {}
   return '<div class="tool" data-open="' + esc(t.file) + '" role="link" tabindex="0">' +
-    '<button type="button" class="tool-pin ' + (pinned ? "on" : "") + '" data-pin="' + esc(t.file) + '" title="' + (pinned ? "Unpin" : "Pin") + '">' + (pinned ? "📌" : "📍") + '</button>' +
-    '<div class="tool-head"><div class="tool-ico">' + iconFor(t.file, t.title) + '</div>' +
-    '<div style="padding-right:28px"><h2>' + esc(t.title) + '</h2><p>' + esc(t.description || "") + '</p></div></div></div>';
+    '<button type="button" class="tool-pin ' + (pinned ? "on" : "") + '" data-pin="' + esc(t.file) + '" title="' +
+    esc(pinned ? tt("hub.unpin", "Unpin") : tt("hub.pin", "Pin")) + '">' + (pinned ? "📌" : "📍") + '</button>' +
+    '<div class="tool-head"><div class="tool-ico">' + iconFor(t.file, title) + '</div>' +
+    '<div style="padding-right:28px"><h2>' + esc(title) + '</h2><p>' + esc(desc) + '</p></div></div></div>';
 }
-function renderCatalog() {
-  var qEl = document.getElementById("q");
-  var q = (qEl && qEl.value || "").toLowerCase().trim();
-  var pins = loadPins();
-  var list = getCatalog().slice();
-  if (q) list = list.filter(function (t) { return (t.title + t.description).toLowerCase().indexOf(q) >= 0; });
-  var pinned = list.filter(function (t) { return pins.indexOf(t.file) >= 0; });
-  var rest = list.filter(function (t) { return pins.indexOf(t.file) < 0; });
-  pinned.sort(function (a, b) { return pins.indexOf(a.file) - pins.indexOf(b.file); });
-  var count = document.getElementById("count");
-  if (count) count.textContent = list.length + " / " + getCatalog().length;
-  var html = "";
-  if (pinned.length) {
-    html += '<div class="pins-label" style="grid-column:1/-1">Pinned</div>';
-    html += pinned.map(function (t) { return cardHtml(t, true); }).join("");
-    if (rest.length) html += '<div class="pins-label" style="grid-column:1/-1">All tools</div>';
-  }
-  html += rest.map(function (t) { return cardHtml(t, false); }).join("");
-  var grid = document.getElementById("grid");
-  if (grid) grid.innerHTML = html;
-  document.querySelectorAll(".tool-pin").forEach(function (btn) {
-    btn.onclick = function (e) { togglePin(btn.getAttribute("data-pin"), e); };
-  });
-  document.querySelectorAll(".tool[data-open]").forEach(function (card) {
-    card.onclick = function (e) {
-      if (e.target.closest && e.target.closest(".tool-pin")) return;
-      if (e.ctrlKey || e.metaKey) { window.open(card.getAttribute("data-open"), "_blank"); return; }
-      openToolAsMini(card.getAttribute("data-open"));
-    };
-    card.onkeydown = function (e) { if (e.key === "Enter") openToolAsMini(card.getAttribute("data-open")); };
-  });
-}
-window.renderCatalog = renderCatalog;
 window.cardHtml = cardHtml;
 window.togglePin = togglePin;
+window.openToolAsMini = openToolAsMini;
 
 function renderChangelog() {
   var el = document.getElementById("changelog");
   if (!el) return;
-  el.innerHTML = "<h3>Changelog</h3>" + CHANGELOG.map(function (b) {
+  el.innerHTML = "<h3>" + esc(tt("hub.changelog", "Changelog")) + "</h3>" + CHANGELOG.map(function (b) {
     return '<div style="margin-bottom:12px"><strong>' + esc(b.date) + '</strong><ul>' +
       b.items.map(function (i) { return "<li>" + esc(i) + "</li>"; }).join("") + "</ul></div>";
   }).join("");
 }
 
+function applyHubI18n() {
+  try {
+    if (window.TarkovI18n && TarkovI18n.applyDom) TarkovI18n.applyDom(document);
+  } catch (e) {}
+  var btnS = document.getElementById("tt-open-settings");
+  if (btnS) btnS.textContent = tt("common.settings", "Settings");
+  var btnC = document.getElementById("btnCollapse");
+  if (btnC) btnC.textContent = "← " + tt("hub.collapse", "Collapse");
+  var btnX = document.getElementById("btnCloseExpand");
+  if (btnX) btnX.textContent = tt("hub.closeTab", "Close");
+  renderMiniList();
+  renderChangelog();
+}
+
 var qInput = document.getElementById("q");
-if (qInput) qInput.addEventListener("input", renderCatalog);
-renderCatalog();
+if (qInput) {
+  qInput.addEventListener("input", function () {
+    try { if (typeof window.renderCatalog === "function") window.renderCatalog(); } catch (e) {}
+  });
+}
 renderChangelog();
 bootMini();
+applyHubI18n();
+
 window.addEventListener("tarkov-catalog-ready", function () {
-  try { renderCatalog(); } catch (e) {}
+  try { if (typeof window.renderCatalog === "function") window.renderCatalog(); } catch (e) {}
 });
+window.addEventListener("tt-lang-changed", function () {
+  applyHubI18n();
+  try { if (typeof window.renderCatalog === "function") window.renderCatalog(); } catch (e) {}
+});
+
 var btnCollapse = document.getElementById("btnCollapse");
 if (btnCollapse) btnCollapse.onclick = collapseExpand;
 var btnCloseExpand = document.getElementById("btnCloseExpand");
 if (btnCloseExpand) btnCloseExpand.onclick = function () { if (expanded) closeTab(expanded); };
+
 setInterval(function () {
   var keys = Object.keys(frames);
   if (!keys.length) return;

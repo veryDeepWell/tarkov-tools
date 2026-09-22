@@ -1,13 +1,13 @@
-/*! Hub catalog — __TT_CATALOG_DATA / #catalog-embed / catalog.json */
+/*! Hub catalog — single source: catalog.json (optional __TT_CATALOG_DATA bootstrap) */
 (function (global) {
   "use strict";
   global.TarkovHubCATALOG = global.TarkovHubCATALOG || [];
   global.TarkovHubCATEGORIES = global.TarkovHubCATEGORIES || {};
 
   function apply(data) {
-    if (!data || typeof data !== "object") return;
+    if (!data || typeof data !== "object") return false;
     var tools = data.tools || (Array.isArray(data) ? data : []);
-    if (!tools.length) return;
+    if (!tools.length) return false;
     global.TarkovHubCATALOG = tools;
     global.TarkovHubCatalog = tools;
     global.CATALOG = tools;
@@ -15,20 +15,16 @@
     try {
       global.dispatchEvent(new CustomEvent("tarkov-catalog-ready", { detail: data }));
     } catch (e) {}
+    return true;
   }
 
+  /* Optional offline bootstrap (same content as catalog.json) — not a second source of truth */
   if (global.__TT_CATALOG_DATA) {
     try { apply(global.__TT_CATALOG_DATA); } catch (e) {}
   }
-  try {
-    var el = document.getElementById("catalog-embed");
-    if (el && el.textContent && el.textContent.indexOf("PLACEHOLDER") < 0) {
-      apply(JSON.parse(el.textContent));
-    }
-  } catch (e) {}
 
-  try {
-    fetch("catalog.json", { cache: "no-cache" })
+  function loadJson() {
+    return fetch("catalog.json", { cache: "no-cache" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
         if (!data) return;
@@ -38,5 +34,7 @@
         } catch (e) {}
       })
       .catch(function () {});
-  } catch (e) {}
+  }
+
+  loadJson();
 })(window);
