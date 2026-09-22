@@ -1,22 +1,22 @@
+
   function itemName(it){
     if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
     if(!it)return '';
     if(typeof it==='string')return it;
-    var s=String(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s)) {
-      var n=String(it.name||'').trim();
-      var sl=String(it.normalizedName||'').trim();
-      if(n && !/^[a-f0-9]{20,}$/i.test(n)) s=n;
-      else if(sl) s=sl;
-    }
-    return s||it.id||'';
+    return String(it.shortName||it.name||it.normalizedName||it.id||'').trim();
   }
 
-
     let rows=[], sortKey='score', sortDir=-1;
-    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    var STORE='tarkovtool-nvg-settings';
+    function esc(s){
+      if(window.TarkovUI&&TarkovUI.esc)return TarkovUI.esc(s);
+      return String(s||'').replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"');
+    }
     function fmt(n){if(!n)return '—'; return Math.round(n).toLocaleString('ru-RU');}
     function humanize(slug){return (slug||'').replace(/-/g,' ');}
+    function persist(mode){
+      try{TarkovStorage.setJson(STORE,{mode:mode||((document.getElementById('gameMode')||{}).value)||'pve'});}catch(e){}
+    }
     function render(){
       const q=(document.getElementById('q').value||'').toLowerCase();
       let list=rows.filter(r=>!q||(r.name+r.slug).toLowerCase().includes(q));
@@ -53,7 +53,7 @@
           const noiseScale=Number(p.noiseScale)||0;
           const diffuse=Number(p.diffuseIntensity)||0;
           rows.push({
-            id:it.id, slug:it.normalizedName||'', name:it.shortName||humanize(it.normalizedName),
+            id:it.id, slug:it.normalizedName||'', name:itemName(it)||humanize(it.normalizedName),
             icon:it.iconLink||it.gridImageLink||'',
             intensity, noise, noiseScale, diffuse,
             score: intensity - noise*10 - diffuse*5,
@@ -61,6 +61,7 @@
             weight:Number(it.weight)||0
           });
         });
+        persist(mode);
         document.getElementById('tableCard').style.display='block';
         st.className='status ok'; st.textContent='ПНВ: '+rows.length;
         render();
@@ -71,5 +72,11 @@
     document.querySelectorAll('#tbl th[data-k]').forEach(th=>{
       th.onclick=()=>{const k=th.dataset.k; if(sortKey===k)sortDir*=-1; else{sortKey=k;sortDir=k==='name'?1:-1;} render();};
     });
-
-  
+    (function(){
+      const KEY='tarkovPreferredGameMode';
+      const def=TarkovStorage.get(KEY,'pve')||'pve';
+      document.querySelectorAll('select#gameMode').forEach(sel=>{
+        if([...sel.options].some(o=>o.value===def)) sel.value=def;
+        sel.addEventListener('change',()=>{ try{ TarkovStorage.set(KEY, sel.value); }catch(e){} });
+      });
+    })();
