@@ -143,7 +143,7 @@
         };
       });
     }
-    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    function esc(s){return String(s||'').replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>');}
 
     document.getElementById('addBtn').onclick = () => {
       document.getElementById('npanel').classList.remove('open');
