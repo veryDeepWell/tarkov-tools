@@ -1,29 +1,22 @@
-# v1 migration progress
+Tarkov Tools — progress
+=======================
+Stage 0: PLATFORM.md + kind sync + Notify owner — done
+Stage 1: Live trio TarkovPoll + Notify — done
+Stage 3: UI shell / density — done (shell inject)
+Stage 4: Platform i18n + hub UX + single catalog — done 2026-09-22
 
-Updated: 2026-09-22
+Stage 4 checklist
+-----------------
+[x] Single catalog source: catalog.json (+ optional __TT_CATALOG_DATA bootstrap)
+[x] hub/tarkov-hub-catalog.js loads catalog.json only
+[x] hub-cats owns renderCatalog (category collapse, pins, search)
+[x] hub-app owns mini tabs / expand / pins helpers only (no flat grid override)
+[x] Hub HTML data-i18n for title, sub, search, mini, collapse, notif
+[x] Mini tip status strings via TarkovI18n
+[x] Card titles via toolTitle/toolDesc on lang change
+[x] de / uk / zh-CN: full common + hub + cat packs
+[x] Collapse: .cat-body.is-collapsed + persistent tarkovCollapsedCats
+[x] Mini bar label i18n hub.mini
 
-## Rule
-
-Always update this file after each migration batch. `v1fixes.txt` remains the architecture plan.
-
-## Completed this batch (storage tails)
-
-- `desk`: notify text no longer claims direct localStorage; already on TarkovState/TarkovStorage.
-- `food`, `nvg`, `cultist`, `random-loadout`, `drip-loadout`: `TarkovStorage` for settings + preferred game mode.
-- `lang-search` / `tarkov-localizer.js`: languages via `TarkovStorage.getJson/setJson`; HTML loads `tarkov-storage.js`.
-- `drip-builder`, `loadout-budget` stubs: include `tarkov-storage.js` (no tool JS — intentional stubs).
-- `tarkov-price-track-boot.js`: RUN/META keys via TarkovStorage.
-
-## Current count
-
-- Catalog tools: 46.
-- Strict migration (TarkovStorage, no direct localStorage in tool JS): 44.
-- Stub-only HTML (no JS to migrate): 2 — `drip-builder`, `loadout-budget`.
-- Direct `localStorage` in tools/: 0 after boot fix.
-
-## Remaining (not storage tails)
-
-- Live platform hardening (poll/notify uniformity).
-- i18n coverage on tool screens.
-- Catalog single-source / generated artifact.
-- Implementing stub tools when product-ready.
+Note: tool.* titles for de/uk/zh fall back to EN via TarkovI18n.t
+en/ru hub.sub|pin|unpin|changelog|hiddenCount — add if missing on next locale pass
