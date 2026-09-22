@@ -1,17 +1,48 @@
-/*! TarkovPoll — unified interval runner + countdown for background tools */
+/*! TarkovPoll — single interval runner + countdown for all live background tools.
+ * Source of truth: TarkovStorage (tarkovPoll.<id>).
+ * No per-tool timers, no dual run-state. Notify is caller responsibility.
+ */
 (function (global) {
   "use strict";
   var PREFIX = "tarkovPoll.";
   var timers = Object.create(null);
+  var inFlight = Object.create(null);
   var countdownIv = null;
   var boundEls = [];
 
-  function key(id) { return PREFIX + String(id || "default"); }
+  function storage() {
+    return global.TarkovStorage || null;
+  }
+
+  function key(id) {
+    return PREFIX + String(id || "default");
+  }
 
   function read(id) {
-    try { return JSON.parse(localStorage.getItem(key(id)) || "null") || null; } catch (e) { return null; }
+    var S = storage();
+    if (S && S.getJson) {
+      try {
+        return S.getJson(key(id), null);
+      } catch (e) {
+        return null;
+      }
+    }
+    try {
+      return JSON.parse(localStorage.getItem(key(id)) || "null") || null;
+    } catch (e) {
+      return null;
+    }
   }
+
   function write(id, obj) {
+    var S = storage();
+    if (S && S.setJson) {
+      try {
+        if (!obj) S.remove(key(id));
+        else S.setJson(key(id), obj);
+        return;
+      } catch (e) {}
+    }
     try {
       if (!obj) localStorage.removeItem(key(id));
       else localStorage.setItem(key(id), JSON.stringify(obj));
@@ -33,9 +64,64 @@
   function clearTimer(id) {
     if (timers[id]) {
       clearTimeout(timers[id].timeout);
-      clearInterval(timers[id].interval);
+      if (timers[id].interval) clearInterval(timers[id].interval);
       delete timers[id];
     }
+  }
+
+  function status(id) {
+    var st = read(id);
+    if (!st) {
+      return {
+        on: false,
+        mins: 0,
+        nextAt: null,
+        remainMs: null,
+        remainText: "выкл",
+        mode: "",
+        label: "",
+        inFlight: false
+      };
+    }
+    var remain = st.on && st.nextAt ? Number(st.nextAt) - Date.now() : null;
+    return {
+      on: !!st.on,
+      mins: Number(st.mins) || 0,
+      nextAt: st.nextAt || null,
+      remainMs: remain,
+      remainText: st.on ? fmtRemain(remain) : "выкл",
+      mode: st.mode || "",
+      label: st.label || id,
+      inFlight: !!inFlight[id]
+    };
+  }
+
+  function setInFlight(id, v) {
+    if (v) inFlight[id] = true;
+    else delete inFlight[id];
+    paintAll();
+  }
+
+  function isInFlight(id) {
+    return !!inFlight[id];
+  }
+
+  /** Report mini-tab status to hub (single channel). */
+  function reportMini(toolFile, running, label) {
+    try {
+      if (global.parent && global.parent !== global) {
+        global.parent.postMessage(
+          {
+            type: "tt-status",
+            tool: toolFile,
+            running: !!running,
+            ready: true,
+            label: label || ""
+          },
+          location.origin
+        );
+      }
+    } catch (e) {}
   }
 
   function start(id, mins, onFire, opts) {
@@ -53,7 +139,8 @@
       mins: mins,
       nextAt: nextAt,
       mode: opts.mode || st.mode || "",
-      label: opts.label || st.label || id
+      label: opts.label || st.label || id,
+      tool: opts.tool || st.tool || ""
     };
     write(id, st);
 
@@ -64,10 +151,18 @@
       var wait = Math.max(0, Number(st.nextAt) - Date.now());
       timers[id] = {
         timeout: setTimeout(function () {
+          if (inFlight[id]) {
+            arm();
+            return;
+          }
+          setInFlight(id, true);
           Promise.resolve()
-            .then(function () { return onFire && onFire(); })
+            .then(function () {
+              return onFire && onFire();
+            })
             .catch(function () {})
             .then(function () {
+              setInFlight(id, false);
               var cur = read(id);
               if (!cur || !cur.on) return;
               cur.nextAt = Date.now() + (Number(cur.mins) || mins) * 60000;
@@ -81,16 +176,24 @@
     }
 
     if (opts.fireNow !== false && nextAt <= now) {
-      Promise.resolve()
-        .then(function () { return onFire && onFire(); })
-        .catch(function () {})
-        .then(function () {
-          var cur = read(id) || st;
-          if (!cur.on) return;
-          cur.nextAt = Date.now() + mins * 60000;
-          write(id, cur);
-          arm();
-        });
+      if (!inFlight[id]) {
+        setInFlight(id, true);
+        Promise.resolve()
+          .then(function () {
+            return onFire && onFire();
+          })
+          .catch(function () {})
+          .then(function () {
+            setInFlight(id, false);
+            var cur = read(id) || st;
+            if (!cur.on) return;
+            cur.nextAt = Date.now() + mins * 60000;
+            write(id, cur);
+            arm();
+          });
+      } else {
+        arm();
+      }
     } else {
       arm();
     }
@@ -100,26 +203,12 @@
 
   function stop(id) {
     clearTimer(id);
+    setInFlight(id, false);
     var st = read(id) || {};
     st.on = false;
     st.nextAt = null;
     write(id, st);
     paintAll();
-  }
-
-  function status(id) {
-    var st = read(id);
-    if (!st) return { on: false, mins: 0, nextAt: null, remainMs: null, label: "" };
-    var remain = st.on && st.nextAt ? Number(st.nextAt) - Date.now() : null;
-    return {
-      on: !!st.on,
-      mins: Number(st.mins) || 0,
-      nextAt: st.nextAt || null,
-      remainMs: remain,
-      remainText: st.on ? fmtRemain(remain) : "выкл",
-      mode: st.mode || "",
-      label: st.label || id
-    };
   }
 
   function paintEl(el, id) {
@@ -128,7 +217,14 @@
     var prefix = el.getAttribute("data-poll-prefix");
     if (prefix == null) prefix = "Следующий запуск: ";
     if (st.on) {
-      el.textContent = prefix + st.remainText + (st.mins ? " · каждые " + st.mins + " мин" : "");
+      if (st.inFlight) {
+        el.textContent = prefix + "идёт…";
+      } else {
+        el.textContent =
+          prefix +
+          st.remainText +
+          (st.mins ? " · каждые " + st.mins + " мин" : "");
+      }
       el.classList.add("on");
       el.classList.remove("off");
     } else {
@@ -140,7 +236,9 @@
 
   function paintAll() {
     for (var i = 0; i < boundEls.length; i++) {
-      try { paintEl(boundEls[i].el, boundEls[i].id); } catch (e) {}
+      try {
+        paintEl(boundEls[i].el, boundEls[i].id);
+      } catch (e) {}
     }
   }
 
@@ -155,7 +253,9 @@
     ensureCountdownLoop();
     paintEl(el, id);
     return function unbind() {
-      boundEls = boundEls.filter(function (x) { return x.el !== el; });
+      boundEls = boundEls.filter(function (x) {
+        return x.el !== el;
+      });
     };
   }
 
@@ -167,6 +267,9 @@
     write: write,
     bindCountdown: bindCountdown,
     fmtRemain: fmtRemain,
-    paintAll: paintAll
+    paintAll: paintAll,
+    setInFlight: setInFlight,
+    isInFlight: isInFlight,
+    reportMini: reportMini
   };
 })(window);
