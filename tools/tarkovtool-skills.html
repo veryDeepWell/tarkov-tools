@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Скиллы · чизы и софт-кап — Tarkov</title>
   <link rel="stylesheet" href="../core/tarkov-common.css">
+  <link rel="stylesheet" href="../core/tarkov-ui.css">
   <script type="application/json" id="tarkovtool-meta">
-  {"title": "Скиллы + чизы", "description": "Трекер уровней, софт-кап усталости навыка, чиз-страты 1.0+."}
+  {"title": "Скиллы + чизы", "description": "Трекер уровней, усталость навыка, метаболизм, стимы, чиз-страты."}
   </script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -36,18 +37,22 @@
     .good{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--orange)}
     h1{margin-bottom:6px}
     .sub{color:var(--muted);margin-bottom:16px}
+    .kit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:10px}
+    .kit-item{border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:.88rem;line-height:1.4}
+    .kit-item b{color:var(--accent)}
+    .kit-item .meta{color:var(--muted);font-size:.8rem;margin-top:4px}
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Скиллы · чизы · софт-кап</h1>
-    <p class="sub">Патч 1.0+ · трекер + как качать эффективно, не в молоко</p>
+    <p class="sub">1.0 / Season · трекер + как качать, не в молоко</p>
 
     <div class="card">
       <div class="card-title">Усталость навыка (софт-кап в рейде)</div>
       <p class="hint">
         За рейд навык качается с множителем в зависимости от того, сколько <b>полных очков</b> ты уже набил по этому скиллу.
-        Стрелка в меню навыков: синяя = буст, красная = уже режет.
+        Стрелка в меню: синяя = буст, красная = уже режет.
       </p>
       <table class="fatigue-table">
         <thead>
@@ -56,16 +61,87 @@
         <tbody>
           <tr><td>0 → первое</td><td class="good">~129%</td><td>Синяя стрелка — самое жирное</td></tr>
           <tr><td>после 1-го</td><td>100%</td><td>Норма</td></tr>
-          <tr><td>2-е</td><td class="warn">~60%</td><td>Красная стрелка, уже хуже</td></tr>
+          <tr><td>2-е</td><td class="warn">~60%</td><td>Красная стрелка</td></tr>
           <tr><td>3-е</td><td class="bad">~36%</td><td>Почти впустую</td></tr>
           <tr><td>4-е+</td><td class="bad">~22% и ниже</td><td>Формула ~0.6^(n−1)</td></tr>
         </tbody>
       </table>
       <p class="hint" style="margin-top:10px">
-        Практический вывод: <b>1 полноценное действие на скилл за рейд</b> (одна хирургия, один «пакет» еды/воды, кусок перегруза) — нормально.
-        Спамить 5 CMS подряд в одном рейде — после первого-второго очка XP тает.
-        Часть источников пишет про ~5 мин «отлежки» до возврата эффективности — не надейся на это как на абьюз, ориентир всё равно 1–2 очка/скилл/рейд.
-        Elite = 51, стимы временно до 60.
+        После <b>~200 с</b> без прогресса по этому скиллу усталость сбрасывается до <b>100%</b> (не до 129%).
+        Практический вывод: <b>1–2 очка на скилл за рейд</b>, ротация когда красная стрелка.
+        Elite = 51; стимы временно до ~60. Если стим поднял скилл выше 51 — XP по нему в этом рейде часто не идёт.
+      </p>
+      <p class="hint" style="margin-top:8px">
+        <b>Бусты убежища:</b> Air Filtering + FP-100 → +40% Physical · Library → +30% Practical · Shooting Range 3 → +10% Combat.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Метаболизм · что брать в рейд</div>
+      <p class="hint">
+        Поинты только за <b>восстановление</b> недостающих energy/hydration <b>в рейде</b>.
+        Еда в стейше UI показывает прогресс — это баг, не засчитывается.
+        Сначала еда (часто −hyd), потом вода.
+      </p>
+      <div class="kit-grid">
+        <div class="kit-item">
+          <b>Mayo</b>
+          <div class="meta">+100 energy / −99 hydration → сразу вода. Классический чиз.</div>
+        </div>
+        <div class="kit-item">
+          <b>Ibuprofen</b>
+          <div class="meta">−17 hyd за юз, много юзов. Фон слива воды + обезбол. Оптом.</div>
+        </div>
+        <div class="kit-item">
+          <b>Golden Star</b>
+          <div class="meta">−19 energy, много юзов. Потом еда. Иногда даёт поинты «вхолостую».</div>
+        </div>
+        <div class="kit-item">
+          <b>Trimadol</b>
+          <div class="meta">−0.5/с energy и hyd ~180 с. Жёсткий слив + сила/выносливость.</div>
+        </div>
+        <div class="kit-item">
+          <b>Morphine</b>
+          <div class="meta">Сразу −10 energy / −15 hyd. Дёшево, разовый слив + быстрый обезбол.</div>
+        </div>
+        <div class="kit-item">
+          <b>Meldonin</b>
+          <div class="meta">−0.1/с обе шкалы 900 с. Мягкий фон на 15 мин силы/endurance.</div>
+        </div>
+        <div class="kit-item">
+          <b>Вода 0.6 / Aquamari</b>
+          <div class="meta">Дешёвое восполнение hydration после Mayo/Ibu.</div>
+        </div>
+        <div class="kit-item">
+          <b>Iskra / Tushonka</b>
+          <div class="meta">Энергия для длинного рейда после stim-drain.</div>
+        </div>
+      </div>
+      <p class="hint" style="margin-top:12px">
+        <b>Мини-набор:</b> Ibuprofen + вода 0.6 + Mayo или Iskra. По рейду: чуть слил → чуть восстановил → не упирайся в красную стрелку.
+        Квесты: Survivalist Path – Junkie (+2), A Life Lesson (+1).
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Стимы: сильный / мягкий drain</div>
+      <table class="fatigue-table">
+        <thead>
+          <tr><th>Стим</th><th>Drain</th><th>Заметка</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Trimadol</td><td class="bad">−0.5/с обе ~180 с</td><td>Макс. слив для метаболизма</td></tr>
+          <tr><td>SJ1</td><td class="warn">−0.25 / −0.3/с ~200 с</td><td>Движение + сила</td></tr>
+          <tr><td>L1</td><td class="warn">−0.45/с ~60 с</td><td>Короткий, агрессивный</td></tr>
+          <tr><td>Morphine</td><td class="warn">−10 / −15 сразу</td><td>Оптом, разовый</td></tr>
+          <tr><td>Meldonin</td><td>−0.1/с 900 с</td><td>Долгий мягкий фон</td></tr>
+          <tr><td>Ibuprofen</td><td>−17 hyd / юз</td><td class="good">Лучший опт для воды</td></tr>
+          <tr><td>Golden Star</td><td>−19 energy</td><td>Много юзов</td></tr>
+        </tbody>
+      </table>
+      <p class="hint" style="margin-top:10px">
+        Негативы «быстро спадут + оптом»: Ibuprofen, Morphine, Analgin, Max Energy (~300 с Stress −1 + еда/вода).
+        Длинные дебаффы (Obdolbos) — для Immunity, не для быстрого цикла.
       </p>
     </div>
 
@@ -86,5 +162,6 @@
   <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
   <script src="tarkovtool-skills.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
 </body>
 </html>
