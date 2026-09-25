@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tarkov Tools</title>
   <link rel="icon" href="data:,">
-  <link rel="preload" href="core/tarkov-common.css?v=11" as="style">
-  <link rel="stylesheet" href="core/tarkov-common.css?v=11">
+  <link rel="preload" href="core/tarkov-common.css?v=12" as="style">
+  <link rel="stylesheet" href="core/tarkov-common.css?v=12">
   <link rel="stylesheet" href="core/tarkov-ui.css?v=2">
   <link rel="stylesheet" href="core/tarkov-i18n.css">
   <script type="application/json" id="tarkovtool-meta">
@@ -15,12 +15,18 @@
   <style>
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
     #grid.catalog-root, .catalog-root { display: block !important; }
-    .catalog-root .cat-body.grid, .cat-body.grid {
+    .catalog-root .cat-body.grid:not(.is-collapsed),
+    .cat-body.grid:not(.is-collapsed) {
       display: grid !important;
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 12px;
     }
-    .cat-body.is-collapsed { display: none !important; }
+    .cat-body.is-collapsed,
+    .cat-body.grid.is-collapsed,
+    .catalog-root .cat-body.is-collapsed,
+    .catalog-root .cat-body.grid.is-collapsed {
+      display: none !important;
+    }
     .tool {
       display: flex; flex-direction: column; text-decoration: none; color: inherit;
       background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px;
@@ -120,10 +126,10 @@
   <script defer src="core/tarkov-icons.js"></script>
   <script defer src="hub/catalog-data.js?v=3"></script>
   <script defer src="hub/tarkov-hub-catalog.js?v=5"></script>
-  <script defer src="hub/tarkov-hub-app.js?v=5"></script>
-  <script defer src="hub/tarkov-hub-cats.js?v=9"></script>
-  <script defer src="hub/tarkov-settings-tabs.js"></script>
+  <script defer src="hub/tarkov-hub-app.js?v=6"></script>
+  <script defer src="hub/tarkov-hub-cats.js?v=10"></script>
+  <script defer src="hub/tarkov-settings-tabs.js?v=2"></script>
   <script defer src="hub/tarkov-hub-notif.js"></script>
-  <script defer src="core/tarkov-chrome-fix.js"></script>
+  <script defer src="core/tarkov-chrome-fix.js?v=2"></script>
 </body>
 </html>
