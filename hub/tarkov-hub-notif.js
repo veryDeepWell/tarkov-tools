@@ -21,18 +21,46 @@
   }
   function esc(s) {
     return String(s || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+      .replace(/&/g, '&')
+      .replace(/</g, '<')
+      .replace(/>/g, '>')
+      .replace(/"/g, '"');
   }
   function renderNotifPanel() {
     var box = document.getElementById('notifList');
     if (!box) return;
     var list = allNotifications().slice().sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
-    if (!list.length) { box.innerHTML = '<p class="meta">Пока пусто</p>'; return; }
+    if (!list.length) {
+      var empty = 'Empty';
+      try {
+        if (window.TarkovI18n && TarkovI18n.t) {
+          var e = TarkovI18n.t('hub.notifEmpty');
+          if (e && e.indexOf('hub.') !== 0) empty = e;
+        } else if (window.TarkovTools && TarkovTools.t) {
+          empty = TarkovTools.t('hub.notifEmpty') || empty;
+        }
+      } catch (e0) {}
+      box.innerHTML = '<p class="meta">' + empty + '</p>';
+      return;
+    }
     box.innerHTML = list.map(function (n) {
-      var when = n.ts ? new Date(n.ts).toLocaleString('ru-RU') : '';
+      var when = '';
+      if (n.ts) {
+        try {
+          var loc = 'ru-RU';
+          try {
+            if (window.TarkovI18n && TarkovI18n.lang) {
+              var lg = TarkovI18n.lang();
+              if (lg === 'en') loc = 'en-US';
+              else if (lg === 'uk') loc = 'uk-UA';
+              else if (lg === 'de') loc = 'de-DE';
+              else if (lg === 'zh-CN') loc = 'zh-CN';
+              else loc = 'ru-RU';
+            }
+          } catch (eL) {}
+          when = new Date(n.ts).toLocaleString(loc);
+        } catch (eD) { when = new Date(n.ts).toLocaleString(); }
+      }
       var tool = (n.tool || '').replace('tarkovtool-', '').replace('.html', '');
       var cls = n.read ? '' : ' unread';
       return '<div class="n-row' + cls + '"><div class="n-title">' + esc(n.title || '—') + '</div>' +
@@ -81,7 +109,6 @@
     };
   }
 
-  // Single path UI refresh: TarkovState notifies → update bell/panel
   function refreshNotifUI() {
     updateNotifBell();
     try { if (typeof renderNotifPanel === 'function') renderNotifPanel(); } catch (e) {}
