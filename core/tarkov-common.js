@@ -1,62 +1,43 @@
-/*! Tarkov Tools common — theme, i18n helpers, sound, Notify, settings bar */
+/*! Tarkov Tools common — theme, storage, beep, Notify, settings shell */
 (function (global) {
   "use strict";
+  if (global.TarkovTools && global.TarkovTools._ttCommon) return;
 
-  function ttRoot() {
-    try {
-      var p = location.pathname || "";
-      if (p.indexOf("/tools/") >= 0) return "../";
-    } catch (e) {}
-    return "";
-  }
-  function ttUrl(rel) {
-    var root = ttRoot();
-    rel = String(rel || "").replace(/^\//, "");
-    return root + rel;
-  }
-  const KEYS = {
+  var KEYS = {
     theme: "tarkovTheme",
+    accent: "tarkovAccent",
     lang: "tarkovLang",
     sound: "tarkovSound",
     volume: "tarkovSoundVolume",
     mode: "tarkovPreferredGameMode",
-    accent: "tarkovAccent",
     tips: "tarkovTips",
-    seen: "tarkovSettingsSeen"
+    hidden: "tarkovHiddenTools"
   };
-  const ACCENTS = {
+
+  var ACCENTS = {
     gold: "#c9a227", blue: "#5b9fd4", green: "#3dd68c", cyan: "#2ec4b6",
     purple: "#a78bfa", orange: "#e0a458", red: "#f07178", pink: "#e879a9", slate: "#94a3b8"
   };
-  const I18N = {
-    ru: { settings:"Настройки", theme:"Тема", themeDark:"Тёмная", themeLight:"Светлая", lang:"Язык", sound:"Звук", soundOn:"Вкл", soundOff:"Выкл", mode:"Режим по умолчанию", close:"Закрыть", export:"Экспорт", import:"Импорт", importOk:"Импорт выполнен", importFail:"Ошибка импорта", search:"Поиск по таблице…", welcomeTitle:"Настройки Tarkov Tools", welcomeBody:"Тема, язык, звук, режим и акцент.", apply:"Применить", hub:"Хаб", accent:"Акцент", tips:"Подсказки тулзов", tipsOn:"Вкл", tipsOff:"Выкл", volume:"Громкость", testSound:"Тест" },
-    en: { settings:"Settings", theme:"Theme", themeDark:"Dark", themeLight:"Light", lang:"Language", sound:"Sound", soundOn:"On", soundOff:"Off", mode:"Default mode", close:"Close", export:"Export", import:"Import", importOk:"Import done", importFail:"Import failed", search:"Filter table…", welcomeTitle:"Tarkov Tools settings", welcomeBody:"Theme, language, sound, mode and accent.", apply:"Apply", hub:"Hub", accent:"Accent", tips:"Tool tips", tipsOn:"On", tipsOff:"Off", volume:"Volume", testSound:"Test" }
-  };
 
-  function get(k, def) {
-    try {
-      var v = localStorage.getItem(k);
-      return v == null ? def : v;
-    } catch (e) { return def; }
+  function get(k, d) {
+    try { var v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; }
   }
-  function set(k, v) {
-    try { localStorage.setItem(k, String(v)); } catch (e) {}
-  }
+  function set(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
 
   function lang() {
     try {
-      if (window.TarkovI18n && TarkovI18n.current) return TarkovI18n.current;
+      if (global.TarkovI18n && TarkovI18n.lang) return TarkovI18n.lang();
     } catch (e) {}
-    var v = get(KEYS.lang, "ru") || "ru";
-    return v;
+    return get(KEYS.lang, "ru") || "ru";
   }
+
+  var I18N = { ru: {}, en: {} };
+
   function t(key) {
     try {
-      if (window.TarkovI18n && TarkovI18n.t) {
+      if (global.TarkovI18n && TarkovI18n.t) {
         var v = TarkovI18n.t(key);
         if (v && v !== key) return v;
-        v = TarkovI18n.t("common." + key);
-        if (v && v !== "common." + key) return v;
       }
     } catch (e) {}
     var pack = I18N[lang()] || I18N.ru;
@@ -107,11 +88,23 @@
   function beep(kind) {
     if (!soundEnabled()) return;
     try {
+      kind = kind || "ok";
+      var kindKey = kind;
+      if (kindKey === "warn") kindKey = "alarm";
+      if (kindKey === "price") kindKey = "ok";
+      if (kindKey === "error") kindKey = "ok";
+      try {
+        if (get("tarkovSoundKind." + kindKey, "1") === "0") return;
+      } catch (e0) {}
       var ctx = unlockAudio();
       if (!ctx) return;
       var now = ctx.currentTime;
-      var vol = volume() * 0.22;
-      kind = kind || "ok";
+      var kMul = 1;
+      try {
+        kMul = parseFloat(get("tarkovSoundKindVol." + kindKey, "1"));
+        if (isNaN(kMul)) kMul = 1;
+      } catch (e1) { kMul = 1; }
+      var vol = volume() * 0.22 * Math.min(1, Math.max(0, kMul));
       if (kind === "ok" || kind === "price") {
         tone(ctx, 880, now, 0.1, vol);
         tone(ctx, 1174, now + 0.1, 0.12, vol * 0.9);
@@ -158,7 +151,6 @@
     } catch (e) { return null; }
   }
 
-  /** Platform Notify — sole owner of notification sound (hub must not beep on tt-notify). */
   function Notify(opts) {
     opts = opts || {};
     pushNotifLocal(opts);
@@ -179,147 +171,27 @@
         }, location.origin);
       }
     } catch (e) {}
-    return opts;
-  }
-  window.Notify = Notify;
-
-  function exportAll() {
-    var data = {};
-    try {
-      for (var i = 0; i < localStorage.length; i++) {
-        var k = localStorage.key(i);
-        if (k && k.indexOf("tarkov") === 0) data[k] = localStorage.getItem(k);
-      }
-    } catch (e) {}
-    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "tarkov-tools-settings.json";
-    a.click();
-  }
-  function importAll(file) {
-    var reader = new FileReader();
-    reader.onload = function () {
-      try {
-        var data = JSON.parse(reader.result);
-        Object.keys(data).forEach(function (k) {
-          if (k.indexOf("tarkov") === 0) localStorage.setItem(k, data[k]);
-        });
-        applyTheme();
-        alert(t("importOk"));
-      } catch (e) { alert(t("importFail")); }
-    };
-    reader.readAsText(file);
-  }
-
-  function openSettings() {
-    if (window.TarkovSettingsTabs && TarkovSettingsTabs.open) {
-      TarkovSettingsTabs.open();
-      return;
-    }
-  }
-
-  function paintBar() {
-    /* Settings/theme/lang chrome is hub-only — not inside tools */
-    try {
-      var path = location.pathname || "";
-      if (/tarkovtool-/.test(path) && !/tarkovtool-hub\.html$/i.test(path)) {
-        var existing = document.getElementById("tt-tools-bar");
-        if (existing) existing.remove();
-        return;
-      }
-    } catch (e) {}
-    var bar = document.getElementById("tt-tools-bar");
-    if (!bar) {
-      bar = document.createElement("div");
-      bar.id = "tt-tools-bar";
-      bar.className = "tt-tools-bar";
-      bar.innerHTML =
-        '<button type="button" class="btn-ghost" id="tt-bar-settings" title="Settings">⚙</button>' +
-        '<button type="button" class="btn-ghost" id="tt-bar-theme" title="Theme">🌓</button>' +
-        '<button type="button" class="btn-ghost" id="tt-bar-lang" title="Language">🌐</button>';
-      document.body.appendChild(bar);
-    }
-    var btnS = document.getElementById("tt-bar-settings");
-    var btnT = document.getElementById("tt-bar-theme");
-    var btnL = document.getElementById("tt-bar-lang");
-    if (btnS) btnS.onclick = function () { openSettings(); };
-    if (btnT) btnT.onclick = function () {
-      var th = get(KEYS.theme, "dark") === "light" ? "dark" : "light";
-      set(KEYS.theme, th);
-      applyTheme();
-    };
-    if (btnL) btnL.onclick = function () {
-      var cur = lang();
-      var next = cur === "ru" ? "en" : "ru";
-      set(KEYS.lang, next);
-      if (window.TarkovI18n && TarkovI18n.setLang) {
-        TarkovI18n.setLang(next).then(function () {
-          try { TarkovI18n.applyDom(document); } catch (e) {}
-          try { window.dispatchEvent(new CustomEvent("tt-lang-changed", { detail: { lang: next } })); } catch (e) {}
-        });
-      } else {
-        try { window.dispatchEvent(new CustomEvent("tt-lang-changed", { detail: { lang: next } })); } catch (e) {}
-      }
-    };
-  }
-
-  function enhanceTable(table, filterInput) {
-    if (!table || table._ttEnhanced) return;
-    table._ttEnhanced = true;
-    var sortState = { col: -1, dir: 0 };
-    function rows() {
-      return [].slice.call(table.tBodies[0] ? table.tBodies[0].rows : []);
-    }
-    function applyFilter() {
-      var q = (filterInput && filterInput.value || "").toLowerCase().trim();
-      rows().forEach(function (r) {
-        r.style.display = !q || r.textContent.toLowerCase().indexOf(q) >= 0 ? "" : "none";
-      });
-    }
-    if (filterInput) filterInput.addEventListener("input", applyFilter);
-    new MutationObserver(function () { applyFilter(); }).observe(table.tBodies[0] || table, { childList: true, subtree: true });
-    [].forEach.call(table.tHead && table.tHead.rows[0] ? table.tHead.rows[0].cells : [], function (th, idx) {
-      th.style.cursor = "pointer";
-      th.addEventListener("click", function () {
-        if (sortState.col === idx) sortState.dir = sortState.dir === 1 ? -1 : (sortState.dir === -1 ? 0 : 1);
-        else { sortState.col = idx; sortState.dir = 1; }
-        [].forEach.call(table.tHead.rows[0].cells, function (c) {
-          c.classList.remove("sorted-asc", "sorted-desc");
-          c.removeAttribute("aria-sort");
-        });
-        if (sortState.dir === 0) { applyFilter(); return; }
-        th.classList.add(sortState.dir === 1 ? "sorted-asc" : "sorted-desc");
-        th.setAttribute("aria-sort", sortState.dir === 1 ? "ascending" : "descending");
-        var sorted = rows().slice().sort(function (a, b) {
-          var av = (a.cells[idx] && a.cells[idx].textContent || "").trim();
-          var bv = (b.cells[idx] && b.cells[idx].textContent || "").trim();
-          var an = parseFloat(av.replace(/[^\d.-]/g, ""));
-          var bn = parseFloat(bv.replace(/[^\d.-]/g, ""));
-          var cmp = (!isNaN(an) && !isNaN(bn)) ? (an - bn) : av.localeCompare(bv, undefined, { numeric: true });
-          return sortState.dir === 1 ? cmp : -cmp;
-        });
-        var body = table.tBodies[0];
-        sorted.forEach(function (r) { body.appendChild(r); });
-      });
-    });
   }
 
   function hiddenTools() {
-    try { return JSON.parse(get("tarkovHiddenTools", "[]")) || []; } catch (e) { return []; }
+    try { return JSON.parse(get(KEYS.hidden, "[]")) || []; } catch (e) { return []; }
   }
   function setHiddenTools(arr) {
-    set("tarkovHiddenTools", JSON.stringify(arr || []));
+    set(KEYS.hidden, JSON.stringify(arr || []));
     try { window.dispatchEvent(new CustomEvent("tt-hidden-changed")); } catch (e) {}
   }
 
-  global.TarkovTools = {
-    KEYS: KEYS,
-    ACCENTS: ACCENTS,
+  function openSettings() {
+    /* overridden by settings-tabs.js */
+  }
+
+  global.TarkovTools = global.TarkovTools || {};
+  Object.assign(global.TarkovTools, {
+    _ttCommon: true,
     get: get,
     set: set,
-    lang: lang,
     t: t,
+    lang: lang,
     soundEnabled: soundEnabled,
     volume: volume,
     preferredMode: preferredMode,
@@ -327,59 +199,12 @@
     applyTheme: applyTheme,
     beep: beep,
     Notify: Notify,
-    unlockAudio: unlockAudio,
-    exportAll: exportAll,
-    importAll: importAll,
-    openSettings: openSettings,
-    loadToolShell: loadToolShell,
-    enhanceTable: enhanceTable,
+    notify: Notify,
     hiddenTools: hiddenTools,
     setHiddenTools: setHiddenTools,
-    ttUrl: ttUrl
-  };
-
-  applyTheme();
-  try {
-    var unlockOnce = function () { unlockAudio(); };
-    document.addEventListener("pointerdown", unlockOnce, { passive: true });
-    document.addEventListener("keydown", unlockOnce, { passive: true });
-  } catch (e) {}
-  try {
-    if (window.TarkovI18n && TarkovI18n.ready) {
-      TarkovI18n.ready.then(function () {
-        try { TarkovI18n.applyDom(document); } catch (e) {}
-      });
-    }
-  } catch (e) {}
-  window.addEventListener("tt-lang-changed", function () {
-    try {
-      if (window.TarkovI18n && TarkovI18n.applyDom) TarkovI18n.applyDom(document);
-    } catch (e) {}
+    openSettings: openSettings,
+    ACCENTS: ACCENTS
   });
 
-
-  /** Stage 3 — load UI shell on every tool page (100% coverage). */
-  function loadToolShell() {
-    try {
-      if (document.getElementById("tt-tool-shell")) return;
-      var path = location.pathname || "";
-      if (/tarkovtool-hub\.html$/i.test(path)) return;
-      if (!/tarkovtool-/i.test(path)) return;
-      var s = document.createElement("script");
-      s.id = "tt-tool-shell";
-      s.src = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-tool-shell.js";
-      s.async = false;
-      (document.head || document.documentElement).appendChild(s);
-    } catch (e) {}
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function () {
-      try { paintBar(); } catch (e) {}
-      try { loadToolShell(); } catch (e) {}
-    });
-  } else {
-    try { paintBar(); } catch (e) {}
-    try { loadToolShell(); } catch (e) {}
-  }
-})(window);
+  try { applyTheme(); } catch (e) {}
+})(typeof window !== "undefined" ? window : this);
