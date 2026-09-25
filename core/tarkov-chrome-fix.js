@@ -1,4 +1,4 @@
-/*! Hub chrome — settings/theme/lang in .tt-bar only; never on tools */
+/*! Hub chrome — settings/lang/FAQ in .tt-bar only; theme only in settings */
 (function () {
   "use strict";
 
@@ -20,8 +20,46 @@
     } catch (e) {}
   }
 
+  function openFaq() {
+    var bg = document.getElementById("tt-faq-bg");
+    if (!bg) {
+      bg = document.createElement("div");
+      bg.id = "tt-faq-bg";
+      bg.className = "modal-bg";
+      bg.innerHTML =
+        '<div class="modal" style="max-width:min(560px,94vw)">' +
+        '<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px">' +
+        "<h2 style=\"margin:0\">FAQ</h2>" +
+        '<button type="button" class="btn-ghost" id="tt-faq-x" style="min-width:36px!important;padding:0 10px">×</button></div>' +
+        '<div id="tt-faq-body" style="color:var(--muted);line-height:1.5;font-size:.95rem"></div></div>';
+      document.body.appendChild(bg);
+      bg.addEventListener("click", function (e) {
+        if (e.target === bg) bg.classList.remove("show");
+      });
+      var x = document.getElementById("tt-faq-x");
+      if (x)
+        x.onclick = function () {
+          bg.classList.remove("show");
+        };
+    }
+    var body = document.getElementById("tt-faq-body");
+    if (body) {
+      body.innerHTML =
+        "<p><b style=\"color:var(--text)\">Что это?</b><br>" +
+        "Tarkov Tools — набор утилит для Escape from Tarkov: цены, бартер, лоадауты, убежище и т.д. Всё в одном хабе.</p>" +
+        "<p><b style=\"color:var(--text)\">Как открыть инструмент?</b><br>" +
+        "Клик по карточке открывает мини-вкладку. Правый клик по чипу MINI — закрыть. Ctrl/Cmd+клик — в новой вкладке.</p>" +
+        "<p><b style=\"color:var(--text)\">Что такое MINI?</b><br>" +
+        "Панель фоновых/открытых инструментов. Live-тулзы (трекер цен, сирена, ресток) могут работать в фоне.</p>" +
+        "<p><b style=\"color:var(--text)\">Где настройки?</b><br>" +
+        "Кнопка Settings в шапке. Тема, язык, звук и скрытие тулзов — только там.</p>" +
+        "<p><b style=\"color:var(--text)\">Локализация</b><br>" +
+        "Язык в настройках. Недостающие строки подставляются из English.</p>";
+    }
+    bg.classList.add("show");
+  }
+
   function wireHubBar() {
-    /* remove floating bar if present */
     try {
       var float = document.getElementById("tt-tools-bar");
       if (float) float.remove();
@@ -32,6 +70,12 @@
     var bar = document.querySelector(".tt-bar");
     if (!bar) return;
 
+    /* theme only in settings */
+    try {
+      var oldT = document.getElementById("tt-bar-theme");
+      if (oldT) oldT.remove();
+    } catch (e) {}
+
     if (!document.getElementById("tt-open-settings")) {
       var b = document.createElement("button");
       b.type = "button";
@@ -40,14 +84,13 @@
       b.textContent = "Settings";
       bar.appendChild(b);
     }
-    if (!document.getElementById("tt-bar-theme")) {
-      var t = document.createElement("button");
-      t.type = "button";
-      t.className = "btn-ghost";
-      t.id = "tt-bar-theme";
-      t.title = "Theme";
-      t.textContent = "\uD83C\uDF11";
-      bar.appendChild(t);
+    if (!document.getElementById("tt-bar-faq")) {
+      var f = document.createElement("button");
+      f.type = "button";
+      f.className = "btn-ghost";
+      f.id = "tt-bar-faq";
+      f.textContent = "FAQ";
+      bar.appendChild(f);
     }
     if (!document.getElementById("tt-bar-lang")) {
       var l = document.createElement("button");
@@ -60,31 +103,32 @@
     }
 
     var btnS = document.getElementById("tt-open-settings");
-    var btnT = document.getElementById("tt-bar-theme");
+    var btnF = document.getElementById("tt-bar-faq");
     var btnL = document.getElementById("tt-bar-lang");
-    if (btnS) btnS.onclick = function (e) { e.preventDefault(); callOpenSettings(); };
-    if (btnT) btnT.onclick = function (e) {
-      e.preventDefault();
-      try {
-        var th = (localStorage.getItem("tarkovTheme") || "dark") === "light" ? "dark" : "light";
-        localStorage.setItem("tarkovTheme", th);
-        if (window.TarkovTools && TarkovTools.applyTheme) TarkovTools.applyTheme();
-        else document.documentElement.setAttribute("data-theme", th);
-      } catch (err) {}
-    };
-    if (btnL) btnL.onclick = function (e) {
-      e.preventDefault();
-      try {
-        var cur = (window.TarkovI18n && TarkovI18n.lang && TarkovI18n.lang()) || localStorage.getItem("tarkovLang") || "ru";
-        var next = cur === "ru" ? "en" : "ru";
-        localStorage.setItem("tarkovLang", next);
-        if (window.TarkovI18n && TarkovI18n.setLang) {
-          TarkovI18n.setLang(next);
-        } else {
-          location.reload();
-        }
-      } catch (err) {}
-    };
+    if (btnS)
+      btnS.onclick = function (e) {
+        e.preventDefault();
+        callOpenSettings();
+      };
+    if (btnF)
+      btnF.onclick = function (e) {
+        e.preventDefault();
+        openFaq();
+      };
+    if (btnL)
+      btnL.onclick = function (e) {
+        e.preventDefault();
+        try {
+          var cur =
+            (window.TarkovI18n && TarkovI18n.lang && TarkovI18n.lang()) ||
+            localStorage.getItem("tarkovLang") ||
+            "ru";
+          var next = cur === "ru" ? "en" : "ru";
+          localStorage.setItem("tarkovLang", next);
+          if (window.TarkovI18n && TarkovI18n.setLang) TarkovI18n.setLang(next);
+          else location.reload();
+        } catch (err) {}
+      };
   }
 
   function boot() {
