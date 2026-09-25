@@ -7,12 +7,13 @@
   var fired = {};
 
   function esc(s) {
+    var amp = String.fromCharCode(38);
     return String(s == null ? "" : s)
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """)
-      .replace(/'/g, "&#39;");
+      .replace(/&/g, amp + "amp;")
+      .replace(/</g, amp + "lt;")
+      .replace(/>/g, amp + "gt;")
+      .replace(/"/g, amp + "quot;")
+      .replace(/'/g, amp + "#39;");
   }
 
   function itemName(it) {
@@ -159,8 +160,8 @@
   async function checkOnce() {
     var P = progress();
     try {
-      if (P && P.start) P.start({ label: "…" });
-      if (P && P.set) P.set(10, "…");
+      if (P && P.start) P.start({ label: "..." });
+      if (P && P.set) P.set(10, "...");
       await loadCatalog();
       if (P && P.set) P.set(55, String(catalog.length));
       var rules = loadRules();
@@ -250,7 +251,9 @@
           '" style="width:100px">' +
           '<button type="button" class="btn-ghost" data-del="' +
           i +
-          '">\u00d7</button></div>'
+          '">' +
+          String.fromCharCode(0xd7) +
+          "</button></div>"
         );
       })
       .join("");
