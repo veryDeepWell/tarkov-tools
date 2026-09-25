@@ -85,15 +85,15 @@
       vol + '">' +
       '<button type="button" class="btn-ghost tt-kind-test" data-kind="' + kind +
       '" style="padding:4px 10px;font-size:.8rem">' +
-      t("common.testSound", "Test") + "</button></div>";
+      t("common.testSound", "Тест") + "</button></div>";
   }
 
   var LANGS = [
-    { id: "ru", name: "Russian" },
+    { id: "ru", name: "Русский" },
     { id: "en", name: "English" },
-    { id: "uk", name: "Ukrainian" },
+    { id: "uk", name: "Українська" },
     { id: "de", name: "Deutsch" },
-    { id: "zh-CN", name: "Chinese" }
+    { id: "zh-CN", name: "中文" }
   ];
 
   TarkovTools.openSettings = function () {
@@ -102,65 +102,66 @@
     if (!bg) {
       bg = document.createElement("div");
       bg.id = "tt-settings-bg";
-      bg.className = "tt-modal-bg";
+      bg.className = "modal-bg";
       bg.innerHTML =
-        '<div class="tt-modal tt-set-modal card" role="dialog" aria-modal="true">' +
+        '<div class="modal tt-set-modal card" role="dialog" aria-modal="true">' +
         '<div class="tt-modal-head" style="display:flex;align-items:center;gap:8px">' +
-        '<strong style="flex:1">' + t("common.settings", "Settings") + "</strong>" +
-        '<button type="button" class="btn-ghost" id="tt-set-close" aria-label="Close">X</button></div>' +
+        '<strong style="flex:1">' + t("common.settings", "Настройки") + "</strong>" +
+        '<button type="button" class="btn-ghost" id="tt-set-close" aria-label="Close">×</button></div>' +
         '<div class="tt-set-tabs" id="tt-set-tabs">' +
-        '<button type="button" class="tt-set-tab on" data-tab="general">' + t("common.tabGeneral", "General") + "</button>" +
-        '<button type="button" class="tt-set-tab" data-tab="lang">' + t("common.tabLang", "Language") + "</button>" +
-        '<button type="button" class="tt-set-tab" data-tab="sound">' + t("common.tabSound", "Sound") + "</button>" +
-        '<button type="button" class="tt-set-tab" data-tab="look">' + t("common.tabLook", "Look") + "</button>" +
-        '<button type="button" class="tt-set-tab" data-tab="hidden">' + t("common.tabHidden", "Hidden") + "</button>" +
+        '<button type="button" class="tt-set-tab on" data-tab="general">' + t("common.tabGeneral", "Общее") + "</button>" +
+        '<button type="button" class="tt-set-tab" data-tab="lang">' + t("common.tabLang", "Язык") + "</button>" +
+        '<button type="button" class="tt-set-tab" data-tab="sound">' + t("common.tabSound", "Звук") + "</button>" +
+        '<button type="button" class="tt-set-tab" data-tab="look">' + t("common.tabLook", "Вид") + "</button>" +
+        '<button type="button" class="tt-set-tab" data-tab="hidden">' + t("common.tabHidden", "Скрытые") + "</button>" +
         "</div>" +
         '<div class="tt-set-body">' +
         '<div class="tt-set-panel on" data-panel="general">' +
-        '<div class="field"><label>' + t("common.gameMode", "Game mode") + '</label>' +
+        '<div class="field"><label>' + t("common.gameMode", "Режим игры") + '</label>' +
         '<select id="tt-set-mode"><option value="pve">PvE</option><option value="pvp">PvP</option></select></div>' +
-        '<div class="field"><label>' + t("common.toolTips", "Tool tips") + '</label>' +
-        '<select id="tt-set-tips"><option value="1">' + t("common.on", "On") + '</option>' +
-        '<option value="0">' + t("common.off", "Off") + '</option></select></div>' +
+        '<div class="field"><label>' + t("common.toolTips", "Подсказки") + '</label>' +
+        '<select id="tt-set-tips"><option value="1">' + t("common.on", "Вкл") + '</option>' +
+        '<option value="0">' + t("common.off", "Выкл") + '</option></select></div>' +
         '<div class="field" style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">' +
-        '<button type="button" class="btn-ghost" id="tt-set-export">' + t("common.export", "Export") + '</button>' +
-        '<label class="btn-ghost" style="cursor:pointer">' + t("common.import", "Import") +
+        '<button type="button" class="btn-ghost" id="tt-set-export">' + t("common.export", "Экспорт") + '</button>' +
+        '<label class="btn-ghost" style="cursor:pointer">' + t("common.import", "Импорт") +
         '<input type="file" id="tt-set-import" accept="application/json,.json" style="display:none"></label></div></div>' +
         '<div class="tt-set-panel" data-panel="lang"><div id="tt-set-langs"></div></div>' +
         '<div class="tt-set-panel" data-panel="sound">' +
-        '<div class="field"><label>' + t("common.sound", "Sound") + '</label>' +
-        '<select id="tt-set-sound"><option value="1">' + t("common.on", "On") + '</option>' +
-        '<option value="0">' + t("common.off", "Off") + '</option></select></div>' +
-        '<div class="field"><label>' + t("common.volume", "Volume") + ' <span id="tt-vol-label">50%</span></label>' +
+        '<div class="field"><label>' + t("common.sound", "Звук") + '</label>' +
+        '<select id="tt-set-sound"><option value="1">' + t("common.on", "Вкл") + '</option>' +
+        '<option value="0">' + t("common.off", "Выкл") + '</option></select></div>' +
+        '<div class="field"><label>' + t("common.volume", "Громкость") + ' <span id="tt-vol-label">50%</span></label>' +
         '<input type="range" id="tt-set-vol" min="0" max="1" step="0.05" value="0.5"></div>' +
-        '<button type="button" class="btn-ghost" id="tt-set-testsound">' + t("common.testSound", "Test") +
+        '<button type="button" class="btn-ghost" id="tt-set-testsound">' + t("common.testSound", "Тест") +
         '</button>' +
-        '<p class="meta" style="margin:14px 0 8px">' + t("common.perToolSound", "Per-tool sounds") + "</p>" +
+        '<p class="meta" style="margin:14px 0 8px">' + t("common.perToolSound", "Звуки по инструментам") + "</p>" +
         '<div id="tt-set-kinds">' +
-        kindRow("price", t("tool.price-track.title", "Price track")) +
-        kindRow("alarm", t("tool.price-alarm.title", "Price alarm")) +
-        kindRow("restock", t("tool.restock.title", "Restock")) +
-        kindRow("ok", t("common.uiSound", "UI")) +
+        kindRow("price", t("tool.price-track.title", "Трекер цен")) +
+        kindRow("alarm", t("tool.price-alarm.title", "Сирена цен")) +
+        kindRow("restock", t("tool.restock.title", "Ресток")) +
+        kindRow("ok", t("common.uiSound", "Интерфейс")) +
         "</div></div>" +
         '<div class="tt-set-panel" data-panel="look">' +
-        '<div class="field"><label>' + t("common.theme", "Theme") + '</label>' +
-        '<select id="tt-set-theme"><option value="dark">' + t("common.themeDark", "Dark") + '</option>' +
-        '<option value="light">' + t("common.themeLight", "Light") + '</option></select></div>' +
-        '<div class="field" style="margin:10px 0"><label>' + t("common.accent", "Accent") +
+        '<div class="field"><label>' + t("common.theme", "Тема") + '</label>' +
+        '<select id="tt-set-theme"><option value="dark">' + t("common.themeDark", "Тёмная") + '</option>' +
+        '<option value="light">' + t("common.themeLight", "Светлая") + '</option></select></div>' +
+        '<div class="field" style="margin:10px 0"><label>' + t("common.accent", "Акцент") +
         '</label><div class="tt-accent-row" id="tt-accent-row"></div></div></div>' +
         '<div class="tt-set-panel" data-panel="hidden">' +
-        '<p class="meta" style="margin:0 0 10px">' + t("common.hiddenHint", "Hidden tools are not shown on the hub") + '</p>' +
+        '<p class="meta" style="margin:0 0 10px">' + t("common.hiddenHint", "Скрытые инструменты не показываются на хабе") + '</p>' +
         '<div class="tt-hidden-list" id="tt-set-hidden"></div></div>' +
         "</div>" +
         '<div class="tt-modal-foot" style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">' +
-        '<button type="button" class="btn-ghost" id="tt-set-cancel">' + t("common.cancel", "Cancel") + '</button>' +
-        '<button type="button" class="btn" id="tt-set-save">' + t("common.save", "Save") + '</button></div></div>';
+        '<button type="button" class="btn-ghost" id="tt-set-cancel">' + t("common.cancel", "Отмена") + '</button>' +
+        '<button type="button" class="btn" id="tt-set-save">' + t("common.save", "Применить") + '</button></div></div>';
       document.body.appendChild(bg);
       bg.addEventListener("click", function (e) {
         if (e.target === bg) bg.classList.remove("show");
       });
     }
-    var modal = bg.querySelector(".tt-modal");
+    var modal = bg.querySelector(".modal");
+    if (!modal) { console.error("[settings] modal missing"); return; }
 
     function showTab(id) {
       modal.querySelectorAll(".tt-set-panel").forEach(function (p) {
@@ -233,9 +234,8 @@
       } catch (e) {}
       var isHid = hidden.indexOf(file) >= 0 || hidden.indexOf(file.split("/").pop()) >= 0;
       return '<div class="tt-hidden-item"><input type="checkbox" class="tt-hid-cb" data-file="' +
-        escAttr(file) + '"' + (isHid ? " checked" : "") + '> <span>' +
-        escHtml(title) + '</span></div>';
-    }).join("") || ('<p class="meta">' + t("common.noTools", "No tools") + '</p>');
+        escAttr(file) + '"' + (isHid ? " checked" : "") + '> <span>' + escHtml(title) + '</span></div>';
+    }).join("") || ('<p class="meta">' + t("common.noTools", "Нет инструментов") + '</p>');
 
     document.getElementById("tt-set-testsound").onclick = function () {
       var prevVol = get("tarkovSoundVol", get("tarkovSoundVolume", "0.5"));
