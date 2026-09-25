@@ -165,17 +165,27 @@ html.tt-mini-frame body { min-height: 100% !important; }
   background: var(--input-bg) !important; color: var(--text) !important; cursor: pointer;
   font-size: 1.1rem; line-height: 1; box-sizing: border-box !important;
 }
+.mini-chip .mini-ico,
+.mini-chip .ico {
+  width: auto !important; height: auto !important; min-width: 0 !important; min-height: 0 !important;
+  max-width: none !important; max-height: none !important;
+  padding: 0 !important; margin: 0 !important;
+  background: transparent !important; border: none !important; border-radius: 0 !important;
+  object-fit: unset !important; display: inline-flex !important; align-items: center; justify-content: center;
+  font-size: 1.15rem !important; line-height: 1 !important; pointer-events: none;
+}
+.mini-chip .badge {
+  position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 999px; background: var(--red); color: #fff; font-size: .65rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+  z-index: 2;
+}
 .mini-chip:hover { border-color: var(--accent) !important; }
 .mini-chip.active {
   border-color: var(--accent) !important;
   background: color-mix(in srgb, var(--accent) 16%, transparent) !important; color: var(--accent) !important;
 }
 .mini-chip.running { box-shadow: 0 0 0 1px color-mix(in srgb, var(--green) 50%, transparent); }
-.mini-chip .badge {
-  position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px; padding: 0 4px;
-  border-radius: 999px; background: var(--red); color: #fff; font-size: .65rem; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-}
 .mini-chip .dot-run {
   position: absolute; bottom: 3px; right: 3px; width: 7px; height: 7px; border-radius: 50%;
   background: var(--green); box-shadow: 0 0 0 2px var(--card);
