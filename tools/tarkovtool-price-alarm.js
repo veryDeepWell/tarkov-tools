@@ -6,6 +6,15 @@
   var catalog = [];
   var fired = {};
 
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&")
+      .replace(/</g, "<")
+      .replace(/>/g, ">")
+      .replace(/"/g, """)
+      .replace(/'/g, "&#39;");
+  }
+
   function itemName(it) {
     try {
       if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
@@ -23,12 +32,35 @@
   }
 
   function loadRules() {
-    return (window.TarkovStorage && TarkovStorage.getJson(RULES_KEY, [])) || [];
-  }
-  function saveRules(rules) {
     try {
-      if (window.TarkovStorage) TarkovStorage.setJson(RULES_KEY, rules);
+      if (window.TarkovStorage && TarkovStorage.getJson) {
+        var r = TarkovStorage.getJson(RULES_KEY, null);
+        if (Array.isArray(r)) return r;
+      }
     } catch (e) {}
+    try {
+      return JSON.parse(localStorage.getItem(RULES_KEY) || "[]") || [];
+    } catch (e2) {
+      return [];
+    }
+  }
+
+  function saveRules(rules) {
+    var ok = false;
+    try {
+      if (window.TarkovStorage && TarkovStorage.setJson) {
+        ok = !!TarkovStorage.setJson(RULES_KEY, rules);
+      }
+    } catch (e) {}
+    try {
+      localStorage.setItem(RULES_KEY, JSON.stringify(rules));
+      ok = true;
+    } catch (e2) {}
+    return ok;
+  }
+
+  function progress() {
+    return (window.TarkovUI && TarkovUI.progress) || null;
   }
 
   function reportMini(running, label) {
@@ -54,6 +86,9 @@
 
   async function loadCatalog() {
     var mode = (document.getElementById("gameMode") || {}).value || "pve";
+    if (!window.TarkovAPI || !TarkovAPI.items) {
+      throw new Error("TarkovAPI missing");
+    }
     catalog = await TarkovAPI.items(mode);
     if (!Array.isArray(catalog)) catalog = [];
   }
@@ -102,6 +137,12 @@
 
   function notifyHit(h) {
     var title = "Price Alarm";
+    try {
+      if (window.TarkovI18n && TarkovI18n.t) {
+        var t = TarkovI18n.t("priceAlarm.notifTitle");
+        if (t && t !== "priceAlarm.notifTitle") title = t;
+      }
+    } catch (e) {}
     var body =
       itemName(h.it) + " " + (h.rule.op || "<=") + " " + h.rule.threshold;
     try {
@@ -116,32 +157,51 @@
   }
 
   async function checkOnce() {
-    await loadCatalog();
-    var rules = loadRules();
-    var hits = [];
-    rules.forEach(function (rule, idx) {
-      if (!rule || !rule.q) return;
-      var it = matchItem(rule);
-      if (!it) return;
-      if (evalRule(rule, it)) {
-        var key = idx + ":" + (it.id || rule.q);
-        if (!fired[key]) {
-          fired[key] = true;
-          hits.push({ rule: rule, it: it, p: priceOf(it) });
+    var P = progress();
+    try {
+      if (P && P.start) P.start({ label: "…" });
+      if (P && P.set) P.set(10, "…");
+      await loadCatalog();
+      if (P && P.set) P.set(55, String(catalog.length));
+      var rules = loadRules();
+      var hits = [];
+      var n = rules.length || 1;
+      rules.forEach(function (rule, idx) {
+        if (!rule || !rule.q) return;
+        var it = matchItem(rule);
+        if (!it) return;
+        if (evalRule(rule, it)) {
+          var key = idx + ":" + (it.id || rule.q);
+          if (!fired[key]) {
+            fired[key] = true;
+            hits.push({ rule: rule, it: it, p: priceOf(it) });
+          }
+        } else {
+          delete fired[idx + ":" + (it.id || rule.q)];
         }
+        if (P && P.set) {
+          var pct = 55 + Math.floor(((idx + 1) / n) * 40);
+          pct = Math.min(95, Math.round(pct / 5) * 5);
+          P.set(pct);
+        }
+      });
+      hits.forEach(notifyHit);
+      if (P && P.done) P.done();
+      status(
+        "Check: " + catalog.length + " items, hits " + hits.length,
+        true
+      );
+      var st = window.TarkovPoll ? TarkovPoll.status(POLL_ID) : { on: false };
+      if (st.on) {
+        reportMini(true, hits.length ? "hits " + hits.length : "ok");
       } else {
-        delete fired[idx + ":" + (it.id || rule.q)];
+        reportMini(false, "idle");
       }
-    });
-    hits.forEach(notifyHit);
-    status("Check: " + catalog.length + " items, hits " + hits.length, true);
-    var st = window.TarkovPoll ? TarkovPoll.status(POLL_ID) : { on: false };
-    if (st.on) {
-      reportMini(true, hits.length ? "hits " + hits.length : "ok");
-    } else {
-      reportMini(false, "idle");
+      return hits;
+    } catch (e) {
+      if (P && P.fail) P.fail(String(e.message || e));
+      throw e;
     }
-    return hits;
   }
   window.__ttAlarmCheck = checkOnce;
 
@@ -150,7 +210,7 @@
     if (!box) return;
     var rules = loadRules();
     if (!rules.length) {
-      box.innerHTML = "<p class=meta>No rules</p>";
+      box.innerHTML = '<p class="meta">No rules</p>';
       return;
     }
     box.innerHTML = rules
@@ -160,9 +220,7 @@
           '<input data-i="' +
           i +
           '" data-k="q" value="' +
-          String(r.q || "")
-            .replace(/&/g, "&")
-            .replace(/"/g, """) +
+          esc(r.q || "") +
           '" placeholder="name or id" style="flex:1;min-width:120px">' +
           '<select data-i="' +
           i +
@@ -181,14 +239,14 @@
           '" data-k="op">' +
           '<option value="<="' +
           (r.op !== ">=" ? " selected" : "") +
-          '><=</option>' +
+          "><=</option>' +
           '<option value=">="' +
           (r.op === ">=" ? " selected" : "") +
-          '>>=</option></select>' +
+          ">>=</option></select>' +
           '<input type="number" data-i="' +
           i +
           '" data-k="threshold" value="' +
-          (r.threshold || 0) +
+          esc(String(r.threshold != null ? r.threshold : 0)) +
           '" style="width:100px">' +
           '<button type="button" class="btn-ghost" data-del="' +
           i +
@@ -251,19 +309,21 @@
   function boot() {
     renderRules();
     var add = document.getElementById("addRule");
-    if (add)
+    if (add) {
       add.onclick = function () {
         var rules = loadRules();
         rules.push({ q: "", metric: "avg", op: "<=", threshold: 0 });
         saveRules(rules);
         renderRules();
       };
-    if (document.getElementById("startBtn"))
-      document.getElementById("startBtn").onclick = startBg;
-    if (document.getElementById("stopBtn"))
-      document.getElementById("stopBtn").onclick = stopBg;
-    if (document.getElementById("checkBtn")) {
-      document.getElementById("checkBtn").onclick = function () {
+    }
+    var startBtn = document.getElementById("startBtn");
+    if (startBtn) startBtn.onclick = startBg;
+    var stopBtn = document.getElementById("stopBtn");
+    if (stopBtn) stopBtn.onclick = stopBg;
+    var checkBtn = document.getElementById("checkBtn");
+    if (checkBtn) {
+      checkBtn.onclick = function () {
         checkOnce().catch(function (e) {
           status(String(e.message || e), false);
         });
