@@ -36,7 +36,14 @@
   },
   "priceTrack": {
     "title": "Price track", "sub": "Flea history and background snapshots", "snap": "Snapshot",
-    "bgOn": "BG ON", "bgOff": "BG OFF", "next": "Next", "fetching": "Fetching…"
+    "bgOn": "BG ON", "bgOff": "BG OFF", "next": "Next", "fetching": "Fetching…",
+    "snapBody": "Snap {n} · {time}"
+  },
+  "restock": {
+    "notifTitle": "Restock: {name}",
+    "notifBody": "Assortment refreshed",
+    "testTitle": "Restock (test)",
+    "testBody": "Test notification"
   },
   "tool": {
     "desk": { "title": "Desk", "description": "Mini-tabs for tools", "help": "Open several tools while sharing the same state" },
