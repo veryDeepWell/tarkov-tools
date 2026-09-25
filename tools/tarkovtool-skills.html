@@ -3,89 +3,54 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Скиллы · чизы и софт-кап — Tarkov</title>
+  <title>Скиллы · чизы — Tarkov</title>
   <link rel="stylesheet" href="../core/tarkov-common.css">
   <link rel="stylesheet" href="../core/tarkov-ui.css">
   <script type="application/json" id="tarkovtool-meta">
-  {"title": "Скиллы + чизы", "description": "Трекер уровней, софт-кап усталости навыка, чиз-страты."}
+  {"title": "Скиллы + чизы", "description": "Уровень и способ быстрой прокачки каждого навыка."}
   </script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{min-height:100vh;padding:20px 14px 48px}
-    .container{max-width:min(1600px, 92vw);margin:0 auto}
+    .container{max-width:min(1100px, 94vw);margin:0 auto}
     .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px}
-    .card-title{font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;font-weight:600}
     .btn{background:var(--accent);color:#111;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer}
     .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 12px;cursor:pointer}
-    .skill-row{display:grid;grid-template-columns:140px 70px 1fr;gap:10px;align-items:start;padding:12px 0;border-bottom:1px solid var(--border)}
+    .skill-row{display:grid;grid-template-columns:150px 64px 1fr;gap:12px;align-items:start;padding:14px 0;border-bottom:1px solid var(--border)}
+    .skill-row:last-child{border-bottom:none}
     @media(max-width:700px){.skill-row{grid-template-columns:1fr}}
-    .skill-row input[type=number]{width:64px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text)}
-    .name{font-weight:700}
-    .tag{display:inline-block;font-size:.7rem;padding:2px 7px;border-radius:4px;margin:1px 2px 1px 0;background:rgba(255,255,255,.06);color:var(--muted)}
+    .skill-row input[type=number]{width:60px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text)}
+    .name{font-weight:700;font-size:1rem}
+    .tag{display:inline-block;font-size:.68rem;padding:2px 6px;border-radius:4px;margin-top:4px;background:rgba(255,255,255,.06);color:var(--muted)}
     .tag.phys{background:rgba(61,214,140,.12);color:var(--green)}
     .tag.prac{background:rgba(100,160,255,.12);color:#7ec8ff}
     .tag.combat{background:rgba(240,113,120,.12);color:var(--red)}
     .tag.mental{background:rgba(201,162,39,.15);color:var(--accent)}
-    .cheese{font-size:.88rem;color:var(--text);line-height:1.45;margin-top:4px}
-    .cheese b{color:var(--accent)}
-    .soft{font-size:.82rem;color:var(--muted);margin-top:4px}
-    .soft strong{color:var(--orange)}
-    .hint{font-size:.9rem;color:var(--muted);line-height:1.5}
-    .fatigue-table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:8px;font-variant-numeric:tabular-nums}
-    .fatigue-table th,.fatigue-table td{padding:8px 10px;border-top:1px solid var(--border);text-align:left}
-    .fatigue-table th{color:var(--muted);font-size:.75rem;text-transform:uppercase}
-    .good{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--orange)}
+    .how{font-size:.9rem;color:var(--text);line-height:1.45}
+    .how b{color:var(--accent)}
+    .soft{font-size:.8rem;color:var(--muted);margin-top:4px}
     h1{margin-bottom:6px}
-    .sub{color:var(--muted);margin-bottom:16px}
+    .sub{color:var(--muted);margin-bottom:14px;font-size:.92rem}
+    .meta{font-size:.75rem;color:var(--muted)}
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Скиллы · чизы · софт-кап</h1>
-    <p class="sub">Трекер уровней + как качать каждый навык</p>
+    <h1>Скиллы</h1>
+    <p class="sub">Уровень + как качать быстро. Усталость: 129% → 100% → 60% → 36%… сброс ~200 с без прогресса. Elite 51.</p>
 
     <div class="card">
-      <div class="card-title">Усталость навыка (софт-кап в рейде)</div>
-      <p class="hint">
-        Множитель зависит от того, сколько <b>полных очков</b> уже набито по этому скиллу за рейд.
-        Синяя стрелка = буст, красная = режет.
-      </p>
-      <table class="fatigue-table">
-        <thead>
-          <tr><th>Очков за рейд</th><th>Множитель</th><th>Смысл</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>0 → первое</td><td class="good">~129%</td><td>Синяя стрелка</td></tr>
-          <tr><td>после 1-го</td><td>100%</td><td>Норма</td></tr>
-          <tr><td>2-е</td><td class="warn">~60%</td><td>Красная стрелка</td></tr>
-          <tr><td>3-е</td><td class="bad">~36%</td><td>Почти впустую</td></tr>
-          <tr><td>4-е+</td><td class="bad">~22% и ниже</td><td>~0.6^(n−1)</td></tr>
-        </tbody>
-      </table>
-      <p class="hint" style="margin-top:10px">
-        После <b>~200 с</b> без прогресса по скиллу усталость → 100% (не 129%).
-        Ориентир: <b>1–2 очка / скилл / рейд</b>. Elite = 51; стимы временно до ~60.
-        Air Filter +40% Physical · Library +30% Practical · Range 3 +10% Combat.
-      </p>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Навыки</div>
       <div id="skillList"></div>
-      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
         <button type="button" class="btn" id="saveSkills">Сохранить</button>
         <button type="button" class="btn-ghost" id="resetSkills">Сбросить уровни</button>
       </div>
     </div>
   </div>
 
-  <script src="../core/tarkov-names.js"></script>
   <script src="../core/tarkov-storage.js"></script>
-  <script src="../core/tarkov-api.js"></script>
-  <script src="../core/tarkov-ui.js"></script>
-  <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
-  <script src="tarkovtool-skills.js"></script>
+  <script src="tarkovtool-skills.js?v=12"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>
 </html>
