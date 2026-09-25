@@ -97,13 +97,14 @@
           } catch (err2) {}
         }
         function esc(s) {
-          return String(s || "").replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">");
+          return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
         tip.innerHTML = "<b>" + esc(title) + '</b><div style="margin-top:6px">' + esc(desc) + "</div>";
         tip.style.display = "block";
+        tip.style.position = "fixed";
         var r = btn.getBoundingClientRect();
         tip.style.left = Math.min(r.left, window.innerWidth - 300) + "px";
-        tip.style.top = (r.bottom + 8 + window.scrollY) + "px";
+        tip.style.top = Math.min(r.bottom + 8, window.innerHeight - 120) + "px";
         clearTimeout(tip._hide);
       }
       function hideTip() {
