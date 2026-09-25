@@ -1,1 +1,199 @@
-SEE_LOCAL
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tarkov Tools</title>
+  <link rel="icon" href="data:,">
+  <link rel="preload" href="core/tarkov-common.css?v=15" as="style">
+  <link rel="stylesheet" href="core/tarkov-common.css?v=15">
+  <link rel="stylesheet" href="core/tarkov-ui.css?v=2">
+  <link rel="stylesheet" href="core/tarkov-i18n.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Hub", "description": "All Tarkov tools in one place."}
+  </script>
+  <style>
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    #grid.catalog-root, .catalog-root { display: block !important; }
+    .catalog-root .cat-body.grid:not(.is-collapsed),
+    .cat-body.grid:not(.is-collapsed) {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .cat-body.is-collapsed,
+    .cat-body.grid.is-collapsed,
+    .catalog-root .cat-body.is-collapsed,
+    .catalog-root .cat-body.grid.is-collapsed {
+      display: none !important;
+    }
+    .tool {
+      display: flex; flex-direction: column; text-decoration: none; color: inherit;
+      background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; min-height: 120px; transition: border-color .15s, transform .12s;
+      position: relative;
+    }
+    .tool:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .tool-head { display: flex; gap: 12px; align-items: flex-start; flex: 1; }
+    .tool-ico {
+      flex-shrink: 0; width: 48px; height: 48px; border-radius: 12px;
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+      display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+    }
+    .tool h2 { font-size: 1rem; margin: 0 0 4px; font-weight: 700; }
+    .tool p { margin: 0; font-size: .85rem; color: var(--muted); line-height: 1.35; }
+    .hub-head {
+      display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;
+      justify-content: space-between; margin-bottom: 16px;
+    }
+    .hub-search { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .hub-search input { min-width: min(320px, 70vw); }
+    .cat-section { margin-bottom: 22px; }
+    .changelog { margin-top: 28px; padding: 16px 18px; }
+    .changelog h3 { margin: 0 0 10px; font-size: 1rem; }
+    .changelog ul { margin: 6px 0 0 18px; color: var(--muted); }
+    .expand-toolbar {
+      flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+      border-bottom: 1px solid var(--border); background: var(--card);
+    }
+    .expand-toolbar .spacer { flex: 1; }
+    .expand-host { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    .frame-pool { position: fixed; left: -12000px; top: 0; width: 1px; height: 1px; overflow: hidden; }
+
+    body.tt-expand-open {
+      display: flex !important;
+      flex-direction: column !important;
+      height: 100vh !important;
+      max-height: 100vh !important;
+      overflow: hidden !important;
+    }
+    body.tt-expand-open .tt-bar {
+      position: relative !important;
+      top: auto !important;
+      flex: 0 0 auto !important;
+      z-index: 100 !important;
+    }
+    body.tt-expand-open .hub-shell {
+      flex: 1 1 auto !important;
+      height: auto !important;
+      max-height: none !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+      padding: 8px 12px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      box-sizing: border-box !important;
+      width: 100% !important;
+    }
+    body.tt-expand-open .mini-bar,
+    body.tt-expand-open #miniBar {
+      display: flex !important;
+      flex: 0 0 auto !important;
+      position: relative !important;
+      top: auto !important;
+      z-index: 5 !important;
+      margin: 0 0 8px !important;
+      height: auto !important;
+      overflow-x: auto !important;
+    }
+    body.tt-expand-open .mini-bar[hidden] {
+      display: none !important;
+    }
+    body.tt-expand-open .hub-work {
+      flex: 1 1 auto !important;
+      min-height: 0 !important;
+      margin-top: 0 !important;
+      overflow: hidden !important;
+      display: flex !important;
+      flex-direction: column !important;
+    }
+    body.tt-expand-open .hub-expand.open {
+      flex: 1 1 auto !important;
+      min-height: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="tt-bar">
+    <strong data-i18n="hub.title">Tarkov Tools</strong>
+    <span class="spacer"></span>
+    <button type="button" class="btn-ghost" id="tt-open-faq" data-i18n="hub.faq">FAQ</button>
+    <button type="button" class="btn-ghost" id="tt-open-settings" data-i18n="common.settings">Settings</button>
+  </div>
+  <div id="tt-faq-bg" class="modal-bg" hidden>
+    <div class="modal card" role="dialog" aria-modal="true" style="max-width:min(560px,94vw)">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px">
+        <strong id="tt-faq-title" style="flex:1;font-size:1.1rem" data-i18n="hub.faqTitle">FAQ</strong>
+        <button type="button" class="btn-ghost" id="tt-faq-close" style="min-width:36px!important;padding:0 10px" aria-label="Close">×</button>
+      </div>
+      <div id="tt-faq-body" style="color:var(--muted);line-height:1.55;font-size:.95rem"></div>
+    </div>
+  </div>
+
+  <div class="hub-shell">
+    <div id="miniBar" class="mini-bar" hidden>
+      <div class="mini-label" data-i18n="hub.mini">MINI</div>
+      <div id="miniList" class="mini-list"></div>
+    </div>
+    <div id="miniTip" class="mini-tip" style="display:none"></div>
+
+    <div class="hub-work">
+      <div id="hubMain" class="hub-main">
+        <div class="hub-head">
+          <div>
+            <h1 data-i18n="hub.title">Tarkov Tools</h1>
+            <p class="sub" data-i18n="hub.sub">Utilities for Escape from Tarkov</p>
+          </div>
+          <div class="hub-search">
+            <input id="q" type="search" placeholder="Search tools…" data-i18n-placeholder="hub.searchPlaceholder" autocomplete="off" />
+            <span id="count" class="meta"></span>
+          </div>
+        </div>
+
+        <div id="cats"></div>
+        <div id="grid" class="grid catalog-root"></div>
+        <div id="changelog" class="changelog card"></div>
+      </div>
+
+      <div id="hubExpand" class="hub-expand" aria-hidden="true">
+        <div class="expand-toolbar">
+          <button type="button" class="btn-ghost" id="btnCollapse" data-i18n="hub.collapse">Collapse</button>
+          <strong id="expandTitle"></strong>
+          <span class="spacer"></span>
+          <button type="button" class="btn-ghost" id="btnCloseExpand" data-i18n="hub.closeTab">Close</button>
+        </div>
+        <div id="expandHost" class="expand-host"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="framePool" class="frame-pool" aria-hidden="true"></div>
+  <div id="notifBell" class="notif-bell" title="Notifications" data-i18n-title="hub.notifications" hidden>🔔<span id="notifCount" class="notif-count">0</span></div>
+  <div id="notifPanel" class="notif-panel" hidden>
+    <div class="notif-head">
+      <strong data-i18n="hub.notifications">Notifications</strong>
+      <button type="button" class="btn-ghost" id="notifClear" data-i18n="hub.markAllRead">Mark all read</button>
+    </div>
+    <div id="notifList" class="notif-list"></div>
+  </div>
+
+  <script defer src="core/tarkov-state.js"></script>
+  <script defer src="core/tarkov-tool-kind.js"></script>
+  <script defer src="core/tarkov-names.js"></script>
+  <script defer src="core/tarkov-api.js"></script>
+  <script defer src="core/tarkov-poll.js"></script>
+  <script defer src="core/tarkov-i18n.js"></script>
+  <script defer src="core/tarkov-common.js"></script>
+  <script defer src="core/tarkov-i18n-bridge.js"></script>
+  <script defer src="core/tarkov-icons.js"></script>
+  <script defer src="hub/catalog-data.js?v=3"></script>
+  <script defer src="hub/tarkov-hub-catalog.js?v=5"></script>
+  <script defer src="hub/tarkov-hub-app.js?v=8"></script>
+  <script defer src="hub/tarkov-hub-cats.js?v=11"></script>
+  <script defer src="hub/tarkov-settings-tabs.js?v=4"></script>
+  <script defer src="hub/tarkov-hub-notif.js?v=2"></script>
+  <script defer src="core/tarkov-chrome-fix.js?v=2"></script>
+</body>
+</html>
