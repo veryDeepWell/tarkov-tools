@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Price Alarm</title>
-  <link rel="stylesheet" href="../core/tarkov-common.css?v=10">
+  <link rel="stylesheet" href="../core/tarkov-common.css?v=16">
   <link rel="stylesheet" href="../core/tarkov-ui.css?v=3">
   <script type="application/json" id="tarkovtool-meta">
   {"title": "Price Alarm", "description": "Сирена: цена ≤/≥ N или число офферов — пилик в фоне"}
@@ -12,6 +12,7 @@
 </head>
 <body>
   <div class="container">
+    <div id="tt-progress" class="tt-progress" hidden></div>
     <div class="card">
       <div class="card-title">Price Alarm</div>
       <div class="row" style="flex-wrap:wrap;gap:10px;align-items:end">
@@ -44,7 +45,7 @@
   <script src="../core/tarkov-ui.js"></script>
   <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
-  <script src="tarkovtool-price-alarm.js"></script>
+  <script src="tarkovtool-price-alarm.js?v=2"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>
 </html>
