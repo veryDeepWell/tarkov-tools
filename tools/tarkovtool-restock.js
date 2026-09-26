@@ -2,7 +2,6 @@
   "use strict";
   var POLL_ID = "restock";
   var TOOL = "tarkovtool-restock.html";
-  /** Default trader restock period (EFT: most traders every 3h) */
   var DEFAULT_CYCLE_MS = 3 * 60 * 60 * 1000;
   var TRADER_RU = {
     prapor: "Прапор",
@@ -17,23 +16,14 @@
     lightkeeper: "Смотритель"
   };
   var ORDER = [
-    "prapor",
-    "therapist",
-    "skier",
-    "peacekeeper",
-    "mechanic",
-    "ragman",
-    "jaeger",
-    "ref",
-    "fence",
-    "lightkeeper"
+    "prapor", "therapist", "skier", "peacekeeper", "mechanic",
+    "ragman", "jaeger", "ref", "fence", "lightkeeper"
   ];
   var traders = [];
   var fired = {};
   var restockHistory = {};
   var refetchQueued = false;
   var uiTick = null;
-  /** key -> last known cycle ms */
   var cycleMs = {};
 
   var listEl = document.getElementById("list");
@@ -46,28 +36,19 @@
   }
   function saveEnabled() {
     var map = {};
-    traders.forEach(function (t) {
-      map[t.key] = t.enabled;
-    });
+    traders.forEach(function (t) { map[t.key] = t.enabled; });
     if (window.TarkovStorage) TarkovStorage.setJson("restockEnabled", map);
   }
   function loadHistory() {
-    var raw =
-      (window.TarkovStorage && TarkovStorage.getJson("restockHistory", {})) || {};
+    var raw = (window.TarkovStorage && TarkovStorage.getJson("restockHistory", {})) || {};
     restockHistory = {};
     Object.keys(raw).forEach(function (k) {
       var v = raw[k];
       if (v && v.happenedAt)
-        restockHistory[k] = {
-          key: k,
-          name: v.name || k,
-          happenedAt: Number(v.happenedAt)
-        };
+        restockHistory[k] = { key: k, name: v.name || k, happenedAt: Number(v.happenedAt) };
     });
-    fired =
-      (window.TarkovStorage && TarkovStorage.getJson("restockFired", {})) || {};
-    cycleMs =
-      (window.TarkovStorage && TarkovStorage.getJson("restockCycleMs", {})) || {};
+    fired = (window.TarkovStorage && TarkovStorage.getJson("restockFired", {})) || {};
+    cycleMs = (window.TarkovStorage && TarkovStorage.getJson("restockCycleMs", {})) || {};
   }
   function saveHistory() {
     try {
@@ -91,23 +72,15 @@
   }
   function formatAbs(d) {
     try {
-      return d.toLocaleString("ru-RU", {
-        day: "2-digit",
-        month: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
+      return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
     } catch (e) {
-      return "";
+      return String(d);
     }
   }
   function formatAgo(ms) {
-    var m = Math.floor(ms / 60000);
-    if (m < 1) return "только что";
-    if (m < 60) return m + " мин назад";
-    var h = Math.floor(m / 60);
-    if (h < 24) return h + " ч назад";
-    return Math.floor(h / 24) + " дн назад";
+    if (ms < 60000) return "только что";
+    if (ms < 3600000) return Math.floor(ms / 60000) + " мин назад";
+    return Math.floor(ms / 3600000) + " ч назад";
   }
 
   function reportMini(running, label) {
@@ -118,32 +91,18 @@
     try {
       if (window.parent && window.parent !== window) {
         window.parent.postMessage(
-          {
-            type: "tt-status",
-            tool: TOOL,
-            running: !!running,
-            ready: true,
-            label: label || ""
-          },
+          { type: "tt-status", tool: TOOL, running: !!running, ready: true, label: label || "" },
           location.origin
         );
       }
     } catch (e) {}
   }
 
-  function cycleFor(key) {
-    var c = Number(cycleMs[key]) || 0;
-    if (c >= 30 * 60 * 1000 && c <= 12 * 60 * 60 * 1000) return c;
-    return DEFAULT_CYCLE_MS;
-  }
-
-  /** Push resetAt forward until it is strictly in the future. */
   function rollForward(t, now) {
+    now = now || Date.now();
+    var cycle = cycleMs[t.key] || DEFAULT_CYCLE_MS;
     if (!t.resetAt) return;
-    var cycle = cycleFor(t.key);
     var ts = t.resetAt.getTime();
-    if (ts > now) return;
-    // remember previous reset for cycle learning after API refresh
     t._prevResetAt = ts;
     while (ts <= now) ts += cycle;
     t.resetAt = new Date(ts);
@@ -154,23 +113,19 @@
     var modeEl = document.getElementById("gameMode");
     var mode = (modeEl && modeEl.value) || "pve";
     if (mode === "regular") mode = "pvp";
-    if (!window.TarkovAPI || !TarkovAPI.traders)
-      throw new Error("TarkovAPI.traders missing");
+    if (!window.TarkovAPI || !TarkovAPI.traders) throw new Error("TarkovAPI.traders missing");
     var list = await TarkovAPI.traders(mode);
     if (!list || !list.length) throw new Error("No traders from API");
     var enabledMap = loadEnabled();
     var now = Date.now();
     var prevByKey = {};
-    traders.forEach(function (t) {
-      prevByKey[t.key] = t;
-    });
+    traders.forEach(function (t) { prevByKey[t.key] = t; });
     traders = list
       .map(function (t) {
         var key = (t.normalizedName || t.id || "").toLowerCase();
         var resetAt = t.resetTime ? new Date(t.resetTime) : null;
         var enabled = enabledMap[key];
-        if (enabled === undefined)
-          enabled = key !== "fence" && key !== "lightkeeper";
+        if (enabled === undefined) enabled = key !== "fence" && key !== "lightkeeper";
         var row = {
           id: t.id,
           key: key,
@@ -178,7 +133,6 @@
           resetAt: resetAt,
           enabled: !!enabled
         };
-        // Learn cycle if we had a previous reset and API gave a new future time
         var prev = prevByKey[key];
         if (prev && prev.resetAt && resetAt && !isNaN(resetAt.getTime())) {
           var oldTs = prev._prevResetAt || prev.resetAt.getTime();
@@ -190,7 +144,6 @@
             }
           }
         }
-        // API still past? roll locally so UI never sticks on «сейчас»
         if (row.resetAt && row.resetAt.getTime() <= now) {
           rollForward(row, now);
         }
@@ -200,45 +153,44 @@
         return t.resetAt && !isNaN(t.resetAt.getTime());
       });
     traders.sort(function (a, b) {
-      var ia = ORDER.indexOf(a.key),
-        ib = ORDER.indexOf(b.key);
+      var ia = ORDER.indexOf(a.key), ib = ORDER.indexOf(b.key);
       if (ia === -1 && ib === -1) return a.name.localeCompare(b.name, "ru");
       if (ia === -1) return 1;
       if (ib === -1) return -1;
       return ia - ib;
     });
     try {
-      if (window.TarkovStorage) TarkovStorage.setJson("restockCycleMs", cycleMs);
+      if (window.TarkovStorage) {
+        TarkovStorage.setJson("restockCycleMs", cycleMs);
+        TarkovStorage.setJson(
+          "restockSnapshot",
+          traders.map(function (t) {
+            return {
+              id: t.id,
+              key: t.key,
+              name: t.name,
+              resetAt: t.resetAt ? t.resetAt.getTime() : 0,
+              enabled: !!t.enabled,
+              _prevResetAt: t._prevResetAt || null
+            };
+          })
+        );
+      }
     } catch (e) {}
   }
 
   function onRestock(t) {
     var iso = t.resetAt ? t.resetAt.toISOString() : String(Date.now());
-    // Use stable fire key from the reset that just passed
     var fireKey = t._prevResetAt ? String(t._prevResetAt) : iso;
     if (fired[t.key] === fireKey) return;
     fired[t.key] = fireKey;
-    restockHistory[t.key] = {
-      key: t.key,
-      name: t.name,
-      happenedAt: Date.now()
-    };
+    restockHistory[t.key] = { key: t.key, name: t.name, happenedAt: Date.now() };
     saveHistory();
     try {
       if (typeof Notify === "function") {
-        Notify({
-          title: "Restock: " + t.name,
-          body: "Assortment refreshed",
-          tool: TOOL,
-          kind: "restock"
-        });
+        Notify({ title: "Restock: " + t.name, body: "Assortment refreshed", tool: TOOL, kind: "restock" });
       } else if (window.TarkovTools && TarkovTools.Notify) {
-        TarkovTools.Notify({
-          title: "Restock: " + t.name,
-          body: "Assortment refreshed",
-          tool: TOOL,
-          kind: "restock"
-        });
+        TarkovTools.Notify({ title: "Restock: " + t.name, body: "Assortment refreshed", tool: TOOL, kind: "restock" });
       }
     } catch (e) {}
     reportMini(true, "restock " + t.name);
@@ -248,15 +200,13 @@
   function queueRefetch() {
     if (refetchQueued) return;
     refetchQueued = true;
-    // Quick pull so API next-reset corrects our optimistic roll
     setTimeout(async function () {
       refetchQueued = false;
       try {
         await fetchTraders();
         if (statusEl) {
           statusEl.className = "status ok";
-          statusEl.textContent =
-            "Новые времена · " + new Date().toLocaleTimeString("ru-RU");
+          statusEl.textContent = "Новые времена · " + new Date().toLocaleTimeString("ru-RU");
         }
         render();
       } catch (e) {
@@ -279,22 +229,14 @@
     listEl.innerHTML = "";
     traders.forEach(function (t) {
       var remain = t.resetAt.getTime() - now;
-
-      // Hit zero → notify once, immediately start next cycle countdown
       if (remain <= 0) {
         if (t.enabled) onRestock(t);
         rollForward(t, now);
         remain = t.resetAt.getTime() - now;
       }
-
       var label = formatRemain(remain);
-      var justFired =
-        restockHistory[t.key] &&
-        now - restockHistory[t.key].happenedAt < 8000;
-      var badge = justFired
-        ? ' <span style="color:var(--green)">обновлён</span>'
-        : "";
-
+      var justFired = restockHistory[t.key] && now - restockHistory[t.key].happenedAt < 8000;
+      var badge = justFired ? ' <span style="color:var(--green)">обновлён</span>' : "";
       var div = document.createElement("div");
       div.style.cssText =
         "display:grid;grid-template-columns:28px 1fr auto auto;gap:12px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;opacity:" +
@@ -327,20 +269,14 @@
     var el = document.getElementById("historyList");
     if (!el) return;
     var now = Date.now();
-    var entries = Object.keys(restockHistory).map(function (k) {
-      return restockHistory[k];
-    });
+    var entries = Object.keys(restockHistory).map(function (k) { return restockHistory[k]; });
     if (traders.length) {
       entries = entries.filter(function (h) {
-        var t = traders.find(function (x) {
-          return x.key === h.key;
-        });
+        var t = traders.find(function (x) { return x.key === h.key; });
         return t ? t.enabled : true;
       });
     }
-    entries.sort(function (a, b) {
-      return b.happenedAt - a.happenedAt;
-    });
+    entries.sort(function (a, b) { return b.happenedAt - a.happenedAt; });
     if (!entries.length) {
       el.innerHTML = '<p class="status">Пока пусто</p>';
       return;
@@ -369,9 +305,7 @@
       POLL_ID,
       1,
       function () {
-        return fetchTraders().then(function () {
-          render();
-        });
+        return fetchTraders().then(function () { render(); });
       },
       { fireNow: false, label: "restock", tool: TOOL }
     );
@@ -444,27 +378,63 @@
     testBtn.onclick = function () {
       try {
         if (typeof Notify === "function")
-          Notify({
-            title: "Restock test",
-            body: "test",
-            tool: TOOL,
-            kind: "restock"
-          });
-        else if (window.TarkovTools && TarkovTools.beep)
-          TarkovTools.beep("restock");
+          Notify({ title: "Restock test", body: "test", tool: TOOL, kind: "restock" });
+        else if (window.TarkovTools && TarkovTools.beep) TarkovTools.beep("restock");
       } catch (e) {}
     };
 
-  loadHistory();
-  window.addEventListener("pagehide", function () {
-    if (uiTick) {
-      clearInterval(uiTick);
-      uiTick = null;
-    }
+  function restoreFromSnapshot() {
     try {
-      if (window.TarkovPoll) TarkovPoll.stop(POLL_ID);
-    } catch (e) {}
-  });
+      var snap =
+        (window.TarkovStorage && TarkovStorage.getJson("restockSnapshot", null)) || null;
+      if (!snap || !snap.length) return false;
+      var enabledMap = loadEnabled();
+      var now = Date.now();
+      traders = snap
+        .map(function (s) {
+          var enabled = enabledMap[s.key];
+          if (enabled === undefined) enabled = s.enabled;
+          var row = {
+            id: s.id,
+            key: s.key,
+            name: s.name || TRADER_RU[s.key] || s.key,
+            resetAt: s.resetAt ? new Date(Number(s.resetAt)) : null,
+            enabled: !!enabled,
+            _prevResetAt: s._prevResetAt || null
+          };
+          if (row.resetAt && row.resetAt.getTime() <= now) {
+            rollForward(row, now);
+          }
+          return row;
+        })
+        .filter(function (t) {
+          return t.resetAt && !isNaN(t.resetAt.getTime());
+        });
+      return traders.length > 0;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  loadHistory();
+  try {
+    var st = window.TarkovPoll ? TarkovPoll.status(POLL_ID) : null;
+    var restored = restoreFromSnapshot();
+    if (restored) {
+      render();
+      startUiTick();
+      startPoll();
+      reportMini(true, "watching");
+      if (refreshBtn) refreshBtn.disabled = false;
+      if (statusEl) {
+        statusEl.className = "status ok";
+        statusEl.textContent = "Восстановлено " + traders.length + " (фон)";
+      }
+    } else if (st && st.on) {
+      reportMini(true, "watching");
+    }
+  } catch (eBoot) {}
+
   window.addEventListener("message", function (ev) {
     if (ev.origin !== location.origin) return;
     if (ev.data && ev.data.type === "tt-ping-status") {
