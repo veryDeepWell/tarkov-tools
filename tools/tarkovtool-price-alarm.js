@@ -504,9 +504,20 @@
     });
   }
 
-  function startBg() {
-    var mins = Math.max(1, Number((document.getElementById('interval') || {}).value) || 5);
-    if (document.getElementById('interval')) document.getElementById('interval').value = mins;
+  function readIntervalMins() {
+    var el = document.getElementById('interval');
+    var raw = el ? el.value : '';
+    var n = parseInt(String(raw).trim(), 10);
+    if (!isFinite(n) || n < 1) n = 5;
+    if (n > 1440) n = 1440;
+    if (el) el.value = String(n);
+    return n;
+  }
+
+  function startBg(forceMins) {
+    var mins = forceMins != null ? Math.max(1, Math.min(1440, Number(forceMins) || 5)) : readIntervalMins();
+    var el = document.getElementById('interval');
+    if (el) el.value = String(mins);
     var mode = (document.getElementById('gameMode') || {}).value || 'pve';
     if (!window.TarkovPoll) {
       status('TarkovPoll missing', false);
@@ -548,13 +559,15 @@
       };
     }
     var startBtn = document.getElementById('startBtn');
-    if (startBtn) startBtn.onclick = startBg;
+    if (startBtn) startBtn.onclick = function () { startBg(); };
     var intervalEl = document.getElementById('interval');
     if (intervalEl) {
-      intervalEl.onchange = function () {
+      function onIntervalChange() {
         var st = window.TarkovPoll ? TarkovPoll.status(POLL_ID) : null;
         if (st && st.on) startBg();
-      };
+      }
+      intervalEl.onchange = onIntervalChange;
+      intervalEl.oninput = onIntervalChange;
     }
     var stopBtn = document.getElementById('stopBtn');
     if (stopBtn) stopBtn.onclick = stopBg;
@@ -576,9 +589,16 @@
     }
     window.addEventListener('message', function (ev) {
       if (ev.origin !== location.origin) return;
-      if (ev.data && ev.data.type === 'tt-ping-status') {
+      var d = ev.data;
+      if (!d || typeof d !== 'object') return;
+      if (d.type === 'tt-ping-status' || d.type === 'tt-tick') {
         var st = window.TarkovPoll ? TarkovPoll.status(POLL_ID) : { on: false };
-        reportMini(!!st.on, st.on ? 'every ' + (st.mins || '?') + 'm' : 'idle');
+        if (d.type === 'tt-ping-status' || (d.type === 'tt-tick' && st.on)) {
+          reportMini(!!st.on, st.on ? 'every ' + (st.mins || '?') + 'm' : 'idle');
+        }
+        if (d.type === 'tt-tick' && window.TarkovPoll && TarkovPoll.paintAll) {
+          try { TarkovPoll.paintAll(); } catch (eP) {}
+        }
       }
     });
     document.addEventListener('click', function (e) {
@@ -587,11 +607,11 @@
     });
     try {
       var st = window.TarkovPoll ? TarkovPoll.status(POLL_ID) : null;
-      if (st && st.mins && document.getElementById('interval'))
-        document.getElementById('interval').value = st.mins;
+      if (st && st.on && st.mins && document.getElementById('interval'))
+        document.getElementById('interval').value = String(st.mins);
       if (st && st.mode && document.getElementById('gameMode'))
         document.getElementById('gameMode').value = st.mode;
-      if (st && st.on) startBg();
+      if (st && st.on) startBg(st.mins || readIntervalMins());
       else reportMini(false, 'idle');
     } catch (e) {
       reportMini(false, 'idle');
