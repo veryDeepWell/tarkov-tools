@@ -1,14 +1,22 @@
-/*! TarkovPoll — single interval runner + countdown for all live background tools.
+/*! TarkovPoll — schedule storage + fire callbacks for live tools.
  * Source of truth: TarkovStorage (tarkovPoll.<id>).
- * No per-tool timers, no dual run-state. Notify is caller responsibility.
+ *
+ * Under hub (parent.TarkovHubMini): hub LiveRuntime owns the clock.
+ *   start() writes schedule + keeps onFire locally; does NOT arm setTimeout.
+ *   Hub posts tt-poll-fire → tool runs onFire → updates nextAt → tt-poll-done.
+ *
+ * Standalone: arms local setTimeout as before.
+ * Notify is caller responsibility.
  */
 (function (global) {
   "use strict";
   var PREFIX = "tarkovPoll.";
   var timers = Object.create(null);
   var inFlight = Object.create(null);
+  var handlers = Object.create(null);
   var countdownIv = null;
   var boundEls = [];
+  var hubWired = false;
 
   function storage() {
     return global.TarkovStorage || null;
@@ -47,6 +55,18 @@
       if (!obj) localStorage.removeItem(key(id));
       else localStorage.setItem(key(id), JSON.stringify(obj));
     } catch (e) {}
+  }
+
+  function underHub() {
+    try {
+      return !!(
+        global.parent &&
+        global.parent !== global &&
+        global.parent.TarkovHubMini
+      );
+    } catch (e) {
+      return false;
+    }
   }
 
   function fmtRemain(ms) {
@@ -106,7 +126,6 @@
     return !!inFlight[id];
   }
 
-  /** Report mini-tab status to hub (single channel). */
   function reportMini(toolFile, running, label) {
     try {
       if (global.parent && global.parent !== global) {
@@ -124,22 +143,68 @@
     } catch (e) {}
   }
 
+  function postParent(msg) {
+    try {
+      if (global.parent && global.parent !== global) {
+        global.parent.postMessage(msg, location.origin);
+      }
+    } catch (e) {}
+  }
+
+  function runFire(id) {
+    if (inFlight[id]) return Promise.resolve();
+    var onFire = handlers[id];
+    setInFlight(id, true);
+    return Promise.resolve()
+      .then(function () {
+        return onFire && onFire();
+      })
+      .catch(function () {})
+      .then(function () {
+        setInFlight(id, false);
+        var cur = read(id);
+        if (!cur || !cur.on) {
+          postParent({ type: "tt-poll-done", pollId: id });
+          return;
+        }
+        var mins = Number(cur.mins) || 5;
+        cur.nextAt = Date.now() + mins * 60000;
+        write(id, cur);
+        paintAll();
+        postParent({ type: "tt-poll-done", pollId: id, nextAt: cur.nextAt });
+        if (!underHub()) armLocal(id);
+      });
+  }
+
+  function armLocal(id) {
+    clearTimer(id);
+    var st = read(id);
+    if (!st || !st.on) return;
+    var wait = Math.max(0, Number(st.nextAt) - Date.now());
+    timers[id] = {
+      timeout: setTimeout(function () {
+        if (inFlight[id]) {
+          armLocal(id);
+          return;
+        }
+        runFire(id);
+      }, wait)
+    };
+    paintAll();
+  }
+
   function start(id, mins, onFire, opts) {
     opts = opts || {};
     mins = Math.max(1, Number(mins) || 5);
     clearTimer(id);
+    if (typeof onFire === "function") handlers[id] = onFire;
+
     var now = Date.now();
     var st = read(id) || {};
     var nextAt = Number(st.nextAt) || 0;
     var prevMins = Number(st.mins) || 0;
     var minsChanged = prevMins > 0 && prevMins !== mins;
-    // Re-arm when interval changes, explicit reset, or schedule is stale
-    if (
-      opts.reset ||
-      minsChanged ||
-      !nextAt ||
-      nextAt < now - mins * 60000
-    ) {
+    if (opts.reset || minsChanged || !nextAt || nextAt < now - mins * 60000) {
       nextAt = opts.fireNow === false ? now + mins * 60000 : now;
     }
     st = {
@@ -152,70 +217,42 @@
     };
     write(id, st);
 
-    function arm() {
-      clearTimer(id);
-      st = read(id) || st;
-      if (!st.on) return;
-      var wait = Math.max(0, Number(st.nextAt) - Date.now());
-      timers[id] = {
-        timeout: setTimeout(function () {
-          if (inFlight[id]) {
-            arm();
-            return;
-          }
-          setInFlight(id, true);
-          Promise.resolve()
-            .then(function () {
-              return onFire && onFire();
-            })
-            .catch(function () {})
-            .then(function () {
-              setInFlight(id, false);
-              var cur = read(id);
-              if (!cur || !cur.on) return;
-              cur.nextAt = Date.now() + (Number(cur.mins) || mins) * 60000;
-              write(id, cur);
-              paintAll();
-              arm();
-            });
-        }, wait)
-      };
-      paintAll();
-    }
-
-    if (opts.fireNow !== false && nextAt <= now) {
-      if (!inFlight[id]) {
-        setInFlight(id, true);
-        Promise.resolve()
-          .then(function () {
-            return onFire && onFire();
-          })
-          .catch(function () {})
-          .then(function () {
-            setInFlight(id, false);
-            var cur = read(id) || st;
-            if (!cur.on) return;
-            cur.nextAt = Date.now() + mins * 60000;
-            write(id, cur);
-            arm();
-          });
-      } else {
-        arm();
+    var hub = underHub();
+    if (hub) {
+      postParent({
+        type: "tt-poll-register",
+        pollId: id,
+        mins: mins,
+        nextAt: nextAt,
+        tool: st.tool,
+        label: st.label
+      });
+      if (opts.fireNow !== false && nextAt <= now && !inFlight[id]) {
+        runFire(id);
       }
     } else {
-      arm();
+      if (opts.fireNow !== false && nextAt <= now) {
+        if (!inFlight[id]) runFire(id);
+        else armLocal(id);
+      } else {
+        armLocal(id);
+      }
     }
+
     ensureCountdownLoop();
+    wireHubMessages();
     return st;
   }
 
   function stop(id) {
     clearTimer(id);
     setInFlight(id, false);
+    delete handlers[id];
     var st = read(id) || {};
     st.on = false;
     st.nextAt = null;
     write(id, st);
+    postParent({ type: "tt-poll-stop", pollId: id });
     paintAll();
   }
 
@@ -267,6 +304,29 @@
     };
   }
 
+  function wireHubMessages() {
+    if (hubWired) return;
+    hubWired = true;
+    try {
+      global.addEventListener("message", function (ev) {
+        if (ev.origin !== location.origin) return;
+        var d = ev.data;
+        if (!d || typeof d !== "object") return;
+        if (d.type === "tt-poll-fire" && d.pollId) {
+          var id = d.pollId;
+          if (!handlers[id]) return;
+          var st = read(id);
+          if (!st || !st.on) return;
+          runFire(id);
+        }
+      });
+    } catch (e) {}
+  }
+
+  try {
+    if (underHub()) wireHubMessages();
+  } catch (e0) {}
+
   global.TarkovPoll = {
     start: start,
     stop: stop,
@@ -278,6 +338,7 @@
     paintAll: paintAll,
     setInFlight: setInFlight,
     isInFlight: isInFlight,
-    reportMini: reportMini
+    reportMini: reportMini,
+    underHub: underHub
   };
 })(window);
