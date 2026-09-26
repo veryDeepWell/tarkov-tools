@@ -28,7 +28,6 @@
         btn.removeAttribute("hidden");
       } else {
         btn.classList.remove("has-unread");
-        /* keep visible so user can open history */
         btn.hidden = false;
         btn.removeAttribute("hidden");
       }
@@ -87,7 +86,7 @@
           }
         }
         var tool = String(n.tool || "")
-          .replace(/^.*/ , "")
+          .replace(/^.*\//, "")
           .replace("tarkovtool-", "")
           .replace(".html", "");
         var cls = n.read ? "" : " unread";
