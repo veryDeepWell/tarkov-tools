@@ -131,7 +131,15 @@
     var now = Date.now();
     var st = read(id) || {};
     var nextAt = Number(st.nextAt) || 0;
-    if (opts.reset || !nextAt || nextAt < now - mins * 60000) {
+    var prevMins = Number(st.mins) || 0;
+    var minsChanged = prevMins > 0 && prevMins !== mins;
+    // Re-arm when interval changes, explicit reset, or schedule is stale
+    if (
+      opts.reset ||
+      minsChanged ||
+      !nextAt ||
+      nextAt < now - mins * 60000
+    ) {
       nextAt = opts.fireNow === false ? now + mins * 60000 : now;
     }
     st = {
