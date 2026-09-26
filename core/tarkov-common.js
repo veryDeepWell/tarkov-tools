@@ -71,6 +71,25 @@
     } catch (e) { return null; }
   }
 
+  function armAudioUnlock() {
+    if (armAudioUnlock._done) return;
+    armAudioUnlock._done = true;
+    var once = function () {
+      try { unlockAudio(); } catch (e) {}
+      try {
+        document.removeEventListener("pointerdown", once, true);
+        document.removeEventListener("keydown", once, true);
+        document.removeEventListener("touchstart", once, true);
+      } catch (e2) {}
+    };
+    try {
+      document.addEventListener("pointerdown", once, true);
+      document.addEventListener("keydown", once, true);
+      document.addEventListener("touchstart", once, true);
+    } catch (e) {}
+  }
+  try { armAudioUnlock(); } catch (eArm) {}
+
   function tone(ctx, freq, start, dur, vol, type) {
     var o = ctx.createOscillator();
     var g = ctx.createGain();
@@ -193,19 +212,22 @@
   function Notify(opts) {
     opts = i18nNotif(opts || {});
     pushNotifLocal(opts);
-    if (opts.silent !== true) {
-      var kind = opts.kind || opts.sound || "ok";
-      if (kind === "price") kind = "ok";
+    var kind = opts.kind || opts.sound || "ok";
+    if (kind === "price") kind = "ok";
+    var inFrame = false;
+    try { inFrame = !!(window.parent && window.parent !== window); } catch (eF) {}
+    // Inside hub iframe: parent plays sound (iframe AudioContext is often blocked)
+    if (opts.silent !== true && !inFrame) {
       beep(kind);
     }
     try {
-      if (window.parent && window.parent !== window) {
+      if (inFrame) {
         window.parent.postMessage({
           type: "tt-notify",
           title: opts.title || "",
           body: opts.body || "",
           tool: opts.tool || "",
-          kind: opts.kind || "ok",
+          kind: kind,
           silent: !!opts.silent
         }, location.origin);
       }
@@ -242,8 +264,14 @@
     hiddenTools: hiddenTools,
     setHiddenTools: setHiddenTools,
     openSettings: openSettings,
-    ACCENTS: ACCENTS
+    ACCENTS: ACCENTS,
+    unlockAudio: unlockAudio
   });
+  try {
+    global.Notify = Notify;
+    global.beep = beep;
+  } catch (eG) {}
 
   try { applyTheme(); } catch (e) {}
+  try { armAudioUnlock(); } catch (e2) {}
 })(typeof window !== "undefined" ? window : this);
