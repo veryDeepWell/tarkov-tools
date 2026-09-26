@@ -118,17 +118,45 @@
       return (Number(item.qty) || 0) * (Number(item.price) || 0);
     }
     
+    // P1: single progress API (TarkovUI); DOM nodes only as host fallback
     function setProgress(pct, label, indeterminate) {
-      progressWrap.classList.add('visible');
-      progressLabel.textContent = label || '';
-      progressBar.classList.toggle('indeterminate', !!indeterminate);
-      if (!indeterminate) progressBar.style.width = Math.max(0, Math.min(100, pct)) + '%';
+      var P = window.TarkovUI && TarkovUI.progress;
+      if (!P) return;
+      if (indeterminate || pct < 0) {
+        P.start({ host: progressWrap, label: label || '', indeterminate: true });
+        P.set(-1, label, { indeterminate: true });
+        return;
+      }
+      if (pct <= 0) P.start({ host: progressWrap, label: label || '' });
+      else P.set(pct, label);
     }
     function hideProgress() {
-      progressWrap.classList.remove('visible');
-      progressBar.classList.remove('indeterminate');
-      progressBar.style.width = '0%';
-      progressLabel.textContent = '';
+      try {
+        if (window.TarkovUI && TarkovUI.progress) TarkovUI.progress.done();
+      } catch (e) {}
+    }
+
+    function playDoneSound() {
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        const ctx = playDoneSound._ctx || (playDoneSound._ctx = new Ctx());
+        if (ctx.state === 'suspended') ctx.resume();
+        const notes = [523.25, 659.25, 783.99, 1046.5];
+        const t0 = ctx.currentTime + 0.02;
+        notes.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.value = freq;
+          const start = t0 + i * 0.09;
+          gain.gain.setValueAtTime(0.0001, start);
+          gain.gain.exponentialRampToValueAtTime(0.12, start + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.22);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(start); osc.stop(start + 0.25);
+        });
+      } catch (e) {}
     }
 
     /**
@@ -373,7 +401,13 @@
 
     async function fetchCatalog() {
       const mode = document.getElementById('gameMode').value || 'regular';
-      catalog = await TarkovAPI.items(mode);
+      const res = await fetch(`https://json.tarkov.dev/${mode}/items`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      let itemsData = json?.data?.items;
+      if (!itemsData) throw new Error('Нет data.items');
+      if (!Array.isArray(itemsData)) itemsData = Object.values(itemsData);
+      catalog = itemsData;
       return catalog;
     }
 
@@ -426,14 +460,7 @@
         statusEl.textContent = `Цены обновлены · найдено ${found}, не найдено ${missed}`;
         renderItems();
         recalculate();
-        if (typeof Notify === 'function') {
-          Notify({
-            title: 'Barter live',
-            body: `Prices updated · found ${found}, missed ${missed}`,
-            tool: 'tarkovtool-barter-live.html',
-            kind: 'ok'
-          });
-        }
+        playDoneSound();
         setTimeout(hideProgress, 800);
       } catch (err) {
         console.error(err);
@@ -518,11 +545,25 @@
 
 (function(){
   const KEY = 'tarkovPreferredGameMode';
-  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
+  const def = localStorage.getItem(KEY) || 'pve';
   document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
     if ([...sel.options].some(o => o.value === def)) sel.value = def;
     sel.addEventListener('change', () => {
-      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
+      try { localStorage.setItem(KEY, sel.value); } catch(e) {}
     });
   });
+
+    try {
+      var hb = document.getElementById('helpBtn');
+      if (hb) hb.onclick = function () {
+        if (window.TarkovUI && TarkovUI.helpModal) {
+          var h = TarkovUI.toolHelpFromI18n('barter-live');
+          TarkovUI.helpModal({
+            title: h.title || 'Barter (live)',
+            body: h.body || 'Load flea prices, pick a trader preset, set what you receive and components, then calculate profit. Tax is simplified.'
+          });
+        }
+      };
+    } catch (e) {}
+
 })();

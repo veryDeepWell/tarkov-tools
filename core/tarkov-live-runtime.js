@@ -10,6 +10,7 @@
   var PREFIX = "tarkovPoll.";
   var tickIv = null;
   var inFlight = Object.create(null);
+  var _tickN = 0;
 
   function readPoll(id) {
     try {
@@ -106,7 +107,7 @@
       var file = st.tool || toolFileForPoll(id);
       if (!file) continue;
       var ifr = findFrame(file);
-      if (!ifr) continue;
+      if (!ifr) continue; // tool not loaded in hub yet
 
       inFlight[id] = true;
       var sent = postToTool(file, {
@@ -118,11 +119,42 @@
         delete inFlight[id];
         continue;
       }
+      // Safety: clear inFlight if tool never acks (max 120s)
       (function (pollId) {
         setTimeout(function () {
           delete inFlight[pollId];
         }, 120000);
       })(id);
+    }
+
+    // Unified 1s loop: keepalive tt-tick (+ occasional status ping) for live iframes
+    broadcastUiTicks();
+  }
+
+  function isLiveFile(file) {
+    try {
+      if (global.TarkovToolKind && TarkovToolKind.isLive) return TarkovToolKind.isLive(file);
+    } catch (e) {}
+    var base = String(file || "").split("/").pop();
+    return /price-track|price-alarm|restock/i.test(base);
+  }
+
+  function broadcastUiTicks() {
+    _tickN++;
+    var ping = (_tickN % 15) === 0;
+    var map = null;
+    try { map = global.__ttHubFrames; } catch (e) {}
+    if (!map) return;
+    var keys = Object.keys(map);
+    for (var i = 0; i < keys.length; i++) {
+      var f = keys[i];
+      if (!isLiveFile(f)) continue;
+      var ifr = map[f];
+      if (!ifr || !ifr.contentWindow) continue;
+      try {
+        ifr.contentWindow.postMessage({ type: "tt-tick", ts: Date.now() }, location.origin);
+        if (ping) ifr.contentWindow.postMessage({ type: "tt-ping-status", ts: Date.now() }, location.origin);
+      } catch (e2) {}
     }
   }
 
@@ -132,6 +164,7 @@
     if (!d || typeof d !== "object") return;
 
     if (d.type === "tt-poll-register") {
+      // Tool registered; ensure next tick can see storage state
       try {
         if (global.TarkovPoll && TarkovPoll.paintAll) TarkovPoll.paintAll();
       } catch (e) {}
@@ -157,6 +190,7 @@
       global.addEventListener("message", onMessage);
     } catch (e) {}
     tickIv = setInterval(tick, 1000);
+    // tt-tick / tt-ping-status broadcast from tick() — single 1s loop (P1)
   }
 
   function stop() {
@@ -175,6 +209,7 @@
     findFrame: findFrame
   };
 
+  // Auto-start when DOM ready on hub
   function boot() {
     if (!document.getElementById("framePool")) return;
     start();

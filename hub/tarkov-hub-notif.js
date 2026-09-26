@@ -4,6 +4,12 @@
 
   function allNotifications() {
     try {
+      if (window.TarkovStorage && TarkovStorage.getJson) {
+        var list = TarkovStorage.getJson("tarkovNotifications.v1", []) || [];
+        return Array.isArray(list) ? list : [];
+      }
+    } catch (e0) {}
+    try {
       return JSON.parse(localStorage.getItem("tarkovNotifications.v1") || "[]") || [];
     } catch (e) {
       return [];
@@ -130,7 +136,8 @@
       var list = allNotifications().map(function (n) {
         return Object.assign({}, n, { read: true });
       });
-      localStorage.setItem("tarkovNotifications.v1", JSON.stringify(list));
+      if (window.TarkovStorage && TarkovStorage.setJson) TarkovStorage.setJson("tarkovNotifications.v1", list);
+      else localStorage.setItem("tarkovNotifications.v1", JSON.stringify(list));
     } catch (e) {}
     try {
       if (window.TarkovState && TarkovState.getMiniTabs) {
@@ -194,15 +201,17 @@
         if (ev.data.silent !== true) {
           try {
             var k = ev.data.kind || "ok";
-            if (window.TarkovTools && TarkovTools.beep) TarkovTools.beep(k);
-            else if (typeof beep === "function") beep(k);
+            var tool = ev.data.tool || "";
+            if (window.TarkovTools && TarkovTools.beep) TarkovTools.beep(k, tool);
+            else if (typeof beep === "function") beep(k, tool);
           } catch (eB) {}
         }
       }
       if (ev.data.type === "tt-beep" && ev.data.kind) {
         try {
-          if (window.TarkovTools && TarkovTools.beep) TarkovTools.beep(ev.data.kind);
-          else if (typeof beep === "function") beep(ev.data.kind);
+          var tool2 = ev.data.tool || "";
+          if (window.TarkovTools && TarkovTools.beep) TarkovTools.beep(ev.data.kind, tool2);
+          else if (typeof beep === "function") beep(ev.data.kind, tool2);
         } catch (eB2) {}
       }
     });

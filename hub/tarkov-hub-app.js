@@ -7,7 +7,8 @@ var CHANGELOG = [
   { date: "2026-09-21", items: ["Stage 1 live runtime", "Stage 3 UI shell inject"] },
   { date: "2026-09-22", items: ["Stage 4 i18n + single catalog.json", "Hub category collapse"] },
   { date: "2026-09-25", items: ["FAQ in header", "Per-kind sound settings restore"] },
-  { date: "2026-09-26", items: ["Live tools: warm iframes + parent tt-tick"] }
+  { date: "2026-09-26", items: ["Live tools: warm iframes + parent tt-tick"] },
+  { date: "2026-09-26", items: ["Tool contract + hub LiveRuntime owns poll clock"] }
 ];
 var ICONS = [[/btc/i,"₿"],[/cultist/i,"⛧"],[/my-tarkov/i,"👤"],[/helmet/i,"🪖"],[/nvg/i,"🌑"],[/price-track/i,"📈"],[/price-alarm/i,"🔔"],[/food/i,"🍖"],[/random-loadout/i,"🎲"],[/loadout-budget/i,"💰"],[/loadout-builder/i,"🧰"],[/drip-builder/i,"🎨"],[/drip-loadout/i,"✨"],[/ammo/i,"🔫"],[/armor/i,"🛡️"],[/barter/i,"🧮"],[/boss/i,"👹"],[/compare/i,"⚖️"],[/container/i,"🎒"],[/craft/i,"🔧"],[/drip/i,"🕶️"],[/gun/i,"🛠️"],[/hideout/i,"🏗️"],[/key/i,"🔑"],[/lang/i,"🌐"],[/loot/i,"📦"],[/item-use/i,"💡"],[/mag/i,"📟"],[/med/i,"💊"],[/mods/i,"🔩"],[/plate/i,"🧱"],[/quest/i,"📜"],[/raid/i,"✅"],[/restock/i,"⏰"],[/scope/i,"🔭"],[/short/i,"🏷️"],[/skill/i,"📈"],[/stim/i,"💉"],[/streamer/i,"📺"],[/trader/i,"🏪"],[/desk/i,"🗂️"]];
 
@@ -496,21 +497,7 @@ try {
 var btnCloseExpand = document.getElementById("btnCloseExpand");
 if (btnCloseExpand) btnCloseExpand.onclick = function () { if (expanded) closeTab(expanded); };
 
-setInterval(function () {
-  var keys = Object.keys(frames);
-  if (!keys.length) return;
-  for (var i = 0; i < keys.length; i++) {
-    try {
-      var f = keys[i];
-      if (!isLiveTool(f)) continue;
-      var ifr = frames[f];
-      if (ifr && ifr.contentWindow) {
-        ifr.contentWindow.postMessage({ type: "tt-tick" }, location.origin);
-        ifr.contentWindow.postMessage({ type: "tt-ping-status" }, location.origin);
-      }
-    } catch (e) {}
-  }
-}, 1000);
+/* P1: tt-tick / tt-ping-status owned by TarkovLiveRuntime (single 1s loop) */
 
 function openFaq() {
   var bg = document.getElementById("tt-faq-bg");

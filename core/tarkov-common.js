@@ -20,9 +20,20 @@
   };
 
   function get(k, d) {
+    try {
+      if (global.TarkovStorage && TarkovStorage.get) {
+        var v0 = TarkovStorage.get(k, null);
+        return v0 == null ? d : v0;
+      }
+    } catch (e0) {}
     try { var v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; }
   }
-  function set(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
+  function set(k, v) {
+    try {
+      if (global.TarkovStorage && TarkovStorage.set) { TarkovStorage.set(k, v); return; }
+    } catch (e0) {}
+    try { localStorage.setItem(k, String(v)); } catch (e) {}
+  }
 
   function lang() {
     try {
@@ -45,6 +56,22 @@
   }
 
   function soundEnabled() { return get(KEYS.sound, "1") !== "0"; }
+
+  /** Per-tool mute: tarkovSoundTool.<basename> = "0" silences that tool. */
+  function toolBase(file) {
+    var f = String(file || "");
+    var i = f.lastIndexOf("/");
+    return i >= 0 ? f.slice(i + 1) : f;
+  }
+  function toolSoundEnabled(file) {
+    if (!file) return true;
+    try {
+      return get("tarkovSoundTool." + toolBase(file), "1") !== "0";
+    } catch (e) {
+      return true;
+    }
+  }
+
   function volume() {
     var v = parseFloat(get(KEYS.volume, get("tarkovSoundVol", "0.5")));
     return isNaN(v) ? 0.5 : Math.min(1, Math.max(0, v));
@@ -104,10 +131,14 @@
     o.stop(start + dur + 0.02);
   }
 
-  function beep(kind) {
+  function beep(kind, toolOrOpts) {
     if (!soundEnabled()) return;
     try {
       kind = kind || "ok";
+      var toolFile = "";
+      if (typeof toolOrOpts === "string") toolFile = toolOrOpts;
+      else if (toolOrOpts && toolOrOpts.tool) toolFile = toolOrOpts.tool;
+      if (toolFile && !toolSoundEnabled(toolFile)) return;
       var kindKey = kind;
       if (kindKey === "warn") kindKey = "alarm";
       if (kindKey === "price") kindKey = "ok";
@@ -154,7 +185,13 @@
     try {
       var key = "tarkovNotifications.v1";
       var list = [];
-      try { list = JSON.parse(localStorage.getItem(key) || "[]") || []; } catch (e2) {}
+      try {
+        if (global.TarkovStorage && TarkovStorage.getJson)
+          list = TarkovStorage.getJson(key, []) || [];
+        else
+          list = JSON.parse(localStorage.getItem(key) || "[]") || [];
+      } catch (e2) { list = []; }
+      if (!Array.isArray(list)) list = [];
       var item = {
         id: "n" + Date.now() + Math.random().toString(36).slice(2, 6),
         ts: Date.now(),
@@ -165,7 +202,11 @@
         kind: opts.kind || ""
       };
       list.unshift(item);
-      localStorage.setItem(key, JSON.stringify(list.slice(0, 200)));
+      list = list.slice(0, 200);
+      try {
+        if (global.TarkovStorage && TarkovStorage.setJson) TarkovStorage.setJson(key, list);
+        else localStorage.setItem(key, JSON.stringify(list));
+      } catch (e3) {}
       return item;
     } catch (e) { return null; }
   }
@@ -174,36 +215,15 @@
     opts = opts || {};
     try {
       if (!window.TarkovI18n || !TarkovI18n.t) return opts;
-      var tool = String(opts.tool || "");
-      var title = opts.title || "";
-      var body = opts.body || "";
-      if (/price-track/i.test(tool)) {
-        if (title === "Price track" || title === "Price Track") {
-          opts.title = TarkovI18n.t("priceTrack.title") || title;
-          if (opts.title.indexOf("priceTrack.") === 0) opts.title = title;
-        }
-        var m = body.match(/^Snap\s+(\d+)\s*[·•]\s*(.+)$/);
-        if (m) {
-          var sb = TarkovI18n.t("priceTrack.snapBody", { n: m[1], time: m[2] });
-          if (sb && sb.indexOf("priceTrack.") !== 0) opts.body = sb;
-        }
+      var params = opts.i18nParams || opts.params || {};
+      // P1: key-based (tools pass i18nTitle / i18nBody + optional i18nParams)
+      if (opts.i18nTitle) {
+        var tit = TarkovI18n.t(opts.i18nTitle, params);
+        if (tit && tit !== opts.i18nTitle) opts.title = tit;
       }
-      if (/restock/i.test(tool)) {
-        if (/^Restock:\s*/.test(title)) {
-          var name = title.replace(/^Restock:\s*/, "");
-          var rt = TarkovI18n.t("restock.notifTitle", { name: name });
-          if (rt && rt.indexOf("restock.") !== 0) opts.title = rt;
-        }
-        if (body === "Assortment refreshed") {
-          var rb = TarkovI18n.t("restock.notifBody");
-          if (rb && rb.indexOf("restock.") !== 0) opts.body = rb;
-        }
-        if (title === "Restock test") {
-          var tt = TarkovI18n.t("restock.testTitle");
-          var tb = TarkovI18n.t("restock.testBody");
-          if (tt && tt.indexOf("restock.") !== 0) opts.title = tt;
-          if (tb && tb.indexOf("restock.") !== 0) opts.body = tb;
-        }
+      if (opts.i18nBody) {
+        var bod = TarkovI18n.t(opts.i18nBody, params);
+        if (bod && bod !== opts.i18nBody) opts.body = bod;
       }
     } catch (e) {}
     return opts;
@@ -218,7 +238,7 @@
     try { inFrame = !!(window.parent && window.parent !== window); } catch (eF) {}
     // Inside hub iframe: parent plays sound (iframe AudioContext is often blocked)
     if (opts.silent !== true && !inFrame) {
-      beep(kind);
+      if (toolSoundEnabled(opts.tool)) beep(kind, opts.tool);
     }
     try {
       if (inFrame) {
@@ -246,6 +266,82 @@
     /* overridden by settings-tabs.js */
   }
 
+  /** Export / import all tarkov* localStorage keys (settings + tool state). */
+  function exportAll() {
+    try {
+      if (window.TarkovStorage && TarkovStorage.migrateKey) {
+        [["restockEnabled","tarkovRestockEnabled"],["restockHistory","tarkovRestockHistory"],["restockFired","tarkovRestockFired"],["restockCycleMs","tarkovRestockCycleMs"],["restockSnapshot","tarkovRestockSnapshot"]].forEach(function (pair) {
+          TarkovStorage.migrateKey(pair[0], pair[1]);
+        });
+      }
+    } catch (eM) {}
+    var data = {
+      _schema: "tarkov-tools-export",
+      _version: 1,
+      _exportedAt: new Date().toISOString(),
+      keys: {}
+    };
+    try {
+      var ks = (global.TarkovStorage && TarkovStorage.keys)
+        ? TarkovStorage.keys("tarkov")
+        : (function () {
+            var a = [];
+            try {
+              for (var i = 0; i < localStorage.length; i++) {
+                var k = localStorage.key(i);
+                if (k && k.indexOf("tarkov") === 0) a.push(k);
+              }
+            } catch (e) {}
+            return a;
+          })();
+      ks.forEach(function (k) {
+        try {
+          data.keys[k] = global.TarkovStorage && TarkovStorage.get
+            ? TarkovStorage.get(k, null)
+            : localStorage.getItem(k);
+        } catch (e2) {}
+      });
+    } catch (e) {}
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "tarkov-tools-export-" + data._exportedAt.slice(0, 10) + ".json";
+    a.click();
+    try { URL.revokeObjectURL(a.href); } catch (e2) {}
+  }
+
+  function importAll(file) {
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var raw = JSON.parse(reader.result);
+        var map = raw;
+        if (raw && raw.keys && typeof raw.keys === "object") map = raw.keys;
+        if (!map || typeof map !== "object") throw new Error("bad shape");
+        Object.keys(map).forEach(function (k) {
+          if (k.indexOf("tarkov") === 0 && typeof map[k] === "string") {
+            try {
+              if (global.TarkovStorage && TarkovStorage.set) TarkovStorage.set(k, map[k]);
+              else localStorage.setItem(k, map[k]);
+            } catch (eS) {}
+          }
+        });
+        try { applyTheme(); } catch (eT) {}
+        try {
+          if (global.TarkovI18n && TarkovI18n.setLang) {
+            TarkovI18n.setLang(get(KEYS.lang, "ru"));
+          }
+        } catch (eL) {}
+        alert(t("importOk") !== "importOk" ? t("importOk") : "Import OK — reload the page");
+        try { window.dispatchEvent(new CustomEvent("tt-settings-applied")); } catch (eE) {}
+      } catch (e) {
+        alert(t("importFail") !== "importFail" ? t("importFail") : "Import failed");
+      }
+    };
+    reader.readAsText(file);
+  }
+
   global.TarkovTools = global.TarkovTools || {};
   Object.assign(global.TarkovTools, {
     _ttCommon: true,
@@ -254,6 +350,7 @@
     t: t,
     lang: lang,
     soundEnabled: soundEnabled,
+    toolSoundEnabled: toolSoundEnabled,
     volume: volume,
     preferredMode: preferredMode,
     tipsEnabled: tipsEnabled,
@@ -264,6 +361,8 @@
     hiddenTools: hiddenTools,
     setHiddenTools: setHiddenTools,
     openSettings: openSettings,
+    exportAll: exportAll,
+    importAll: importAll,
     ACCENTS: ACCENTS,
     unlockAudio: unlockAudio
   });
@@ -275,3 +374,4 @@
   try { applyTheme(); } catch (e) {}
   try { armAudioUnlock(); } catch (e2) {}
 })(typeof window !== "undefined" ? window : this);
+

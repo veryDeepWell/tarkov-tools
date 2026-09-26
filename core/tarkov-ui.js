@@ -165,16 +165,34 @@
     host.classList.remove("tt-progress-fail");
     progressState.pct = 0;
     if (progressState.bar) {
-      progressState.bar.classList.remove("indeterminate", "fail");
-      progressState.bar.style.width = "0%";
+      progressState.bar.classList.remove("fail");
+      if (opts.indeterminate) {
+        progressState.bar.classList.add("indeterminate");
+        progressState.bar.style.width = "30%";
+      } else {
+        progressState.bar.classList.remove("indeterminate");
+        progressState.bar.style.width = "0%";
+      }
     }
     if (progressState.label) progressState.label.textContent = opts.label || "";
     return progressAPI;
   }
 
-  function progressSet(pct, label) {
+  /** set(pct, label) or set(pct, label, { indeterminate: true }) */
+  function progressSet(pct, label, opts) {
+    opts = opts || {};
     progressEnsure();
+    if (opts.indeterminate || pct < 0) {
+      if (progressState.bar) {
+        progressState.bar.classList.add("indeterminate");
+        progressState.bar.style.width = "30%";
+      }
+      if (label != null && progressState.label) progressState.label.textContent = label;
+      return progressAPI;
+    }
     var p = Math.max(0, Math.min(100, Number(pct) || 0));
+    // Contract: 5% steps
+    p = Math.round(p / 5) * 5;
     progressState.pct = p;
     if (progressState.bar) {
       progressState.bar.classList.remove("indeterminate");
@@ -186,6 +204,11 @@
 
   function progressDone(label) {
     progressSet(100, label != null ? label : "");
+    // Soft UI beep on successful load (respects global + kind mute)
+    try {
+      if (global.TarkovTools && TarkovTools.beep) TarkovTools.beep("ok");
+      else if (typeof global.beep === "function") global.beep("ok");
+    } catch (eB) {}
     setTimeout(function () {
       if (progressState.host) progressState.host.classList.remove("visible", "tt-progress-visible");
       if (progressState.bar) progressState.bar.style.width = "0%";

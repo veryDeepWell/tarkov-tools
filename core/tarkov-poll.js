@@ -57,6 +57,7 @@
     } catch (e) {}
   }
 
+  /** True when running inside hub iframe — hub owns timers. */
   function underHub() {
     try {
       return !!(
@@ -69,9 +70,25 @@
     }
   }
 
+
+  function pt(key, fb, params) {
+    try {
+      if (global.TarkovI18n && TarkovI18n.t) {
+        var v = TarkovI18n.t("poll." + key, params);
+        if (v && String(v).indexOf("poll.") !== 0) return v;
+      }
+    } catch (e) {}
+    if (params && typeof fb === "string") {
+      return String(fb).replace(/\{(\w+)\}/g, function (_, k) {
+        return params[k] != null ? String(params[k]) : "{" + k + "}";
+      });
+    }
+    return fb;
+  }
+
   function fmtRemain(ms) {
-    if (ms == null || isNaN(ms)) return "—";
-    if (ms <= 0) return "сейчас";
+    if (ms == null || isNaN(ms)) return pt("dash", "—");
+    if (ms <= 0) return pt("now", "сейчас");
     var s = Math.floor(ms / 1000);
     var h = Math.floor(s / 3600);
     var m = Math.floor((s % 3600) / 60);
@@ -97,7 +114,7 @@
         mins: 0,
         nextAt: null,
         remainMs: null,
-        remainText: "выкл",
+        remainText: pt("off", "выкл"),
         mode: "",
         label: "",
         inFlight: false
@@ -109,7 +126,7 @@
       mins: Number(st.mins) || 0,
       nextAt: st.nextAt || null,
       remainMs: remain,
-      remainText: st.on ? fmtRemain(remain) : "выкл",
+      remainText: st.on ? fmtRemain(remain) : pt("off", "выкл"),
       mode: st.mode || "",
       label: st.label || id,
       inFlight: !!inFlight[id]
@@ -227,6 +244,7 @@
         tool: st.tool,
         label: st.label
       });
+      // Immediate fire if due — still via same runFire path
       if (opts.fireNow !== false && nextAt <= now && !inFlight[id]) {
         runFire(id);
       }
@@ -260,20 +278,20 @@
     if (!el) return;
     var st = status(id);
     var prefix = el.getAttribute("data-poll-prefix");
-    if (prefix == null) prefix = "Следующий запуск: ";
+    if (prefix == null) prefix = pt("nextPrefix", "Следующий запуск: ");
     if (st.on) {
       if (st.inFlight) {
-        el.textContent = prefix + "идёт…";
+        el.textContent = prefix + pt("running", "идёт…");
       } else {
-        el.textContent =
-          prefix +
-          st.remainText +
-          (st.mins ? " · каждые " + st.mins + " мин" : "");
+        var every = st.mins
+          ? pt("everyMins", " · каждые {mins} мин", { mins: st.mins })
+          : "";
+        el.textContent = prefix + st.remainText + every;
       }
       el.classList.add("on");
       el.classList.remove("off");
     } else {
-      el.textContent = prefix + "выкл";
+      el.textContent = prefix + pt("off", "выкл");
       el.classList.add("off");
       el.classList.remove("on");
     }
@@ -323,6 +341,7 @@
     } catch (e) {}
   }
 
+  // If page loads under hub with existing on schedule, wire listener early
   try {
     if (underHub()) wireHubMessages();
   } catch (e0) {}

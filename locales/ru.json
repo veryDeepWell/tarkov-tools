@@ -1,96 +1,384 @@
 {
-  "_meta": { "code": "ru", "name": "Russian", "nativeName": "Русский" },
+  "_meta": {
+    "code": "ru",
+    "name": "Russian",
+    "nativeName": "Русский"
+  },
   "common": {
-    "settings": "Настройки", "theme": "Тема", "themeDark": "Тёмная", "themeLight": "Светлая",
-    "lang": "Язык", "sound": "Звук", "soundOn": "Вкл", "soundOff": "Выкл",
-    "mode": "Режим по умолчанию", "close": "Закрыть", "export": "Экспорт", "import": "Импорт",
-    "importOk": "Импорт выполнен", "importFail": "Ошибка импорта", "search": "Поиск по таблице…",
-    "welcomeTitle": "Настройки Tarkov Tools", "welcomeBody": "Тема, язык, звук, режим и акцент.",
-    "apply": "Применить", "hub": "Хаб", "accent": "Акцент", "tips": "Подсказки тулзов",
-    "tipsOn": "Вкл", "tipsOff": "Выкл", "volume": "Громкость", "testSound": "Тест",
-    "tabGeneral": "Общие", "tabSound": "Звук", "tabLook": "Вид", "tabHidden": "Скрытые", "tabLang": "Язык",
-    "hideAllCat": "Скрыть всю категорию", "showAllCat": "Показать всю категорию",
-    "hiddenHint": "Скрытые тулзы остаются в каталоге, но не показываются в сетке хаба.",
-    "langHint": "Язык интерфейса. Неполные локали откатываются на English.",
-    "langComplete": "{pct}% готово", "loading": "Загрузка…", "empty": "Пусто",
-    "on": "Вкл", "off": "Выкл", "running": "Работает", "loadedBg": "Фон",
-    "save": "Сохранить", "cancel": "Отмена", "delete": "Удалить", "reset": "Сброс",
-    "yes": "Да", "no": "Нет", "start": "Старт", "stop": "Стоп", "interval": "Интервал",
-    "filter": "Фильтр", "error": "Ошибка", "timeout": "Таймаут", "restoring": "Восстановление…",
-    "notLoaded": "Не загружен", "closeTabHint": "Закрыть вкладку", "unreadNone": "Нет уведомлений",
-    "help": "Справка", "perToolSound": "Звуки по инструментам", "uiSound": "Интерфейс",
-    "gameMode": "Режим игры", "toolTips": "Подсказки инструментов"
+    "settings": "Настройки",
+    "theme": "Тема",
+    "themeDark": "Тёмная",
+    "themeLight": "Светлая",
+    "lang": "Язык",
+    "sound": "Звук",
+    "soundOn": "Вкл",
+    "soundOff": "Выкл",
+    "mode": "Режим по умолчанию",
+    "close": "Закрыть",
+    "export": "Экспорт",
+    "import": "Импорт",
+    "importOk": "Импорт выполнен",
+    "importFail": "Ошибка импорта",
+    "search": "Поиск…",
+    "welcomeTitle": "Настройки Tarkov Tools",
+    "welcomeBody": "Тема, язык, звук, режим и акцент.",
+    "apply": "Применить",
+    "hub": "Хаб",
+    "accent": "Акцент",
+    "tips": "Подсказки тулзов",
+    "tipsOn": "Вкл",
+    "tipsOff": "Выкл",
+    "volume": "Громкость",
+    "testSound": "Тест",
+    "tabGeneral": "Основное",
+    "tabSound": "Звук",
+    "tabLook": "Внешний вид",
+    "tabHidden": "Скрытые тулзы",
+    "tabLang": "Язык",
+    "hideAllCat": "Скрыть категорию",
+    "showAllCat": "Показать категорию",
+    "hiddenHint": "Отключённые тулзы скрыты из хаба и не загружаются.",
+    "langHint": "Заполнение относительно английского (источник истины). Недостающие ключи берутся из EN.",
+    "langComplete": "{pct}% · {done}/{total}",
+    "loading": "Загрузка…",
+    "empty": "Пусто",
+    "on": "Вкл",
+    "off": "Выкл",
+    "running": "Запущен",
+    "loadedBg": "Загружен (фон)",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "delete": "Удалить",
+    "reset": "Сброс",
+    "yes": "Да",
+    "no": "Нет",
+    "start": "Старт",
+    "stop": "Стоп",
+    "interval": "Интервал (мин)",
+    "filter": "Фильтр…",
+    "error": "Ошибка",
+    "timeout": "Таймаут",
+    "restoring": "Восстановление…",
+    "notLoaded": "Не загружен",
+    "closeTabHint": "ПКМ — закрыть вкладку",
+    "unreadNone": "Нет непрочитанных",
+    "help": "Справка"
   },
   "hub": {
-    "title": "Tarkov Tools", "searchPlaceholder": "Поиск инструментов…", "mini": "МИНИ",
-    "notifications": "Уведомления", "markAllRead": "Прочитать все", "collapse": "Свернуть",
-    "closeTab": "Закрыть", "toolsCount": "{n} инструментов", "noResults": "Ничего не найдено",
-    "pinned": "Закреплённые", "statusRunning": "Работает", "statusIdle": "Простой",
-    "statusLoaded": "Открыт", "allTools": "Все инструменты", "catalogLoading": "Загрузка каталога…",
-    "faq": "FAQ", "faqTitle": "Частые вопросы", "notifEmpty": "Пока пусто",
-    "faqBody": "<p><strong>Что это такое?</strong><br>Tarkov Tools — набор веб-утилит для Escape from Tarkov: цены, бартер, лоадауты, убежище и другое.</p><p><strong>Как открыть инструмент?</strong><br>Клик по карточке в хабе открывает инструмент во вкладке MINI. Правый клик по чипу MINI — закрыть.</p><p><strong>Что такое MINI?</strong><br>Панель мини-вкладок: несколько инструментов одновременно, с фоном для трекера цен / сирены / рестока.</p><p><strong>Где настройки?</strong><br>Кнопка «Настройки» в шапке: тема, язык, звук по видам, скрытые инструменты.</p><p><strong>Данные актуальны?</strong><br>Цены и ресток берутся из публичного API (tarkov.dev). После вайпа каталог обновляется вручную.</p>"
+    "title": "Tarkov Tools",
+    "searchPlaceholder": "Поиск…",
+    "mini": "Мини",
+    "notifications": "Уведомления",
+    "markAllRead": "Прочитать все",
+    "collapse": "Свернуть",
+    "closeTab": "Закрыть",
+    "toolsCount": "{n} инструментов",
+    "noResults": "Ничего не найдено",
+    "pinned": "Закреплённые",
+    "statusRunning": "● запущен",
+    "statusIdle": "Ожидание",
+    "statusLoaded": "Загружен (фон)",
+    "allTools": "Все инструменты",
+    "catalogLoading": "Каталог загружается…",
+    "statusNotLoaded": "не загружен",
+    "statusLoading": "загрузка…",
+    "statusLoadedBg": "загружен (фон)",
+    "toolsShown": "{shown} / {total}",
+    "hiddenCount": "· скрыто {n}"
   },
   "cat": {
-    "flea": "Барахолка", "loadout": "Лоадаут", "hideout": "Убежище",
-    "quests": "Квесты", "med": "Мед / еда", "util": "Утилиты"
+    "flea": "Барахолка",
+    "loadout": "Лоадаут",
+    "hideout": "Убежка",
+    "quests": "Квесты",
+    "med": "Мед / еда",
+    "util": "Утилиты",
+    "other": "Прочее",
+    "all": "Все тулзы"
   },
   "priceTrack": {
-    "title": "Трекер цен", "sub": "История цен и фоновые снимки", "snap": "Снимок",
-    "bgOn": "ФОН ВКЛ", "bgOff": "ФОН ВЫКЛ", "next": "След.", "fetching": "Загрузка…",
-    "snapBody": "Снимок {n} · {time}"
+    "title": "Динамика цен",
+    "bgOn": "Фон ВКЛ · каждые {mins} мин · последний {last}{count}",
+    "bgOff": "Фон выкл · последний {last}",
+    "next": "След.: {remain}",
+    "countdownOff": "Отсчёт выкл",
+    "fetching": "Загрузка…",
+    "saving": "Сохранение… {n}/{total}",
+    "snapOk": "Снимок {n} · {time}",
+    "snapErr": "Ошибка снимка: {msg}",
+    "empty": "Пусто. Сними снимок.",
+    "topHint": "Топ {limit} / {total} по цене. Фильтр — поиск.",
+    "matchHint": "{n} найдено",
+    "noDataRange": "Нет данных в диапазоне",
+    "stored": "В базе: {n}",
+    "chartMeta": "{pts} т. / {stored} · avg {avg} · low {low} · high {high}",
+    "statNow": "Сейчас",
+    "statMedian": "Медиана",
+    "statMin": "Мин",
+    "statMax": "Макс",
+    "statDelta": "Δ",
+    "statPoints": "Точек",
+    "noPrices": "Нет цен",
+    "items": "Предметы",
+    "pickItem": "Выбери предмет",
+    "range1d": "1 день",
+    "range3d": "3 дня",
+    "range7d": "Неделя",
+    "rangeAll": "Всё время",
+    "resetZoom": "Сброс зума",
+    "startBg": "Старт фона",
+    "stopBg": "Стоп",
+    "snapNow": "Снять сейчас",
+    "nextPrefix": "Следующий снимок: ",
+    "notifyTitle": "Динамика цен",
+    "notifyBody": "Снимок {n} · {time}",
+    "stopped": "Остановлено",
+    "dbError": "БД: {msg}",
+    "idle": "ожидание"
+  },
+  "tool": {
+    "my-tarkov": {
+      "title": "My Tarkov",
+      "description": "Личный дашборд: заметки, быстрые ссылки, прогресс",
+      "help": "Личный дашборд: заметки, быстрые ссылки, прогресс"
+    },
+    "cultist": {
+      "title": "Круг культистов",
+      "description": "Калькулятор обмена в круге",
+      "help": "Калькулятор обмена в круге"
+    },
+    "price-track": {
+      "title": "Динамика цен",
+      "description": "История flea-цен, фоновые снимки, обратный отсчёт",
+      "help": "История flea-цен, фоновые снимки, обратный отсчёт"
+    },
+    "price-alarm": {
+      "title": "Price Alarm",
+      "description": "Сирена по цене или офферам",
+      "help": "Сирена по цене или офферам"
+    },
+    "food": {
+      "title": "Еда и вода",
+      "description": "Еда / вода: цена, голод/жажда",
+      "help": "Еда / вода: цена, голод/жажда"
+    },
+    "random-loadout": {
+      "title": "Рандомный лоадаут",
+      "description": "Случайный кит",
+      "help": "Случайный кит"
+    },
+    "drip-loadout": {
+      "title": "Дрип-лоадаут",
+      "description": "Случайный вид по стилю",
+      "help": "Случайный вид по стилю"
+    },
+    "drip-builder": {
+      "title": "Дрип-билдер",
+      "description": "Обвесы по цветам",
+      "help": "Обвесы по цветам"
+    },
+    "loadout-budget": {
+      "title": "Лоадаут за N ₽",
+      "description": "Кит под бюджет",
+      "help": "Кит под бюджет"
+    },
+    "loadout-builder": {
+      "title": "Лоадаут-билдер",
+      "description": "Сборка по слотам",
+      "help": "Сборка по слотам"
+    },
+    "nvg": {
+      "title": "ПНВ",
+      "description": "Ночное видение",
+      "help": "Ночное видение"
+    },
+    "helmets": {
+      "title": "Шлемы",
+      "description": "Класс, зоны, рикошет, цена",
+      "help": "Класс, зоны, рикошет, цена"
+    },
+    "ammo": {
+      "title": "Патроны",
+      "description": "Урон, пробитие, цена",
+      "help": "Урон, пробитие, цена"
+    },
+    "armor": {
+      "title": "Броня",
+      "description": "Класс, зоны, прочность",
+      "help": "Класс, зоны, прочность"
+    },
+    "barter-calc": {
+      "title": "Бартер (ручной)",
+      "description": "Калькулятор бартера",
+      "help": "Калькулятор бартера"
+    },
+    "barter-live": {
+      "title": "Бартер (live)",
+      "description": "Живые бартеры API",
+      "help": "Живые бартеры API"
+    },
+    "trader-flip": {
+      "title": "Трейдер-флип",
+      "description": "Покупка у торговца → flea",
+      "help": "Покупка у торговца → flea"
+    },
+    "streamer-flip": {
+      "title": "Стример-флип",
+      "description": "Ивент-предметы",
+      "help": "Ивент-предметы"
+    },
+    "containers": {
+      "title": "Контейнеры",
+      "description": "Слоты и эффективность",
+      "help": "Слоты и эффективность"
+    },
+    "loot-slot": {
+      "title": "Лут-слоты",
+      "description": "Что лутать",
+      "help": "Что лутать"
+    },
+    "gun-builder": {
+      "title": "Сборка оружия",
+      "description": "Обвесы и слоты",
+      "help": "Обвесы и слоты"
+    },
+    "gun-budget": {
+      "title": "Оружие за N ₽",
+      "description": "Сборка под бюджет",
+      "help": "Сборка под бюджет"
+    },
+    "mods": {
+      "title": "Моды",
+      "description": "Обвесы оружия",
+      "help": "Обвесы оружия"
+    },
+    "plates": {
+      "title": "Плиты",
+      "description": "Класс и зоны",
+      "help": "Класс и зоны"
+    },
+    "mags": {
+      "title": "Магазины",
+      "description": "Ёмкость и совместимость",
+      "help": "Ёмкость и совместимость"
+    },
+    "scopes": {
+      "title": "Прицелы",
+      "description": "Кратность и эрго",
+      "help": "Кратность и эрго"
+    },
+    "hideout": {
+      "title": "Убежище",
+      "description": "Станции и апгрейды",
+      "help": "Станции и апгрейды"
+    },
+    "hideout-mgmt": {
+      "title": "Управление убежищем",
+      "description": "Планы апгрейдов",
+      "help": "Планы апгрейдов"
+    },
+    "btc-farm": {
+      "title": "BTC Farm",
+      "description": "Окупаемость фермы",
+      "help": "Окупаемость фермы"
+    },
+    "crafts": {
+      "title": "Крафты",
+      "description": "Верстак и окупаемость",
+      "help": "Верстак и окупаемость"
+    },
+    "quests": {
+      "title": "Квесты",
+      "description": "Цепочки и награды",
+      "help": "Цепочки и награды"
+    },
+    "quest-items": {
+      "title": "Квест-предметы",
+      "description": "FIR для квестов",
+      "help": "FIR для квестов"
+    },
+    "raid-checklist": {
+      "title": "Чек-лист рейда",
+      "description": "Собраться в рейд",
+      "help": "Собраться в рейд"
+    },
+    "bosses": {
+      "title": "Боссы",
+      "description": "Карты, лут, охрана",
+      "help": "Карты, лут, охрана"
+    },
+    "medkits": {
+      "title": "Аптечки",
+      "description": "HP и цена лечения",
+      "help": "HP и цена лечения"
+    },
+    "stims": {
+      "title": "Стимуляторы",
+      "description": "Бафы и дебафы",
+      "help": "Бафы и дебафы"
+    },
+    "stim-combos": {
+      "title": "Комбо стимов",
+      "description": "Связки стимуляторов",
+      "help": "Связки стимуляторов"
+    },
+    "restock": {
+      "title": "Таймер рестока",
+      "description": "Обновление торговцев",
+      "help": "Обновление торговцев"
+    },
+    "shortname": {
+      "title": "Короткие имена",
+      "description": "Свои названия",
+      "help": "Свои названия"
+    },
+    "lang-search": {
+      "title": "Поиск по языкам",
+      "description": "Имена в локалях",
+      "help": "Имена в локалях"
+    },
+    "compare": {
+      "title": "Сравнение",
+      "description": "Сравнить предметы",
+      "help": "Сравнить предметы"
+    },
+    "item-use": {
+      "title": "Применение",
+      "description": "Где используется предмет",
+      "help": "Где используется предмет"
+    },
+    "skills": {
+      "title": "Скиллы",
+      "description": "Прокачка навыков",
+      "help": "Прокачка навыков"
+    },
+    "keys": {
+      "title": "Ключи",
+      "description": "Карты и ценность",
+      "help": "Карты и ценность"
+    },
+    "drip": {
+      "title": "Дрип",
+      "description": "Скины и кастомизация",
+      "help": "Скины и кастомизация"
+    }
+  },
+  "poll": {
+    "now": "сейчас",
+    "off": "выкл",
+    "running": "идёт…",
+    "nextPrefix": "Следующий запуск: ",
+    "everyMins": " · каждые {mins} мин",
+    "dash": "—"
   },
   "restock": {
     "notifTitle": "Ресток: {name}",
     "notifBody": "Ассортимент обновлён",
-    "testTitle": "Ресток (тест)",
-    "testBody": "Тестовое уведомление"
+    "testTitle": "Тест рестока",
+    "testBody": "Проверка звука"
   },
-  "tool": {
-    "desk": { "title": "Desk", "description": "Мини-вкладки инструментов", "help": "Открывайте несколько инструментов с общим состоянием" },
-    "my-tarkov": { "title": "My Tarkov", "description": "Личный дашборд", "help": "Личный дашборд: заметки, быстрые ссылки, прогресс" },
-    "cultist": { "title": "Культисты", "description": "Калькулятор обмена в круге", "help": "Калькулятор обмена в круге: слоты, порог 350k" },
-    "price-track": { "title": "Трекер цен", "description": "График и история flea-цен", "help": "График и история flea-цен, фоновые снимки, отсчёт" },
-    "price-alarm": { "title": "Сирена цены", "description": "Уведомления по порогу цены", "help": "Уведомления по порогу цены на барахолке" },
-    "food": { "title": "Еда", "description": "Еда и гидрация", "help": "Еда и гидрация" },
-    "random-loadout": { "title": "Случайный лоадаут", "description": "Случайный кит", "help": "Случайный кит" },
-    "drip-loadout": { "title": "Drip loadout", "description": "Мода / внешний вид", "help": "Мода / внешний вид" },
-    "drip-builder": { "title": "Drip builder", "description": "Сборка drip", "help": "Сборка drip" },
-    "loadout-budget": { "title": "Лоадаут в бюджете", "description": "Лоадаут в бюджете", "help": "Лоадаут в бюджете" },
-    "loadout-builder": { "title": "Конструктор лоадаута", "description": "Полный конструктор лоадаута", "help": "Полный конструктор лоадаута" },
-    "nvg": { "title": "ПНВ", "description": "ПНВ / тепловизоры", "help": "ПНВ / тепловизоры" },
-    "helmets": { "title": "Шлемы", "description": "Шлемы: защита и слоты", "help": "Шлемы: защита и слоты" },
-    "ammo": { "title": "Патроны", "description": "Пробитие, урон, цена", "help": "Таблица патронов: пробитие, урон, цена" },
-    "armor": { "title": "Броня", "description": "Классы брони и материалы", "help": "Классы брони и материалы" },
-    "barter-calc": { "title": "Бартер (офлайн)", "description": "Калькулятор бартера с налогом", "help": "Офлайн-калькулятор бартера с налогом flea" },
-    "barter-live": { "title": "Бартер (Live)", "description": "Бартер с живыми ценами", "help": "Бартер с живыми ценами барахолки" },
-    "trader-flip": { "title": "Флип торговца", "description": "Покупка у торговца → flea", "help": "Покупка у торговца → flea" },
-    "streamer-flip": { "title": "Streamer flip", "description": "Ивент-предметы", "help": "Ивент-предметы / стримерские флипы" },
-    "containers": { "title": "Контейнеры", "description": "Ёмкость и ценность за слот", "help": "Ёмкость контейнеров и ценность за слот" },
-    "loot-slot": { "title": "Лут / слот", "description": "Профит за клетку", "help": "Профит за клетку инвентаря" },
-    "gun-builder": { "title": "Конструктор оружия", "description": "Сборка оружия", "help": "Конструктор оружия" },
-    "gun-budget": { "title": "Оружие в бюджете", "description": "Оружие в бюджете", "help": "Оружие в бюджете" },
-    "mods": { "title": "Моды", "description": "Обвесы и моды", "help": "Обвесы и моды" },
-    "plates": { "title": "Плиты", "description": "Бронеплиты", "help": "Бронеплиты и совместимость" },
-    "mags": { "title": "Магазины", "description": "Магазины", "help": "Магазины" },
-    "scopes": { "title": "Прицелы", "description": "Кратность и эрго", "help": "Прицелы: кратность и эрго" },
-    "hideout": { "title": "Убежище", "description": "Модули убежища", "help": "Модули убежища" },
-    "hideout-mgmt": { "title": "Управление убежищем", "description": "Управление убежищем", "help": "Управление убежищем" },
-    "btc-farm": { "title": "Ферма BTC", "description": "Доход фермы", "help": "Ферма BTC / доход" },
-    "crafts": { "title": "Крафты", "description": "Профит крафтов", "help": "Крафты убежища и профит" },
-    "quest-items": { "title": "Квестовые предметы", "description": "Предметы для квестов", "help": "Квестовые предметы" },
-    "quests": { "title": "Квесты", "description": "Список квестов", "help": "Список квестов и требования" },
-    "raid-checklist": { "title": "Чеклист рейда", "description": "Собраться в рейд", "help": "Собраться в рейд" },
-    "keys": { "title": "Ключи", "description": "Ключи и локации", "help": "Ключи и локации" },
-    "medkits": { "title": "Аптечки", "description": "Аптечки и лечение", "help": "Аптечки и лечение" },
-    "stims": { "title": "Стимы", "description": "Бафы и дебафы", "help": "Стимуляторы: бафы и дебафы" },
-    "stim-combos": { "title": "Связки стимов", "description": "Связки стимуляторов", "help": "Связки стимуляторов" },
-    "item-use": { "title": "Применение", "description": "Применение предметов", "help": "Применение предметов" },
-    "bosses": { "title": "Боссы", "description": "Боссы, шансы, карта", "help": "Боссы, шансы, карта" },
-    "compare": { "title": "Сравнение", "description": "Сравнение предметов", "help": "Сравнение предметов" },
-    "skills": { "title": "Навыки", "description": "Прокачка навыков", "help": "Прокачка навыков" },
-    "shortname": { "title": "Короткие имена", "description": "Свои названия", "help": "Свои названия" },
-    "lang-search": { "title": "Поиск по языкам", "description": "Поиск по языкам", "help": "Поиск предметов по языкам" },
-    "drip": { "title": "Drip", "description": "Внешний вид", "help": "Внешний вид экипировки" },
-    "restock": { "title": "Ресток", "description": "Обновление торговцев", "help": "Таймер рестока торговцев" }
+  "priceAlarm": {
+    "notifTitle": "Сирена цен",
+    "notifBody": "{name} {op} {threshold}"
   }
 }

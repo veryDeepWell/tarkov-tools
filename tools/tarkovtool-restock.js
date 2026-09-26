@@ -2,6 +2,18 @@
   "use strict";
   var POLL_ID = "restock";
   var TOOL = "tarkovtool-restock.html";
+
+  // P0: migrate pre-prefix keys → tarkov* (export-compatible)
+  (function migrateRestockKeys() {
+    try {
+      if (!window.TarkovStorage || !TarkovStorage.migrateKey) return;
+      TarkovStorage.migrateKey("restockEnabled", "tarkovRestockEnabled");
+      TarkovStorage.migrateKey("restockHistory", "tarkovRestockHistory");
+      TarkovStorage.migrateKey("restockFired", "tarkovRestockFired");
+      TarkovStorage.migrateKey("restockCycleMs", "tarkovRestockCycleMs");
+      TarkovStorage.migrateKey("restockSnapshot", "tarkovRestockSnapshot");
+    } catch (e) {}
+  })();
   /** Default trader restock period (EFT: most traders every 3h) */
   var DEFAULT_CYCLE_MS = 3 * 60 * 60 * 1000;
   var TRADER_RU = {
@@ -42,18 +54,20 @@
   var refreshBtn = document.getElementById("refreshBtn");
 
   function loadEnabled() {
-    return (window.TarkovStorage && TarkovStorage.getJson("restockEnabled", {})) || {};
+    if (window.TarkovStorage && TarkovStorage.getJson)
+      return TarkovStorage.getJson("tarkovRestockEnabled", {}) || {};
+    try { return JSON.parse(localStorage.getItem("tarkovRestockEnabled") || "{}") || {}; } catch (e) { return {}; }
   }
   function saveEnabled() {
     var map = {};
     traders.forEach(function (t) {
       map[t.key] = t.enabled;
     });
-    if (window.TarkovStorage) TarkovStorage.setJson("restockEnabled", map);
+    if (window.TarkovStorage) TarkovStorage.setJson("tarkovRestockEnabled", map);
   }
   function loadHistory() {
     var raw =
-      (window.TarkovStorage && TarkovStorage.getJson("restockHistory", {})) || {};
+      (window.TarkovStorage && TarkovStorage.getJson("tarkovRestockHistory", {})) || {};
     restockHistory = {};
     Object.keys(raw).forEach(function (k) {
       var v = raw[k];
@@ -65,16 +79,16 @@
         };
     });
     fired =
-      (window.TarkovStorage && TarkovStorage.getJson("restockFired", {})) || {};
+      (window.TarkovStorage && TarkovStorage.getJson("tarkovRestockFired", {})) || {};
     cycleMs =
-      (window.TarkovStorage && TarkovStorage.getJson("restockCycleMs", {})) || {};
+      (window.TarkovStorage && TarkovStorage.getJson("tarkovRestockCycleMs", {})) || {};
   }
   function saveHistory() {
     try {
       if (window.TarkovStorage) {
-        TarkovStorage.setJson("restockHistory", restockHistory);
-        TarkovStorage.setJson("restockFired", fired);
-        TarkovStorage.setJson("restockCycleMs", cycleMs);
+        TarkovStorage.setJson("tarkovRestockHistory", restockHistory);
+        TarkovStorage.setJson("tarkovRestockFired", fired);
+        TarkovStorage.setJson("tarkovRestockCycleMs", cycleMs);
       }
     } catch (e) {}
   }
@@ -209,10 +223,10 @@
     });
     try {
       if (window.TarkovStorage) {
-        TarkovStorage.setJson("restockCycleMs", cycleMs);
-        TarkovStorage.setJson(
-          "restockSnapshot",
-          traders.map(function (t) {
+        TarkovStorage.setJson("tarkovRestockCycleMs", cycleMs);
+        TarkovStorage.setJson("tarkovRestockSnapshot", {
+          _v: 1,
+          traders: traders.map(function (t) {
             return {
               id: t.id,
               key: t.key,
@@ -222,7 +236,7 @@
               _prevResetAt: t._prevResetAt || null
             };
           })
-        );
+        });
       }
     } catch (e) {}
   }
@@ -245,14 +259,20 @@
           title: "Restock: " + t.name,
           body: "Assortment refreshed",
           tool: TOOL,
-          kind: "restock"
+          kind: "restock",
+          i18nTitle: "restock.notifTitle",
+          i18nBody: "restock.notifBody",
+          i18nParams: { name: t.name }
         });
       } else if (window.TarkovTools && TarkovTools.Notify) {
         TarkovTools.Notify({
           title: "Restock: " + t.name,
           body: "Assortment refreshed",
           tool: TOOL,
-          kind: "restock"
+          kind: "restock",
+          i18nTitle: "restock.notifTitle",
+          i18nBody: "restock.notifBody",
+          i18nParams: { name: t.name }
         });
       }
     } catch (e) {}
@@ -463,7 +483,9 @@
             title: "Restock test",
             body: "test",
             tool: TOOL,
-            kind: "restock"
+            kind: "restock",
+            i18nTitle: "restock.testTitle",
+            i18nBody: "restock.testBody"
           });
         else if (window.TarkovTools && TarkovTools.beep)
           TarkovTools.beep("restock");
@@ -474,7 +496,7 @@
   function restoreFromSnapshot() {
     try {
       var snap =
-        (window.TarkovStorage && TarkovStorage.getJson("restockSnapshot", null)) ||
+        (window.TarkovStorage && TarkovStorage.getJson("tarkovRestockSnapshot", null)) ||
         null;
       if (!snap || !snap.length) return false;
       var enabledMap = loadEnabled();

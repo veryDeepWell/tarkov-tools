@@ -35,26 +35,49 @@
     el.textContent = msg || '';
   }
 
+  /** Rules schema v1: { _v: 1, rules: [...] } — bare array migrated once */
   function loadRules() {
+    try {
+      if (window.TarkovSchema && TarkovSchema.readJson) {
+        var doc = TarkovSchema.readJson(RULES_KEY, 1, { listKey: "rules" });
+        return TarkovSchema.listOf(doc, "rules");
+      }
+    } catch (e0) {}
     try {
       if (window.TarkovStorage && TarkovStorage.getJson) {
         var r = TarkovStorage.getJson(RULES_KEY, null);
-        if (Array.isArray(r)) return r;
+        if (Array.isArray(r)) {
+          var wrapped = { _v: 1, rules: r };
+          TarkovStorage.setJson(RULES_KEY, wrapped);
+          return r;
+        }
+        if (r && Array.isArray(r.rules)) return r.rules;
       }
     } catch (e) {}
     try {
-      return JSON.parse(localStorage.getItem(RULES_KEY) || '[]') || [];
-    } catch (e2) {
-      return [];
-    }
+      var raw = JSON.parse(localStorage.getItem(RULES_KEY) || "[]");
+      if (Array.isArray(raw)) return raw;
+      if (raw && Array.isArray(raw.rules)) return raw.rules;
+    } catch (e2) {}
+    return [];
   }
 
   function saveRules(rules) {
+    var doc = { _v: 1, rules: Array.isArray(rules) ? rules : [] };
     try {
-      if (window.TarkovStorage && TarkovStorage.setJson) TarkovStorage.setJson(RULES_KEY, rules);
+      if (window.TarkovSchema && TarkovSchema.writeJson) {
+        TarkovSchema.writeJson(RULES_KEY, doc);
+        return;
+      }
+    } catch (e0) {}
+    try {
+      if (window.TarkovStorage && TarkovStorage.setJson) {
+        TarkovStorage.setJson(RULES_KEY, doc);
+        return;
+      }
     } catch (e) {}
     try {
-      localStorage.setItem(RULES_KEY, JSON.stringify(rules));
+      localStorage.setItem(RULES_KEY, JSON.stringify(doc));
     } catch (e2) {}
   }
 
@@ -210,11 +233,11 @@
       ')';
     try {
       if (typeof Notify === 'function') {
-        Notify({ title: title, body: body, tool: TOOL, kind: 'alarm' });
+        Notify({ title: title, body: body, tool: TOOL, kind: 'alarm', i18nTitle: 'priceAlarm.notifTitle', i18nBody: 'priceAlarm.notifBody', i18nParams: i18nParams });
         return;
       }
       if (window.TarkovTools && TarkovTools.Notify) {
-        TarkovTools.Notify({ title: title, body: body, tool: TOOL, kind: 'alarm' });
+        TarkovTools.Notify({ title: title, body: body, tool: TOOL, kind: 'alarm', i18nTitle: 'priceAlarm.notifTitle', i18nBody: 'priceAlarm.notifBody', i18nParams: i18nParams });
       }
     } catch (e) {}
   }
@@ -254,7 +277,9 @@
       var st = window.TarkovPoll ? TarkovPoll.status(POLL_ID) : { on: false };
       if (st.on) reportMini(true, hits.length ? 'hits ' + hits.length : 'ok');
       else reportMini(false, 'idle');
-      try { renderRules(); } catch (eR) {}
+      try {
+        renderRules();
+      } catch (eR) {}
       return hits;
     } catch (e) {
       if (P && P.fail) P.fail(String(e.message || e));
@@ -358,6 +383,12 @@
         if (!catalogReady) {
           meta = '<span class="meta">Каталог…</span>';
         } else if (it && p) {
+          var cur =
+            r.metric === 'low'
+              ? p.low
+              : r.metric === 'offers'
+                ? p.offers
+                : p.avg;
           var hit = evalRule(r, it);
           meta =
             '<span class="' +
@@ -422,14 +453,10 @@
           '" data-k="op">' +
           '<option value="<="' +
           opLe +
-          '>' +
-          String.fromCharCode(60) +
-          '=</option>' +
+          '>' + String.fromCharCode(60) + '=</option>' +
           '<option value=">="' +
           opGe +
-          '>' +
-          String.fromCharCode(62) +
-          '=</option>' +
+          '>' + String.fromCharCode(62) + '=</option>' +
           '</select></div>' +
           '<div class="field narrow">' +
           '<label>Порог</label>' +
@@ -488,7 +515,9 @@
           rules[i][k] = el.type === 'number' ? Number(el.value) : el.value;
           saveRules(rules);
           if (k === 'metric' || k === 'op' || k === 'threshold') {
-            try { renderRules(); } catch (e) {}
+            try {
+              renderRules();
+            } catch (e) {}
           }
         };
       }
@@ -504,20 +533,9 @@
     });
   }
 
-  function readIntervalMins() {
-    var el = document.getElementById('interval');
-    var raw = el ? el.value : '';
-    var n = parseInt(String(raw).trim(), 10);
-    if (!isFinite(n) || n < 1) n = 5;
-    if (n > 1440) n = 1440;
-    if (el) el.value = String(n);
-    return n;
-  }
-
-  function startBg(forceMins) {
-    var mins = forceMins != null ? Math.max(1, Math.min(1440, Number(forceMins) || 5)) : readIntervalMins();
-    var el = document.getElementById('interval');
-    if (el) el.value = String(mins);
+  function startBg() {
+    var mins = Math.max(1, Number((document.getElementById('interval') || {}).value) || 5);
+    if (document.getElementById('interval')) document.getElementById('interval').value = mins;
     var mode = (document.getElementById('gameMode') || {}).value || 'pve';
     if (!window.TarkovPoll) {
       status('TarkovPoll missing', false);
@@ -526,8 +544,10 @@
     TarkovPoll.start(
       POLL_ID,
       mins,
-      function () { return checkOnce(); },
-      { fireNow: true, reset: true, label: 'price-alarm', mode: mode, tool: TOOL }
+      function () {
+        return checkOnce();
+      },
+      { fireNow: true, label: 'price-alarm', mode: mode, tool: TOOL }
     );
     var cd = document.getElementById('countdown');
     if (cd) TarkovPoll.bindCountdown(cd, POLL_ID);
@@ -544,8 +564,12 @@
   function boot() {
     renderRules();
     ensureCatalog()
-      .then(function () { renderRules(); })
-      .catch(function (e) { status(String(e.message || e), false); });
+      .then(function () {
+        renderRules();
+      })
+      .catch(function (e) {
+        status(String(e.message || e), false);
+      });
 
     var add = document.getElementById('addRule');
     if (add) {
@@ -555,20 +579,14 @@
         saveRules(rules);
         renderRules();
         var inputs = document.querySelectorAll('#rules input[data-k="q"]');
-        if (inputs.length) inputs[inputs.length - 1].focus();
+        if (inputs.length) {
+          var last = inputs[inputs.length - 1];
+          last.focus();
+        }
       };
     }
     var startBtn = document.getElementById('startBtn');
-    if (startBtn) startBtn.onclick = function () { startBg(); };
-    var intervalEl = document.getElementById('interval');
-    if (intervalEl) {
-      function onIntervalChange() {
-        var st = window.TarkovPoll ? TarkovPoll.status(POLL_ID) : null;
-        if (st && st.on) startBg();
-      }
-      intervalEl.onchange = onIntervalChange;
-      intervalEl.oninput = onIntervalChange;
-    }
+    if (startBtn) startBtn.onclick = startBg;
     var stopBtn = document.getElementById('stopBtn');
     if (stopBtn) stopBtn.onclick = stopBg;
     var checkBtn = document.getElementById('checkBtn');
@@ -584,34 +602,31 @@
       modeEl.onchange = function () {
         catalogReady = false;
         catalog = [];
-        ensureCatalog().then(function () { renderRules(); }).catch(function () {});
+        ensureCatalog()
+          .then(function () {
+            renderRules();
+          })
+          .catch(function () {});
       };
     }
     window.addEventListener('message', function (ev) {
       if (ev.origin !== location.origin) return;
-      var d = ev.data;
-      if (!d || typeof d !== 'object') return;
-      if (d.type === 'tt-ping-status' || d.type === 'tt-tick') {
+      if (ev.data && ev.data.type === 'tt-ping-status') {
         var st = window.TarkovPoll ? TarkovPoll.status(POLL_ID) : { on: false };
-        if (d.type === 'tt-ping-status' || (d.type === 'tt-tick' && st.on)) {
-          reportMini(!!st.on, st.on ? 'every ' + (st.mins || '?') + 'm' : 'idle');
-        }
-        if (d.type === 'tt-tick' && window.TarkovPoll && TarkovPoll.paintAll) {
-          try { TarkovPoll.paintAll(); } catch (eP) {}
-        }
+        reportMini(!!st.on, st.on ? 'every ' + (st.mins || '?') + 'm' : 'idle');
       }
     });
     document.addEventListener('click', function (e) {
-      if (e.target && e.target.closest && e.target.closest('.rule-search-wrap')) return;
+      if (e.target && (e.target.closest && e.target.closest('.rule-search-wrap'))) return;
       closeAllSuggest();
     });
     try {
       var st = window.TarkovPoll ? TarkovPoll.status(POLL_ID) : null;
-      if (st && st.on && st.mins && document.getElementById('interval'))
-        document.getElementById('interval').value = String(st.mins);
+      if (st && st.mins && document.getElementById('interval'))
+        document.getElementById('interval').value = st.mins;
       if (st && st.mode && document.getElementById('gameMode'))
         document.getElementById('gameMode').value = st.mode;
-      if (st && st.on) startBg(st.mins || readIntervalMins());
+      if (st && st.on) startBg();
       else reportMini(false, 'idle');
     } catch (e) {
       reportMini(false, 'idle');

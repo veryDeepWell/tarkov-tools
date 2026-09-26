@@ -1,79 +1,80 @@
-/*! TarkovStorage - browser persistence adapter */
+/*! TarkovStorage — thin JSON/string wrapper over localStorage (contract §4) */
 (function (global) {
   "use strict";
-  if (global.TarkovStorage) return;
+  if (global.TarkovStorage && global.TarkovStorage.__v >= 1) return;
 
-  function backend() {
-    try { return global.localStorage; } catch (e) { return null; }
-  }
-
-  function get(key, fallback) {
-    var store = backend();
-    if (!store) return fallback;
+  function get(key, def) {
     try {
-      var value = store.getItem(String(key));
-      return value == null ? fallback : value;
-    } catch (e) { return fallback; }
+      var v = localStorage.getItem(String(key));
+      return v == null ? def : v;
+    } catch (e) {
+      return def;
+    }
   }
 
-  function set(key, value) {
-    var store = backend();
-    if (!store) return false;
-    try { store.setItem(String(key), String(value)); return true; } catch (e) { return false; }
+  function set(key, val) {
+    try {
+      if (val == null) localStorage.removeItem(String(key));
+      else localStorage.setItem(String(key), String(val));
+    } catch (e) {}
   }
 
   function remove(key) {
-    var store = backend();
-    if (!store) return false;
-    try { store.removeItem(String(key)); return true; } catch (e) { return false; }
+    try {
+      localStorage.removeItem(String(key));
+    } catch (e) {}
+  }
+
+  function getJson(key, def) {
+    try {
+      var raw = localStorage.getItem(String(key));
+      if (raw == null || raw === "") return def;
+      return JSON.parse(raw);
+    } catch (e) {
+      return def;
+    }
+  }
+
+  function setJson(key, obj) {
+    try {
+      if (obj == null) localStorage.removeItem(String(key));
+      else localStorage.setItem(String(key), JSON.stringify(obj));
+    } catch (e) {}
+  }
+
+  /** Migrate oldKey → newKey once (if new empty and old present). */
+  function migrateKey(oldKey, newKey) {
+    try {
+      var n = localStorage.getItem(newKey);
+      if (n != null && n !== "") return;
+      var o = localStorage.getItem(oldKey);
+      if (o == null) return;
+      localStorage.setItem(newKey, o);
+      localStorage.removeItem(oldKey);
+    } catch (e) {}
   }
 
   function keys(prefix) {
-    var store = backend();
-    var result = [];
-    if (!store) return result;
+    var out = [];
     try {
-      for (var i = 0; i < store.length; i++) {
-        var key = store.key(i);
-        if (key && (!prefix || key.indexOf(prefix) === 0)) result.push(key);
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (!k) continue;
+        if (prefix && k.indexOf(prefix) !== 0) continue;
+        out.push(k);
       }
     } catch (e) {}
-    return result;
-  }
-
-  function getJson(key, fallback) {
-    var raw = get(key, null);
-    if (raw == null) return fallback;
-    try { return JSON.parse(raw); } catch (e) { return fallback; }
-  }
-
-  function setJson(key, value) {
-    try { return set(key, JSON.stringify(value)); } catch (e) { return false; }
-  }
-
-  function createMemory(seed) {
-    var data = Object.assign({}, seed || {});
-    return {
-      get: function (key, fallback) { return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : fallback; },
-      set: function (key, value) { data[key] = String(value); return true; },
-      remove: function (key) { delete data[key]; return true; },
-      keys: function (prefix) { return Object.keys(data).filter(function (key) { return !prefix || key.indexOf(prefix) === 0; }); },
-      getJson: function (key, fallback) {
-        var raw = this.get(key, null);
-        if (raw == null) return fallback;
-        try { return JSON.parse(raw); } catch (e) { return fallback; }
-      },
-      setJson: function (key, value) { try { return this.set(key, JSON.stringify(value)); } catch (e) { return false; } }
-    };
+    return out;
   }
 
   global.TarkovStorage = {
+    __v: 1,
     get: get,
     set: set,
     remove: remove,
-    keys: keys,
     getJson: getJson,
     setJson: setJson,
-    createMemory: createMemory
+    migrateKey: migrateKey,
+    keys: keys
   };
-})(window);
+})(typeof window !== "undefined" ? window : this);

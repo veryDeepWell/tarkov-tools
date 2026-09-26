@@ -179,6 +179,9 @@
     <div id="notifList" class="notif-list"></div>
   </div>
 
+  <!-- P0 load order: storage → kind → poll → live-runtime → i18n → common → export → ui → catalog → hub-app → settings → notif -->
+  <script defer src="core/tarkov-storage.js"></script>
+  <script defer src="core/tarkov-schema.js"></script>
   <script defer src="core/tarkov-state.js"></script>
   <script defer src="core/tarkov-tool-kind.js"></script>
   <script defer src="core/tarkov-names.js"></script>
@@ -187,14 +190,17 @@
   <script defer src="core/tarkov-live-runtime.js"></script>
   <script defer src="core/tarkov-i18n.js"></script>
   <script defer src="core/tarkov-common.js"></script>
+  <script defer src="core/tarkov-export.js"></script>
+  <script defer src="core/tarkov-ui.js"></script>
   <script defer src="core/tarkov-i18n-bridge.js"></script>
   <script defer src="core/tarkov-icons.js"></script>
   <script defer src="hub/catalog-data.js?v=3"></script>
   <script defer src="hub/tarkov-hub-catalog.js?v=5"></script>
-  <script defer src="hub/tarkov-hub-app.js?v=9"></script>
+  <script defer src="hub/tarkov-hub-app.js?v=10"></script>
   <script defer src="hub/tarkov-hub-cats.js?v=12"></script>
-  <script defer src="hub/tarkov-settings-tabs.js?v=5"></script>
-  <script defer src="hub/tarkov-hub-notif.js?v=4"></script>
+  <script defer src="hub/tarkov-settings-tabs.js?v=6"></script>
+  <script defer src="hub/tarkov-hub-notif.js?v=5"></script>
   <script defer src="core/tarkov-chrome-fix.js?v=2"></script>
+
 </body>
 </html>

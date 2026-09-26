@@ -35,19 +35,30 @@ Hub uses this list for MINI “running” dots and LiveRuntime.
 
 ## 4. Storage
 
+Versioned tool documents use `{ "_v": 1, ... }` via `TarkovSchema.readJson` / `writeJson`.
+Legacy bare arrays/objects are migrated on first read.
+
+## 4b. Storage (API)
+
 - **Only** `TarkovStorage.getJson` / `setJson` / `get` / `set` (or `TarkovState`).
 - No raw `localStorage` in tool JS.
-- Keys: prefix with tool id (`restockEnabled`, `tarkovPriceAlarmRules`, …).
+- Keys: **must** start with `tarkov` so export picks them up (`tarkovRestockEnabled`, `tarkovPriceAlarmRules`, `tarkovPoll.<id>`, …).
+- Prefer `TarkovStorage.migrateKey(old, new)` when renaming.
 
 ## 5. Notifications & sound
 
 ```js
-Notify({ title, body, tool: "tarkovtool-….html", kind: "restock"|"alarm"|"ok" });
+Notify({ title, body, tool: "tarkovtool-….html", kind: "restock"|"alarm"|"ok",
+  i18nTitle: "restock.notifTitle", i18nBody: "restock.notifBody", i18nParams: { name } });
 ```
 
 - Inside hub iframe: sound is played by the **hub** (parent). Tool must still call `Notify`.
 - Do not invent a second beep path.
-- Settings control global mute, volume, and per-kind mute/vol (`tarkovSoundKind.*`).
+- Settings control:
+  - global mute / volume (`tarkovSound`, `tarkovSoundVol`)
+  - per-kind mute/vol (`tarkovSoundKind.*`, `tarkovSoundKindVol.*`)
+  - **per-tool mute** (`tarkovSoundTool.<basename>` = `"0"` silences that tool)
+- `beep(kind, toolFile)` and `Notify` both respect per-tool mute via `toolSoundEnabled`.
 
 ## 6. Live tools + TarkovPoll
 
@@ -81,16 +92,22 @@ Messages:
 
 ## 7. Progress (static tools)
 
-Use shell/UI progress, steps of **5%**:
+Use shell/UI progress, steps of **5%** (snapped in `progress.set`):
 
 ```js
 var P = TarkovUI.progress;
 P.start({ label: "…" });
 P.set(10); P.set(55); P.set(100);
-P.done(); // or P.fail(msg)
+P.done(); // soft "ok" beep + hide; or P.fail(msg)
 ```
 
-Shell ensures `#progressWrap` exists.
+Shell ensures `#progressWrap` / `#tt-progress` exists.
+
+## 7b. Export / import
+
+- Hub settings: **Export** / **Import** JSON of all `tarkov*` localStorage keys.
+- Schema: `{ _schema: "tarkov-tools-export", _version: 1, _exportedAt, keys: { … } }`.
+- Implemented in `tarkov-common.js` (`TarkovTools.exportAll` / `importAll`) and documented in `tarkov-export.js`.
 
 ## 8. Help & i18n
 
@@ -116,6 +133,8 @@ Shell ensures `#progressWrap` exists.
 - [ ] Locale keys title/desc/help
 - [ ] Storage via TarkovStorage only
 - [ ] Live: single TarkovPoll id, no duplicate timers
+- [ ] `TarkovPoll.start(..., { tool: "tarkovtool-….html", … })` always set
 - [ ] Notify with correct `tool` + `kind`
-- [ ] Progress 5% on long loads
+- [ ] Progress 5% on long loads (`done` may beep ok)
+- [ ] Per-tool mute key respected when tool set
 - [ ] Works in hub MINI (iframe) and standalone
