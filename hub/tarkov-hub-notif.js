@@ -87,7 +87,7 @@
           }
         }
         var tool = String(n.tool || "")
-          .replace(/^.*\//, "")
+          .replace(/^.*/ , "")
           .replace("tarkovtool-", "")
           .replace(".html", "");
         var cls = n.read ? "" : " unread";
@@ -189,7 +189,23 @@
   try {
     window.addEventListener("message", function (ev) {
       if (ev.origin !== location.origin) return;
-      if (ev.data && ev.data.type === "tt-notify") refreshNotifUI();
+      if (!ev.data || typeof ev.data !== "object") return;
+      if (ev.data.type === "tt-notify") {
+        refreshNotifUI();
+        if (ev.data.silent !== true) {
+          try {
+            var k = ev.data.kind || "ok";
+            if (window.TarkovTools && TarkovTools.beep) TarkovTools.beep(k);
+            else if (typeof beep === "function") beep(k);
+          } catch (eB) {}
+        }
+      }
+      if (ev.data.type === "tt-beep" && ev.data.kind) {
+        try {
+          if (window.TarkovTools && TarkovTools.beep) TarkovTools.beep(ev.data.kind);
+          else if (typeof beep === "function") beep(ev.data.kind);
+        } catch (eB2) {}
+      }
     });
   } catch (e) {}
 
@@ -210,7 +226,6 @@
       document.getElementById("notifClear") ||
       document.getElementById("notifMarkAll");
     if (mark) mark.onclick = markAllRead;
-    /* click outside panel closes */
     document.addEventListener("click", function (e) {
       var panel = document.getElementById("notifPanel");
       var bell = document.getElementById("notifBell") || document.getElementById("btnNotif");
