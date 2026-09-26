@@ -3,28 +3,86 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Price Alarm</title>
+  <title>Сирена цен</title>
   <link rel="stylesheet" href="../core/tarkov-common.css?v=16">
   <link rel="stylesheet" href="../core/tarkov-ui.css?v=3">
   <script type="application/json" id="tarkovtool-meta">
-  {"title": "Price Alarm", "description": "Сирена: цена ≤/≥ N или число офферов — пилик в фоне"}
+  {"title": "Сирена цен", "description": "Оповещение, когда цена или число офферов пересекает порог"}
   </script>
+  <style>
+    .rule-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      margin: 0 0 10px;
+      background: var(--input-bg, rgba(0,0,0,.2));
+    }
+    .rule-card .rule-top {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;
+    }
+    .rule-card .field { flex: 1; min-width: 140px; }
+    .rule-card .field.narrow { flex: 0 0 auto; min-width: 90px; }
+    .rule-card label {
+      display: block; font-size: .75rem; color: var(--muted); margin-bottom: 4px;
+    }
+    .rule-card input, .rule-card select {
+      width: 100%; box-sizing: border-box;
+    }
+    .rule-search-wrap { position: relative; }
+    .suggest {
+      position: absolute; left: 0; right: 0; top: 100%; z-index: 40;
+      max-height: 220px; overflow: auto;
+      background: var(--card, #1a1d24); border: 1px solid var(--border);
+      border-radius: 8px; margin-top: 4px;
+      box-shadow: 0 10px 28px rgba(0,0,0,.45);
+    }
+    .suggest[hidden] { display: none !important; }
+    .suggest-item {
+      display: flex; gap: 10px; align-items: center;
+      padding: 8px 10px; cursor: pointer; border: 0; width: 100%;
+      background: transparent; color: var(--text); text-align: left;
+      font: inherit;
+    }
+    .suggest-item:hover, .suggest-item.active {
+      background: color-mix(in srgb, var(--accent) 18%, transparent);
+    }
+    .suggest-item img {
+      width: 28px; height: 28px; object-fit: contain; border-radius: 4px;
+      background: rgba(0,0,0,.25); flex-shrink: 0;
+    }
+    .suggest-item .nm { flex: 1; min-width: 0; }
+    .suggest-item .nm strong { display: block; font-size: .9rem; }
+    .suggest-item .nm span { display: block; font-size: .72rem; color: var(--muted); }
+    .suggest-item .pr { font-size: .8rem; color: var(--muted); white-space: nowrap; }
+    .rule-meta {
+      margin-top: 8px; font-size: .78rem; color: var(--muted);
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    }
+    .rule-meta .ok { color: var(--green, #6d6); }
+    .rule-meta .miss { color: var(--red, #e66); }
+    .rule-actions { display: flex; gap: 6px; align-items: center; }
+  </style>
 </head>
 <body>
   <div class="container">
+    <h1>Сирена цен</h1>
+    <p class="sub">Правило: предмет + порог (avg / low / офферы). Пик в фоне, когда условие выполняется.</p>
     <div id="tt-progress" class="tt-progress" hidden></div>
+
     <div class="card">
-      <div class="card-title">Price Alarm</div>
-      <div class="row" style="flex-wrap:wrap;gap:10px;align-items:end">
-        <label>Интервал (мин)
-          <input type="number" id="interval" value="5" min="1" max="1440" style="width:90px">
-        </label>
-        <label>Режим
+      <div class="card-title">Фон</div>
+      <div class="row" style="flex-wrap:wrap;gap:12px;align-items:flex-end">
+        <div class="field">
+          <label for="interval">Интервал (мин)</label>
+          <input type="number" id="interval" value="5" min="1" max="1440" style="width:100px">
+        </div>
+        <div class="field">
+          <label for="gameMode">Режим</label>
           <select id="gameMode">
             <option value="pve">PvE</option>
             <option value="pvp">PvP</option>
           </select>
-        </label>
+        </div>
         <button type="button" class="btn" id="startBtn">Старт фона</button>
         <button type="button" class="btn-ghost" id="stopBtn">Стоп</button>
         <button type="button" class="btn-ghost" id="checkBtn">Проверить сейчас</button>
@@ -32,12 +90,15 @@
       <p class="countdown" id="countdown" data-poll-prefix="Следующая проверка: ">Следующая проверка: —</p>
       <p class="status" id="status"></p>
     </div>
+
     <div class="card">
       <div class="card-title">Правила</div>
+      <p class="meta" style="margin-top:0">Начните вводить название — появится список подсказок. Лучше выбирать из списка (сохранится id предмета).</p>
       <div id="rules"></div>
       <button type="button" class="btn-ghost" id="addRule" style="margin-top:8px">+ Правило</button>
     </div>
   </div>
+
   <script src="../core/tarkov-names.js"></script>
   <script src="../core/tarkov-storage.js"></script>
   <script src="../core/tarkov-api.js"></script>
@@ -45,7 +106,7 @@
   <script src="../core/tarkov-ui.js"></script>
   <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
-  <script src="tarkovtool-price-alarm.js?v=2"></script>
+  <script src="tarkovtool-price-alarm.js?v=3"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>
 </html>
