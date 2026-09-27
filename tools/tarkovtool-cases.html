@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <title>Ящики — Tarkov</title>
+  <script type="application/json" id="tarkovtool-meta">
+  {"title":"Ящики","description":"Кейсы и контейнеры: что влезает. Сетка + поиск.","kind":"static"}
+  </script>
+  <style>
+    .container { max-width: min(1200px, 96vw) !important; margin: 0 auto; padding: 12px 14px 64px; }
+    h1 { margin-bottom: 4px; }
+    .sub { color: var(--muted); margin-bottom: 14px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+    .card-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { flex: 1; min-width: 120px; }
+    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    .status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green, #3dd68c); }
+    .status.err { color: var(--red, #f07178); }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 420px) { .grid { grid-template-columns: 1fr; } }
+    .case-card {
+      background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 12px; cursor: pointer; transition: border-color .15s;
+      display: flex; flex-direction: column; gap: 8px; min-height: 120px;
+    }
+    .case-card:hover { border-color: var(--accent); }
+    .case-card .ico { width: 48px; height: 48px; object-fit: contain; align-self: center; }
+    .case-card .name { font-weight: 600; font-size: .9rem; text-align: center; }
+    .case-card .meta { font-size: .75rem; color: var(--muted); text-align: center; }
+    .modal-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 300;
+      display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow: auto;
+    }
+    .modal {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      max-width: 720px; width: 100%; padding: 18px 20px; box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    }
+    .modal h2 { margin: 0 0 6px; font-size: 1.1rem; }
+    .modal .sub2 { color: var(--muted); font-size: .85rem; margin-bottom: 12px; }
+    .item-list { max-height: 50vh; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+    .item-row {
+      display: flex; gap: 10px; align-items: center; padding: 8px 10px;
+      border-bottom: 1px solid var(--border); font-size: .85rem;
+    }
+    .item-row img { width: 28px; height: 28px; object-fit: contain; }
+    .close-btn { float: right; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 data-i18n="tool.cases.title">Ящики</h1>
+    <p class="sub" data-i18n="tool.cases.desc">Кейсы игры: клик — что можно положить внутрь (фильтры API).</p>
+    <div class="card">
+      <div class="card-title" data-i18n="common.data">Данные</div>
+      <div class="row">
+        <div class="field"><label data-i18n="common.gameMode">Режим</label>
+          <select id="gameMode">
+            <option value="pve" selected>PvE</option>
+            <option value="regular">PvP</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn" data-i18n="common.load">Загрузить</button>
+      </div>
+      <p class="status" id="status">ItemPropertiesContainer + grids/filters.</p>
+    </div>
+    <div class="card" id="mainCard" hidden>
+      <div class="row" style="margin-bottom:12px">
+        <input type="search" id="q" placeholder="Поиск кейса…" style="flex:1;min-width:160px">
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+  <div id="modalRoot"></div>
+  <script src="../core/tarkov-dicts.js"></script>
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-state.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-cases.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>
