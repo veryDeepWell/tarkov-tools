@@ -26,10 +26,7 @@
         });
       } catch (e) {}
     }
-    function esc(s){
-      if (window.TarkovUI && TarkovUI.esc) return TarkovUI.esc(s);
-      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-    }
+    function esc(s) { return TarkovDicts.esc(s); }
     function status(m,ok){ var el=document.getElementById('status'); el.className='status'+(ok===true?' ok':ok===false?' err':''); el.textContent=m; }
     function pick(arr){ if(!arr||!arr.length) return null; return arr[Math.floor(Math.random()*arr.length)]; }
     function priceOf(it){ return it ? (Number(it.avg24hPrice)||Number(it.lastLowPrice)||0) : 0; }
@@ -95,12 +92,4 @@
     }
     document.getElementById('btnGo').onclick = function(){ go().catch(function(e){ status(String(e.message||e), false); }); };
     document.getElementById('gameMode').onchange = function(){ pool = null; persist(); };
-    (function(){
-      var KEY='tarkovPreferredGameMode';
-      var def=TarkovStorage.get(KEY,'pve')||'pve';
-      document.querySelectorAll('select#gameMode').forEach(function(sel){
-        if([].some.call(sel.options,function(o){return o.value===def;})) sel.value=def;
-        sel.addEventListener('change',function(){ try{ TarkovStorage.set(KEY, sel.value); }catch(e){} });
-      });
-    })();
   })();

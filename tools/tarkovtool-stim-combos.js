@@ -10,8 +10,8 @@
       {name:'Кейс новичка', items:['propital-regenerative-stimulant-injector','sj6-tglabs-combat-stimulant-injector','trimadol-stimulant-injector','zagustin-hemostatic-drug-injector'], role:'Набор', why:'Старт кейса: хил, бег, кровь.'}
     ];
     let bySlug={};
-    function humanize(s){return s?String(s).replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):'?'}
-    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+    function humanize(slug) { return TarkovDicts.humanize(slug); }
+    function esc(s) { return TarkovDicts.esc(s); }
     document.getElementById('loadBtn').onclick=async()=>{
       const status=document.getElementById('status');
       status.textContent='Гружу…';
@@ -50,11 +50,4 @@
     }
     return s||it.id||'';
   }
-
-  const KEY = 'tarkovPreferredGameMode';
-  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
-  document.querySelectorAll('select#gameMode').forEach(sel => {
-    if ([...sel.options].some(o => o.value === def)) sel.value = def;
-    sel.addEventListener('change', () => { try { TarkovStorage.set(KEY, sel.value); } catch(e) {} });
-  });
 })();

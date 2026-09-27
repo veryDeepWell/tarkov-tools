@@ -1,5 +1,7 @@
 
-    const TRADER_RU = {
+    const TRADER_RU = (window.TarkovDicts && TarkovDicts.traders)
+      ? TarkovDicts.traders.reduce((acc, t) => { acc[t.id] = t.ru; return acc; }, {})
+      : {
       '54cb50c76803fa8b248b4571': 'Прапор',
       '54cb57776803fa99248b456e': 'Терапевт',
       '58330581ace78e27b8b10cee': 'Лыжник',
@@ -10,7 +12,9 @@
       '6617beeaa9cfa777ca915b7c': 'Реф'
     };
 
-    const KIND_RU = {
+    const KIND_RU = (window.TarkovDicts && TarkovDicts.armorKinds)
+      ? Object.keys(TarkovDicts.armorKinds).reduce((acc, k) => { acc[k] = TarkovDicts.armorKinds[k].ru; return acc; }, {})
+      : {
       armor: 'Броник',
       rig: 'Разгруз / carrier',
       helmet: 'Шлем',
@@ -27,30 +31,12 @@
     let sortDir = -1;
     let expandedId = null;
 
-    function loadSettings(key, defaults) {
-      try {
-        const raw = TarkovStorage.get(key, null);
-        if (!raw) return Object.assign({}, defaults);
-        return Object.assign({}, defaults, JSON.parse(raw));
-      } catch (e) { return Object.assign({}, defaults); }
-    }
-    function saveSettings(key, obj) {
-      try { TarkovStorage.set(key, JSON.stringify(obj)); } catch (e) {}
-    }
+    function loadSettings(key, defaults) { return TarkovUI.loadSettings(key, defaults); }
+    function saveSettings(key, obj) { TarkovUI.saveSettings(key, obj); }
 
-    function humanize(slug) {
-      if (!slug) return '?';
-      return String(slug).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    }
-    function formatNum(n) {
-      if (n == null || Number.isNaN(n)) return '—';
-      return Math.round(n).toLocaleString('ru-RU');
-    }
-    function esc(s) {
-      return String(s || '')
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
+    function humanize(slug) { return TarkovDicts.humanize(slug); }
+    function formatNum(n) { return TarkovDicts.fmtNum(n); }
+    function esc(s) { return TarkovDicts.esc(s); }
 
     function simplifyZones(zones) {
       const tags = new Set();
@@ -296,15 +282,3 @@
       if (s.classes) activeClasses = new Set(s.classes);
     })();
   
-
-
-(function(){
-  const KEY = 'tarkovPreferredGameMode';
-  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
-  document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
-    if ([...sel.options].some(o => o.value === def)) sel.value = def;
-    sel.addEventListener('change', () => {
-      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
-    });
-  });
-})();

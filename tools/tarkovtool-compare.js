@@ -26,7 +26,9 @@
       { id:'meds', label:'Медицина', types:['meds'], prop:null },
       { id:'barter', label:'Бартер', types:['barter'], prop:null }
     ];
-    const TRADER_RU = {
+    const TRADER_RU = (window.TarkovDicts && TarkovDicts.traders)
+      ? TarkovDicts.traders.reduce((acc, t) => { acc[t.id] = t.ru; return acc; }, {})
+      : {
       '54cb50c76803fa8b248b4571':'Прапор','54cb57776803fa99248b456e':'Терапевт',
       '58330581ace78e27b8b10cee':'Лыжник','5935c25fb3acc3127c3d8cd9':'Миротворец',
       '5a7c2eca46aef81a7ca2145d':'Механик','5ac3b934156ae10c4430e83c':'Барахольщик',
@@ -37,9 +39,9 @@
     // modId -> Set of weapon ids that can equip it (direct or via 1-level adapter)
     let modToWeapons = {};
 
-    function humanize(s){return s?String(s).replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):'?'}
-    function formatNum(n){return n==null||Number.isNaN(n)?'—':Math.round(n).toLocaleString('ru-RU')}
-    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+    function humanize(slug) { return TarkovDicts.humanize(slug); }
+    function formatNum(n) { return TarkovDicts.fmtNum(n); }
+    function esc(s) { return TarkovDicts.esc(s); }
     function bestBuy(it){
       let best=null;
       (it.buyFromTrader||[]).forEach(o=>{
@@ -285,13 +287,4 @@
     if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
     return s||it.id||'';
   }
-
-  const KEY = 'tarkovPreferredGameMode';
-  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
-  document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
-    if ([...sel.options].some(o => o.value === def)) sel.value = def;
-    sel.addEventListener('change', () => {
-      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
-    });
-  });
 })();

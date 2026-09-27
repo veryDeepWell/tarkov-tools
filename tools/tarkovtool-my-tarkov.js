@@ -12,7 +12,7 @@
     return s||it.id||'';
   }
 
-    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    function esc(s) { return TarkovDicts.esc(s); }
     function paint() {
       const st = TarkovState.get();
       document.getElementById('level').value = st.player.level || 1;

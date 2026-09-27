@@ -143,7 +143,7 @@
         };
       });
     }
-    function esc(s){return String(s||'').replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>');}
+    function esc(s) { return TarkovDicts.esc(s); }
 
     document.getElementById('addBtn').onclick = () => {
       document.getElementById('npanel').classList.remove('open');

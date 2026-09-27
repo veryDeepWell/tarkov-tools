@@ -8,12 +8,9 @@
 
     let rows=[], sortKey='score', sortDir=-1;
     var STORE='tarkovtool-nvg-settings';
-    function esc(s){
-      if(window.TarkovUI&&TarkovUI.esc)return TarkovUI.esc(s);
-      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
+    function esc(s) { return TarkovDicts.esc(s); }
     function fmt(n){if(!n)return '—'; return Math.round(n).toLocaleString('ru-RU');}
-    function humanize(slug){return (slug||'').replace(/-/g,' ');}
+    function humanize(slug) { return TarkovDicts.humanize(slug).toLowerCase(); }
     function persist(mode){
       try{TarkovStorage.setJson(STORE,{mode:mode||((document.getElementById('gameMode')||{}).value)||'pve'});}catch(e){}
     }
@@ -72,11 +69,3 @@
     document.querySelectorAll('#tbl th[data-k]').forEach(th=>{
       th.onclick=()=>{const k=th.dataset.k; if(sortKey===k)sortDir*=-1; else{sortKey=k;sortDir=k==='name'?1:-1;} render();};
     });
-    (function(){
-      const KEY='tarkovPreferredGameMode';
-      const def=TarkovStorage.get(KEY,'pve')||'pve';
-      document.querySelectorAll('select#gameMode').forEach(sel=>{
-        if([...sel.options].some(o=>o.value===def)) sel.value=def;
-        sel.addEventListener('change',()=>{ try{ TarkovStorage.set(KEY, sel.value); }catch(e){} });
-      });
-    })();

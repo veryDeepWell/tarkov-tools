@@ -42,11 +42,8 @@
     if (slug) return slug.replace(/[-_]+/g, " ").replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });
     return id || "";
   }
-  function esc(s) {
-    var amp = String.fromCharCode(38);
-    return String(s || "").replace(/&/g, amp + "amp;").replace(/</g, amp + "lt;").replace(/>/g, amp + "gt;").replace(/"/g, amp + "quot;");
-  }
-  function fmtRub(n) { return Math.round(Number(n) || 0).toLocaleString("ru-RU") + " ₽"; }
+  function esc(s) { return TarkovDicts.esc(s); }
+  function fmtRub(n) { return TarkovDicts.fmtRub(n); }
   function fmtClock(ts) {
     if (!ts) return "-";
     try { return new Date(ts).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }); } catch (e) { return "-"; }

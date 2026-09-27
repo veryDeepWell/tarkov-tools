@@ -149,9 +149,7 @@
         'Сейчас: ' + state.current + ' · ' + currentList().length + ' позиций';
     }
 
-    function escapeHtml(s) {
-      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
+    function escapeHtml(s) { return TarkovDicts.esc(s); }
     function escapeAttr(s) {
       return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
     }

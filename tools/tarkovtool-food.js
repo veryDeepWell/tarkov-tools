@@ -12,10 +12,7 @@
     let sortKey = 'score';
     let sortDir = -1;
     var STORE = 'tarkovtool-food-settings';
-    function esc(s) {
-      if (window.TarkovUI && TarkovUI.esc) return TarkovUI.esc(s);
-      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-    }
+    function esc(s) { return TarkovDicts.esc(s); }
     function status(msg, ok) {
       var el = document.getElementById('status');
       el.className = 'status' + (ok === true ? ' ok' : ok === false ? ' err' : '');
@@ -119,10 +116,4 @@
         c.classList.toggle('active', c.getAttribute('data-k') === kind);
       });
     } catch (e) {}
-    var KEY = 'tarkovPreferredGameMode';
-    var def = TarkovStorage.get(KEY, 'pve') || 'pve';
-    document.querySelectorAll('select#gameMode').forEach(function (sel) {
-      if ([].some.call(sel.options, function (o) { return o.value === def; })) sel.value = def;
-      sel.addEventListener('change', function () { try { TarkovStorage.set(KEY, sel.value); } catch (e) {} });
-    });
   })();

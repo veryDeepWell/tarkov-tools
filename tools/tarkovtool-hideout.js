@@ -1,5 +1,7 @@
 
-    const TRADER_RU = {
+    const TRADER_RU = (window.TarkovDicts && TarkovDicts.traders)
+      ? TarkovDicts.traders.reduce((acc, t) => { acc[t.id] = t.ru; return acc; }, {})
+      : {
       '54cb50c76803fa8b248b4571': 'Прапор',
       '54cb57776803fa99248b456e': 'Терапевт',
       '58330581ace78e27b8b10cee': 'Лыжник',
@@ -18,16 +20,8 @@
     let progress = {};
     let selectedId = null;
 
-    function loadSettings(key, defaults) {
-      try {
-        const raw = TarkovStorage.get(key, null);
-        if (!raw) return Object.assign({}, defaults);
-        return Object.assign({}, defaults, JSON.parse(raw));
-      } catch (e) { return Object.assign({}, defaults); }
-    }
-    function saveSettings(key, obj) {
-      try { TarkovStorage.set(key, JSON.stringify(obj)); } catch (e) {}
-    }
+    function loadSettings(key, defaults) { return TarkovUI.loadSettings(key, defaults); }
+    function saveSettings(key, obj) { TarkovUI.saveSettings(key, obj); }
     function loadProgress() {
       try { progress = TarkovStorage.getJson('tarkovHideoutProgress', {}); }
       catch { progress = {}; }
@@ -35,14 +29,8 @@
     function saveProgress() {
       try { TarkovStorage.setJson('tarkovHideoutProgress', progress); } catch (e) {}
     }
-    function humanize(slug) {
-      if (!slug) return '?';
-      return String(slug).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    }
-    function formatNum(n) {
-      if (n == null || Number.isNaN(n)) return '—';
-      return Math.round(n).toLocaleString('ru-RU');
-    }
+    function humanize(slug) { return TarkovDicts.humanize(slug); }
+    function formatNum(n) { return TarkovDicts.fmtNum(n); }
     function formatTime(sec) {
       if (!sec) return '—';
       const h = Math.floor(sec / 3600);
@@ -51,11 +39,7 @@
       if (h) return h + 'ч ' + m + 'м';
       return m + 'м';
     }
-    function esc(s) {
-      return String(s || '')
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
+    function esc(s) { return TarkovDicts.esc(s); }
     function itemName(id) {
       const it = itemsById[id];
       if (!it) return id.slice(0, 8) + '…';
@@ -516,15 +500,3 @@
       document.getElementById('shopOnlyMissing').checked = s.shopOnlyMissing !== false;
     })();
   
-
-
-(function(){
-  const KEY = 'tarkovPreferredGameMode';
-  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
-  document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
-    if ([...sel.options].some(o => o.value === def)) sel.value = def;
-    sel.addEventListener('change', () => {
-      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
-    });
-  });
-})();

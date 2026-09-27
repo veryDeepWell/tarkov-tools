@@ -112,15 +112,8 @@
     let sortKey = 'profit';
     let sortDir = -1;
 
-            function humanize(slug) {
-      if (!slug) return '?';
-      return String(slug).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    }
-        function esc(s) {
-      return String(s || '')
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
+    function humanize(slug) { return TarkovDicts.humanize(slug); }
+    function esc(s) { return TarkovDicts.esc(s); }
 
     function isStreamerItem(slug) {
       if (!slug) return false;
@@ -311,15 +304,3 @@
       if (s.onlyProfit === false) document.getElementById('onlyProfit').checked = false;
     })();
   
-
-
-(function(){
-  const KEY = 'tarkovPreferredGameMode';
-  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
-  document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
-    if ([...sel.options].some(o => o.value === def)) sel.value = def;
-    sel.addEventListener('change', () => {
-      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
-    });
-  });
-})();

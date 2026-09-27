@@ -26,10 +26,7 @@
     ];
     var loadout = {};
     var catalog = null;
-    function esc(s){
-      if (window.TarkovUI && TarkovUI.esc) return TarkovUI.esc(s);
-      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
+    function esc(s) { return TarkovDicts.esc(s); }
     function label(it){
       if (!it) return '';
       if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);

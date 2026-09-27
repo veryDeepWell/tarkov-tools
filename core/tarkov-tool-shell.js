@@ -71,6 +71,16 @@
     (document.head || document.documentElement).appendChild(s);
   }
 
+  function ensureDictsJs() {
+    if (window.TarkovDicts || document.getElementById("tt-dicts-js")) return;
+    var path = location.pathname || "";
+    var s = document.createElement("script");
+    s.id = "tt-dicts-js";
+    s.src = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-dicts.js";
+    s.async = false;
+    (document.head || document.documentElement).appendChild(s);
+  }
+
   function ensureI18n() {
     return new Promise(function (resolve) {
       function done() {
@@ -301,12 +311,18 @@
     ensureItemDomainJs();
     ensureItemViewModelsJs();
     ensureWeaponDomainJs();
+    ensureDictsJs();
     ensureI18n().then(function () {
       ensureHelp();
       setTimeout(ensureHelp, 100);
       setTimeout(ensureHelp, 500);
       ensureProgress();
       markPrimaryButtons();
+      try {
+        if (window.TarkovDicts && TarkovDicts.syncGameMode) {
+          TarkovDicts.syncGameMode();
+        }
+      } catch (eMode) {}
       try {
         if (window.TarkovI18n && TarkovI18n.applyDom) TarkovI18n.applyDom(document);
         localizeToolChrome();
@@ -315,6 +331,13 @@
   }
 
   window.addEventListener("tt-lang-changed", localizeToolChrome);
+
+  // Restore #gameMode as early as possible: the per-tool sync blocks removed in
+  // Phase 2 ran at parse time, so the shell must not wait for DOMContentLoaded
+  // (still kept as a safety net for pages loading the shell from <head>).
+  try {
+    if (window.TarkovDicts && TarkovDicts.syncGameMode) TarkovDicts.syncGameMode();
+  } catch (ePre) {}
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();

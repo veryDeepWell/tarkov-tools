@@ -364,7 +364,8 @@
     exportAll: exportAll,
     importAll: importAll,
     ACCENTS: ACCENTS,
-    unlockAudio: unlockAudio
+    unlockAudio: unlockAudio,
+    get Dicts() { return global.TarkovDicts; }
   });
   try {
     global.Notify = Notify;

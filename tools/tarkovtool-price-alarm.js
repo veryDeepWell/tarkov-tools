@@ -9,15 +9,7 @@
   var fired = {};
   var openSuggestIdx = -1;
 
-  function esc(s) {
-    var amp = String.fromCharCode(38);
-    return String(s == null ? '' : s)
-      .replace(/&/g, amp + 'amp;')
-      .replace(/</g, amp + 'lt;')
-      .replace(/>/g, amp + 'gt;')
-      .replace(/"/g, amp + 'quot;')
-      .replace(/'/g, amp + '#39;');
-  }
+  function esc(s) { return TarkovDicts.esc(s); }
 
   function itemName(it) {
     try {
@@ -131,14 +123,7 @@
     };
   }
 
-  function fmtRub(n) {
-    n = Math.round(Number(n) || 0);
-    try {
-      return n.toLocaleString('ru-RU') + ' \u20bd';
-    } catch (e) {
-      return String(n) + ' RUB';
-    }
-  }
+  function fmtRub(n) { return TarkovDicts.fmtRub(n); }
 
   function findById(id) {
     if (!id) return null;

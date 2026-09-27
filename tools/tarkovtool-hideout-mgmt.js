@@ -4,14 +4,8 @@
     let sortKey = 'net';
     let sortDir = 1; // net: lower better
 
-    function humanize(s) {
-      return s ? String(s).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '?';
-    }
-    function formatNum(n) {
-      if (n == null || Number.isNaN(n)) return '—';
-      const r = Math.round(n);
-      return (r > 0 ? '+' : '') + r.toLocaleString('ru-RU');
-    }
+    function humanize(slug) { return TarkovDicts.humanize(slug); }
+    function formatNum(n) { return (Number(n) > 0 ? '+' : '') + TarkovDicts.fmtNum(n); }
     function formatDur(sec) {
       sec = Number(sec) || 0;
       const h = Math.floor(sec / 3600);
@@ -19,9 +13,7 @@
       if (h) return h + 'ч ' + m + 'м';
       return m + 'м';
     }
-    function esc(s) {
-      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
+    function esc(s) { return TarkovDicts.esc(s); }
 
     function itemPrice(id) {
       const it = byId[id];
@@ -227,12 +219,5 @@
     if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
     return s||it.id||'';
   }
-
-      const KEY = 'tarkovPreferredGameMode';
-      const def = TarkovStorage.get(KEY, 'pve') || 'pve';
-      document.querySelectorAll('select#gameMode').forEach(sel => {
-        if ([...sel.options].some(o => o.value === def)) sel.value = def;
-        sel.addEventListener('change', () => { try { TarkovStorage.set(KEY, sel.value); } catch(e) {} });
-      });
     })();
   

@@ -48,9 +48,9 @@
     let sortKey = 'tierScore';
     let sortDir = -1;
 
-    function humanize(s){return s?String(s).replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):'?'}
-    function formatNum(n){return n==null||Number.isNaN(n)?'—':Math.round(n).toLocaleString('ru-RU')}
-    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+    function humanize(slug) { return TarkovDicts.humanize(slug); }
+    function formatNum(n) { return TarkovDicts.fmtNum(n); }
+    function esc(s) { return TarkovDicts.esc(s); }
 
     function findCommunity(slug) {
       const s = (slug || '').toLowerCase();
@@ -248,13 +248,4 @@
     }
     return s||it.id||'';
   }
-
-  const KEY = 'tarkovPreferredGameMode';
-  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
-  document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
-    if ([...sel.options].some(o => o.value === def)) sel.value = def;
-    sel.addEventListener('change', () => {
-      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
-    });
-  });
 })();

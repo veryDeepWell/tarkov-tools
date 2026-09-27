@@ -4,17 +4,8 @@
 
     let tasks = [], byId = {}, mapName = {}, traderName = {}, enLoc = {}, ruLoc = {};
 
-    function humanize(s) {
-      return s ? String(s).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '?';
-    }
-    function esc(s) {
-      const AMP = String.fromCharCode(38);
-      return String(s || '')
-        .replace(/&/g, AMP + 'amp;')
-        .replace(/</g, AMP + 'lt;')
-        .replace(/>/g, AMP + 'gt;')
-        .replace(/"/g, AMP + 'quot;');
-    }
+    function humanize(slug) { return TarkovDicts.humanize(slug); }
+    function esc(s) { return TarkovDicts.esc(s); }
     function tName(id, slug) {
       return enLoc[id + ' name'] || enLoc[id + ' Name'] || humanize(slug) || id;
     }
@@ -194,12 +185,5 @@
     }
     return s||it.id||'';
   }
-
-      const KEY = 'tarkovPreferredGameMode';
-      const def = TarkovStorage.get(KEY, 'pve') || 'pve';
-      document.querySelectorAll('select#gameMode').forEach(sel => {
-        if ([...sel.options].some(o => o.value === def)) sel.value = def;
-        sel.addEventListener('change', () => { try { TarkovStorage.set(KEY, sel.value); } catch (e) {} });
-      });
     })();
   

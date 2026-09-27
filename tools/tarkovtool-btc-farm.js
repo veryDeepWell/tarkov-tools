@@ -36,10 +36,7 @@
       if (h <= 0) return 0;
       return (24 / h) * (Number(fuelPrice) || 0);
     }
-    function formatNum(n) {
-      if (n == null || Number.isNaN(n)) return '—';
-      return Math.round(n).toLocaleString('ru-RU');
-    }
+    function formatNum(n) { return TarkovDicts.fmtNum(n); }
     function formatDur(sec) {
       const h = Math.floor(sec / 3600);
       const m = Math.floor((sec % 3600) / 60);
@@ -262,13 +259,6 @@
     if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
     return s||it.id||'';
   }
-
-      const KEY = 'tarkovPreferredGameMode';
-      const def = TarkovStorage.get(KEY, 'pve') || 'pve';
-      document.querySelectorAll('select#gameMode').forEach(sel => {
-        if ([...sel.options].some(o => o.value === def)) sel.value = def;
-        sel.addEventListener('change', () => { try { TarkovStorage.set(KEY, sel.value); } catch (e) {} });
-      });
     })();
 
     load();

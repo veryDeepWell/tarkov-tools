@@ -21,7 +21,7 @@ const BOSS_RU = {
     };
     let mapsData=[], goonMapIds=new Set(), goonInfo=[], filter='all', timers={};
 
-    function humanize(s){return MAP_RU[s]||(s?String(s).replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):'?')}
+    function humanize(s) { return MAP_RU[s] || TarkovDicts.humanize(s); }
     function bossName(m){return BOSS_RU[m]||m}
     function formatTimer(ms){
       const s=Math.floor(ms/1000), m=Math.floor(s/60), sec=s%60, h=Math.floor(m/60);
@@ -162,12 +162,3 @@ const BOSS_RU = {
       render();
     };
     document.getElementById('search').oninput=render;
-
-    (function(){
-      const KEY='tarkovPreferredGameMode';
-      const def=TarkovStorage.get(KEY,'pve')||'pve';
-      document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel=>{
-        if([...sel.options].some(o=>o.value===def)) sel.value=def;
-        sel.addEventListener('change',()=>{try{TarkovStorage.set(KEY,sel.value)}catch(e){}});
-      });
-    })();

@@ -11,7 +11,9 @@
     }
     return s||it.id||'';
   }
-const MULT = {
+const MULT = (window.TarkovDicts && TarkovDicts.traders)
+  ? TarkovDicts.traders.reduce((acc, t) => { acc[t.id] = t.cultistMult; return acc; }, {})
+  : {
   '54cb50c76803fa8b248b4571': 0.50,
   '54cb57776803fa99248b456e': 0.63,
   '579dc571d53a0658a154fbec': 0.40,
@@ -22,7 +24,9 @@ const MULT = {
   '5c0647fdd443bc2504c2d371': 0.60,
   '6617beeaa9cfa777ca915b7c': 0.60
 };
-const TNAME = {
+const TNAME = (window.TarkovDicts && TarkovDicts.traders)
+  ? TarkovDicts.traders.reduce((acc, t) => { acc[t.id] = t.ru; return acc; }, {})
+  : {
   '54cb50c76803fa8b248b4571':'Прапор','54cb57776803fa99248b456e':'Терапевт',
   '579dc571d53a0658a154fbec':'Скупщик','58330581ace78e27b8b10cee':'Лыжник',
   '5935c25fb3acc3127c3d8cd9':'Миротворец','5a7c2eca46aef81a7ca2145d':'Механик',
@@ -35,11 +39,9 @@ let bartersByReward = {};
 let sacrifice = [null,null,null,null,null];
 const costCache = new Map();
 
-function esc(s){
-  return String(s||'').replace(/&/g,'\u0026amp;').replace(/</g,'\u0026lt;').replace(/>/g,'\u0026gt;').replace(/"/g,'\u0026quot;');
-}
+function esc(s) { return TarkovDicts.esc(s); }
 function fmt(n){ if(n==null||!isFinite(n)) return '—'; return Math.round(n).toLocaleString('ru-RU'); }
-function humanize(slug){ return (slug||'').replace(/-/g,' '); }
+function humanize(slug) { return TarkovDicts.humanize(slug).toLowerCase(); }
 function pickId(obj){
   if(!obj) return null;
   if(typeof obj === 'string') return obj;
@@ -331,14 +333,6 @@ function wire(){
     if (saved.amulet != null && document.getElementById('amulet'))
       document.getElementById('amulet').checked = !!saved.amulet;
   } catch(e) {}
-  (function(){
-    var KEY='tarkovPreferredGameMode';
-    var def=TarkovStorage.get(KEY,'pve')||'pve';
-    document.querySelectorAll('select#gameMode').forEach(function(sel){
-      if([].some.call(sel.options,function(o){return o.value===def;})) sel.value=def;
-      sel.addEventListener('change',function(){ try{ TarkovStorage.set(KEY, sel.value); }catch(e){} });
-    });
-  })();
 }
 
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);

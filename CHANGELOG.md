@@ -1,5 +1,78 @@
 # Changelog
 
+All notable changes to **Tarkov Tools** will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),  
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- TBD
+
+### Changed
+- TBD
+
+### Fixed
+- TBD
+
+---
+
+## [0.3.0+] — 2026-09-27 (current)
+
+### Architectural
+- **Core modules:** `tarkov-names.js`, `tarkov-api.js`, `tarkov-state.js`, `tarkov-i18n.js`, `tarkov-common.js`
+- **Platform contract:** [`docs/PLATFORM.md`](docs/PLATFORM.md) — how tools, hub, and core interact
+- **Tool checklist:** [`docs/TOOL_CHECKLIST.md`](docs/TOOL_CHECKLIST.md) — acceptance criteria
+
+### Core modules (unified core)
+- **TarkovAPI:** Single network + cache boundary to tarkov.dev
+- **TarkovState:** Notifications, mini-tabs, cross-tab broadcast
+- **TarkovI18n:** Locale packs, DOM apply, fallback to English
+- **TarkovItems:** Normalized items, indexes, shared queries (planned Stage 2)
+- **TarkovUI:** Shared UI primitives (progress, help modals, cards — planned Stage 3)
+
+### Live utilities (background updates)
+- **Price Track:** `tools/tarkovtool-price-track.html` + `.js`
+- **Price Alarm:** `tools/tarkovtool-price-alarm.html` + `.js`
+- **Restock Alert:** `tools/tarkovtool-restock.html` + `.js`
+
+### Static utilities
+- Barter Live, Bosses DB, Ammo Catalog, Barters Live, and more (see [`catalog.json`](hub/catalog.json))
+
+### Localization
+- RU/EN support via `tarkov-names.js` and `tarkov-i18n.js`
+- Planned total i18n with `data-i18n` attributes
+
+### Fixes (from Wave 1)
+- **Price Track:**
+  - Persist `lastSnap` / `nextSnapAt` in localStorage (background + manual)
+  - Countdown timer on page + mini-tab ("via Xm Ys · was DD.MM HH:MM")
+  - Chart: dark canvas background, bright lines, Resize, 1 point drawn
+  - Resume respects `nextSnapAt` (no reset on tab open)
+
+### Removed
+- Direct `fetch("https://json.tarkov.dev/...")` → use `TarkovAPI` only
+- Duplicate notification handlers → unified `Notify` from `tarkov-common.js`
+- Repeated utility functions (`esc`, `humanize`, `loadSettings`) → moved to core
+
+---
+
+## [0.2.x] — Previously
+
+### Added
+- Initial tools: `barter-live`, `bosses`, static utilities
+- Basic notification system (per-tool)
+
+### Fixed
+- Early prototypes of price tracking, barter monitoring
+
+---
+
+**Created:** 2026-09-27  
+**Next review:** at versions 0.4.0+
+# Changelog
+
 **[Русский](#020--2026-09-17)** · **[English](#020--2026-09-17-en)**
 
 ---

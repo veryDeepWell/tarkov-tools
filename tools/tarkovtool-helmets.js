@@ -16,9 +16,9 @@
     const KEY = 'tarkovHelmets';
     let rows = [];
     let sortKey = 'cls', sortDir = -1;
-    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    function esc(s) { return TarkovDicts.esc(s); }
     function fmt(n){if(n==null||n===0)return '—'; return Math.round(n).toLocaleString('ru-RU');}
-    function humanize(slug){return (slug||'').replace(/-/g,' ');}
+    function humanize(slug) { return TarkovDicts.humanize(slug).toLowerCase(); }
 
     let tipEl;
     function ensureTip(){if(tipEl)return tipEl; tipEl=document.createElement('div'); tipEl.className='tip'; document.body.appendChild(tipEl); return tipEl;}

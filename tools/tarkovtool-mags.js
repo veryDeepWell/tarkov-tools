@@ -1,11 +1,15 @@
 
-    const TRADER_RU = {
+    const TRADER_RU = (window.TarkovDicts && TarkovDicts.traders)
+      ? TarkovDicts.traders.reduce((acc, t) => { acc[t.id] = t.ru; return acc; }, {})
+      : {
       '54cb50c76803fa8b248b4571':'Прапор','54cb57776803fa99248b456e':'Терапевт',
       '58330581ace78e27b8b10cee':'Лыжник','5935c25fb3acc3127c3d8cd9':'Миротворец',
       '5a7c2eca46aef81a7ca2145d':'Механик','5ac3b934156ae10c4430e83c':'Барахольщик',
       '5c0647fdd443bc2504c2d371':'Егерь','6617beeaa9cfa777ca915b7c':'Реф'
     };
-    const CAL_LABEL = {
+    const CAL_LABEL = (window.TarkovDicts && TarkovDicts.calibers)
+      ? Object.keys(TarkovDicts.calibers).reduce((acc, k) => { acc[k] = TarkovDicts.calibers[k].label; return acc; }, {})
+      : {
       Caliber556x45NATO:'5.56×45', Caliber545x39:'5.45×39', Caliber762x39:'7.62×39',
       Caliber762x51:'7.62×51', Caliber762x54R:'7.62×54R', Caliber9x19PARA:'9×19',
       Caliber9x18PM:'9×18', Caliber9x21:'9×21', Caliber46x30:'4.6×30',
@@ -16,11 +20,11 @@
     };
     let rows=[], activeCal=null, sortKey='rating', sortDir=-1;
 
-    function loadSettings(k,d){try{const r=TarkovStorage.get(k,null);return r?Object.assign({},d,JSON.parse(r)):Object.assign({},d)}catch(e){return Object.assign({},d)}}
-    function saveSettings(k,o){try{TarkovStorage.set(k,JSON.stringify(o))}catch(e){}}
-    function humanize(s){return s?String(s).replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):'?'}
-    function formatNum(n){return n==null||Number.isNaN(n)?'—':Math.round(n).toLocaleString('ru-RU')}
-    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+    function loadSettings(key, defaults) { return TarkovUI.loadSettings(key, defaults); }
+    function saveSettings(key, obj) { TarkovUI.saveSettings(key, obj); }
+    function humanize(slug) { return TarkovDicts.humanize(slug); }
+    function formatNum(n) { return TarkovDicts.fmtNum(n); }
+    function esc(s) { return TarkovDicts.esc(s); }
     function bestBuy(it){
       let best=null;
       (it.buyFromTrader||[]).forEach(o=>{
@@ -146,15 +150,3 @@
   }
 const s=loadSettings('tarkovMagsSettings',{});if(s.gameMode)document.getElementById('gameMode').value=s.gameMode;if(s.hideQuest)document.getElementById('hideQuest').checked=true;if(s.activeCal)activeCal=s.activeCal})();
   
-
-
-(function(){
-  const KEY = 'tarkovPreferredGameMode';
-  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
-  document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
-    if ([...sel.options].some(o => o.value === def)) sel.value = def;
-    sel.addEventListener('change', () => {
-      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
-    });
-  });
-})();

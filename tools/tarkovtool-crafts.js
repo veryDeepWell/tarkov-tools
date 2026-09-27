@@ -24,16 +24,8 @@
       return gross - fleaTax(basePrice, offerPrice, count, opts);
     }
 
-    function loadSettings(key, defaults) {
-      try {
-        const raw = TarkovStorage.get(key, null);
-        if (!raw) return Object.assign({}, defaults);
-        return Object.assign({}, defaults, JSON.parse(raw));
-      } catch (e) { return Object.assign({}, defaults); }
-    }
-    function saveSettings(key, obj) {
-      try { TarkovStorage.set(key, JSON.stringify(obj)); } catch (e) {}
-    }
+    function loadSettings(key, defaults) { return TarkovUI.loadSettings(key, defaults); }
+    function saveSettings(key, obj) { TarkovUI.saveSettings(key, obj); }
 
     const STATION_RU = {
       'vostok-water-collector': 'Водосборник',
@@ -88,10 +80,7 @@
 
     const statusEl = document.getElementById('status');
 
-    function formatNum(n) {
-      if (n == null || Number.isNaN(n)) return '—';
-      return Math.round(n).toLocaleString('ru-RU');
-    }
+    function formatNum(n) { return TarkovDicts.fmtNum(n); }
     function formatDur(sec) {
       sec = Number(sec) || 0;
       const h = Math.floor(sec / 3600);
@@ -99,10 +88,7 @@
       if (h > 0) return h + 'ч ' + m + 'м';
       return m + 'м';
     }
-    function humanize(slug) {
-      if (!slug) return '?';
-      return String(slug).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    }
+    function humanize(slug) { return TarkovDicts.humanize(slug); }
     function stationName(idOrSlug) {
       const s = stationsMap[idOrSlug];
       const slug = (s && s.normalizedName) || idOrSlug;
@@ -397,11 +383,7 @@
         `Показано ${list.length} из ${rows.length} · сортировка: ${sortKey} ${sortDir < 0 ? '↓' : '↑'}`;
     }
 
-    function esc(s) {
-      return String(s || '')
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
+    function esc(s) { return TarkovDicts.esc(s); }
 
     ['minProfit', 'minPerHour', 'search', 'hideQuest', 'onlyProfit'].forEach(id => {
       const el = document.getElementById(id);
@@ -447,15 +429,3 @@
       });
     })();
   
-
-
-(function(){
-  const KEY = 'tarkovPreferredGameMode';
-  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
-  document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
-    if ([...sel.options].some(o => o.value === def)) sel.value = def;
-    sel.addEventListener('change', () => {
-      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
-    });
-  });
-})();

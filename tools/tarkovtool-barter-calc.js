@@ -7,19 +7,10 @@
       return (window.TarkovUI || {}).fleaNet ? TarkovUI.fleaNet(basePrice, offerPrice, count, opts)
         : ((Number(offerPrice)||0)*(Number(count)||1) - fleaTax(basePrice, offerPrice, count, opts));
     }
-    function formatNum(n) {
-      return (window.TarkovUI || {}).fmtNum ? TarkovUI.fmtNum(n) : String(Math.round(Number(n)||0));
-    }
-    function escapeHtml(s) {
-      return (window.TarkovUI || {}).esc ? TarkovUI.esc(s) : String(s||'');
-    }
-    function loadSettings(key, defaults) {
-      return (window.TarkovUI || {}).loadSettings ? TarkovUI.loadSettings(key, defaults)
-        : Object.assign({}, defaults||{});
-    }
-    function saveSettings(key, obj) {
-      if ((window.TarkovUI || {}).saveSettings) TarkovUI.saveSettings(key, obj);
-    }
+    function formatNum(n) { return TarkovDicts.fmtNum(n); }
+    function escapeHtml(s) { return TarkovDicts.esc(s); }
+    function loadSettings(key, defaults) { return TarkovUI.loadSettings(key, defaults); }
+    function saveSettings(key, obj) { TarkovUI.saveSettings(key, obj); }
 
     const PRESETS = [
       {
@@ -318,15 +309,3 @@
       });
     })();
   
-
-
-(function(){
-  const KEY = 'tarkovPreferredGameMode';
-  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
-  document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
-    if ([...sel.options].some(o => o.value === def)) sel.value = def;
-    sel.addEventListener('change', () => {
-      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
-    });
-  });
-})();

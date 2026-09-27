@@ -119,13 +119,7 @@
     Mental: "mental"
   };
 
-  function esc(s) {
-    return String(s || "")
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """);
-  }
+  function esc(s) { return TarkovDicts.esc(s); }
 
   function load() {
     try {

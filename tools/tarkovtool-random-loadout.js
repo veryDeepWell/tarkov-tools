@@ -14,10 +14,7 @@
   }
 
   var pool = null;
-  function esc(s) {
-    if (window.TarkovUI && TarkovUI.esc) return TarkovUI.esc(s);
-    return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  }
+  function esc(s) { return TarkovDicts.esc(s); }
   function label(it) {
     if (!it) return "";
     if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
@@ -218,12 +215,4 @@
     var saved = TarkovStorage.getJson("tarkovtool-random-loadout-settings", {}) || {};
     if (arena && saved.excludeArena != null) arena.checked = !!saved.excludeArena;
   } catch (e) {}
-  (function () {
-    var KEY = "tarkovPreferredGameMode";
-    var def = TarkovStorage.get(KEY, "pve") || "pve";
-    document.querySelectorAll("select#gameMode").forEach(function (sel) {
-      if ([].some.call(sel.options, function (o) { return o.value === def; })) sel.value = def;
-      sel.addEventListener("change", function () { try { TarkovStorage.set(KEY, sel.value); } catch (e) {} });
-    });
-  })();
 })();

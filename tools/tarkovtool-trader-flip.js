@@ -20,7 +20,9 @@
       { id: 'ref', ru: 'Реф' }
     ];
 
-    const TRADER_ID_FALLBACK = {
+    const TRADER_ID_FALLBACK = (window.TarkovDicts && TarkovDicts.traders)
+      ? TarkovDicts.traders.reduce((acc, t) => { acc[t.id] = t.key; return acc; }, {})
+      : {
       '54cb50c76803fa8b248b4571': 'prapor',
       '54cb57776803fa99248b456e': 'therapist',
       '579dc571d53a0658a154fbec': 'fence',
@@ -33,7 +35,9 @@
       '638f541a29ffd1183d187f57': 'lightkeeper'
     };
 
-    const TRADER_RU = {
+    const TRADER_RU = (window.TarkovDicts && TarkovDicts.traders)
+      ? TarkovDicts.traders.reduce((acc, t) => { acc[t.key] = t.ru; return acc; }, {})
+      : {
       prapor: 'Прапор', therapist: 'Терапевт', fence: 'Скупщик',
       skier: 'Лыжник', peacekeeper: 'Миротворец', mechanic: 'Механик',
       ragman: 'Барахольщик', jaeger: 'Егерь', ref: 'Реф', lightkeeper: 'Смотритель'
@@ -458,15 +462,3 @@
     })();
 
   
-
-
-(function(){
-  const KEY = 'tarkovPreferredGameMode';
-  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
-  document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
-    if ([...sel.options].some(o => o.value === def)) sel.value = def;
-    sel.addEventListener('change', () => {
-      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
-    });
-  });
-})();

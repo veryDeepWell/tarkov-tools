@@ -1,5 +1,7 @@
 
-    const TRADER_RU = {
+    const TRADER_RU = (window.TarkovDicts && TarkovDicts.traders)
+      ? TarkovDicts.traders.reduce((acc, t) => { acc[t.id] = t.ru; return acc; }, {})
+      : {
       '54cb50c76803fa8b248b4571':'Прапор','54cb57776803fa99248b456e':'Терапевт',
       '58330581ace78e27b8b10cee':'Лыжник','5935c25fb3acc3127c3d8cd9':'Миротворец',
       '5a7c2eca46aef81a7ca2145d':'Механик','5ac3b934156ae10c4430e83c':'Барахольщик',
@@ -18,13 +20,13 @@
     let activeTypes=new Set();
     let sortKey='minLvl', sortDir=1;
 
-    function loadSettings(k,d){try{const r=TarkovStorage.get(k,null);return r?Object.assign({},d,JSON.parse(r)):Object.assign({},d)}catch(e){return Object.assign({},d)}}
-    function saveSettings(k,o){try{TarkovStorage.set(k,JSON.stringify(o))}catch(e){}}
+    function loadSettings(key, defaults) { return TarkovUI.loadSettings(key, defaults); }
+    function saveSettings(key, obj) { TarkovUI.saveSettings(key, obj); }
     function loadDone(){done=TarkovStorage.getJson('tarkovQuestItemsDone',{})||{}}
     function saveDone(){try{TarkovStorage.setJson('tarkovQuestItemsDone',done)}catch(e){}}
-    function humanize(s){return s?String(s).replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):'?'}
-    function formatNum(n){return n==null||Number.isNaN(n)?'—':Math.round(n).toLocaleString('ru-RU')}
-    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+    function humanize(slug) { return TarkovDicts.humanize(slug); }
+    function formatNum(n) { return TarkovDicts.fmtNum(n); }
+    function esc(s) { return TarkovDicts.esc(s); }
 
     document.getElementById('loadBtn').onclick=async()=>{
       const btn=document.getElementById('loadBtn'), status=document.getElementById('status');
@@ -219,15 +221,3 @@
       if(s.hideLocked===false) document.getElementById('hideLocked').checked=false;
     })();
   
-
-
-(function(){
-  const KEY = 'tarkovPreferredGameMode';
-  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
-  document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
-    if ([...sel.options].some(o => o.value === def)) sel.value = def;
-    sel.addEventListener('change', () => {
-      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
-    });
-  });
-})();

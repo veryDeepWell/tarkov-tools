@@ -22,18 +22,9 @@
       { keys: ['mod_pistol_grip', 'mod_pistolgrip'], cls: 's-grip', label: 'Рукоять' }
     ];
 
-    function humanize(s) {
-      return s ? String(s).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '?';
-    }
-    function formatNum(n) {
-      if (n == null || Number.isNaN(n)) return '—';
-      return Math.round(n).toLocaleString('ru-RU');
-    }
-    function esc(s) {
-      return String(s || '')
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
+    function humanize(slug) { return TarkovDicts.humanize(slug); }
+    function formatNum(n) { return TarkovDicts.fmtNum(n); }
+    function esc(s) { return TarkovDicts.esc(s); }
 
     function getPrice(it, ll) {
       if (!it) return null;
@@ -588,13 +579,4 @@
     if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
     return s||it.id||'';
   }
-
-  const KEY = 'tarkovPreferredGameMode';
-  const def = TarkovStorage.get(KEY, 'pve') || 'pve';
-  document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]').forEach(sel => {
-    if ([...sel.options].some(o => o.value === def)) sel.value = def;
-    sel.addEventListener('change', () => {
-      try { TarkovStorage.set(KEY, sel.value); } catch(e) {}
-    });
-  });
 })();

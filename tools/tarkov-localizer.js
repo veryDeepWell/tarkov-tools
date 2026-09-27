@@ -25,17 +25,8 @@
   function norm(s) {
     return String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
   }
-  function esc(s) {
-    if (window.TarkovUI && TarkovUI.esc) return TarkovUI.esc(s);
-    return String(s == null ? "" : s)
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """);
-  }
-  function humanize(slug) {
-    return String(slug || "").split("-").join(" ");
-  }
+  function esc(s) { return TarkovDicts.esc(s); }
+  function humanize(slug) { return TarkovDicts.humanize(slug).toLowerCase(); }
   function highlight(text, q) {
     var t = String(text || "");
     if (!q) return esc(t);
