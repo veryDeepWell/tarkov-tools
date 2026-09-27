@@ -334,6 +334,27 @@
       "title": "Restock",
       "description": "Trader reset countdown",
       "help": "Trader reset countdown"
+    },
+    "headphones": {
+      "title": "Headphones",
+      "desc": "Headset stats, hearing distance, distortion, price and score.",
+      "hint": "Load items — table lists all API headphones.",
+      "minDist": "Min distance",
+      "maxDistort": "Max distortion",
+      "maxPrice": "Max price",
+      "help": "Higher score ≈ better hearing per ruble (heuristic). Quest = trader task unlock."
+    },
+    "challenge": {
+      "title": "Challenge",
+      "desc": "Random raid: map, task, loadout. Special rules may strip gear.",
+      "profile": "Profile",
+      "reset": "Reset progress",
+      "roll": "New challenge",
+      "done": "Mark complete",
+      "skip": "Skip",
+      "hint": "Hit New challenge. Item pool loads from API when available.",
+      "history": "History",
+      "help": "Local XP only — no leaderboard. Specials (~18%) like Zero-to-Hero rewrite gear."
     }
   },
   "poll": {

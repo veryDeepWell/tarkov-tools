@@ -1,0 +1,18 @@
+[
+  {
+    "file": "tools/tarkovtool-headphones.html",
+    "title": "Наушники",
+    "description": "Характеристики и рейтинг наушников",
+    "icon": "headphones",
+    "cat": "loadout",
+    "kind": "static"
+  },
+  {
+    "file": "tools/tarkovtool-challenge.html",
+    "title": "Челлендж",
+    "description": "Рандомный рейд: карта, задание, лоадаут, XP",
+    "icon": "challenge",
+    "cat": "util",
+    "kind": "static"
+  }
+]

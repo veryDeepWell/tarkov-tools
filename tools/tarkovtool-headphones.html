@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <title>Наушники — Tarkov</title>
+  <script type="application/json" id="tarkovtool-meta">
+  {"title":"Наушники","description":"Характеристики наушников из API, рейтинг цена/слух, фильтры.","kind":"static"}
+  </script>
+  <style>
+    .container { max-width: min(1600px, 94vw) !important; margin: 0 auto; padding: 12px 14px 64px; }
+    h1 { margin-bottom: 4px; }
+    .sub { color: var(--muted); margin-bottom: 14px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+    .card-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { flex: 1; min-width: 120px; }
+    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    .status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green, #3dd68c); }
+    .status.err { color: var(--red, #f07178); }
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 10px; max-height: 70vh; }
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: .86rem; }
+    th, td { padding: 8px 10px; border-top: 1px solid var(--border); text-align: left; vertical-align: middle; }
+    th { position: sticky; top: 0; background: var(--input-bg); color: var(--muted); font-size: .7rem; text-transform: uppercase; cursor: pointer; z-index: 1; user-select: none; }
+    th.sorted { color: var(--accent); }
+    .name-cell { display: flex; align-items: center; gap: 10px; }
+    .ico { width: 36px; height: 36px; object-fit: contain; border-radius: 6px; background: var(--input-bg); }
+    .meta { font-size: .72rem; color: var(--muted); }
+    .name { font-weight: 600; }
+    .score { font-weight: 700; color: var(--accent); }
+    .quest { color: var(--orange, #e0a458); font-size: .75rem; }
+    .tip {
+      display: none; position: fixed; z-index: 200; min-width: 260px; max-width: 340px;
+      padding: 12px 14px; background: var(--input-bg); border: 1px solid var(--accent);
+      border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.5); font-size: .8rem; pointer-events: none;
+    }
+    .tip .tip-title { font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+    .tip .tip-grid { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; }
+    .tip .k { color: var(--muted); } .tip .v { font-weight: 600; text-align: right; }
+    .name-cell { cursor: help; }
+    .copy-btn { min-width: auto !important; min-height: 30px !important; padding: 4px 8px !important; font-size: .75rem !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 data-i18n="tool.headphones.title">Наушники</h1>
+    <p class="sub" data-i18n="tool.headphones.desc">Характеристики, дистанция слуха, искажения, цена и рейтинг.</p>
+
+    <div class="card">
+      <div class="card-title" data-i18n="common.data">Данные</div>
+      <div class="row">
+        <div class="field"><label data-i18n="common.gameMode">Режим</label>
+          <select id="gameMode">
+            <option value="pve" selected>PvE</option>
+            <option value="regular">PvP</option>
+            <option value="pvp-season">PvP season</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn" data-i18n="common.load">Загрузить</button>
+      </div>
+      <p class="status" id="status" data-i18n="tool.headphones.hint">Загрузите items — в таблице все ItemPropertiesHeadphone.</p>
+    </div>
+
+    <div class="card" id="tableCard" hidden>
+      <div class="row" style="margin-bottom:10px">
+        <input type="search" id="q" placeholder="Поиск…" data-i18n-placeholder="common.search" style="flex:1;min-width:160px">
+        <div class="field" style="flex:0;min-width:130px">
+          <label data-i18n="tool.headphones.minDist">Мин. distance</label>
+          <input type="number" id="minDist" min="0" max="2" step="0.01" value="0" style="width:100%">
+        </div>
+        <div class="field" style="flex:0;min-width:130px">
+          <label data-i18n="tool.headphones.maxDistort">Макс. distortion</label>
+          <input type="number" id="maxDistort" min="0" max="1" step="0.01" value="1" style="width:100%">
+        </div>
+        <div class="field" style="flex:0;min-width:120px">
+          <label data-i18n="tool.headphones.maxPrice">Макс. цена</label>
+          <input type="number" id="maxPrice" min="0" step="1000" value="0" placeholder="0 = ∞" style="width:100%">
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th data-k="score" class="sorted">Score</th>
+              <th data-k="name">Название</th>
+              <th data-k="dist">Distance</th>
+              <th data-k="distort">Distort</th>
+              <th data-k="ambient">Ambient</th>
+              <th data-k="dry">Dry</th>
+              <th data-k="weight">Вес</th>
+              <th data-k="slots">Слоты</th>
+              <th data-k="avg">avg 24ч</th>
+              <th data-k="trader">Торговец</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="../core/tarkov-dicts.js"></script>
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-state.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-headphones.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>

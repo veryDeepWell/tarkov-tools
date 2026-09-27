@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <title>Челлендж — Tarkov</title>
+  <script type="application/json" id="tarkovtool-meta">
+  {"title":"Челлендж","description":"Рандом: карта, задание, лоадаут. Особые правила, локальный XP.","kind":"static"}
+  </script>
+  <style>
+    .container { max-width: min(900px, 94vw) !important; margin: 0 auto; padding: 12px 14px 64px; }
+    h1 { margin-bottom: 4px; }
+    .sub { color: var(--muted); margin-bottom: 14px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+    .card-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green, #3dd68c); }
+    .status.err { color: var(--red, #f07178); }
+    .badge {
+      display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .75rem; font-weight: 600;
+      background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent);
+    }
+    .badge.hard { background: color-mix(in srgb, #f07178 22%, transparent); color: #f07178; }
+    .badge.special { background: color-mix(in srgb, #a78bfa 22%, transparent); color: #a78bfa; }
+    .challenge-grid { display: grid; gap: 12px; }
+    @media (min-width: 640px) { .challenge-grid { grid-template-columns: 1fr 1fr; } }
+    .block { background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+    .block h3 { margin: 0 0 6px; font-size: .85rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .block .val { font-size: 1.05rem; font-weight: 700; }
+    .block .meta { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+    .loadout-list { margin: 0; padding-left: 18px; font-size: .9rem; }
+    .loadout-list li { margin: 2px 0; }
+    .xp-bar {
+      height: 10px; border-radius: 6px; background: var(--input-bg); overflow: hidden; margin-top: 8px;
+      border: 1px solid var(--border);
+    }
+    .xp-bar > span { display: block; height: 100%; background: var(--accent); width: 0%; transition: width .25s; }
+    .history { max-height: 280px; overflow: auto; }
+    .hist-row {
+      display: flex; gap: 8px; align-items: center; padding: 8px 0;
+      border-bottom: 1px solid var(--border); font-size: .85rem;
+    }
+    .hist-row .spacer { flex: 1; }
+    .muted { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 data-i18n="tool.challenge.title">Челлендж</h1>
+    <p class="sub" data-i18n="tool.challenge.desc">Случайный рейд: карта, задание, лоадаут. Особые правила могут обнулить гир. Учёт только локальный — на честности.</p>
+
+    <div class="card">
+      <div class="card-title" data-i18n="tool.challenge.profile">Профиль</div>
+      <div class="row">
+        <span class="badge" id="lvlBadge">Lvl 1</span>
+        <span class="muted" id="xpLabel">0 / 100 XP</span>
+        <span class="spacer" style="flex:1"></span>
+        <button type="button" class="btn-ghost" id="resetBtn" data-i18n="tool.challenge.reset">Сбросить прогресс</button>
+      </div>
+      <div class="xp-bar"><span id="xpFill"></span></div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="margin-bottom:12px">
+        <button type="button" class="btn" id="rollBtn" data-i18n="tool.challenge.roll">Новый челлендж</button>
+        <button type="button" class="btn-ghost" id="doneBtn" disabled data-i18n="tool.challenge.done">Отметить выполненным</button>
+        <button type="button" class="btn-ghost" id="skipBtn" disabled data-i18n="tool.challenge.skip">Пропустить</button>
+      </div>
+      <p class="status" id="status" data-i18n="tool.challenge.hint">Нажми «Новый челлендж». Можно грузить pool из API для реальных предметов.</p>
+      <div id="result" class="challenge-grid" hidden></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" data-i18n="tool.challenge.history">История</div>
+      <div class="history" id="history"></div>
+    </div>
+  </div>
+
+  <script src="../core/tarkov-dicts.js"></script>
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-schema.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-state.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-challenge.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>
