@@ -1,1 +1,90 @@
-PLACEHOLDER
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <title>Квест-чиз — Tarkov</title>
+  <script type="application/json" id="tarkovtool-meta">
+  {"title":"Квест-чиз","description":"Что скрафтить / получить с других квестов для нужного квеста или предмета.","kind":"static"}
+  </script>
+  <style>
+    .container { max-width: min(1100px, 94vw) !important; margin: 0 auto; padding: 12px 14px 64px; }
+    h1 { margin-bottom: 4px; }
+    .sub { color: var(--muted); margin-bottom: 14px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+    .card-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { flex: 1; min-width: 140px; }
+    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    .status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green, #3dd68c); }
+    .status.err { color: var(--red, #f07178); }
+    .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+    .tab { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); cursor: pointer; font-size: .85rem; }
+    .tab.active { border-color: var(--accent); color: var(--accent); }
+    .suggest { max-height: 220px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; margin-top: 6px; display: none; }
+    .suggest div { padding: 8px 10px; cursor: pointer; font-size: .85rem; border-bottom: 1px solid var(--border); }
+    .suggest div:hover { background: var(--input-bg); }
+    .result-block { margin-top: 12px; }
+    .result-block h3 { font-size: .9rem; margin: 12px 0 6px; color: var(--accent); }
+    .src-row {
+      display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid var(--border); font-size: .88rem;
+    }
+    .src-row .ico { width: 32px; height: 32px; object-fit: contain; border-radius: 4px; background: var(--input-bg); }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .72rem; font-weight: 600;
+      background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent);
+    }
+    .badge.craft { color: #7dd3a0; }
+    .badge.reward { color: #a78bfa; }
+    .badge.need { color: #e0a458; }
+    .muted { color: var(--muted); font-size: .8rem; }
+    .empty { color: var(--muted); padding: 12px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 data-i18n="tool.questCheese.title">Квест-чиз</h1>
+    <p class="sub" data-i18n="tool.questCheese.desc">Предмет для квеста: крафт в убежке или награда с другого квеста. Поиск по квесту или по предмету.</p>
+
+    <div class="card">
+      <div class="card-title" data-i18n="common.data">Данные</div>
+      <div class="row">
+        <div class="field"><label data-i18n="common.gameMode">Режим</label>
+          <select id="gameMode">
+            <option value="pve" selected>PvE</option>
+            <option value="regular">PvP</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn" data-i18n="common.load">Загрузить</button>
+      </div>
+      <p class="status" id="status">Tasks + crafts + items.</p>
+    </div>
+
+    <div class="card" id="searchCard" hidden>
+      <div class="tabs">
+        <button type="button" class="tab active" data-mode="item" id="tabItem">По предмету</button>
+        <button type="button" class="tab" data-mode="quest" id="tabQuest">По квесту</button>
+      </div>
+      <div class="field">
+        <label id="searchLabel">Предмет</label>
+        <input type="search" id="q" placeholder="LEDX, salewa, Бункер…" autocomplete="off" style="width:100%">
+        <div class="suggest" id="suggest"></div>
+      </div>
+      <div id="results" class="result-block"></div>
+    </div>
+  </div>
+
+  <script src="../core/tarkov-dicts.js"></script>
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-state.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-quest-cheese.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>
