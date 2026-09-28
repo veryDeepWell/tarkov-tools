@@ -25,7 +25,7 @@
     [/compare/i, "⚖️"], [/container/i, "🎒"], [/craft/i, "🔧"], [/drip/i, "🕶️"],
     [/gun/i, "🛠️"], [/hideout/i, "🏗️"], [/key/i, "🔑"], [/lang/i, "🌐"],
     [/loot/i, "📦"], [/item-use/i, "💡"], [/mag/i, "📟"], [/medkit|med/i, "💊"],
-    [/mods/i, "🔩"], [/plate/i, "🧱"], [/quest/i, "📜"], [/raid/i, "✅"],
+    [/mods/i, "🔩"], [/plate/i, "🧱"], [/quest-cheese/i, "🧀"], [/quest/i, "📜"], [/cases/i, "🗃️"], [/raid/i, "✅"],
     [/restock/i, "⏰"], [/scope/i, "🔭"], [/short/i, "🏷️"], [/skill/i, "📈"],
     [/stim/i, "💉"], [/streamer/i, "📺"], [/trader/i, "🏪"]
   ];
