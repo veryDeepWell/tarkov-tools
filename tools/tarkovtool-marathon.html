@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <title>Марафон — Tarkov</title>
+  <script type="application/json" id="tarkovtool-meta">
+  {"title":"Марафон","description":"Цепочка переходов: расходники, XP, где лутать ресурсы, выходы.","kind":"static"}
+  </script>
+  <style>
+    .container { max-width: min(980px, 96vw) !important; margin: 0 auto; padding: 12px 14px 64px; }
+    h1 { margin-bottom: 4px; }
+    .sub { color: var(--muted); margin-bottom: 14px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+    .card-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { flex: 1; min-width: 140px; }
+    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    .status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green, #3dd68c); }
+    .status.err { color: var(--red, #f07178); }
+    .route-list { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+    .hop {
+      display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: center;
+      padding: 10px 12px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px;
+    }
+    .hop .n { font-weight: 700; color: var(--accent); }
+    .hop .name { font-weight: 600; }
+    .hop .meta { font-size: .78rem; color: var(--muted); }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .72rem; font-weight: 600;
+      background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); margin-right: 4px;
+    }
+    .badge.exit { color: #7dd3a0; background: color-mix(in srgb, #7dd3a0 18%, transparent); }
+    .badge.dead { color: #f07178; background: color-mix(in srgb, #f07178 18%, transparent); }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .chip {
+      padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--input-bg); cursor: pointer; font-size: .85rem;
+    }
+    .chip:hover { border-color: var(--accent); }
+    .grid2 { display: grid; gap: 12px; }
+    @media (min-width: 720px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+    .stat { font-size: .9rem; }
+    .stat b { color: var(--accent); }
+    ul.tips { margin: 6px 0 0; padding-left: 18px; font-size: .86rem; }
+    ul.tips li { margin: 3px 0; }
+    .muted { color: var(--muted); font-size: .8rem; }
+    table.est { width: 100%; border-collapse: collapse; font-size: .86rem; }
+    table.est th, table.est td { padding: 6px 8px; border-top: 1px solid var(--border); text-align: left; }
+    table.est th { color: var(--muted); font-size: .72rem; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 data-i18n="tool.marathon.title">Марафон</h1>
+    <p class="sub" data-i18n="tool.marathon.desc">Цепочка переходов: только валидные transits из API. Расходники, XP, где восполнить ресурсы, flare/taxi.</p>
+    <div class="card">
+      <div class="card-title" data-i18n="common.data">Данные</div>
+      <div class="row">
+        <div class="field"><label data-i18n="common.gameMode">Режим</label>
+          <select id="gameMode">
+            <option value="pve" selected>PvE</option>
+            <option value="regular">PvP</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn" data-i18n="common.load">Загрузить карты</button>
+        <button type="button" class="btn-ghost" id="superBtn" disabled>Супер-маршрут</button>
+        <button type="button" class="btn-ghost" id="clearBtn" disabled>Очистить</button>
+      </div>
+      <p class="status" id="status">Maps + transits + extracts из API.</p>
+    </div>
+    <div class="card" id="buildCard" hidden>
+      <div class="card-title">Маршрут</div>
+      <div class="route-list" id="routeList"></div>
+      <p class="muted" id="nextHint">Добавь первую карту — любую.</p>
+      <div class="chip-row" id="nextChips"></div>
+    </div>
+    <div class="card" id="summaryCard" hidden>
+      <div class="card-title">Сводка</div>
+      <div class="grid2">
+        <div>
+          <div class="stat">Переходов: <b id="sHops">0</b> · карт: <b id="sMaps">0</b></div>
+          <div class="stat">Оценка времени рейдов: <b id="sTime">—</b></div>
+          <div class="stat">Множитель XP (ориентир): <b id="sXp">—</b></div>
+          <div class="stat" id="sExit"></div>
+        </div>
+        <div>
+          <table class="est">
+            <thead><tr><th>Ресурс</th><th>Взять с собой</th><th>Добирать в рейде</th></tr></thead>
+            <tbody id="estBody"></tbody>
+          </table>
+          <p class="muted" style="margin-top:8px">Оценки эвристические под длину маршрута, не формула игры.</p>
+        </div>
+      </div>
+    </div>
+    <div class="card" id="tipsCard" hidden>
+      <div class="card-title">Где восполнить ресурсы по картам маршрута</div>
+      <div id="tipsBody"></div>
+    </div>
+  </div>
+  <script src="../core/tarkov-dicts.js"></script>
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-state.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-marathon.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>
