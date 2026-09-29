@@ -35,11 +35,34 @@
     .badge.exit { color: #7dd3a0; background: color-mix(in srgb, #7dd3a0 18%, transparent); }
     .badge.dead { color: #f07178; background: color-mix(in srgb, #f07178 18%, transparent); }
     .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    /* available: accent outline (not filled) */
     .chip {
-      padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
-      background: var(--input-bg); cursor: pointer; font-size: .85rem;
+      padding: 6px 14px; border-radius: 8px; font-size: .85rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; line-height: 1.2;
+      background: transparent !important;
+      border: 1px solid var(--accent) !important;
+      color: var(--accent) !important;
     }
-    .chip:hover { border-color: var(--accent); }
+    .chip:hover { background: color-mix(in srgb, var(--accent) 12%, transparent) !important; }
+    /* unavailable: ordinary site ghost style */
+    .chip.is-off, .chip:disabled {
+      cursor: not-allowed;
+      border: 1px solid var(--border) !important;
+      color: var(--muted) !important;
+      background: transparent !important;
+      font-weight: 500;
+      opacity: 1;
+    }
+    .chip.is-off:hover, .chip:disabled:hover {
+      border-color: var(--border) !important;
+      color: var(--muted) !important;
+      background: transparent !important;
+    }
+    /* toolbar secondary actions when enabled */
+    #superBtn:not(:disabled), #clearBtn:not(:disabled) {
+      border-color: var(--accent) !important;
+      color: var(--accent) !important;
+    }
     .grid2 { display: grid; gap: 12px; }
     @media (min-width: 720px) { .grid2 { grid-template-columns: 1fr 1fr; } }
     .stat { font-size: .9rem; }
