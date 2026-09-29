@@ -18,7 +18,7 @@
 
   var EMOJI = [
     [/btc|bitcoin/i, "₿"], [/cultist/i, "⛧"], [/my-tarkov/i, "👤"],
-    [/helmet/i, "🪖"], [/headphone/i, "🎧"], [/challenge/i, "🎯"], [/marathon/i, "🏃"], [/nvg/i, "🌑"], [/price-track/i, "📈"], [/price-alarm/i, "🔔"],
+    [/helmet/i, "🪖"], [/headphone/i, "🎧"], [/challenge/i, "🎯"], [/marathon/i, "🏃"], [/prestige/i, "⭐"], [/nvg/i, "🌑"], [/price-track/i, "📈"], [/price-alarm/i, "🔔"],
     [/food/i, "🍖"], [/random-loadout/i, "🎲"], [/loadout-budget/i, "💰"],
     [/loadout-builder/i, "🧰"], [/drip-builder/i, "🎨"], [/drip-loadout/i, "✨"],
     [/ammo/i, "🔫"], [/armor/i, "🛡️"], [/barter-opt/i, "📐"], [/barter/i, "🧮"], [/boss/i, "👹"],
