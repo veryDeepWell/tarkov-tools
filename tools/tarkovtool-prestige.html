@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <title>Престиж-оптимизатор — Tarkov</title>
+  <script type="application/json" id="tarkovtool-meta">
+  {"title":"Престиж-оптимизатор","description":"Что передать при престиже: ранние квесты, капитал, плотность слотов.","kind":"static"}
+  </script>
+  <style>
+    .container { max-width: min(980px, 96vw) !important; margin: 0 auto; padding: 12px 14px 64px; }
+    h1 { margin-bottom: 4px; }
+    .sub { color: var(--muted); margin-bottom: 14px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+    .card-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { flex: 1; min-width: 120px; }
+    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    .status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green, #3dd68c); }
+    .status.err { color: var(--red, #f07178); }
+    .muted { color: var(--muted); font-size: .8rem; }
+    .note { font-size: .82rem; color: var(--muted); margin: 8px 0 0; line-height: 1.45; }
+    table.rank { width: 100%; border-collapse: collapse; font-size: .84rem; }
+    table.rank th, table.rank td { padding: 7px 8px; border-top: 1px solid var(--border); text-align: left; vertical-align: top; }
+    table.rank th { color: var(--muted); font-size: .7rem; text-transform: uppercase; }
+    table.rank td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .badge {
+      display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: .7rem; font-weight: 600;
+      background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); margin: 0 3px 3px 0;
+    }
+    .badge.q { color: #a78bfa; background: color-mix(in srgb, #a78bfa 18%, transparent); }
+    .badge.v { color: #e0a458; background: color-mix(in srgb, #e0a458 18%, transparent); }
+    .badge.s { color: #7dd3a0; background: color-mix(in srgb, #7dd3a0 18%, transparent); }
+    .pack { margin-top: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--input-bg); }
+    .pack h3 { margin: 0 0 8px; font-size: .95rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Престиж-оптимизатор</h1>
+    <p class="sub">Что положить в окно переноса: закрыть первые квесты, перенести капитал, уложиться в сетку слотов. Данные квестов/цен — из API; размер окна — по уровню престижа (wiki).</p>
+    <div class="card">
+      <div class="card-title">Данные</div>
+      <div class="row">
+        <div class="field"><label>Режим</label>
+          <select id="gameMode">
+            <option value="pve" selected>PvE</option>
+            <option value="regular">PvP</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">Загрузить</button>
+      </div>
+      <p class="status" id="status">Items + tasks.</p>
+    </div>
+    <div class="card" id="cfgCard" hidden>
+      <div class="card-title">Параметры переноса</div>
+      <div class="row">
+        <div class="field"><label>Уровень престижа (окно)</label>
+          <select id="prestige">
+            <option value="1">P1 — 8×3 (24)</option>
+            <option value="2">P2 — 8×4 (32)</option>
+            <option value="3">P3 — 8×5 (40)</option>
+            <option value="4">P4 — 8×6 (48)</option>
+            <option value="5">P5 — 8×7 (56)</option>
+            <option value="6" selected>P6 — 8×8 (64)</option>
+          </select>
+        </div>
+        <div class="field"><label>Квесты до уровня PMC</label>
+          <input type="number" id="maxLvl" min="1" max="40" value="15">
+        </div>
+        <div class="field"><label>Поиск</label>
+          <input type="search" id="q" placeholder="bitcoin, food, stim…" autocomplete="off">
+        </div>
+        <div class="field"><label>Сортировка</label>
+          <select id="sort">
+            <option value="score" selected>Скор (квест+ценность)</option>
+            <option value="quest">Квестовый спрос</option>
+            <option value="density">₽ / слот</option>
+            <option value="value">Цена</option>
+          </select>
+        </div>
+      </div>
+      <p class="note">Кейсы обычно <b>не</b> переносятся — в списке упор на мелкие/стековые предметы. FIR сохраняется. Можно выйти с экрана переноса без подтверждения и пересобрать.</p>
+    </div>
+    <div class="card" id="packCard" hidden>
+      <div class="card-title">Черновик набора под окно</div>
+      <div id="packBody" class="pack"></div>
+    </div>
+    <div class="card" id="listCard" hidden>
+      <div class="card-title">Рейтинг предметов</div>
+      <div style="overflow:auto">
+        <table class="rank">
+          <thead>
+            <tr>
+              <th>#</th><th>Предмет</th><th>Слоты</th><th>Цена</th><th>₽/слот</th><th>Квест qty</th><th>Скор</th><th>Зачем</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script src="../core/tarkov-dicts.js"></script>
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-state.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-prestige.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>
