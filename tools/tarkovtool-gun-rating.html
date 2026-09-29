@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <title>Рейтинг оружия — Tarkov</title>
+  <script type="application/json" id="tarkovtool-meta">
+  {"title":"Рейтинг оружия","description":"Оружие по цене, патронам, модам, эрго/отдаче и доступности.","kind":"static"}
+  </script>
+  <style>
+    .container { max-width: min(1100px, 96vw) !important; margin: 0 auto; padding: 12px 14px 64px; }
+    h1 { margin-bottom: 4px; }
+    .sub { color: var(--muted); margin-bottom: 14px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+    .card-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { flex: 1; min-width: 120px; }
+    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    .status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green, #3dd68c); }
+    .status.err { color: var(--red, #f07178); }
+    .muted { color: var(--muted); font-size: .8rem; }
+    table.rank { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    table.rank th, table.rank td { padding: 6px 7px; border-top: 1px solid var(--border); text-align: left; vertical-align: middle; }
+    table.rank th { color: var(--muted); font-size: .68rem; text-transform: uppercase; cursor: pointer; user-select: none; white-space: nowrap; }
+    table.rank th:hover { color: var(--accent); }
+    table.rank th.on { color: var(--accent); }
+    table.rank td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .badge {
+      display: inline-block; padding: 1px 6px; border-radius: 999px; font-size: .68rem; font-weight: 600;
+      background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); margin-right: 3px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Рейтинг оружия</h1>
+    <p class="sub">Сводный рейтинг: цена ствола, патроны (цена / число вариантов), слоты и пул модов, эрго, отдача, скорострельность. Сортировка по любой колонке.</p>
+    <div class="card">
+      <div class="card-title">Данные</div>
+      <div class="row">
+        <div class="field"><label>Режим</label>
+          <select id="gameMode">
+            <option value="pve" selected>PvE</option>
+            <option value="regular">PvP</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">Загрузить</button>
+      </div>
+      <p class="status" id="status">Items (оружие + патроны + моды).</p>
+    </div>
+    <div class="card" id="filterCard" hidden>
+      <div class="card-title">Фильтры</div>
+      <div class="row">
+        <div class="field" style="flex:2"><label>Поиск</label>
+          <input type="search" id="q" placeholder="AK, M4, MP5…" autocomplete="off">
+        </div>
+        <div class="field"><label>Калибр</label>
+          <select id="cal"><option value="">Все</option></select>
+        </div>
+        <div class="field"><label>Макс. цена ствола ₽</label>
+          <input type="number" id="maxPrice" min="0" step="10000" placeholder="без лимита">
+        </div>
+      </div>
+      <p class="muted" style="margin-top:8px">Скор = нормализованная смесь: дешевизна ствола, дешевизна патронов, число ammo, пул модов, эрго↑, отдача↓, RPM. Не «лучший в рейде» — сравнительная таблица метрик.</p>
+    </div>
+    <div class="card" id="listCard" hidden>
+      <div style="overflow:auto">
+        <table class="rank">
+          <thead>
+            <tr>
+              <th data-k="score" class="on">Скор</th>
+              <th data-k="name">Оружие</th>
+              <th data-k="cal">Калибр</th>
+              <th data-k="price">Цена</th>
+              <th data-k="ammoPrice">Патрон ₽</th>
+              <th data-k="ammoN">Ammo #</th>
+              <th data-k="slots">Слоты</th>
+              <th data-k="modPool">Моды</th>
+              <th data-k="ergo">Эрго</th>
+              <th data-k="recoil">Отдача</th>
+              <th data-k="rpm">RPM</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script src="../core/tarkov-dicts.js"></script>
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-state.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-gun-rating.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>
