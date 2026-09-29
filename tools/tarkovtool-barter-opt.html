@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <title>Оптимизатор бартера — Tarkov</title>
+  <script type="application/json" id="tarkovtool-meta">
+  {"title":"Оптимизатор бартера","description":"Бартер под покупку в бюджет: реальные цены ингредиентов, не флип.","kind":"static"}
+  </script>
+  <style>
+    .container { max-width: min(980px, 96vw) !important; margin: 0 auto; padding: 12px 14px 64px; }
+    h1 { margin-bottom: 4px; }
+    .sub { color: var(--muted); margin-bottom: 14px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+    .card-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { flex: 1; min-width: 140px; }
+    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    .status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green, #3dd68c); }
+    .status.err { color: var(--red, #f07178); }
+    .muted { color: var(--muted); font-size: .8rem; }
+    .bcard {
+      border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+      background: var(--input-bg);
+    }
+    .bcard.in-budget { border-color: color-mix(in srgb, var(--green, #3dd68c) 55%, var(--border)); }
+    .bcard.over-budget { opacity: .72; }
+    .bhead { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; justify-content: space-between; }
+    .btitle { font-weight: 700; font-size: 1.02rem; }
+    .bcost { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+    .bcost.ok { color: var(--green, #3dd68c); }
+    .bcost.bad { color: var(--red, #f07178); }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .72rem; font-weight: 600;
+      background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); margin-right: 4px;
+    }
+    .badge.ll { color: #e0a458; background: color-mix(in srgb, #e0a458 18%, transparent); }
+    .badge.quest { color: #a78bfa; background: color-mix(in srgb, #a78bfa 18%, transparent); }
+    table.ing { width: 100%; border-collapse: collapse; font-size: .84rem; margin-top: 10px; }
+    table.ing th, table.ing td { padding: 5px 6px; border-top: 1px solid var(--border); text-align: left; }
+    table.ing th { color: var(--muted); font-size: .7rem; text-transform: uppercase; }
+    table.ing td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .meta-line { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 data-i18n="tool.barter-opt.title">Оптимизатор бартера</h1>
+    <p class="sub" data-i18n="tool.barter-opt.desc">Подбор бартера ради покупки предмета в заданный бюджет. Цены ингредиентов — реалистичные (avg24h / lastLow / трейдер), не «1 ₽».</p>
+    <div class="card">
+      <div class="card-title">Данные</div>
+      <div class="row">
+        <div class="field"><label>Режим</label>
+          <select id="gameMode">
+            <option value="pve" selected>PvE</option>
+            <option value="regular">PvP</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">Загрузить бартеры</button>
+      </div>
+      <p class="status" id="status">Нужны items + barters из API.</p>
+    </div>
+    <div class="card" id="filterCard" hidden>
+      <div class="card-title">Что хочешь получить</div>
+      <div class="row">
+        <div class="field" style="flex:2"><label>Поиск предмета / shortName</label>
+          <input type="search" id="q" placeholder="THICC, LEDX, item case, SICC…" autocomplete="off">
+        </div>
+        <div class="field"><label>Бюджет, ₽</label>
+          <input type="number" id="budget" min="0" step="100000" value="20000000" placeholder="20000000">
+        </div>
+        <div class="field"><label>Макс. LL торговца</label>
+          <select id="maxLL">
+            <option value="4" selected>4</option>
+            <option value="3">3</option>
+            <option value="2">2</option>
+            <option value="1">1</option>
+          </select>
+        </div>
+        <div class="field"><label>Сортировка</label>
+          <select id="sort">
+            <option value="cost" selected>Дешевле сбор</option>
+            <option value="margin">Запас бюджета</option>
+            <option value="name">Имя</option>
+          </select>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:8px">Показываем бартеры, где <b>offered</b> совпадает с поиском. Стоимость = сумма (qty × реалистичная цена) по required.</p>
+    </div>
+    <div id="results"></div>
+  </div>
+  <script src="../core/tarkov-dicts.js"></script>
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-state.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-barter-opt.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>
