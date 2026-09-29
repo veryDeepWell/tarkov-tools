@@ -3,23 +3,23 @@
   "use strict";
 
   var MAP_LABEL = {
-    factory: "Factory",
-    "night-factory": "Factory (night)",
-    customs: "Customs",
-    woods: "Woods",
-    shoreline: "Shoreline",
-    interchange: "Interchange",
-    reserve: "Reserve",
-    lighthouse: "Lighthouse",
-    "streets-of-tarkov": "Streets of Tarkov",
-    "the-lab": "The Lab",
-    "the-lab-dark": "The Lab (dark)",
-    "ground-zero": "Ground Zero",
-    "ground-zero-21": "Ground Zero 21+",
-    "ground-zero-tutorial": "Ground Zero (tutorial)",
-    terminal: "Terminal",
-    "the-labyrinth": "Labyrinth",
-    icebreaker: "Icebreaker"
+    factory: "Завод",
+    "night-factory": "Завод (ночь)",
+    customs: "Таможня",
+    woods: "Лес",
+    shoreline: "Берег",
+    interchange: "Развязка",
+    reserve: "Резерв",
+    lighthouse: "Маяк",
+    "streets-of-tarkov": "Улицы Таркова",
+    "the-lab": "Лаборатория",
+    "the-lab-dark": "Лаборатория (dark)",
+    "ground-zero": "Эпицентр",
+    "ground-zero-21": "Эпицентр 21+",
+    "ground-zero-tutorial": "Эпицентр (tutorial)",
+    terminal: "Терминал",
+    "the-labyrinth": "Лабиринт",
+    icebreaker: "Ледокол"
   };
 
   var RESTOCK = {
@@ -77,21 +77,21 @@
       ammo: ["Rogues / water treatment crates", "Northern checkpoint"],
       armor: ["Rogues bodies", "Chalet"],
       food: ["Chalet kitchen", "кэмпы"],
-      special: ["Train extract", "Переход на Icebreaker — тупик маршрута"]
+      special: ["Train extract", "Переход на Ледокол — тупик маршрута"]
     },
     "streets-of-tarkov": {
       meds: ["Клиники / аптеки в жилых кварталах", "Concordia med"],
       ammo: ["Оружейные магазины", "LexOs / cinema zones"],
       armor: ["Трупы PMC, магазины снаряги"],
       food: ["Магазины, кафе"],
-      special: ["E7_car — vehicle exit", "Связка с Lab / GZ"]
+      special: ["E7_car — vehicle exit", "Связка с Lab / Эпицентр"]
     },
     "the-lab": {
       meds: ["Медблоки лаборатории", "orange/black rooms"],
       ammo: ["Weapon crates в lab", "трупы Raiders"],
       armor: ["Raiders — лучший источник плит"],
       food: ["Почти нет — нести с собой"],
-      special: ["Нужна карта доступа", "Transit только на Streets", "Cargo elevator extract"]
+      special: ["Нужна карта доступа", "Transit только на Улицы", "Cargo elevator extract"]
     },
     "the-lab-dark": {
       meds: ["Те же lab-блоки"],
@@ -105,14 +105,14 @@
       ammo: ["Офисные оружейки", "трупы"],
       armor: ["Слабо — не рассчитывать на класс 5+"],
       food: ["Офисные кухни"],
-      special: ["V-Exit", "Transit на Streets"]
+      special: ["V-Exit", "Transit на Улицы", "Эпицентр <21"]
     },
     "ground-zero-21": {
-      meds: ["Как GZ, плюс более жирные контейнеры"],
+      meds: ["Как Эпицентр, плюс более жирные контейнеры"],
       ammo: ["Офисы, трупы"],
-      armor: ["Чуть лучше GZ"],
+      armor: ["Чуть лучше low-level"],
       food: ["Офисы"],
-      special: ["V-Exit", "Уровень 21+"]
+      special: ["V-Exit", "Эпицентр 21+"]
     },
     terminal: {
       meds: ["Ограниченно — складские аптечки"],
@@ -133,7 +133,7 @@
       ammo: ["Ящики / трупы"],
       armor: ["Мало"],
       food: ["Нести"],
-      special: ["Тупик", "Доступ с Lighthouse / Shoreline"]
+      special: ["Тупик", "Доступ с Маяка / Берега"]
     }
   };
 
@@ -146,9 +146,9 @@
       if (window.TarkovDicts && TarkovDicts.esc) return TarkovDicts.esc(s);
     } catch (e) {}
     return String(s == null ? "" : s)
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">");
+      .replace(/&/g, "&" + "amp;")
+      .replace(/</g, "&" + "lt;")
+      .replace(/>/g, "&" + "gt;");
   }
 
   function label(m) {
@@ -263,34 +263,42 @@
 
     var chips = document.getElementById("nextChips");
     var hint = document.getElementById("nextHint");
-    var options = [];
+    var allowed = {};
     if (!route.length) {
-      hint.textContent = "Стартовая карта — любая (кроме tutorial, если не нужен).";
-      options = Object.keys(mapsById).filter(function (id) {
+      hint.textContent = "Стартовая карта — любая. Акцентные можно добавить; серые — недоступны сейчас.";
+      Object.keys(mapsById).forEach(function (id) {
         var s = mapsById[id]._slug || "";
-        return s.indexOf("tutorial") < 0;
+        if (s.indexOf("tutorial") < 0) allowed[id] = 1;
       });
     } else {
       var last = route[route.length - 1];
-      options = neighbors(last);
-      if (!options.length) {
-        hint.textContent =
-          "С этой карты переходов нет (Labyrinth / Icebreaker / Terminal / Lab dark и т.п.). Можно закончить здесь.";
+      neighbors(last).forEach(function (id) {
+        allowed[id] = 1;
+      });
+      if (!Object.keys(allowed).length) {
+        hint.textContent = "С «" + label(mapsById[last]) + "» переходов нет (тупик). Можно закончить здесь.";
       } else {
-        hint.textContent = "Добавить следующую (только transits с «" + label(mapsById[last]) + "»):";
+        hint.textContent = "Следующая карта с «" + label(mapsById[last]) + "»: акцентные — можно добавить.";
       }
     }
-    options = options.slice().sort(function (a, b) {
-      return label(mapsById[a]).localeCompare(label(mapsById[b]), "ru");
-    });
-    chips.innerHTML = options
+    var allIds = Object.keys(mapsById)
+      .filter(function (id) {
+        return (mapsById[id]._slug || "").indexOf("tutorial") < 0;
+      })
+      .sort(function (a, b) {
+        return label(mapsById[a]).localeCompare(label(mapsById[b]), "ru");
+      });
+    chips.innerHTML = allIds
       .map(function (id) {
         var m = mapsById[id];
+        var ok = !!allowed[id];
         var dead = isTerminal(id) ? " · тупик" : "";
         return (
-          '<button type="button" class="chip" data-add="' +
-          esc(id) +
-          '">' +
+          '<button type="button" class="chip' +
+          (ok ? "" : " is-off") +
+          '"' +
+          (ok ? ' data-add="' + esc(id) + '"' : " disabled") +
+          ">" +
           esc(label(m)) +
           esc(dead) +
           "</button>"
@@ -326,7 +334,7 @@
       { name: "Хирургия / шины", bring: "1–2 CMS + splint", raid: "редко — лучше нести" },
       { name: "Патроны", bring: Math.max(60, 40 + hops * 30) + "+ в магазинах", raid: "Kiba / bunkers / lab raiders" },
       { name: "Гранаты", bring: Math.min(4, 1 + Math.floor(hops / 2)) + " шт", raid: "по возможности" },
-      { name: "Броня / плиты", bring: "1 комплект в ремонт", raid: "Interchange Kiba, Lab raiders, Reserve" },
+      { name: "Броня / плиты", bring: "1 комплект в ремонт", raid: "Развязка Kiba, Lab raiders, Резерв" },
       {
         name: "Карта Lab",
         bring: route.some(function (id) {
@@ -436,38 +444,88 @@
     document.getElementById("clearBtn").disabled = !route.length;
   }
 
+  /** Long path: maximize unique maps, no repeated edges. Prefer hubs + Эпицентр. */
   function superRoute() {
-    var best = [];
     var nodes = Object.keys(mapsById).filter(function (id) {
       return (mapsById[id]._slug || "").indexOf("tutorial") < 0;
     });
-    nodes.forEach(function (start) {
+    function scorePath(path) {
+      var uniq = {};
+      path.forEach(function (id) {
+        uniq[id] = 1;
+      });
+      var nUniq = Object.keys(uniq).length;
+      var hasEpic = path.some(function (id) {
+        var s = mapsById[id]._slug || "";
+        return s.indexOf("ground-zero") === 0;
+      });
+      return nUniq * 100 + path.length + (hasEpic ? 50 : 0);
+    }
+    function grow(start) {
       var path = [start];
       var usedEdge = {};
       var guard = 0;
-      while (guard++ < 40) {
+      while (guard++ < 48) {
         var cur = path[path.length - 1];
         var opts = neighbors(cur).filter(function (to) {
           return !usedEdge[cur + ">" + to];
         });
         if (!opts.length) break;
         opts.sort(function (a, b) {
+          var sa = mapsById[a]._slug || "";
+          var sb = mapsById[b]._slug || "";
           var ua = path.indexOf(a) < 0 ? 0 : 1;
           var ub = path.indexOf(b) < 0 ? 0 : 1;
           if (ua !== ub) return ua - ub;
+          function prio(s) {
+            if (s.indexOf("ground-zero") === 0) return 0;
+            if (s === "streets-of-tarkov" || s === "customs" || s === "shoreline") return 1;
+            return 2;
+          }
+          var pa = prio(sa),
+            pb = prio(sb);
+          if (pa !== pb) return pa - pb;
           return neighbors(b).length - neighbors(a).length;
         });
         var next = opts[0];
         usedEdge[cur + ">" + next] = 1;
         path.push(next);
       }
-      if (path.length > best.length) best = path;
+      return path;
+    }
+    var best = [];
+    var bestScore = -1;
+    nodes.forEach(function (start) {
+      var path = grow(start);
+      var sc = scorePath(path);
+      if (sc > bestScore) {
+        bestScore = sc;
+        best = path;
+      }
+    });
+    nodes.forEach(function (start) {
+      var s = mapsById[start]._slug || "";
+      if (s.indexOf("ground-zero") !== 0) return;
+      var path = grow(start);
+      var sc = scorePath(path);
+      if (sc > bestScore) {
+        bestScore = sc;
+        best = path;
+      }
     });
     if (best.length) {
       route = best;
       refresh();
+      var uniq = {};
+      best.forEach(function (id) {
+        uniq[id] = 1;
+      });
       setStatus(
-        "Супер-маршрут: " + best.length + " карт, " + (best.length - 1) + " переходов (жадный, без повтора рёбер).",
+        "Супер-маршрут: " +
+          Object.keys(uniq).length +
+          " уникальных карт, " +
+          (best.length - 1) +
+          " переходов (без повтора рёбер).",
         true
       );
     }
