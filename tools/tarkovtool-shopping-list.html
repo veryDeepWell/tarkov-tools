@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <title>Список покупок — Tarkov</title>
+  <script type="application/json" id="tarkovtool-meta">
+  {"title":"Список покупок","description":"Вишлист после рестока: патроны, мед, флип — с копированием имён.","kind":"static"}
+  </script>
+  <style>
+    .container { max-width: min(920px, 96vw) !important; margin: 0 auto; padding: 12px 14px 64px; }
+    h1 { margin-bottom: 4px; }
+    .sub { color: var(--muted); margin-bottom: 14px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+    .card-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { flex: 1; min-width: 120px; }
+    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    .status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green, #3dd68c); }
+    .muted { color: var(--muted); font-size: .8rem; }
+    .note { font-size: .82rem; color: var(--muted); line-height: 1.45; margin-top: 8px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .chip {
+      border: 1px solid var(--border); background: transparent; color: var(--text);
+      border-radius: 999px; padding: 4px 12px; font-size: .8rem; cursor: pointer;
+    }
+    .chip.on { border-color: var(--accent); color: var(--accent); }
+    .item {
+      display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: start;
+      padding: 10px 0; border-top: 1px solid var(--border);
+    }
+    .item.done { opacity: .55; }
+    .item.done .name { text-decoration: line-through; }
+    .name { font-weight: 600; }
+    .meta { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    .actions button, .btn-sm {
+      font-size: .75rem; padding: 4px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer;
+    }
+    .actions button:hover, .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+    .badge {
+      display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: .68rem; font-weight: 600;
+      background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); margin-right: 4px;
+    }
+    .badge.ammo { color: #e0a458; background: color-mix(in srgb, #e0a458 16%, transparent); }
+    .badge.med { color: #7dd3a0; background: color-mix(in srgb, #7dd3a0 16%, transparent); }
+    .badge.flip { color: #a78bfa; background: color-mix(in srgb, #a78bfa 16%, transparent); }
+    .badge.quest { color: #7db7ff; background: color-mix(in srgb, #7db7ff 16%, transparent); }
+    .suggest {
+      max-height: 200px; overflow: auto; border: 1px solid var(--border); border-radius: 8px;
+      margin-top: 6px; display: none;
+    }
+    .suggest button {
+      display: block; width: 100%; text-align: left; padding: 8px 10px; border: 0; border-bottom: 1px solid var(--border);
+      background: var(--input-bg); color: var(--text); cursor: pointer; font-size: .85rem;
+    }
+    .suggest button:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    input[type="checkbox"] { width: 18px; height: 18px; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Список покупок</h1>
+    <p class="sub">Вишлист под ресток: патроны, мед, флип, квест. Настраиваемый, с копированием shortName / полного имени. Хранится локально.</p>
+    <div class="card">
+      <div class="card-title">Данные</div>
+      <div class="row">
+        <div class="field"><label>Режим</label>
+          <select id="gameMode">
+            <option value="pve" selected>PvE</option>
+            <option value="regular">PvP</option>
+          </select>
+        </div>
+        <button type="button" class="btn" id="loadBtn">Загрузить каталог</button>
+      </div>
+      <p class="status" id="status">Можно добавлять вручную; с API — поиск по предметам и цены.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Добавить</div>
+      <div class="row">
+        <div class="field" style="flex:2"><label>Поиск / название</label>
+          <input type="search" id="q" placeholder="M855, Salewa, LEDX…" autocomplete="off">
+          <div class="suggest" id="suggest"></div>
+        </div>
+        <div class="field"><label>Кол-во</label>
+          <input type="number" id="qty" min="1" value="1">
+        </div>
+        <div class="field"><label>Тег</label>
+          <select id="tag">
+            <option value="ammo">Патроны</option>
+            <option value="med">Мед</option>
+            <option value="flip">Флип / перепродажа</option>
+            <option value="quest">Квест</option>
+            <option value="other" selected>Прочее</option>
+          </select>
+        </div>
+        <div class="field"><label>Заметка</label>
+          <input type="text" id="note" placeholder="у Механика / до 50к…" maxlength="80">
+        </div>
+        <button type="button" class="btn" id="addBtn">В список</button>
+      </div>
+      <p class="note">Выбери подсказку из поиска или жми «В список» — добавится как произвольная строка.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Список</div>
+      <div class="chips" id="filters">
+        <button type="button" class="chip on" data-f="all">Все</button>
+        <button type="button" class="chip" data-f="ammo">Патроны</button>
+        <button type="button" class="chip" data-f="med">Мед</button>
+        <button type="button" class="chip" data-f="flip">Флип</button>
+        <button type="button" class="chip" data-f="quest">Квест</button>
+        <button type="button" class="chip" data-f="other">Прочее</button>
+        <button type="button" class="chip" data-f="todo">Не куплено</button>
+      </div>
+      <div id="list"></div>
+      <div class="toolbar">
+        <button type="button" class="btn-sm" id="copyAll">Копировать все shortName</button>
+        <button type="button" class="btn-sm" id="copyTodo">Копировать некупленное</button>
+        <button type="button" class="btn-sm" id="clearDone">Снять купленное</button>
+        <button type="button" class="btn-sm" id="exportJson">Экспорт JSON</button>
+        <button type="button" class="btn-sm" id="importJson">Импорт JSON</button>
+      </div>
+      <p class="muted" id="summary"></p>
+    </div>
+  </div>
+  <script src="../core/tarkov-dicts.js"></script>
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-state.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-shopping-list.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>
