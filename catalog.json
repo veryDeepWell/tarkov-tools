@@ -22,6 +22,7 @@
     {"file": "tools/tarkovtool-prestige.html", "title": "Престиж-оптимизатор", "description": "Что передать при престиже: квесты, капитал, слоты", "icon": "prestige", "cat": "util", "kind": "static"},
     {"file": "tools/tarkovtool-xp.html", "title": "Опыт", "description": "Килы, исходы рейда, таблица уровней, калькулятор XP", "icon": "xp", "cat": "util", "kind": "static"},
     {"file": "tools/tarkovtool-repair.html", "title": "Починка", "description": "Ремонт брони и оружия: качество, цена, материалы", "icon": "repair", "cat": "util", "kind": "static"},
+    {"file": "tools/tarkovtool-shopping-list.html", "title": "Список покупок", "description": "Вишлист после рестока: патроны, мед, флип — копирование имён", "icon": "shopping-list", "cat": "util", "kind": "static"},
     {"file": "tools/tarkovtool-drip-loadout.html", "title": "Дрип-лоадаут", "description": "Случайный вид по стилю", "icon": "drip-loadout", "cat": "loadout", "kind": "static"},
     {"file": "tools/tarkovtool-drip-builder.html", "title": "Дрип-билдер", "description": "Обвесы по цветам", "icon": "drip-builder", "cat": "loadout", "kind": "static"},
     {"file": "tools/tarkovtool-loadout-budget.html", "title": "Лоадаут за N ₽", "description": "Кит под бюджет", "icon": "loadout-budget", "cat": "loadout", "kind": "static"},
