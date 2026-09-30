@@ -1,24 +1,10 @@
-/*! TarkovIcons — custom icon architecture
- *
- * Priority for a tool card / mini-chip:
- *   1. catalog entry .iconUrl (absolute or relative)
- *   2. TarkovIcons.register(id, url)
- *   3. assets/icons/{iconId}.svg if TarkovIcons.useAssetFolder = true
- *   4. emoji fallback
- *
- * How to add custom art later:
- *   - Drop files into assets/icons/ using icon id from catalog
- *     e.g. assets/icons/price-track.svg
- *   - Set TarkovIcons.useAssetFolder = true (e.g. in hub after load)
- *   - Or set "iconUrl": "assets/icons/my.png" on a CATALOG item
- *   - Optional: TarkovIcons.register("price-track", "assets/icons/x.svg")
- */
+/*! TarkovIcons — custom icon architecture */
 (function (global) {
   "use strict";
 
   var EMOJI = [
     [/btc|bitcoin/i, "₿"], [/cultist/i, "⛧"], [/my-tarkov/i, "👤"],
-    [/helmet/i, "🪖"], [/headphone/i, "🎧"], [/challenge/i, "🎯"], [/marathon/i, "🏃"], [/prestige/i, "⭐"], [/nvg/i, "🌑"], [/price-track/i, "📈"], [/price-alarm/i, "🔔"],
+    [/helmet/i, "🪖"], [/headphone/i, "🎧"], [/challenge/i, "🎯"], [/marathon/i, "🏃"], [/prestige/i, "⭐"], [/\bxp\b|опыт/i, "✨"], [/repair|починк/i, "🔧"], [/nvg/i, "🌑"], [/price-track/i, "📈"], [/price-alarm/i, "🔔"],
     [/food/i, "🍖"], [/random-loadout/i, "🎲"], [/loadout-budget/i, "💰"],
     [/loadout-builder/i, "🧰"], [/drip-builder/i, "🎨"], [/drip-loadout/i, "✨"],
     [/ammo/i, "🔫"], [/armor/i, "🛡️"], [/barter-opt/i, "📐"], [/barter/i, "🧮"], [/boss/i, "👹"],
