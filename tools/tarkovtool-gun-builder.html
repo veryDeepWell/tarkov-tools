@@ -1,137 +1,177 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gun Builder — Tarkov</title>
+  <title>Сборка оружия — Tarkov</title>
   <link rel="stylesheet" href="../core/tarkov-common.css">
   <script type="application/json" id="tarkovtool-meta">
-  {"title": "Gun Builder", "description": "Сборка оружия по слотам: статы, цена, flea/торговец/квест."}
+  {"title":"Сборка оружия","description":"Слоты, статы, конфликты, Auto Build (ergo / recoil / budget).","kind":"static"}
   </script>
-
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{min-height:100vh;padding:20px 14px 48px}
-    .container{max-width:min(1600px,92vw);margin:0 auto}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px}
-    .card-title{font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;font-weight:600}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
-    .field label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
-    select,input{background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);outline:none;font-size:1rem}
-    .btn{background:var(--accent);color:#111;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer}
-    .btn:disabled{opacity:.45}
-    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:.8rem}
-    .status{font-size:.95rem;color:var(--muted);margin-top:8px}
-    .status.ok{color:var(--green)}.status.err{color:var(--red)}
-    .meta{font-size:.82rem;color:var(--muted)}
-    .name{font-weight:600}
-    .tag{display:inline-block;font-size:.7rem;padding:2px 6px;border-radius:4px;margin:1px;background:rgba(255,255,255,.06);color:var(--muted)}
-    .tag.good{background:rgba(61,214,140,.15);color:var(--green)}
-    .tag.quest{background:rgba(201,162,39,.2);color:var(--accent)}
-    .tag.trader{background:rgba(100,160,255,.15);color:#7ec8ff}
-    .tag.flea{background:rgba(255,255,255,.08)}
-    .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:10px}
-    .stat{background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px}
-    .stat .v{font-size:1.15rem;font-weight:800;color:var(--accent)}
-    .stat .l{font-size:.72rem;color:var(--muted)}
-    .schematic{
-      display:grid;
-      grid-template-columns: 100px 100px 130px 100px 100px 100px;
-      grid-template-rows: 100px 100px 120px 100px 100px;
-      gap:10px;
-      justify-content:center;
-      padding:16px 8px;
-      overflow-x:auto;
+    .container { max-width: min(1200px, 96vw); margin: 0 auto; padding: 12px 14px 64px; }
+    h1 { margin-bottom: 4px; }
+    .sub { color: var(--muted); margin-bottom: 14px; font-size: .92rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+    .card-title { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { flex: 1; min-width: 120px; }
+    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    .status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--green, #3dd68c); }
+    .status.err { color: var(--red, #f07178); }
+    .muted { color: var(--muted); font-size: .8rem; }
+    .suggest {
+      max-height: 220px; overflow: auto; border: 1px solid var(--border); border-radius: 8px;
+      margin-top: 6px; display: none;
     }
-    .slot-box{
-      border:1px dashed var(--border);border-radius:10px;background:rgba(0,0,0,.28);
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      padding:6px;text-align:center;cursor:pointer;min-height:0;width:100%;height:100%;
+    .suggest button {
+      display: block; width: 100%; text-align: left; padding: 8px 10px; border: 0;
+      border-bottom: 1px solid var(--border); background: var(--input-bg); color: var(--text);
+      cursor: pointer; font-size: .85rem;
     }
-    .slot-box.has{border-style:solid;border-color:rgba(201,162,39,.5)}
-    .slot-box:hover{border-color:var(--accent)}
-    .slot-box.core{cursor:default;border-color:var(--accent);background:rgba(201,162,39,.1)}
-    .slot-box.core:hover{border-color:var(--accent)}
-    .slot-box img{width:56px;height:56px;object-fit:contain;flex-shrink:0}
-    .slot-box.core img{width:70px;height:70px}
-    .slot-label{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:2px}
-    .mod-name{font-size:.68rem;line-height:1.15;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-    .g-scope{grid-column:3;grid-row:1}
-    .g-charge{grid-column:4;grid-row:2}
-    .g-receiver{grid-column:3;grid-row:2}
-    .g-muzzle{grid-column:1;grid-row:3}
-    .g-barrel{grid-column:2;grid-row:3}
-    .g-weapon{grid-column:3;grid-row:3}
-    .g-stock{grid-column:5;grid-row:3}
-    .g-stock2{grid-column:6;grid-row:3}
-    .g-tactical{grid-column:1;grid-row:4}
-    .g-handguard{grid-column:2;grid-row:4}
-    .g-mag{grid-column:3;grid-row:4}
-    .g-grip{grid-column:4;grid-row:4}
-    .g-foregrip{grid-column:2;grid-row:5}
-    .g-extra{grid-column:5 / span 2;grid-row:4 / span 2;align-self:stretch}
-    .extra-list{width:100%;height:100%;overflow:auto;text-align:left;padding:4px}
-    .extra-list .slot-box{min-height:72px;margin-bottom:6px;height:auto}
-    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
-    .modal-bg.show{display:flex}
-    .modal{background:var(--card);border:1px solid var(--border);border-radius:12px;max-width:760px;width:100%;max-height:82vh;overflow:auto;padding:16px}
-    .mod-pick{display:flex;gap:10px;align-items:center;padding:8px;border-radius:8px;cursor:pointer;border:1px solid transparent}
-    .mod-pick:hover{background:rgba(255,255,255,.04);border-color:var(--border)}
-    .ico{width:48px;height:48px;object-fit:contain;background:#0a0c10;border-radius:6px}
-    .suggest{border:1px solid var(--border);border-radius:8px;max-height:220px;overflow:auto;background:var(--input-bg);display:none;position:absolute;z-index:5;width:min(400px,90vw)}
-    .suggest div{padding:8px 12px;cursor:pointer;display:flex;gap:8px;align-items:center}
-    .suggest div:hover{background:rgba(255,255,255,.05)}
-    .hint{font-size:.88rem;color:var(--muted);margin-top:10px}
-    .build-list{font-size:.88rem}
-    .build-list div{padding:4px 0;border-bottom:1px solid var(--border)}
+    .suggest button:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+    .stats {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px;
+    }
+    .stat {
+      background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px;
+    }
+    .stat .v { font-size: 1.2rem; font-weight: 800; color: var(--accent); }
+    .stat .l { font-size: .7rem; color: var(--muted); margin-top: 2px; }
+    .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 840px) { .layout { grid-template-columns: 1fr; } }
+    .slot {
+      display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;
+      padding: 8px 0; border-top: 1px solid var(--border); font-size: .88rem;
+    }
+    .slot.req .slot-name::after { content: " *"; color: var(--accent); }
+    .slot.conflict { background: color-mix(in srgb, #f07178 10%, transparent); border-radius: 6px; padding-left: 6px; }
+    .slot-name { font-weight: 600; }
+    .slot-meta { font-size: .75rem; color: var(--muted); }
+    .slot-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .btn-sm {
+      font-size: .75rem; padding: 4px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer;
+    }
+    .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-sm.accent { border-color: var(--accent); color: var(--accent); }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .chip {
+      border: 1px solid var(--border); background: transparent; color: var(--text);
+      border-radius: 999px; padding: 5px 12px; font-size: .8rem; cursor: pointer;
+    }
+    .chip.on { border-color: var(--accent); color: var(--accent); }
+    .ab-results { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow: auto; }
+    .ab-card {
+      border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer;
+      background: var(--input-bg);
+    }
+    .ab-card:hover, .ab-card.on { border-color: var(--accent); }
+    .ab-card .t { font-weight: 700; margin-bottom: 4px; }
+    .ab-card .m { font-size: .78rem; color: var(--muted); }
+    .chart {
+      width: 100%; height: 180px; background: var(--input-bg); border: 1px solid var(--border);
+      border-radius: 8px; margin-top: 8px;
+    }
+    .modal-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,.72); display: none;
+      align-items: center; justify-content: center; z-index: 80; padding: 16px;
+    }
+    .modal-bg.show { display: flex; }
+    .modal {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      max-width: 720px; width: 100%; max-height: 82vh; overflow: auto; padding: 16px;
+    }
+    .mod-pick {
+      display: flex; gap: 10px; align-items: center; padding: 8px; border-radius: 8px;
+      cursor: pointer; border: 1px solid transparent;
+    }
+    .mod-pick:hover { background: rgba(255,255,255,.04); border-color: var(--border); }
+    .mod-pick .ico { width: 44px; height: 44px; object-fit: contain; border-radius: 6px; background: #0a0c10; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .note { font-size: .82rem; color: var(--muted); line-height: 1.45; margin-top: 8px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Gun Builder</h1>
-    <p class="sub">Выбери ствол → кликай слоты → статы и цена без игры. Схема: глушитель–ствол–оружие–приклад</p>
+    <h1>Сборка оружия</h1>
+    <p class="sub">Дерево слотов, конфликты, статы (ergo / отдача / вес / цена). Auto Build: max ergo, min recoil, balanced, budget.</p>
 
     <div class="card">
+      <div class="card-title">Данные</div>
       <div class="row">
         <div class="field"><label>Режим</label>
           <select id="gameMode">
-            <option value="regular">regular</option>
-            <option value="pvp-season">pvp-season</option>
-            <option value="pve" selected>pve</option>
+            <option value="pve" selected>PvE</option>
+            <option value="regular">PvP</option>
           </select>
         </div>
-        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+        <button type="button" class="btn" id="loadBtn">Загрузить каталог</button>
       </div>
-      <p class="status" id="status"></p>
+      <p class="status" id="status">Загрузи каталог предметов.</p>
     </div>
 
     <div class="card" id="pickCard" style="display:none">
-      <div class="field" style="position:relative">
-        <label>Оружие</label>
-        <input type="text" id="weaponQ" placeholder="adar, m4a1, ak-74n…" autocomplete="off" style="width:100%">
+      <div class="card-title">Оружие</div>
+      <div class="field">
+        <label>Поиск</label>
+        <input type="search" id="weaponQ" placeholder="AK-74M, M4A1, RSASS…" autocomplete="off">
         <div class="suggest" id="weaponSuggest"></div>
       </div>
     </div>
 
     <div class="card" id="buildCard" style="display:none">
-      <div class="card-title">Схема слотов · клик = выбрать мод · повторный клик по заполненному = снять</div>
-      <div class="schematic" id="schematic"></div>
-      <div class="stat-grid" id="stats"></div>
-      <div class="row" style="margin-top:12px">
-        <button type="button" class="btn-ghost" id="clearBuild">Сбросить моды</button>
-        <button type="button" class="btn-ghost" id="copyBuild">Копировать список</button>
+      <div class="card-title">Статы сборки</div>
+      <div class="stats" id="stats"></div>
+      <div class="toolbar">
+        <button type="button" class="btn-sm" id="clearBuild">Сбросить моды</button>
+        <button type="button" class="btn-sm" id="copyBuild">Копировать список</button>
       </div>
-      <div class="build-list" id="buildList" style="margin-top:12px"></div>
-      <p class="hint">Цена ≈ flea avg24h, иначе минимальная цена торговца. Quest-only помечается если нет flea и нет buy без квеста (эвристика по unlocks).</p>
+    </div>
+
+    <div class="layout" id="mainLayout" style="display:none">
+      <div class="card">
+        <div class="card-title">Слоты</div>
+        <div id="slotList"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Auto Build</div>
+        <div class="chips" id="abGoal">
+          <button type="button" class="chip on" data-g="balanced">Balanced</button>
+          <button type="button" class="chip" data-g="maxErgo">Max ergo</button>
+          <button type="button" class="chip" data-g="minRecoil">Min recoil</button>
+          <button type="button" class="chip" data-g="budget">Budget</button>
+        </div>
+        <div class="row">
+          <div class="field"><label>Бюджет ₽ (0 = без лимита)</label>
+            <input type="number" id="abBudget" min="0" step="1000" value="0">
+          </div>
+          <div class="field"><label>Только покупаемое</label>
+            <select id="abBuyable">
+              <option value="1" selected>Да (flea / trader)</option>
+              <option value="0">Нет</option>
+            </select>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button type="button" class="btn" id="abScan">Сканировать</button>
+        </div>
+        <p class="note" id="abStatus">Выбери цель и жми «Сканировать». Лучшие варианты появятся ниже; клик — применить.</p>
+        <svg class="chart" id="abChart" viewBox="0 0 400 180" preserveAspectRatio="none"></svg>
+        <div class="ab-results" id="abResults"></div>
+      </div>
     </div>
   </div>
 
   <div class="modal-bg" id="modal">
     <div class="modal">
-      <h3 id="modalTitle">Слот</h3>
-      <input type="text" id="modalFilter" placeholder="фильтр…" style="width:100%;margin-bottom:10px">
+      <div class="row" style="justify-content:space-between;margin-bottom:10px">
+        <strong id="modalTitle">Слот</strong>
+        <button type="button" class="btn-sm" id="modalClose">Закрыть</button>
+      </div>
+      <input type="search" id="modalFilter" placeholder="Фильтр модов…" style="width:100%;margin-bottom:10px">
       <div id="modalList"></div>
-      <button type="button" class="btn-ghost" style="margin-top:10px" id="modalClose">Закрыть</button>
     </div>
   </div>
 
@@ -139,7 +179,6 @@
   <script src="../core/tarkov-names.js"></script>
   <script src="../core/tarkov-storage.js"></script>
   <script src="../core/tarkov-api.js"></script>
-  <script src="../core/tarkov-weapon-domain.js"></script>
   <script src="../core/tarkov-ui.js"></script>
   <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
