@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Сезоны — Tarkov</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title":"Сезоны","description":"История сезонов: модификаторы, доки, даты.","kind":"static"}
+  </script>
+  <style>
+    .container { max-width: min(1100px, 96vw); margin: 0 auto; padding: 12px 14px 64px; }
+    h1 { margin-bottom: 4px; }
+    .sub { color: var(--muted); margin-bottom: 14px; font-size: .92rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+    .card-title { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .muted { color: var(--muted); font-size: .85rem; }
+    .strip { display: flex; gap: 12px; overflow-x: auto; padding: 4px 2px 12px; scroll-snap-type: x mandatory; }
+    .season-tile {
+      flex: 0 0 min(260px, 78vw); scroll-snap-align: start;
+      border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+      background: var(--input-bg); cursor: pointer; transition: border-color .15s, transform .12s;
+    }
+    .season-tile:hover, .season-tile.on { border-color: var(--accent); }
+    .season-tile.on { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent); }
+    .season-art {
+      height: 120px; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #1a1510 0%, #2a2218 40%, #0d1014 100%);
+      font-size: 2.4rem; letter-spacing: .06em; font-weight: 800; color: var(--accent);
+      text-shadow: 0 2px 12px rgba(0,0,0,.5);
+    }
+    .season-art.s1 { background: linear-gradient(135deg, #1a1208, #3d2a12 45%, #0c1014); }
+    .season-body { padding: 12px 14px; }
+    .season-body .name { font-weight: 800; font-size: 1.05rem; margin-bottom: 4px; }
+    .season-body .dates { font-size: .8rem; color: var(--muted); }
+    .badge {
+      display: inline-block; margin-top: 8px; padding: 2px 10px; border-radius: 999px;
+      font-size: .72rem; font-weight: 700;
+      background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent);
+    }
+    .badge.ended { background: color-mix(in srgb, var(--muted) 20%, transparent); color: var(--muted); }
+    .badge.upcoming { background: color-mix(in srgb, #5b9fd4 18%, transparent); color: #5b9fd4; }
+    .mod-grid { display: grid; gap: 8px; }
+    @media (min-width: 700px) { .mod-grid { grid-template-columns: 1fr 1fr; } }
+    .mod {
+      border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--input-bg);
+    }
+    .mod .t { font-weight: 700; margin-bottom: 2px; }
+    .mod .d { font-size: .82rem; color: var(--muted); line-height: 1.35; }
+    .mod.pos .t { color: #3dd68c; }
+    .mod.neg .t { color: #f07178; }
+    .mod.glob .t { color: var(--accent); }
+    .pts {
+      display: inline-block; min-width: 28px; text-align: center; font-size: .75rem; font-weight: 700;
+      border-radius: 6px; padding: 1px 6px; margin-right: 6px;
+      background: color-mix(in srgb, var(--border) 80%, transparent);
+    }
+    .doc-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    .doc-table th, .doc-table td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); }
+    .doc-table th { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .chip {
+      border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-size: .78rem;
+      background: transparent; color: var(--text);
+    }
+    .note { font-size: .82rem; color: var(--muted); line-height: 1.45; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Сезоны</h1>
+    <p class="sub">История сезонов Tarkov. Данные справочные (не из API) — правки патчами возможны.</p>
+    <div class="card">
+      <div class="card-title">Лента сезонов</div>
+      <div class="strip" id="strip"></div>
+      <p class="note">Сейчас в игре один сезон. Плашки дальше — заготовки под Season 2+.</p>
+    </div>
+    <div class="card" id="detail" style="display:none">
+      <div class="card-title" id="detailTitle">Детали</div>
+      <div id="detailBody"></div>
+    </div>
+  </div>
+  <script src="../core/tarkov-dicts.js"></script>
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-seasons.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>
