@@ -1,430 +1,859 @@
+/*! Tarkov — Gun Builder + Auto Build (slot tree, stats, scan) */
+(function () {
+  "use strict";
 
-    let byId = {}, weapons = [], mods = [];
-    let baseWeapon = null;
-    // installed: slotKey -> itemId  (slotKey = parentItemId + '::' + nameId)
-    let installed = {};
-    let activeSlot = null; // {parentId, nameId, filters}
+  var byId = {};
+  var weapons = [];
+  var mods = [];
+  var baseWeapon = null;
+  /** @type {Record<string, string>} slotKey -> itemId */
+  var installed = {};
+  var activeSlot = null;
+  var abGoal = "balanced";
+  var abBuilds = [];
 
-    function humanize(slug) { return TarkovDicts.humanize(slug); }
-    function formatNum(n) { return TarkovDicts.fmtNum(n); }
-    function esc(s) { return TarkovDicts.esc(s); }
+  var SLOT_LABEL = {
+    mod_pistol_grip: "Пистолетная рукоять",
+    mod_pistolgrip: "Пистолетная рукоять",
+    mod_stock: "Приклад",
+    mod_barrel: "Ствол",
+    mod_handguard: "Цевьё",
+    mod_muzzle: "ДТК / дульный",
+    mod_scope: "Прицел",
+    mod_sight_rear: "Целик",
+    mod_sight_front: "Мушка",
+    mod_magazine: "Магазин",
+    mod_charge: "Рукоятка взведения",
+    mod_gas_block: "Газблок",
+    mod_reciever: "Ресивер",
+    mod_receiver: "Ресивер",
+    mod_mount: "Крепление",
+    mod_tactical: "Тактический",
+    mod_foregrip: "Рукоять",
+    mod_bipod: "Сошки",
+    mod_launcher: "Подствольник"
+  };
 
-    function slotClass(nameId) {
-      const n = (nameId || '').toLowerCase();
-      if (n.includes('muzzle')) return 'g-muzzle';
-      if (n.includes('barrel')) return 'g-barrel';
-      if (n.includes('scope') || n.includes('sight')) return 'g-scope';
-      if (n.includes('charge')) return 'g-charge';
-      if (n.includes('reciever') || n.includes('receiver')) return 'g-receiver';
-      if (n.includes('stock')) return 'g-stock';
-      if (n.includes('handguard') || n.includes('hand_guard')) return 'g-handguard';
-      if (n.includes('foregrip') || n.includes('fore_grip') || n.includes('mount')) {
-        if (n.includes('fore')) return 'g-foregrip';
-      }
-      if (n.includes('tactical') || n.includes('flashlight') || n.includes('laser')) return 'g-tactical';
-      if (n.includes('magazine') || n === 'mod_magazine') return 'g-mag';
-      if (n.includes('pistol_grip') || n.includes('pistolgrip')) return 'g-grip';
-      if (n.includes('foregrip') || n.includes('grip') && !n.includes('pistol')) return 'g-foregrip';
-      return null; // extra
-    }
+  var FILL_ORDER = [
+    "mod_barrel",
+    "mod_reciever",
+    "mod_receiver",
+    "mod_gas_block",
+    "mod_handguard",
+    "mod_pistol_grip",
+    "mod_pistolgrip",
+    "mod_stock",
+    "mod_muzzle",
+    "mod_foregrip",
+    "mod_mount",
+    "mod_scope",
+    "mod_sight_rear",
+    "mod_sight_front",
+    "mod_tactical",
+    "mod_magazine",
+    "mod_charge",
+    "mod_bipod",
+    "mod_launcher"
+  ];
 
-    function itemPrice(it) {
-      if (!it) return 0;
-      const avg = Number(it.avg24hPrice) || 0;
-      if (avg > 0) return avg;
-      const buys = it.buyFromTrader || [];
-      let min = Infinity;
-      buys.forEach(b => { const p = Number(b.price)||0; if (p>0 && p<min) min=p; });
-      return min === Infinity ? 0 : min;
-    }
+  function esc(s) {
+    try {
+      if (window.TarkovDicts && TarkovDicts.esc) return TarkovDicts.esc(s);
+    } catch (e) {}
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&")
+      .replace(/</g, "<")
+      .replace(/>/g, ">");
+  }
 
-    function itemSource(it) {
-      if (!it) return [];
-      const tags = [];
-      if (Number(it.avg24hPrice) > 0) tags.push({t:'flea', l:'flea'});
-      (it.buyFromTrader || []).forEach(b => {
-        const tr = b.trader?.name || b.trader?.normalizedName || 'trader';
-        const ll = b.loyaltyLevel || b.minTraderLevel || '?';
-        tags.push({t:'trader', l: String(tr).slice(0,12) + ' LL' + ll});
+  function fmt(n) {
+    n = Math.round(Number(n) || 0);
+    return n.toLocaleString("ru-RU");
+  }
+
+  function itemName(it) {
+    if (!it) return "?";
+    try {
+      if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
+    } catch (e) {}
+    return it.shortName || it.name || it.normalizedName || it.id || "?";
+  }
+
+  function humanize(slug) {
+    try {
+      if (window.TarkovDicts && TarkovDicts.humanize) return TarkovDicts.humanize(slug);
+    } catch (e) {}
+    return String(slug || "")
+      .replace(/[-_]/g, " ")
+      .replace(/\b\w/g, function (c) {
+        return c.toUpperCase();
       });
-      // quest lock heuristic: unlocks via task often in buy requirements
-      const locked = (it.buyFromTrader || []).some(b => b.taskUnlock || b.questUnlock);
-      if (locked) tags.push({t:'quest', l:'квест'});
-      if (!tags.length) tags.push({t:'flea', l:'только находка?'});
-      return tags;
-    }
+  }
 
-    function allowedForSlot(filters) {
-      if (!filters) return [];
-      const allowed = new Set(filters.allowedItems || []);
-      const cats = new Set(filters.allowedCategories || []);
-      // also excluded
-      const excluded = new Set(filters.excludedItems || []);
-      const list = [];
-      mods.forEach(m => {
-        if (excluded.has(m.id)) return;
-        if (allowed.has(m.id)) { list.push(m); return; }
-        if (cats.size) {
-          const mc = (m.categories || []).map(c => c.id || c);
-          if (mc.some(id => cats.has(id))) list.push(m);
-        }
+  function asArray(x) {
+    if (!x) return [];
+    if (Array.isArray(x)) return x;
+    if (typeof x === "object") return Object.values(x);
+    return [];
+  }
+
+  function isWeapon(it) {
+    if (!it || !it.properties) return false;
+    var t = it.properties.propertiesType || "";
+    if (t === "ItemPropertiesWeapon") return true;
+    var cats = asArray(it.categories).map(function (c) {
+      return (c.normalizedName || c.name || c.id || "").toLowerCase();
+    });
+    return cats.some(function (c) {
+      return /weapon|assault|smg|shotgun|sniper|pistol|marksman|machinegun|grenade-launcher/.test(c);
+    });
+  }
+
+  function isMod(it) {
+    if (!it || !it.properties) return false;
+    var t = it.properties.propertiesType || "";
+    if (/WeaponMod|Magazine|Barrel|Stock|Scope|Muzzle|Mount|Grip|Handguard|Flashlight|Tactical/.test(t))
+      return true;
+    if (t === "ItemPropertiesWeapon") return false;
+    return !!(it.properties.slots || it.properties.ergonomics != null || it.properties.recoil != null);
+  }
+
+  function itemPrice(it) {
+    if (!it) return 0;
+    var avg = Number(it.avg24hPrice) || 0;
+    if (avg > 0) return avg;
+    var low = Number(it.lastLowPrice) || 0;
+    if (low > 0) return low;
+    var min = Infinity;
+    asArray(it.buyFor || it.buyFromTrader).forEach(function (b) {
+      var p = Number(b.priceRUB != null ? b.priceRUB : b.price) || 0;
+      if (p > 0 && p < min) min = p;
+    });
+    return min === Infinity ? 0 : min;
+  }
+
+  function isBuyable(it) {
+    if (!it) return false;
+    if (Number(it.avg24hPrice) > 0 || Number(it.lastLowPrice) > 0) return true;
+    return asArray(it.buyFor || it.buyFromTrader).some(function (b) {
+      return (Number(b.priceRUB != null ? b.priceRUB : b.price) || 0) > 0;
+    });
+  }
+
+  function slotBase(nameId) {
+    var s = String(nameId || "").toLowerCase();
+    s = s.replace(/_\d+$/, "");
+    if (s === "mod_pistolgrip") s = "mod_pistol_grip";
+    if (s.indexOf("mod_tactical") === 0) s = "mod_tactical";
+    if (s.indexOf("mod_mount") === 0) s = "mod_mount";
+    if (s === "mod_receiver") s = "mod_reciever";
+    return s;
+  }
+
+  function slotLabel(nameId) {
+    var b = slotBase(nameId);
+    return SLOT_LABEL[b] || SLOT_LABEL[nameId] || humanize(nameId);
+  }
+
+  function fillPriority(nameId) {
+    var b = slotBase(nameId);
+    var i = FILL_ORDER.indexOf(b);
+    return i < 0 ? 100 + String(nameId).length : i;
+  }
+
+  function allowedForSlot(filters) {
+    if (!filters) return [];
+    var allowed = new Set(asArray(filters.allowedItems).map(String));
+    var cats = new Set(asArray(filters.allowedCategories).map(String));
+    var excluded = new Set(asArray(filters.excludedItems).map(String));
+    var list = [];
+    mods.forEach(function (m) {
+      if (excluded.has(m.id)) return;
+      if (allowed.has(m.id)) {
+        list.push(m);
+        return;
+      }
+      if (cats.size) {
+        var mc = asArray(m.categories).map(function (c) {
+          return String(c.id || c);
+        });
+        if (mc.some(function (id) {
+          return cats.has(id);
+        }))
+          list.push(m);
+      }
+    });
+    if (!list.length && allowed.size) {
+      allowed.forEach(function (id) {
+        if (byId[id]) list.push(byId[id]);
       });
-      // if only allowedItems
-      if (!list.length && allowed.size) {
-        allowed.forEach(id => { if (byId[id]) list.push(byId[id]); });
-      }
-      return list;
     }
+    return list;
+  }
 
-    /** Collect all slots currently available: base weapon + nested on installed mods */
-    function collectSlots() {
-      const result = []; // {parentId, nameId, required, filters, className}
-      if (!baseWeapon) return result;
-      const queue = [baseWeapon];
-      const seen = new Set();
-      while (queue.length) {
-        const parent = queue.shift();
-        if (!parent || seen.has(parent.id)) continue;
-        seen.add(parent.id);
-        const slots = (parent.properties && parent.properties.slots) || [];
-        slots.forEach(s => {
-          const nameId = s.nameId || s.name || s.id;
-          const key = parent.id + '::' + nameId;
-          const cls = slotClass(nameId);
-          result.push({
-            parentId: parent.id,
-            nameId,
-            key,
-            required: !!s.required,
-            filters: s.filters || {},
-            className: cls
-          });
-          const childId = installed[key];
-          if (childId && byId[childId]) queue.push(byId[childId]);
+  function collectSlots(map) {
+    map = map || installed;
+    var result = [];
+    if (!baseWeapon) return result;
+    var queue = [baseWeapon];
+    var seen = new Set();
+    while (queue.length) {
+      var parent = queue.shift();
+      if (!parent || seen.has(parent.id)) continue;
+      seen.add(parent.id);
+      var slots = asArray(parent.properties && parent.properties.slots);
+      slots.forEach(function (s) {
+        var nameId = s.nameId || s.name || s.id;
+        var key = parent.id + "::" + nameId;
+        result.push({
+          parentId: parent.id,
+          nameId: nameId,
+          key: key,
+          required: !!s.required,
+          filters: s.filters || {}
         });
-      }
-      return result;
-    }
-
-    function conflictSet() {
-      const set = new Set();
-      Object.values(installed).forEach(id => {
-        const it = byId[id];
-        if (!it) return;
-        (it.conflictingItems || []).forEach(c => set.add(typeof c === 'string' ? c : c.id));
-        const p = it.properties || {};
-        (p.conflictingItems || []).forEach(c => set.add(typeof c === 'string' ? c : c.id));
+        var childId = map[key];
+        if (childId && byId[childId]) queue.push(byId[childId]);
       });
-      return set;
     }
+    return result;
+  }
 
-    function computeStats() {
-      if (!baseWeapon) return null;
-      const p = baseWeapon.properties || {};
-      let ergo = Number(p.ergonomics) || Number(p.defaultErgonomics) || 0;
-      let recV = Number(p.recoilVertical) || Number(p.defaultRecoilVertical) || 0;
-      let recH = Number(p.recoilHorizontal) || Number(p.defaultRecoilHorizontal) || 0;
-      let weight = Number(baseWeapon.weight) || Number(p.defaultWeight) || 0;
-      let cost = itemPrice(baseWeapon);
-      const parts = [{ it: baseWeapon, slot: 'base' }];
-
-      Object.entries(installed).forEach(([key, id]) => {
-        const it = byId[id];
-        if (!it) return;
-        parts.push({ it, slot: key.split('::')[1] });
-        const mp = it.properties || {};
-        // ergonomics: absolute add
-        if (mp.ergonomics != null) ergo += Number(mp.ergonomics) || 0;
-        else if (mp.ergonomicsModifier != null) ergo += Number(mp.ergonomicsModifier) || 0;
-        // recoil: often percent
-        if (mp.recoil != null) {
-          const r = Number(mp.recoil) || 0;
-          // negative recoil = less recoil
-          recV *= (1 + r / 100);
-          recH *= (1 + r / 100);
-        }
-        if (mp.recoilModifier != null) {
-          const r = Number(mp.recoilModifier) || 0;
-          recV *= (1 + r / 100);
-          recH *= (1 + r / 100);
-        }
-        weight += Number(it.weight) || 0;
-        cost += itemPrice(it);
+  function conflictSet(map) {
+    map = map || installed;
+    var set = new Set();
+    Object.keys(map).forEach(function (k) {
+      var it = byId[map[k]];
+      if (!it) return;
+      asArray(it.conflictingItems).forEach(function (c) {
+        set.add(typeof c === "string" ? c : c.id);
       });
-      return {
-        ergo: Math.round(ergo * 10) / 10,
-        recV: Math.round(recV * 10) / 10,
-        recH: Math.round(recH * 10) / 10,
-        weight: Math.round(weight * 100) / 100,
-        cost,
-        parts
-      };
-    }
-
-    function renderSchematic() {
-      const root = document.getElementById('schematic');
-      root.innerHTML = '';
-      if (!baseWeapon) return;
-      const slots = collectSlots();
-      const usedClass = new Set();
-
-      // core weapon
-      const core = document.createElement('div');
-      core.className = 'slot-box core g-weapon';
-      core.innerHTML = `<div class="slot-label">оружие</div>
-        <img src="${esc(baseWeapon.iconLink||baseWeapon.gridImageLink||'')}" alt="">
-        <div class="mod-name">${esc(humanize(baseWeapon.normalizedName))}</div>`;
-      root.appendChild(core);
-
-      const extras = [];
-      slots.forEach(s => {
-        // only show slots whose parent is weapon or an installed mod
-        if (s.parentId !== baseWeapon.id && !Object.values(installed).includes(s.parentId)) return;
-        // if parent is not base and not installed chain, skip
-        const childId = installed[s.key];
-        const child = childId ? byId[childId] : null;
-        const cls = s.className;
-        if (!cls || usedClass.has(cls)) {
-          extras.push(s);
-          return;
-        }
-        // stock: allow second stock slot in g-stock2
-        if (cls === 'g-stock' && usedClass.has('g-stock')) {
-          if (!usedClass.has('g-stock2')) {
-            usedClass.add('g-stock2');
-            placeSlot(root, s, child, 'g-stock2');
-            return;
-          }
-          extras.push(s);
-          return;
-        }
-        usedClass.add(cls);
-        placeSlot(root, s, child, cls);
+      var p = it.properties || {};
+      asArray(p.conflictingItems).forEach(function (c) {
+        set.add(typeof c === "string" ? c : c.id);
       });
+    });
+    return set;
+  }
 
-      const extraWrap = document.createElement('div');
-      extraWrap.className = 'g-extra extra-list';
-      if (extras.length) {
-        extras.forEach(s => {
-          const child = installed[s.key] ? byId[installed[s.key]] : null;
-          placeSlot(extraWrap, s, child, null);
-        });
-      } else {
-        extraWrap.innerHTML = '<div class="meta" style="padding:8px">Доп. слоты появятся здесь (планки, крепления…)</div>';
+  function hasConflict(map, itemId) {
+    if (!itemId) return false;
+    var conf = conflictSet(map);
+    if (conf.has(itemId)) return true;
+    var it = byId[itemId];
+    if (!it) return false;
+    var mine = new Set();
+    asArray(it.conflictingItems).forEach(function (c) {
+      mine.add(typeof c === "string" ? c : c.id);
+    });
+    asArray((it.properties || {}).conflictingItems).forEach(function (c) {
+      mine.add(typeof c === "string" ? c : c.id);
+    });
+    return Object.keys(map).some(function (k) {
+      return mine.has(map[k]);
+    });
+  }
+
+  function computeStats(map) {
+    map = map || installed;
+    if (!baseWeapon) return null;
+    var p = baseWeapon.properties || {};
+    var ergo = Number(p.ergonomics) || Number(p.defaultErgonomics) || 0;
+    var recV = Number(p.recoilVertical) || Number(p.defaultRecoilVertical) || 0;
+    var recH = Number(p.recoilHorizontal) || Number(p.defaultRecoilHorizontal) || 0;
+    var weight = Number(baseWeapon.weight) || Number(p.weight) || 0;
+    var cost = itemPrice(baseWeapon);
+    var parts = [{ it: baseWeapon, slot: "base" }];
+    var sight = Number(p.sightingRange) || Number(p.effectiveDistance) || 0;
+
+    Object.keys(map).forEach(function (key) {
+      var it = byId[map[key]];
+      if (!it) return;
+      parts.push({ it: it, slot: key.split("::")[1] });
+      var mp = it.properties || {};
+      if (mp.ergonomics != null) ergo += Number(mp.ergonomics) || 0;
+      else if (mp.ergonomicsModifier != null) ergo += Number(mp.ergonomicsModifier) || 0;
+      var r = null;
+      if (mp.recoil != null) r = Number(mp.recoil);
+      else if (mp.recoilModifier != null) r = Number(mp.recoilModifier);
+      if (r != null && !isNaN(r)) {
+        recV *= 1 + r / 100;
+        recH *= 1 + r / 100;
       }
-      root.appendChild(extraWrap);
+      weight += Number(it.weight) || Number(mp.weight) || 0;
+      cost += itemPrice(it);
+      var sr = Number(mp.sightingRange) || Number(mp.zoom) || 0;
+      if (sr > sight) sight = sr;
+    });
 
-      renderStats();
-      renderList();
-    }
-
-    function placeSlot(parent, s, child, cls) {
-      const box = document.createElement('div');
-      box.className = 'slot-box ' + (cls || '') + (child ? ' has' : '');
-      const label = (s.nameId || '').replace(/^mod_/, '').replace(/_/g, ' ');
-      if (child) {
-        box.innerHTML = `<div class="slot-label">${esc(label)}</div>
-          <img src="${esc(child.iconLink||child.gridImageLink||'')}" alt="">
-          <div class="mod-name">${esc(humanize(child.normalizedName))}</div>`;
-      } else {
-        box.innerHTML = `<div class="slot-label">${esc(label)}${s.required?' *':''}</div>
-          <div class="meta">пусто</div>`;
-      }
-      box.onclick = () => openSlot(s);
-      parent.appendChild(box);
-    }
-
-    function renderStats() {
-      const st = computeStats();
-      const el = document.getElementById('stats');
-      if (!st) { el.innerHTML = ''; return; }
-      el.innerHTML = `
-        <div class="stat"><div class="v">${st.ergo}</div><div class="l">Эргономика</div></div>
-        <div class="stat"><div class="v">${st.recV}</div><div class="l">Отдача верт.</div></div>
-        <div class="stat"><div class="v">${st.recH}</div><div class="l">Отдача гориз.</div></div>
-        <div class="stat"><div class="v">${st.weight}</div><div class="l">Вес кг</div></div>
-        <div class="stat"><div class="v">${formatNum(st.cost)}</div><div class="l">≈ цена ₽</div></div>
-        <div class="stat"><div class="v">${Object.keys(installed).length}</div><div class="l">модов</div></div>`;
-    }
-
-    function renderList() {
-      const el = document.getElementById('buildList');
-      const st = computeStats();
-      if (!st) { el.innerHTML = ''; return; }
-      el.innerHTML = st.parts.map(p => {
-        const tags = itemSource(p.it).map(t => `<span class="tag ${t.t}">${esc(t.l)}</span>`).join(' ');
-        return `<div><b>${esc(humanize(p.it.normalizedName))}</b> · ${formatNum(itemPrice(p.it))} ₽ ${tags}
-          <button type="button" class="btn-ghost" data-n="${esc(p.it.normalizedName)}">копир.</button></div>`;
-      }).join('');
-      el.querySelectorAll('.btn-ghost').forEach(b => b.onclick = () => navigator.clipboard.writeText(b.dataset.n || ''));
-    }
-
-    function openSlot(s) {
-      activeSlot = s;
-      const conf = conflictSet();
-      let list = allowedForSlot(s.filters).filter(m => !conf.has(m.id) || installed[s.key] === m.id);
-      // sort by ergo / price
-      list.sort((a, b) => (Number((b.properties||{}).ergonomics)||0) - (Number((a.properties||{}).ergonomics)||0));
-
-      document.getElementById('modalTitle').textContent = (s.nameId || 'Слот') + (s.required ? ' (обяз.)' : '');
-      document.getElementById('modal').classList.add('show');
-      const filterInp = document.getElementById('modalFilter');
-      filterInp.value = '';
-      const draw = () => {
-        const q = filterInp.value.toLowerCase().trim();
-        const filtered = q ? list.filter(m => (m.normalizedName||'').includes(q)) : list;
-        const box = document.getElementById('modalList');
-        let html = '';
-        if (installed[s.key]) {
-          html += `<div class="mod-pick" data-clear="1"><span class="meta">✕ Снять мод</span></div>`;
-        }
-        filtered.slice(0, 80).forEach(m => {
-          const mp = m.properties || {};
-          const ergo = mp.ergonomics != null ? mp.ergonomics : mp.ergonomicsModifier;
-          const rec = mp.recoil != null ? mp.recoil : mp.recoilModifier;
-          const tags = itemSource(m).map(t => `<span class="tag ${t.t}">${esc(t.l)}</span>`).join(' ');
-          html += `<div class="mod-pick" data-id="${esc(m.id)}">
-            <img class="ico" src="${esc(m.iconLink||m.gridImageLink||'')}" alt="">
-            <div style="flex:1">
-              <div class="name">${esc(humanize(m.normalizedName))}</div>
-              <div class="meta">ergo ${ergo ?? '—'} · recoil ${rec ?? '—'} · ${formatNum(itemPrice(m))} ₽</div>
-              <div>${tags}</div>
-            </div>
-          </div>`;
-        });
-        if (!filtered.length) html += '<div class="meta">Нет совместимых модов в данных API</div>';
-        box.innerHTML = html;
-        box.querySelectorAll('.mod-pick').forEach(el => {
-          el.onclick = () => {
-            if (el.dataset.clear) {
-              // remove this and nested
-              removeSlotCascade(s.key);
-            } else {
-              installed[s.key] = el.dataset.id;
-              // clear nested slots of previous? already replaced
-            }
-            document.getElementById('modal').classList.remove('show');
-            renderSchematic();
-            saveBuild();
-          };
-        });
-      };
-      filterInp.oninput = draw;
-      draw();
-    }
-
-    function removeSlotCascade(key) {
-      delete installed[key];
-      // remove children whose parent was this item
-      const id = key; // need previous id - already deleted
-      // wipe any installed keys where parent chain breaks
-      const valid = new Set();
-      function walk(item) {
-        if (!item) return;
-        const slots = (item.properties && item.properties.slots) || [];
-        slots.forEach(s => {
-          const k = item.id + '::' + (s.nameId || s.name);
-          valid.add(k);
-          if (installed[k]) walk(byId[installed[k]]);
-        });
-      }
-      walk(baseWeapon);
-      Object.keys(installed).forEach(k => { if (!valid.has(k)) delete installed[k]; });
-    }
-
-    function saveBuild() {
-      if (!baseWeapon) return;
-      try {
-        TarkovStorage.setJson('tarkovGunBuilder', {
-          weaponId: baseWeapon.id,
-          installed
-        });
-      } catch (e) {}
-    }
-
-    document.getElementById('modalClose').onclick = () => document.getElementById('modal').classList.remove('show');
-    document.getElementById('modal').onclick = e => { if (e.target.id === 'modal') e.target.classList.remove('show'); };
-
-    document.getElementById('loadBtn').onclick = async () => {
-      const st = document.getElementById('status');
-      st.className = 'status'; st.textContent = 'Гружу items…';
-      try {
-        const mode = document.getElementById('gameMode').value || 'pve';
-        const arr = await TarkovAPI.items(mode);
-        byId = {};
-        weapons = [];
-        mods = [];
-        arr.forEach(it => {
-          byId[it.id] = it;
-            if (TarkovWeaponDomain.isWeapon(it)) weapons.push(it);
-            if (TarkovWeaponDomain.isMod(it)) mods.push(it);
-        });
-        // magazines often separate
-        arr.forEach(it => {
-          if (TarkovWeaponDomain.isMod(it) && (it.properties || {}).propertiesType === 'ItemPropertiesMagazine' && mods.indexOf(it) < 0) mods.push(it);
-        });
-        st.className = 'status ok';
-        st.textContent = `Оружий ${weapons.length} · модов ${mods.length}`;
-        document.getElementById('pickCard').style.display = 'block';
-        // restore
-        try {
-          const raw = TarkovStorage.getJson('tarkovGunBuilder', null);
-          if (raw && byId[raw.weaponId]) {
-            baseWeapon = byId[raw.weaponId];
-            installed = raw.installed || {};
-            document.getElementById('weaponQ').value = humanize(baseWeapon.normalizedName);
-            document.getElementById('buildCard').style.display = 'block';
-            renderSchematic();
-          }
-        } catch (e) {}
-      } catch (e) {
-        st.className = 'status err'; st.textContent = e.message;
-      }
+    return {
+      ergo: Math.round(ergo * 10) / 10,
+      recV: Math.round(recV * 10) / 10,
+      recH: Math.round(recH * 10) / 10,
+      weight: Math.round(weight * 100) / 100,
+      cost: Math.round(cost),
+      sight: Math.round(sight),
+      parts: parts
     };
+  }
 
-    document.getElementById('weaponQ').addEventListener('input', () => {
-      const q = document.getElementById('weaponQ').value.toLowerCase().trim();
-      const box = document.getElementById('weaponSuggest');
-      if (q.length < 2) { box.style.display = 'none'; return; }
-      const list = weapons.filter(w => (w.normalizedName || '').includes(q)).slice(0, 20);
-      box.style.display = list.length ? 'block' : 'none';
-      box.innerHTML = list.map(w => `<div data-id="${esc(w.id)}">
-        <img class="ico" src="${esc(w.iconLink||'')}" alt="">
-        <span>${esc(humanize(w.normalizedName))}</span>
-      </div>`).join('');
-      box.querySelectorAll('div').forEach(d => d.onclick = () => {
-        baseWeapon = byId[d.dataset.id];
-        installed = {};
-        box.style.display = 'none';
-        document.getElementById('weaponQ').value = humanize(baseWeapon.normalizedName);
-        document.getElementById('buildCard').style.display = 'block';
-        renderSchematic();
-        saveBuild();
+  function scoreBuild(st, goal, budget) {
+    if (!st) return -Infinity;
+    var ergo = st.ergo;
+    var rec = st.recV + 0.5 * st.recH;
+    var price = st.cost;
+    if (budget > 0 && price > budget) return -Infinity;
+    if (goal === "maxErgo") return ergo - rec * 0.02;
+    if (goal === "minRecoil") return -rec + ergo * 0.05;
+    if (goal === "budget") {
+      var val = ergo * 2 - rec;
+      return val - price / 50000;
+    }
+    return ergo * 1.2 - rec * 0.8;
+  }
+
+  function removeSlotCascade(key, map) {
+    map = map || installed;
+    var id = map[key];
+    delete map[key];
+    if (!id || !byId[id]) return;
+    function walk(item) {
+      asArray(item.properties && item.properties.slots).forEach(function (s) {
+        var nid = s.nameId || s.name || s.id;
+        var k = item.id + "::" + nid;
+        var child = map[k];
+        if (child) {
+          delete map[k];
+          if (byId[child]) walk(byId[child]);
+        }
+      });
+    }
+    walk(byId[id]);
+  }
+
+  function setStatus(msg, ok) {
+    var el = document.getElementById("status");
+    el.className = "status" + (ok === true ? " ok" : ok === false ? " err" : "");
+    el.textContent = msg || "";
+  }
+
+  function renderStats() {
+    var st = computeStats();
+    var el = document.getElementById("stats");
+    if (!st) {
+      el.innerHTML = "";
+      return;
+    }
+    el.innerHTML =
+      '<div class="stat"><div class="v">' +
+      st.ergo +
+      '</div><div class="l">Ergonomics</div></div>' +
+      '<div class="stat"><div class="v">' +
+      st.recV +
+      '</div><div class="l">V. Recoil</div></div>' +
+      '<div class="stat"><div class="v">' +
+      st.recH +
+      '</div><div class="l">H. Recoil</div></div>' +
+      '<div class="stat"><div class="v">' +
+      st.weight +
+      ' кг</div><div class="l">Вес</div></div>' +
+      '<div class="stat"><div class="v">' +
+      fmt(st.cost) +
+      ' ₽</div><div class="l">Цена</div></div>' +
+      '<div class="stat"><div class="v">' +
+      (st.sight || "—") +
+      '</div><div class="l">Дальность</div></div>';
+  }
+
+  function renderSlots() {
+    var box = document.getElementById("slotList");
+    var slots = collectSlots();
+    var conf = conflictSet();
+    if (!slots.length) {
+      box.innerHTML = '<p class="muted">Нет слотов</p>';
+      return;
+    }
+    slots.sort(function (a, b) {
+      return fillPriority(a.nameId) - fillPriority(b.nameId);
+    });
+    box.innerHTML = slots
+      .map(function (s) {
+        var mod = s.key in installed ? byId[installed[s.key]] : null;
+        var bad = mod && conf.has(mod.id);
+        return (
+          '<div class="slot' +
+          (s.required ? " req" : "") +
+          (bad ? " conflict" : "") +
+          '" data-key="' +
+          esc(s.key) +
+          '">' +
+          '<div><div class="slot-name">' +
+          esc(slotLabel(s.nameId)) +
+          '</div><div class="slot-meta">' +
+          (mod ? esc(itemName(mod)) + " · " + fmt(itemPrice(mod)) + " ₽" : "пусто") +
+          (bad ? " · конфликт" : "") +
+          '</div></div>' +
+          '<div class="slot-actions">' +
+          '<button type="button" class="btn-sm accent" data-a="pick">Выбрать</button>' +
+          (mod ? '<button type="button" class="btn-sm" data-a="clr">Снять</button>' : "") +
+          "</div></div>"
+        );
+      })
+      .join("");
+
+    box.querySelectorAll(".slot").forEach(function (row) {
+      var key = row.getAttribute("data-key");
+      var slot = slots.find(function (x) {
+        return x.key === key;
+      });
+      row.querySelectorAll("button").forEach(function (b) {
+        b.onclick = function () {
+          var a = b.getAttribute("data-a");
+          if (a === "clr") {
+            removeSlotCascade(key);
+            paint();
+          }
+          if (a === "pick" && slot) openSlot(slot);
+        };
+      });
+    });
+  }
+
+  function openSlot(s) {
+    activeSlot = s;
+    document.getElementById("modalTitle").textContent =
+      slotLabel(s.nameId) + (s.required ? " (обяз.)" : "");
+    document.getElementById("modal").classList.add("show");
+    var filterInp = document.getElementById("modalFilter");
+    filterInp.value = "";
+    function draw() {
+      var q = (filterInp.value || "").toLowerCase().trim();
+      var list = allowedForSlot(s.filters).slice();
+      var conf = conflictSet();
+      list.sort(function (a, b) {
+        var sa = (Number((a.properties || {}).ergonomics) || 0) - (Number((a.properties || {}).recoil) || 0);
+        var sb = (Number((b.properties || {}).ergonomics) || 0) - (Number((b.properties || {}).recoil) || 0);
+        return sb - sa;
+      });
+      if (q) {
+        list = list.filter(function (m) {
+          return (
+            (itemName(m) + " " + (m.shortName || "") + " " + (m.normalizedName || ""))
+              .toLowerCase()
+              .indexOf(q) >= 0
+          );
+        });
+      }
+      var box = document.getElementById("modalList");
+      if (!list.length) {
+        box.innerHTML = '<p class="muted">Нет совместимых модов</p>';
+        return;
+      }
+      box.innerHTML = list
+        .slice(0, 80)
+        .map(function (m) {
+          var mp = m.properties || {};
+          var ergo = mp.ergonomics != null ? Number(mp.ergonomics) : null;
+          var rec = mp.recoil != null ? Number(mp.recoil) : null;
+          var bad = conf.has(m.id) || hasConflict(installed, m.id);
+          return (
+            '<div class="mod-pick" data-id="' +
+            esc(m.id) +
+            '">' +
+            (m.iconLink
+              ? '<img class="ico" src="' + esc(m.iconLink) + '" alt="">'
+              : '<div class="ico"></div>') +
+            "<div><div><b>" +
+            esc(itemName(m)) +
+            "</b>" +
+            (bad ? ' <span class="muted">конфликт</span>' : "") +
+            '</div><div class="muted">' +
+            fmt(itemPrice(m)) +
+            " ₽" +
+            (ergo != null ? " · ergo " + ergo : "") +
+            (rec != null ? " · rec " + rec + "%" : "") +
+            "</div></div></div>"
+          );
+        })
+        .join("");
+      box.querySelectorAll(".mod-pick").forEach(function (row) {
+        row.onclick = function () {
+          var id = row.getAttribute("data-id");
+          if (installed[s.key]) removeSlotCascade(s.key);
+          installed[s.key] = id;
+          document.getElementById("modal").classList.remove("show");
+          paint();
+        };
+      });
+    }
+    filterInp.oninput = draw;
+    draw();
+  }
+
+  function paint() {
+    renderStats();
+    renderSlots();
+  }
+
+  function candidateRank(m, goal) {
+    var mp = m.properties || {};
+    var ergo = Number(mp.ergonomics) || 0;
+    var rec = Number(mp.recoil != null ? mp.recoil : mp.recoilModifier) || 0;
+    if (goal === "maxErgo") return ergo * 3 - Math.abs(Math.min(0, rec));
+    if (goal === "minRecoil") return -rec * 3 + ergo * 0.3;
+    if (goal === "budget") return ergo - rec * 0.5 - itemPrice(m) / 20000;
+    return ergo * 1.5 - rec * 1.2;
+  }
+
+  function greedyFill(goal, budget, onlyBuyable) {
+    var map = {};
+    var guard = 0;
+    while (guard++ < 24) {
+      var empty = collectSlots(map).filter(function (s) {
+        return !map[s.key];
+      });
+      if (!empty.length) break;
+      empty.sort(function (a, b) {
+        return fillPriority(a.nameId) - fillPriority(b.nameId);
+      });
+      var s = empty[0];
+      var cands = allowedForSlot(s.filters).filter(function (m) {
+        if (onlyBuyable && !isBuyable(m)) return false;
+        if (hasConflict(map, m.id)) return false;
+        if (budget > 0) {
+          var trial = Object.assign({}, map);
+          trial[s.key] = m.id;
+          if (computeStats(trial).cost > budget) return false;
+        }
+        return true;
+      });
+      if (!cands.length) break;
+      cands.sort(function (a, b) {
+        return candidateRank(b, goal) - candidateRank(a, goal);
+      });
+      map[s.key] = cands[0].id;
+    }
+    return map;
+  }
+
+  function scanBuilds(goal, budget, onlyBuyable) {
+    var results = [];
+    var seen = new Set();
+
+    function keyOf(map) {
+      return Object.keys(map)
+        .sort()
+        .map(function (k) {
+          return k + "=" + map[k];
+        })
+        .join("|");
+    }
+
+    function pushMap(map) {
+      var k = keyOf(map);
+      if (seen.has(k)) return;
+      seen.add(k);
+      var st = computeStats(map);
+      var sc = scoreBuild(st, goal, budget);
+      if (sc === -Infinity) return;
+      results.push({ map: map, stats: st, score: sc });
+    }
+
+    pushMap(greedyFill(goal, budget, onlyBuyable));
+
+    var base = greedyFill(goal, budget, onlyBuyable);
+    var slots = collectSlots(base).filter(function (s) {
+      return base[s.key];
+    });
+    slots.sort(function (a, b) {
+      return fillPriority(a.nameId) - fillPriority(b.nameId);
+    });
+
+    slots.slice(0, 8).forEach(function (s) {
+      var cands = allowedForSlot(s.filters).filter(function (m) {
+        if (onlyBuyable && !isBuyable(m)) return false;
+        return true;
+      });
+      cands.sort(function (a, b) {
+        return candidateRank(b, goal) - candidateRank(a, goal);
+      });
+      cands.slice(0, 4).forEach(function (m) {
+        var map = {};
+        map[s.key] = m.id;
+        Object.keys(base).forEach(function (k) {
+          if (k === s.key) return;
+          var id = base[k];
+          if (!hasConflict(map, id)) map[k] = id;
+        });
+        var guard = 0;
+        while (guard++ < 20) {
+          var empty = collectSlots(map).filter(function (x) {
+            return !map[x.key];
+          });
+          if (!empty.length) break;
+          empty.sort(function (a, b) {
+            return fillPriority(a.nameId) - fillPriority(b.nameId);
+          });
+          var slot = empty[0];
+          var opts = allowedForSlot(slot.filters).filter(function (mm) {
+            if (onlyBuyable && !isBuyable(mm)) return false;
+            if (hasConflict(map, mm.id)) return false;
+            if (budget > 0) {
+              var t = Object.assign({}, map);
+              t[slot.key] = mm.id;
+              if (computeStats(t).cost > budget) return false;
+            }
+            return true;
+          });
+          if (!opts.length) break;
+          opts.sort(function (a, b) {
+            return candidateRank(b, goal) - candidateRank(a, goal);
+          });
+          map[slot.key] = opts[0].id;
+        }
+        pushMap(map);
       });
     });
 
-    document.getElementById('clearBuild').onclick = () => {
-      installed = {};
-      renderSchematic();
-      saveBuild();
-    };
-    document.getElementById('copyBuild').onclick = () => {
-      const st = computeStats();
-      if (!st) return;
-      const text = st.parts.map(p => humanize(p.it.normalizedName)).join('\n');
-      navigator.clipboard.writeText(text);
-    };
-  
+    pushMap({});
 
-
-(function(){
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(window.itemName&&window.itemName!==itemName)return window.itemName(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    var s=(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
-    return s||it.id||'';
+    results.sort(function (a, b) {
+      return b.score - a.score;
+    });
+    return results.slice(0, 24);
   }
+
+  function renderChart(builds) {
+    var svg = document.getElementById("abChart");
+    if (!builds.length) {
+      svg.innerHTML = "";
+      return;
+    }
+    var xs = builds.map(function (b) {
+      return b.stats.ergo;
+    });
+    var ys = builds.map(function (b) {
+      return b.stats.recV;
+    });
+    var minX = Math.min.apply(null, xs);
+    var maxX = Math.max.apply(null, xs);
+    var minY = Math.min.apply(null, ys);
+    var maxY = Math.max.apply(null, ys);
+    if (maxX === minX) maxX = minX + 1;
+    if (maxY === minY) maxY = minY + 1;
+    var pad = 16;
+    var w = 400;
+    var h = 180;
+    function px(x) {
+      return pad + ((x - minX) / (maxX - minX)) * (w - pad * 2);
+    }
+    function py(y) {
+      return pad + ((y - minY) / (maxY - minY)) * (h - pad * 2);
+    }
+    var dots = builds
+      .map(function (b, i) {
+        return (
+          '<circle cx="' +
+          px(b.stats.ergo).toFixed(1) +
+          '" cy="' +
+          py(b.stats.recV).toFixed(1) +
+          '" r="' +
+          (i === 0 ? 5 : 3.5) +
+          '" fill="' +
+          (i === 0 ? "var(--accent,#c9a227)" : "#7ec8ff") +
+          '" opacity=".9"/>'
+        );
+      })
+      .join("");
+    svg.innerHTML =
+      '<text x="8" y="14" fill="#888" font-size="10">ergo →</text>' +
+      '<text x="8" y="170" fill="#888" font-size="10">recoil ↓</text>' +
+      dots;
+  }
+
+  function renderAbResults(builds) {
+    abBuilds = builds;
+    var box = document.getElementById("abResults");
+    if (!builds.length) {
+      box.innerHTML = '<p class="muted">Нет сборок под эти настройки</p>';
+      renderChart([]);
+      return;
+    }
+    box.innerHTML = builds
+      .map(function (b, i) {
+        var n = Object.keys(b.map).length;
+        return (
+          '<div class="ab-card' +
+          (i === 0 ? " on" : "") +
+          '" data-i="' +
+          i +
+          '"><div class="t">#' +
+          (i + 1) +
+          " · ergo " +
+          b.stats.ergo +
+          " · V.rec " +
+          b.stats.recV +
+          " · " +
+          fmt(b.stats.cost) +
+          ' ₽</div><div class="m">' +
+          n +
+          " модов · вес " +
+          b.stats.weight +
+          " кг · score " +
+          Math.round(b.score) +
+          "</div></div>"
+        );
+      })
+      .join("");
+    box.querySelectorAll(".ab-card").forEach(function (card) {
+      card.onclick = function () {
+        var i = Number(card.getAttribute("data-i"));
+        var b = abBuilds[i];
+        if (!b) return;
+        installed = Object.assign({}, b.map);
+        paint();
+        box.querySelectorAll(".ab-card").forEach(function (c) {
+          c.classList.toggle("on", c === card);
+        });
+        document.getElementById("abStatus").textContent = "Применена сборка #" + (i + 1);
+      };
+    });
+    renderChart(builds);
+  }
+
+  function runAutoBuild() {
+    if (!baseWeapon) return;
+    var budget = Math.max(0, Number(document.getElementById("abBudget").value) || 0);
+    var onlyBuyable = document.getElementById("abBuyable").value === "1";
+    document.getElementById("abStatus").textContent = "Сканирование…";
+    setTimeout(function () {
+      try {
+        var builds = scanBuilds(abGoal, budget, onlyBuyable);
+        renderAbResults(builds);
+        document.getElementById("abStatus").textContent = builds.length
+          ? "Найдено вариантов: " + builds.length + ". Кликни, чтобы применить."
+          : "Пусто — ослабь бюджет или buyable.";
+      } catch (e) {
+        document.getElementById("abStatus").textContent = e.message || String(e);
+      }
+    }, 30);
+  }
+
+  document.getElementById("loadBtn").onclick = async function () {
+    var btn = document.getElementById("loadBtn");
+    btn.disabled = true;
+    setStatus("Loading…");
+    var P = window.TarkovUI && TarkovUI.progress;
+    try {
+      if (P) P.start({ label: "Items…" });
+      var mode = document.getElementById("gameMode").value || "pve";
+      var items = asArray(await TarkovAPI.items(mode));
+      byId = {};
+      weapons = [];
+      mods = [];
+      items.forEach(function (it) {
+        if (!it || !it.id) return;
+        byId[it.id] = it;
+        if (isWeapon(it)) weapons.push(it);
+        if (isMod(it)) mods.push(it);
+      });
+      setStatus("Оружие: " + weapons.length + " · моды: " + mods.length, true);
+      document.getElementById("pickCard").style.display = "block";
+      if (P) P.done();
+    } catch (e) {
+      setStatus(e.message || String(e), false);
+      if (P) P.fail(e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  document.getElementById("weaponQ").addEventListener("input", function () {
+    var q = this.value.toLowerCase().trim();
+    var box = document.getElementById("weaponSuggest");
+    if (!q || q.length < 2) {
+      box.style.display = "none";
+      box.innerHTML = "";
+      return;
+    }
+    var hits = weapons
+      .filter(function (w) {
+        return (
+          (itemName(w) + " " + (w.shortName || "") + " " + (w.normalizedName || ""))
+            .toLowerCase()
+            .indexOf(q) >= 0
+        );
+      })
+      .slice(0, 15);
+    if (!hits.length) {
+      box.style.display = "none";
+      return;
+    }
+    box.innerHTML = hits
+      .map(function (w) {
+        return (
+          '<button type="button" data-id="' +
+          esc(w.id) +
+          '"><b>' +
+          esc(itemName(w)) +
+          '</b> <span class="muted">' +
+          esc(w.shortName || "") +
+          "</span></button>"
+        );
+      })
+      .join("");
+    box.style.display = "block";
+    box.querySelectorAll("button").forEach(function (btn) {
+      btn.onclick = function () {
+        baseWeapon = byId[btn.getAttribute("data-id")];
+        installed = {};
+        document.getElementById("weaponQ").value = itemName(baseWeapon);
+        box.style.display = "none";
+        document.getElementById("buildCard").style.display = "block";
+        document.getElementById("mainLayout").style.display = "grid";
+        paint();
+        document.getElementById("abResults").innerHTML = "";
+        document.getElementById("abChart").innerHTML = "";
+      };
+    });
+  });
+
+  document.getElementById("clearBuild").onclick = function () {
+    installed = {};
+    paint();
+  };
+
+  document.getElementById("copyBuild").onclick = function () {
+    var st = computeStats();
+    if (!st) return;
+    var lines = st.parts.map(function (p) {
+      return (p.slot === "base" ? "WEAPON" : p.slot) + ": " + itemName(p.it);
+    });
+    lines.push(
+      "— ergo " + st.ergo + " | V " + st.recV + " | H " + st.recH + " | " + fmt(st.cost) + " ₽"
+    );
+    var t = lines.join("\n");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t);
+      setStatus("Скопировано", true);
+    }
+  };
+
+  document.getElementById("abGoal").onclick = function (ev) {
+    var t = ev.target;
+    if (!t.getAttribute || !t.getAttribute("data-g")) return;
+    abGoal = t.getAttribute("data-g");
+    document.querySelectorAll("#abGoal .chip").forEach(function (c) {
+      c.classList.toggle("on", c.getAttribute("data-g") === abGoal);
+    });
+  };
+
+  document.getElementById("abScan").onclick = runAutoBuild;
+
+  document.getElementById("modalClose").onclick = function () {
+    document.getElementById("modal").classList.remove("show");
+  };
+  document.getElementById("modal").onclick = function (e) {
+    if (e.target.id === "modal") e.target.classList.remove("show");
+  };
 })();
