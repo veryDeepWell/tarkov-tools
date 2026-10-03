@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   'use strict';
   var POLL_ID = 'price-alarm';
   var RULES_KEY = 'tarkovPriceAlarmRules';
@@ -27,7 +27,7 @@
     el.textContent = msg || '';
   }
 
-  /** Rules schema v1: { _v: 1, rules: [...] } — bare array migrated once */
+  /** Rules schema v1: { _v: 1, rules: [...] } â€” bare array migrated once */
   function loadRules() {
     try {
       if (window.TarkovSchema && TarkovSchema.readJson) {
@@ -193,7 +193,7 @@
   }
 
   function notifyHit(h) {
-    var title = 'Сирена цен';
+    var title = 'Ð¡Ð¸Ñ€ÐµÐ½Ð° Ñ†ÐµÐ½';
     try {
       if (window.TarkovI18n && TarkovI18n.t) {
         var t = TarkovI18n.t('priceAlarm.notifTitle');
@@ -213,7 +213,7 @@
       (h.rule.op || '<=') +
       ' ' +
       h.rule.threshold +
-      ' (сейчас ' +
+      ' (ÑÐµÐ¹Ñ‡Ð°Ñ ' +
       (h.rule.metric === 'offers' ? val : fmtRub(val)) +
       ')';
     try {
@@ -258,7 +258,7 @@
       });
       hits.forEach(notifyHit);
       if (P && P.done) P.done();
-      status('Проверка: ' + catalog.length + ' предметов, срабатываний ' + hits.length, true);
+      status('ÐŸÑ€Ð¾Ð²ÐµÑ€ÐºÐ°: ' + catalog.length + ' Ð¿Ñ€ÐµÐ´Ð¼ÐµÑ‚Ð¾Ð², ÑÑ€Ð°Ð±Ð°Ñ‚Ñ‹Ð²Ð°Ð½Ð¸Ð¹ ' + hits.length, true);
       var st = window.TarkovPoll ? TarkovPoll.status(POLL_ID) : { on: false };
       if (st.on) reportMini(true, hits.length ? 'hits ' + hits.length : 'ok');
       else reportMini(false, 'idle');
@@ -286,13 +286,13 @@
     var q = input.value || '';
     if (!catalogReady) {
       box.hidden = false;
-      box.innerHTML = '<div class="suggest-item" style="cursor:default;color:var(--muted)">Загрузка каталога…</div>';
+      box.innerHTML = '<div class="suggest-item" style="cursor:default;color:var(--muted)">Ð—Ð°Ð³Ñ€ÑƒÐ·ÐºÐ° ÐºÐ°Ñ‚Ð°Ð»Ð¾Ð³Ð°â€¦</div>';
       ensureCatalog()
         .then(function () {
           if (openSuggestIdx === idx) showSuggest(idx, input, box);
         })
         .catch(function () {
-          box.innerHTML = '<div class="suggest-item" style="cursor:default;color:var(--muted)">Не удалось загрузить</div>';
+          box.innerHTML = '<div class="suggest-item" style="cursor:default;color:var(--muted)">ÐÐµ ÑƒÐ´Ð°Ð»Ð¾ÑÑŒ Ð·Ð°Ð³Ñ€ÑƒÐ·Ð¸Ñ‚ÑŒ</div>';
         });
       return;
     }
@@ -305,7 +305,7 @@
       }
       box.hidden = false;
       box.innerHTML =
-        '<div class="suggest-item" style="cursor:default;color:var(--muted)">Ничего не найдено</div>';
+        '<div class="suggest-item" style="cursor:default;color:var(--muted)">ÐÐ¸Ñ‡ÐµÐ³Ð¾ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½Ð¾</div>';
       return;
     }
     openSuggestIdx = idx;
@@ -357,7 +357,7 @@
     if (!box) return;
     var rules = loadRules();
     if (!rules.length) {
-      box.innerHTML = '<p class="meta">Пока нет правил. Нажмите «+ Правило».</p>';
+      box.innerHTML = '<p class="meta">ÐŸÐ¾ÐºÐ° Ð½ÐµÑ‚ Ð¿Ñ€Ð°Ð²Ð¸Ð». ÐÐ°Ð¶Ð¼Ð¸Ñ‚Ðµ Â«+ ÐŸÑ€Ð°Ð²Ð¸Ð»Ð¾Â».</p>';
       return;
     }
     box.innerHTML = rules
@@ -366,7 +366,7 @@
         var p = it ? priceOf(it) : null;
         var meta = '';
         if (!catalogReady) {
-          meta = '<span class="meta">Каталог…</span>';
+          meta = '<span class="meta">ÐšÐ°Ñ‚Ð°Ð»Ð¾Ð³â€¦</span>';
         } else if (it && p) {
           var cur =
             r.metric === 'low'
@@ -387,12 +387,12 @@
             '<span>low ' +
             esc(fmtRub(p.low)) +
             '</span>' +
-            '<span>офферы ' +
+            '<span>Ð¾Ñ„Ñ„ÐµÑ€Ñ‹ ' +
             esc(String(p.offers)) +
             '</span>' +
-            (hit ? '<span class="ok">сработает</span>' : '');
+            (hit ? '<span class="ok">ÑÑ€Ð°Ð±Ð¾Ñ‚Ð°ÐµÑ‚</span>' : '');
         } else if (r.q || r.id) {
-          meta = '<span class="miss">предмет не найден</span>';
+          meta = '<span class="miss">Ð¿Ñ€ÐµÐ´Ð¼ÐµÑ‚ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½</span>';
         }
         var mAvg = r.metric !== 'low' && r.metric !== 'offers' ? ' selected' : '';
         var mLow = r.metric === 'low' ? ' selected' : '';
@@ -405,19 +405,19 @@
           '">' +
           '<div class="rule-top">' +
           '<div class="field" style="flex:2;min-width:180px">' +
-          '<label>Предмет</label>' +
+          '<label>ÐŸÑ€ÐµÐ´Ð¼ÐµÑ‚</label>' +
           '<div class="rule-search-wrap">' +
           '<input type="search" autocomplete="off" data-i="' +
           i +
           '" data-k="q" value="' +
           esc(r.q || '') +
-          '" placeholder="Начните вводить название…">' +
+          '" placeholder="ÐÐ°Ñ‡Ð½Ð¸Ñ‚Ðµ Ð²Ð²Ð¾Ð´Ð¸Ñ‚ÑŒ Ð½Ð°Ð·Ð²Ð°Ð½Ð¸Ðµâ€¦">' +
           '<div class="suggest" data-suggest="' +
           i +
           '" hidden></div>' +
           '</div></div>' +
           '<div class="field narrow">' +
-          '<label>Метрика</label>' +
+          '<label>ÐœÐµÑ‚Ñ€Ð¸ÐºÐ°</label>' +
           '<select data-i="' +
           i +
           '" data-k="metric">' +
@@ -429,10 +429,10 @@
           '>low</option>' +
           '<option value="offers"' +
           mOff +
-          '>офферы</option>' +
+          '>Ð¾Ñ„Ñ„ÐµÑ€Ñ‹</option>' +
           '</select></div>' +
           '<div class="field narrow">' +
-          '<label>Условие</label>' +
+          '<label>Ð£ÑÐ»Ð¾Ð²Ð¸Ðµ</label>' +
           '<select data-i="' +
           i +
           '" data-k="op">' +
@@ -444,7 +444,7 @@
           '>' + String.fromCharCode(62) + '=</option>' +
           '</select></div>' +
           '<div class="field narrow">' +
-          '<label>Порог</label>' +
+          '<label>ÐŸÐ¾Ñ€Ð¾Ð³</label>' +
           '<input type="number" data-i="' +
           i +
           '" data-k="threshold" value="' +
@@ -454,7 +454,7 @@
           '<div class="rule-actions">' +
           '<button type="button" class="btn-ghost" data-del="' +
           i +
-          '" title="Удалить">' +
+          '" title="Ð£Ð´Ð°Ð»Ð¸Ñ‚ÑŒ">' +
           String.fromCharCode(0xd7) +
           '</button>' +
           '</div></div>' +
@@ -536,13 +536,13 @@
     );
     var cd = document.getElementById('countdown');
     if (cd) TarkovPoll.bindCountdown(cd, POLL_ID);
-    status('Фон каждые ' + mins + ' мин', true);
+    status('Ð¤Ð¾Ð½ ÐºÐ°Ð¶Ð´Ñ‹Ðµ ' + mins + ' Ð¼Ð¸Ð½', true);
     reportMini(true, 'every ' + mins + 'm');
   }
 
   function stopBg() {
     if (window.TarkovPoll) TarkovPoll.stop(POLL_ID);
-    status('Остановлено', true);
+    status('ÐžÑÑ‚Ð°Ð½Ð¾Ð²Ð»ÐµÐ½Ð¾', true);
     reportMini(false, 'idle');
   }
 
@@ -621,3 +621,4 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();
+

@@ -1,0 +1,43 @@
+{
+  "version": "1.0",
+  "generated": "2026-10-03",
+  "description": "Метаданные инструментов taTarkov",
+  "tools": [
+    {
+      "id": "tarkovtool-ammo.html",
+      "title": "Патроны",
+      "description": "Пробитие по калибрам; скрытые статы патрона по наведению.",
+      "file": "tarkovtool-ammo.html"
+    },
+    {
+      "id": "tarkovtool-armor.html",
+      "title": "Броня",
+      "description": "Рейтинг брони по классу, зонам, плитам, без упора в цену.",
+      "file": "tarkovtool-armor.html"
+    },
+    {
+      "id": "tarkovtool-barter-calc.html",
+      "title": "Бартер (ручной)",
+      "description": "Калькулятор выгодности бартера: компоненты, комиссия flea.",
+      "file": "tarkovtool-barter-calc.html"
+    },
+    {
+      "id": "tarkovtool-barter-live.html",
+      "title": "Бартер + живые цены",
+      "description": "Калькулятор бартера с live-ценами из API.",
+      "file": "tarkovtool-barter-live.html"
+    },
+    {
+      "id": "tarkovtool-barter-opt.html",
+      "title": "Оптимизатор бартера",
+      "description": "Бартер под покупку в бюджет: реальные цены ингредиентов, не флип.",
+      "kind": "static"
+    },
+    {
+      "id": "tarkovtool-bosses.html",
+      "title": "Боссы и гуны",
+      "description": "Шансы боссов, таймеры карт, текущая локация гунов.",
+      "file": "tarkovtool-bosses.html"
+    }
+  ]
+}
