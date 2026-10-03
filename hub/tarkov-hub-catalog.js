@@ -1,4 +1,4 @@
-/*! Hub catalog — single source: catalog.json (optional __TT_CATALOG_DATA bootstrap) */
+/*! Hub catalog — single source: __TT_CATALOG_DATA bootstrap or TarkovStorage */
 (function (global) {
   "use strict";
   global.TarkovHubCATALOG = global.TarkovHubCATALOG || [];
@@ -18,23 +18,13 @@
     return true;
   }
 
-  /* Optional offline bootstrap (same content as catalog.json) — not a second source of truth */
+  /* Offline bootstrap — use __TT_CATALOG_DATA if available */
   if (global.__TT_CATALOG_DATA) {
-    try { apply(global.__TT_CATALOG_DATA); } catch (e) {}
+    try { apply(global.__TT_CATALOG_DATA); } catch (e) {
+      console.warn("Failed to apply __TT_CATALOG_DATA bootstrap:", e);
+    }
   }
 
-  function loadJson() {
-    return fetch("catalog.json", { cache: "no-cache" })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (data) {
-        if (!data) return;
-        apply(data);
-        try {
-          if (typeof window.renderCatalog === "function") window.renderCatalog();
-        } catch (e) {}
-      })
-      .catch(function () {});
-  }
-
-  loadJson();
+  // No fetch — rely on bootstrap or TarkovStorage only
+  global.TarkovHubCATALOG_READY = true;
 })(window);

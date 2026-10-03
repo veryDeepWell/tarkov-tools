@@ -96,7 +96,7 @@ Core-рейтинг предметов (tarkov-item-score)
 armor / plates / helmets / food: один progress, одни фильтры, один score API из п.16.
 
 Locale drift у новых тулов
-Пройтись по HTML/JS последних 15 тулов: русские строки в UI → ключи i18n где shell уже умеет.
+Пройтись по HTML/JS всех тулов: русские строки в UI → ключи i18n где shell уже умеет.
 
 
 

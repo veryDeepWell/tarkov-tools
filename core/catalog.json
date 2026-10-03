@@ -1,6 +1,3 @@
-<<<<<<< Updated upstream
-PLACEHOLDER
-=======
 ﻿{
     "drip-builder":  {
                          "kind":  "static",
@@ -231,4 +228,4 @@ PLACEHOLDER
                    "title":  "quests"
                }
 }
->>>>>>> Stashed changes
+
