@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Боевой пропуск — Tarkov</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title":"Боевой пропуск","description":"Трекинг Kord Breach BP: доки, страницы, награды.","kind":"static"}
+  </script>
+  <style>
+    .container { max-width: min(1100px, 96vw); margin: 0 auto; padding: 12px 14px 64px; }
+    h1 { margin-bottom: 4px; }
+    .sub { color: var(--muted); margin-bottom: 14px; font-size: .92rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+    .card-title { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .muted { color: var(--muted); font-size: .85rem; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { flex: 1; min-width: 100px; }
+    .field label { display: block; font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
+    .field input { width: 100%; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+    .stat { background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+    .stat .v { font-size: 1.25rem; font-weight: 800; color: var(--accent); }
+    .stat .l { font-size: .7rem; color: var(--muted); margin-top: 2px; }
+    button.btn-outline {
+      background: transparent !important; color: var(--accent) !important;
+      border: 1px solid var(--accent) !important; border-radius: 8px; padding: 8px 14px;
+      font-weight: 600; cursor: pointer;
+    }
+    .btn-sm {
+      font-size: .75rem; padding: 4px 10px; border-radius: 8px; cursor: pointer;
+      border: 1px solid var(--border); background: transparent !important; color: var(--text) !important;
+    }
+    .btn-sm.accent { border-color: var(--accent) !important; color: var(--accent) !important; }
+    .page {
+      border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; overflow: hidden;
+      background: var(--input-bg);
+    }
+    .page-head {
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      padding: 10px 12px; cursor: pointer; border-bottom: 1px solid transparent;
+    }
+    .page-head:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+    .page.open .page-head { border-bottom-color: var(--border); }
+    .page.locked { opacity: .55; }
+    .page-body { display: none; padding: 8px 10px 12px; }
+    .page.open .page-body { display: block; }
+    .reward {
+      display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center;
+      padding: 8px; border-radius: 8px; border: 1px solid transparent;
+    }
+    .reward:hover { background: rgba(255,255,255,.03); }
+    .reward.claimed { opacity: .65; }
+    .reward input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); }
+    .reward .name { font-weight: 600; font-size: .9rem; }
+    .reward .meta { font-size: .75rem; color: var(--muted); }
+    .note { font-size: .82rem; color: var(--muted); line-height: 1.45; margin-top: 8px; }
+    .bar { height: 10px; border-radius: 6px; background: #0a0c10; border: 1px solid var(--border); overflow: hidden; margin-top: 8px; }
+    .bar > span { display: block; height: 100%; background: var(--accent); width: 0; transition: width .2s; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Боевой пропуск</h1>
+    <p class="sub">KORD BREACH — трекинг наград и документов. Справочные цифры; точные требования к награде смотри в клиенте (могут отличаться).</p>
+
+    <div class="card">
+      <div class="card-title">Сводка</div>
+      <div class="stats" id="stats"></div>
+      <div class="bar"><span id="progBar"></span></div>
+      <p class="note" id="progNote"></p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Документы в инвентаре (любой режим)</div>
+      <div class="row" id="docInputs"></div>
+      <div class="row" style="margin-top:10px">
+        <button type="button" class="btn-outline" id="saveDocs">Сохранить</button>
+        <button type="button" class="btn-sm" id="resetClaimed">Сбросить отмеченные награды</button>
+      </div>
+      <p class="note">5 любых доков → 1 нужного типа (обмен в игре). Classified заменяет любой тип.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Награды по страницам</div>
+      <p class="muted" style="margin:0 0 10px">Отмечай полученные. Страница открывается после N наград на предыдущей.</p>
+      <div id="pages"></div>
+    </div>
+  </div>
+  <script src="../core/tarkov-dicts.js"></script>
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-battle-pass.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Хитбоксы и урон — Tarkov</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title":"Хитбоксы и урон","description":"Механика HP, хитбоксов, переноса урона + симулятор попаданий","kind":"static"}
+  </script>
+  <style>
+    .container { max-width: min(1200px, 96vw); margin: 0 auto; padding: 12px 14px 64px; }
+    h1 { margin-bottom: 4px; }
+    .sub { color: var(--muted); margin-bottom: 14px; font-size: .92rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+    .card-title { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .muted { color: var(--muted); font-size: .85rem; }
+    .note { font-size: .82rem; color: var(--muted); line-height: 1.45; margin-top: 8px; }
+    .layout { display: grid; gap: 14px; }
+    @media (min-width: 900px) {
+      .layout { grid-template-columns: 320px 1fr; align-items: start; }
+    }
+    .body-wrap {
+      position: relative; background: var(--input-bg); border: 1px solid var(--border);
+      border-radius: 14px; padding: 12px; user-select: none;
+    }
+    .body-svg { width: 100%; max-width: 280px; margin: 0 auto; display: block; }
+    .hit-zone { cursor: pointer; transition: fill .12s, stroke .12s; }
+    .hit-zone:hover { filter: brightness(1.25); }
+    .hit-zone.blacked { fill: #1a1a1a !important; stroke: #555; }
+    .hit-zone.hurt { fill: #5a2a2a; }
+    .hit-zone.selected { stroke: var(--accent); stroke-width: 2.5; }
+    .hp-label {
+      font-size: 11px; font-weight: 700; fill: #e8eaed; pointer-events: none;
+      text-anchor: middle; dominant-baseline: middle;
+    }
+    .hp-label.dim { fill: #8b919a; font-weight: 500; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    button.btn-outline {
+      background: transparent !important; color: var(--accent) !important;
+      border: 1px solid var(--accent) !important; border-radius: 8px; padding: 8px 14px;
+      font-weight: 600; cursor: pointer;
+    }
+    .btn-sm {
+      font-size: .75rem; padding: 5px 10px; border-radius: 8px; cursor: pointer;
+      border: 1px solid var(--border); background: transparent !important; color: var(--text) !important;
+    }
+    .btn-sm.accent { border-color: var(--accent) !important; color: var(--accent) !important; }
+    .btn-sm.danger { border-color: #f07178 !important; color: #f07178 !important; }
+    .field { margin-bottom: 8px; }
+    .field label { display: block; font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
+    .field select, .field input {
+      width: 100%; padding: 8px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--input-bg); color: var(--text);
+    }
+    .ammo-info { font-size: .82rem; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+    .ammo-info strong { color: var(--text); }
+    .history {
+      max-height: 220px; overflow-y: auto; font-size: .82rem;
+      border: 1px solid var(--border); border-radius: 10px; background: var(--input-bg);
+    }
+    .history-item {
+      padding: 8px 10px; border-bottom: 1px solid var(--border);
+      display: grid; gap: 2px;
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-item .t { font-weight: 600; }
+    .history-item .d { color: var(--muted); }
+    .effects { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; min-height: 28px; }
+    .eff {
+      font-size: .72rem; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+    .eff.fracture { background: color-mix(in srgb, #e0a040 20%, transparent); color: #e0a040; border-color: #e0a040; }
+    .eff.bleed-l { background: color-mix(in srgb, #f07178 18%, transparent); color: #f07178; border-color: #f07178; }
+    .eff.bleed-h { background: color-mix(in srgb, #c0392b 25%, transparent); color: #ff6b6b; border-color: #c0392b; }
+    .eff.dead { background: #3a1010; color: #ff4d4d; border-color: #ff4d4d; }
+    .parts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: .82rem; }
+    .part-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg);
+    }
+    .part-row.blacked { opacity: .55; }
+    .part-row .name { font-weight: 600; }
+    .part-row input {
+      width: 56px; padding: 3px 6px; border-radius: 6px; text-align: right;
+      border: 1px solid var(--border); background: #0a0c10; color: var(--text); font-size: .82rem;
+    }
+    .mech h3 { font-size: .95rem; margin: 14px 0 6px; }
+    .mech p, .mech li { font-size: .88rem; line-height: 1.5; color: var(--text); }
+    .mech ul { margin: 6px 0 6px 1.2em; padding: 0; }
+    .mech table { width: 100%; border-collapse: collapse; font-size: .85rem; margin: 8px 0; }
+    .mech th, .mech td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+    .mech th { color: var(--muted); font-size: .72rem; text-transform: uppercase; }
+    .schema {
+      font-family: ui-monospace, monospace; font-size: .75rem; line-height: 1.45;
+      background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px; overflow-x: auto; white-space: pre; color: var(--muted);
+    }
+    .sources a { color: var(--accent); }
+    .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+    .tab {
+      padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: .82rem; font-weight: 600;
+      border: 1px solid var(--border); background: transparent; color: var(--muted);
+    }
+    .tab.on { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+    .panel { display: none; }
+    .panel.on { display: block; }
+    .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Хитбоксы и урон</h1>
+    <p class="sub">Механика HP / хитбоксов по разбору Жбобыха + симулятор попаданий (без брони, для обучения).</p>
+
+    <div class="tabs" id="tabs">
+      <button type="button" class="tab on" data-tab="sim">Симулятор</button>
+      <button type="button" class="tab" data-tab="mech">Механика</button>
+      <button type="button" class="tab" data-tab="src">Источники</button>
+    </div>
+
+    <!-- SIM -->
+    <div class="panel on" id="panel-sim">
+      <div class="layout">
+        <div>
+          <div class="card body-wrap">
+            <div class="card-title">Болванчик · клик = попадание</div>
+            <svg class="body-svg" viewBox="0 0 200 420" xmlns="http://www.w3.org/2000/svg" id="bodySvg">
+              <!-- Head -->
+              <ellipse class="hit-zone" data-part="head" cx="100" cy="42" rx="28" ry="32" fill="#3d4a5c" stroke="#5a6a7e"/>
+              <text class="hp-label" id="lbl-head" x="100" y="42">35</text>
+              <!-- Thorax -->
+              <path class="hit-zone" data-part="thorax" d="M70 78 L130 78 L138 150 L62 150 Z" fill="#3d4a5c" stroke="#5a6a7e"/>
+              <text class="hp-label" id="lbl-thorax" x="100" y="115">85</text>
+              <!-- Stomach -->
+              <path class="hit-zone" data-part="stomach" d="M62 152 L138 152 L132 210 L68 210 Z" fill="#3d4a5c" stroke="#5a6a7e"/>
+              <text class="hp-label" id="lbl-stomach" x="100" y="182">70</text>
+              <!-- Left arm (viewer right = character left) -->
+              <path class="hit-zone" data-part="leftArm" d="M138 82 L168 90 L172 175 L148 170 L140 120 Z" fill="#3d4a5c" stroke="#5a6a7e"/>
+              <text class="hp-label" id="lbl-leftArm" x="158" y="130">60</text>
+              <!-- Right arm -->
+              <path class="hit-zone" data-part="rightArm" d="M62 82 L32 90 L28 175 L52 170 L60 120 Z" fill="#3d4a5c" stroke="#5a6a7e"/>
+              <text class="hp-label" id="lbl-rightArm" x="42" y="130">60</text>
+              <!-- Left leg -->
+              <path class="hit-zone" data-part="leftLeg" d="M105 212 L132 212 L138 380 L112 380 Z" fill="#3d4a5c" stroke="#5a6a7e"/>
+              <text class="hp-label" id="lbl-leftLeg" x="122" y="295">65</text>
+              <!-- Right leg -->
+              <path class="hit-zone" data-part="rightLeg" d="M95 212 L68 212 L62 380 L88 380 Z" fill="#3d4a5c" stroke="#5a6a7e"/>
+              <text class="hp-label" id="lbl-rightLeg" x="78" y="295">65</text>
+            </svg>
+            <div class="effects" id="effects"></div>
+            <div class="controls">
+              <button type="button" class="btn-sm accent" id="btnHeal">Вылечить всё</button>
+              <button type="button" class="btn-sm" id="btnReset">Сброс HP</button>
+              <button type="button" class="btn-sm danger" id="btnClearHist">Очистить историю</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <div class="card-title">Патрон</div>
+            <div class="field">
+              <label>Выбор патрона</label>
+              <select id="ammoSelect"></select>
+            </div>
+            <div class="ammo-info" id="ammoInfo"></div>
+            <p class="note">Симуляция без брони: flesh damage применяется целиком. Пробитие влияет только на «продолжит ли пуля» (в этом тулзе — для истории).</p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">HP частей · можно править вручную</div>
+            <div class="parts-grid" id="partsGrid"></div>
+            <div class="controls" style="margin-top:10px">
+              <div class="presets" id="presets"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">История попаданий</div>
+            <div class="history" id="history"><div class="history-item"><div class="d">Кликни по части тела</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MECH -->
+    <div class="panel" id="panel-mech">
+      <div class="card mech">
+        <div class="card-title">Конспект механики (по видео Жбобыха)</div>
+
+        <h3>1. Как хранится здоровье</h3>
+        <p>Внутренние HP могут быть <strong>дробными</strong>. UI показывает округление: при &gt;50% остатка — вниз, при &lt;50% — вверх. Округление <strong>не влияет</strong> на расчёты урона.</p>
+
+        <h3>2. Попадание и пробитие</h3>
+        <p>У хитбокса есть порог пробития. Если пробития пули хватает — пуля проходит дальше; если нет — останавливается. <strong>Непробитие ≠ нет урона</strong>: урон наносится в любом случае, пробитие решает только продолжение полёта.</p>
+
+        <h3>3. Overpenetration нет</h3>
+        <p>Отдельного штрафа к урону за «проход навылет» нет. На урон влияют дистанция, рикошет и фрагментация (у брони), но не сам факт прохода сквозь тело.</p>
+
+        <h3>4. Рикошет и фрагментация тела</h3>
+        <p>Для частей тела вероятность рикошета и фрагментации = 0. Эти механики относятся к <strong>броне</strong>.</p>
+
+        <h3>5. Переломы и кровотечения</h3>
+        <p>Зависят от доли max HP части, снятой <strong>одним попаданием</strong>, плюс рандом:</p>
+        <table>
+          <thead><tr><th>Эффект</th><th>Мин. урон за хит</th></tr></thead>
+          <tbody>
+            <tr><td>Перелом</td><td>30% HP части</td></tr>
+            <tr><td>Лёгкое кровотечение</td><td>35% HP</td></tr>
+            <tr><td>Тяжёлое кровотечение</td><td>50% HP</td></tr>
+          </tbody>
+        </table>
+        <p>Тяжёлое кровотечение имеет приоритет над лёгким.</p>
+
+        <h3>6. Одна пуля — один урон на хитбокс</h3>
+        <p>Одна пуля не бьёт один и тот же хитбокс дважды. Но может последовательно поразить <strong>несколько разных</strong> хитбоксов (A → пробитие → B).</p>
+
+        <h3>7–10. «Чёрная» конечность и перенос</h3>
+        <p>При 0 HP часть «чёрная». Попадание в неё не снимает HP с неё — <strong>лишний урон переносится</strong> на живые части пропорционально их max HP, с множителями:</p>
+        <table>
+          <thead><tr><th>Часть</th><th>Множитель</th></tr></thead>
+          <tbody>
+            <tr><td>Живот</td><td>150%</td></tr>
+            <tr><td>Нога</td><td>100%</td></tr>
+            <tr><td>Рука</td><td>70%</td></tr>
+          </tbody>
+        </table>
+        <p>Общий множитель получения урона от выбитых частей: <strong>70%</strong>. Голова и грудь на 0 HP: дальнейшее попадание / перенос в них = смерть.</p>
+
+        <h3>11–12. Смерть и труп</h3>
+        <p>Выбитая голова или грудь — критично. Труп остаётся физическим объектом и может останавливать пули (укрытие).</p>
+
+        <h3>Схема</h3>
+        <div class="schema">ПУЛЯ → хитбокс → пробитие?
+  ├─ да → летит дальше
+  └─ нет → стоп
+→ урон всегда
+→ эффекты (перелом / bleed)
+→ если часть уже 0 HP → перенос
+     (множители → доля по max HP живых)
+     → голова/грудь 0 → СМЕРТЬ</div>
+      </div>
+    </div>
+
+    <!-- SOURCES -->
+    <div class="panel" id="panel-src">
+      <div class="card sources">
+        <div class="card-title">Источники</div>
+        <ul style="margin:0;padding-left:1.2em;line-height:1.7;font-size:.9rem">
+          <li><strong>Хитбоксы / HP / перенос урона</strong> — видео Жбобыха: <a href="https://youtu.be/0_S-UtdBYYQ?si=Lq7af7qg87u-M03i" target="_blank" rel="noopener">youtu.be/0_S-UtdBYYQ</a></li>
+          <li><strong>Данные предметов, цены, квесты</strong> — <a href="https://tarkov.dev" target="_blank" rel="noopener">Tarkov.dev</a> API / open data</li>
+          <li><strong>Сезоны и Battle Pass</strong> — официальная вики EFT, Tarkov Market, патчноуты BSG, разборы сообщества (Reddit)</li>
+        </ul>
+        <p class="note">Симулятор упрощён: без брони, дистанции и фрагментации. Цифры HP частей — стандартные значения персонажа; механика переноса — по конспекту ролика.</p>
+      </div>
+    </div>
+  </div>
+  <script src="../core/tarkov-dicts.js"></script>
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="tarkovtool-hitboxes.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>
