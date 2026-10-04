@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Калькулятор выгодности бартера — Tarkov</title>
+  <title data-i18n="tool.barter-calc.ui.heading">Калькулятор выгодности бартера — Tarkov</title>
   <style>
     :root {
       --bg: #0f1115;
@@ -312,30 +312,30 @@
 </head>
 <body>
   <div class="container">
-    <h1>Калькулятор бартера Tarkov</h1>
-    <p class="subtitle">Считай прибыль с бартерных сделок на барахолке</p>
+    <h1 data-i18n="tool.barter-calc.ui.heading">Калькулятор бартера Tarkov</h1>
+    <p class="subtitle" data-i18n="tool.barter-calc.ui.subtitle">Считай прибыль с бартерных сделок на барахолке</p>
 
     <!-- Пресеты -->
     <div class="card">
-      <div class="card-title">Пресеты популярных бартеров</div>
+      <div class="card-title" data-i18n="tool.barter-calc.ui.presets">Пресеты популярных бартеров</div>
       <div class="presets" id="presets"></div>
-      <p class="preset-note">Цены на компоненты нужно подставить актуальные с барахолки. Цена продажи — ориентир, правь под рынок.</p>
+      <p class="preset-note" data-i18n="tool.barter-calc.ui.presetNote">Цены на компоненты нужно подставить актуальные с барахолки. Цена продажи — ориентир, правь под рынок.</p>
     </div>
 
     <!-- Результат бартера -->
     <div class="card">
-      <div class="card-title">Что получаем (результат бартера)</div>
+      <div class="card-title" data-i18n="tool.barter-calc.ui.result">Что получаем (результат бартера)</div>
       <div class="row">
         <div class="field">
-          <label for="resultName">Название</label>
-          <input type="text" id="resultName" placeholder="Кейс для предметов" value="Кейс для предметов">
+          <label for="resultName" data-i18n="tool.barter-calc.ui.name">Название</label>
+          <input type="text" id="resultName" data-i18n-placeholder="tool.barter-calc.ui.resultNamePlaceholder" placeholder="Кейс для предметов" value="Кейс для предметов">
         </div>
         <div class="field">
-          <label for="sellPrice">Цена продажи, ₽</label>
+          <label for="sellPrice" data-i18n="tool.barter-calc.ui.sellPrice">Цена продажи, ₽</label>
           <input type="number" id="sellPrice" min="0" step="1000" value="1700000" placeholder="1700000">
         </div>
         <div class="field narrow">
-          <label for="commission">Комиссия, %</label>
+          <label for="commission" data-i18n="tool.barter-calc.ui.commission">Комиссия, %</label>
           <input type="number" id="commission" min="0" max="100" step="0.1" value="8" placeholder="8">
         </div>
       </div>
@@ -343,35 +343,35 @@
 
     <!-- Компоненты -->
     <div class="card">
-      <div class="card-title">Предметы для бартера</div>
+      <div class="card-title" data-i18n="tool.barter-calc.ui.items">Предметы для бартера</div>
       <div class="items-list" id="itemsList"></div>
       <div class="add-row">
-        <button type="button" class="btn btn-ghost" id="addItemBtn">+ Добавить предмет</button>
+        <button type="button" class="btn btn-ghost" id="addItemBtn" data-i18n="tool.barter-calc.ui.addItem">+ Добавить предмет</button>
       </div>
     </div>
 
     <!-- Результаты -->
     <div class="card">
-      <div class="card-title">Расчёт</div>
+      <div class="card-title" data-i18n="tool.barter-calc.ui.calculation">Расчёт</div>
       <div class="results">
         <div class="stat">
-          <div class="stat-label">Стоимость компонентов</div>
+          <div class="stat-label" data-i18n="tool.barter-calc.ui.componentCost">Стоимость компонентов</div>
           <div class="stat-value" id="totalCost">0 ₽</div>
         </div>
         <div class="stat">
-          <div class="stat-label">После комиссии</div>
+          <div class="stat-label" data-i18n="tool.barter-calc.ui.afterCommission">После комиссии</div>
           <div class="stat-value" id="netSell">0 ₽</div>
         </div>
         <div class="stat">
-          <div class="stat-label">Прибыль</div>
+          <div class="stat-label" data-i18n="tool.barter-calc.ui.profit">Прибыль</div>
           <div class="stat-value" id="profit">0 ₽</div>
         </div>
         <div class="stat">
-          <div class="stat-label">Рентабельность</div>
+          <div class="stat-label" data-i18n="tool.barter-calc.ui.roi">Рентабельность</div>
           <div class="stat-value" id="roi">—</div>
         </div>
       </div>
-      <p class="hint">
+      <p class="hint" data-i18n="tool.barter-calc.ui.hint">
         Прибыль = (цена продажи − комиссия) − сумма (кол-во × цена) всех компонентов.
         Налог барахолки по формуле BSG (base price + цена лота). Если base price = 0 — используется % fallback. РЦ3 −30%, HM +0.3%/lvl до −45%.
       </p>
@@ -382,9 +382,11 @@
   <script type="module" src="../core/tarkov-names.js"></script>
   <script type="module" src="../core/tarkov-storage.js"></script>
   <script type="module" src="../core/tarkov-api.js"></script>
+  <script type="module" src="../core/tarkov-item-domain.js"></script>
   <script type="module" src="../core/tarkov-ui.js"></script>
   <script type="module" src="../core/tarkov-state.js"></script>
   <script type="module" src="../core/tarkov-common.js"></script>
+  <script src="../core/tarkov-i18n.js"></script>
   <script type="module" src="../js/barter-calc.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>

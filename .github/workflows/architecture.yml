@@ -1,0 +1,20 @@
+name: Architecture
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate architecture and generated catalog
+        run: python scripts/lint-architecture.py
+      - name: Check domain contract
+        run: bash scripts/domain-contract-check.sh
+      - name: Check storage/tool contract
+        run: bash scripts/tool-contract-check.sh

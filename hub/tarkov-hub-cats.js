@@ -28,13 +28,14 @@
   }
 
   function readHidden() {
-    try { return JSON.parse(localStorage.getItem("tarkovHiddenTools") || "[]") || []; } catch (e) { return []; }
+    return window.TarkovStorage ? TarkovStorage.getJson("tarkovHiddenTools", []) || [] : [];
   }
   function readCollapsed() {
-    try { return JSON.parse(localStorage.getItem("tarkovCollapsedCats") || "[]") || []; } catch (e) { return []; }
+    return window.TarkovStorage ? TarkovStorage.getJson("tarkovCollapsedCats", []) || [] : [];
   }
   function writeCollapsed(arr) {
-    try { localStorage.setItem("tarkovCollapsedCats", JSON.stringify(arr || [])); } catch (e) {}
+    if (!window.TarkovStorage) throw new Error("TarkovStorage is required for hub categories");
+    TarkovStorage.setJson("tarkovCollapsedCats", arr || []);
   }
 
   function publishCatalog() {
@@ -163,13 +164,16 @@
 
     var qEl = document.getElementById("q");
     var q = ((qEl && qEl.value) || "").toLowerCase().trim();
+    var catFilter = (document.getElementById("catFilter") || {}).value || "";
+    var kindFilter = (document.getElementById("kindFilter") || {}).value || "";
     var hidden = readHidden();
     var collapsed = readCollapsed();
-    var pins = [];
-    try { pins = JSON.parse(localStorage.getItem("tarkovHubPins") || "[]") || []; } catch (e) {}
+    var pins = window.TarkovStorage ? TarkovStorage.getJson("tarkovHubPins", []) || [] : [];
 
     var list = CATALOG.filter(function (t) {
       if (hidden.indexOf(t.file) >= 0) return false;
+      if (catFilter && t.cat !== catFilter) return false;
+      if (kindFilter && t.kind !== kindFilter) return false;
       if (!q) return true;
       var title = t.title || "";
       var desc = t.description || "";
@@ -235,6 +239,8 @@
     });
 
     if (!html && q) {
+      html = "<p class=meta>" + tt("hub.noResults", "No tools found") + "</p>";
+    } else if (!html && (catFilter || kindFilter)) {
       html = "<p class=meta>" + tt("hub.noResults", "No tools found") + "</p>";
     }
 

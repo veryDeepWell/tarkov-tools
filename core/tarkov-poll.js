@@ -1,5 +1,6 @@
 /*! TarkovPoll — schedule storage + fire callbacks for live tools.
- * Source of truth: TarkovStorage (tarkovPoll.<id>).
+ * Source of truth: TarkovStorage tt:tool:<id>:meta.
+ * Legacy logical alias: tarkovPoll.<id>.
  *
  * Under hub (parent.TarkovHubMini): hub LiveRuntime owns the clock.
  *   start() writes schedule + keeps onFire locally; does NOT arm setTimeout.
@@ -28,33 +29,15 @@
 
   function read(id) {
     var S = storage();
-    if (S && S.getJson) {
-      try {
-        return S.getJson(key(id), null);
-      } catch (e) {
-        return null;
-      }
-    }
-    try {
-      return JSON.parse(localStorage.getItem(key(id)) || "null") || null;
-    } catch (e) {
-      return null;
-    }
+    if (!S || !S.getJson) throw new Error("TarkovStorage must load before TarkovPoll");
+    return S.getJson(key(id), null);
   }
 
   function write(id, obj) {
     var S = storage();
-    if (S && S.setJson) {
-      try {
-        if (!obj) S.remove(key(id));
-        else S.setJson(key(id), obj);
-        return;
-      } catch (e) {}
-    }
-    try {
-      if (!obj) localStorage.removeItem(key(id));
-      else localStorage.setItem(key(id), JSON.stringify(obj));
-    } catch (e) {}
+    if (!S || !S.setJson || !S.remove) throw new Error("TarkovStorage must load before TarkovPoll");
+    if (!obj) S.remove(key(id));
+    else S.setJson(key(id), obj);
   }
 
   /** True when running inside hub iframe — hub owns timers. */

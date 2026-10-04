@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Бартер + живые цены — Tarkov</title>
+  <title data-i18n="tool.barter-live.ui.heading">Бартер + живые цены — Tarkov</title>
   <style>
     :root {
       --bg: #0f1115;
@@ -206,14 +206,14 @@
 </head>
 <body>
   <div class="container">
-    <h1>Бартер + живые цены</h1>
-    <p class="subtitle">Калькулятор бартера с подтягиванием avg/low с json.tarkov.dev</p>
+    <h1 data-i18n="tool.barter-live.ui.heading">Бартер + живые цены</h1>
+    <p class="subtitle" data-i18n="tool.barter-live.ui.subtitle">Калькулятор бартера с подтягиванием avg/low с json.tarkov.dev</p>
 
     <div class="card">
-      <div class="card-title">Цены с барахолки</div>
+      <div class="card-title" data-i18n="tool.barter-live.ui.marketPrices">Цены с барахолки</div>
       <div class="live-row">
         <div class="field narrow">
-          <label>Режим</label>
+          <label data-i18n="tool.barter-live.ui.mode">Режим</label>
           <select id="gameMode">
             <option value="regular">regular</option>
             <option value="pvp-season">pvp-season</option>
@@ -221,17 +221,17 @@
           </select>
         </div>
         <div class="field narrow">
-          <label>Брать цену</label>
+          <label data-i18n="tool.barter-live.ui.priceMode">Брать цену</label>
           <select id="priceMode">
-            <option value="buyN" selected>Сумма N лотов (оценка)</option>
-            <option value="avg24h">Средняя 24ч × кол-во</option>
-            <option value="lastLow">Мин. сейчас × кол-во</option>
-            <option value="max">Макс (avg/low) × кол-во</option>
+            <option value="buyN" selected data-i18n="tool.barter-live.ui.buyN">Сумма N лотов (оценка)</option>
+            <option value="avg24h" data-i18n="tool.barter-live.ui.averageTimesQty">Средняя 24ч × кол-во</option>
+            <option value="lastLow" data-i18n="tool.barter-live.ui.lowTimesQty">Мин. сейчас × кол-во</option>
+            <option value="max" data-i18n="tool.barter-live.ui.maxTimesQty">Макс (avg/low) × кол-во</option>
           </select>
         </div>
-        <button type="button" class="btn" id="fetchPricesBtn">ПОДТЯНУТЬ ЦЕНЫ</button>
+        <button type="button" class="btn" id="fetchPricesBtn" data-i18n="tool.barter-live.ui.fetchPrices">ПОДТЯНУТЬ ЦЕНЫ</button>
       </div>
-      <p class="status" id="status">Режим «Сумма N лотов» оценивает стоимость покупки ровно нужного кол-ва (API не даёт список лотов — эвристика low/avg/офферы)</p>
+      <p class="status" id="status" data-i18n="tool.barter-live.ui.loadPrompt">Режим «Сумма N лотов» оценивает стоимость покупки ровно нужного кол-ва (API не даёт список лотов — эвристика low/avg/офферы)</p>
       <div class="progress-wrap" id="progressWrap">
         <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
         <div class="progress-label" id="progressLabel"></div>
@@ -239,36 +239,36 @@
     </div>
 
     <div class="card">
-      <div class="card-title">Пресеты</div>
+      <div class="card-title" data-i18n="tool.barter-live.ui.presets">Пресеты</div>
       <div class="presets" id="presets"></div>
-      <p class="preset-note">У каждого предмета есть ключ поиска по normalizedName API. Если не нашло — цена останется 0, правишь вручную.</p>
+      <p class="preset-note" data-i18n="tool.barter-live.ui.presetNote">У каждого предмета есть ключ поиска по normalizedName API. Если не нашло — цена останется 0, правишь вручную.</p>
     </div>
 
     <div class="card">
-      <div class="card-title">Что получаем</div>
+      <div class="card-title" data-i18n="tool.barter-live.ui.result">Что получаем</div>
       <div class="row">
         <div class="field">
-          <label>Название</label>
+          <label data-i18n="tool.barter-live.ui.name">Название</label>
           <input type="text" id="resultName" value="Кейс для предметов">
         </div>
         <div class="field">
-          <label>Ключ поиска (API)</label>
+          <label data-i18n="tool.barter-live.ui.apiKey">Ключ поиска (API)</label>
           <input type="text" id="resultSearch" value="item-case" placeholder="item-case">
         </div>
         <div class="field">
-          <label>Цена продажи, ₽</label>
+          <label data-i18n="tool.barter-live.ui.sellPrice">Цена продажи, ₽</label>
           <input type="number" id="sellPrice" min="0" step="1000" value="1700000">
         </div>
         <div class="field narrow">
-          <label>Комиссия % (если нет base)</label>
+          <label data-i18n="tool.barter-live.ui.commission">Комиссия % (если нет base)</label>
           <input type="number" id="commission" min="0" max="100" step="0.1" value="0">
         </div>
         <div class="field narrow">
-          <label>РЦ 3</label>
-          <select id="intel3"><option value="0">Нет</option><option value="1">Да</option></select>
+          <label data-i18n="tool.barter-live.ui.intelCenter">РЦ 3</label>
+          <select id="intel3"><option value="0" data-i18n="tool.barter-live.ui.no">Нет</option><option value="1" data-i18n="tool.barter-live.ui.yes">Да</option></select>
         </div>
         <div class="field narrow">
-          <label>HM lvl</label>
+          <label data-i18n="tool.barter-live.ui.hideoutManagement">HM lvl</label>
           <input type="number" id="hmLvl" min="0" max="50" value="0">
         </div>
       </div>
@@ -276,38 +276,38 @@
     </div>
 
     <div class="card">
-      <div class="card-title">Предметы для бартера</div>
+      <div class="card-title" data-i18n="tool.barter-live.ui.items">Предметы для бартера</div>
       <div id="itemsList"></div>
       <div class="add-row">
-        <button type="button" class="btn-ghost" id="addItemBtn">+ Добавить предмет</button>
+        <button type="button" class="btn-ghost" id="addItemBtn" data-i18n="tool.barter-live.ui.addItem">+ Добавить предмет</button>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">Расчёт</div>
+      <div class="card-title" data-i18n="tool.barter-live.ui.calculation">Расчёт</div>
       <div class="results">
         <div>
-          <div class="stat-label">Стоимость компонентов</div>
+          <div class="stat-label" data-i18n="tool.barter-live.ui.componentCost">Стоимость компонентов</div>
           <div class="stat-value" id="totalCost">0 ₽</div>
         </div>
         <div>
-          <div class="stat-label">Комиссия барахолки</div>
+          <div class="stat-label" data-i18n="tool.barter-live.ui.fleaTax">Комиссия барахолки</div>
           <div class="stat-value" id="taxAmount">0 ₽</div>
         </div>
         <div>
-          <div class="stat-label">После комиссии</div>
+          <div class="stat-label" data-i18n="tool.barter-live.ui.afterCommission">После комиссии</div>
           <div class="stat-value" id="netSell">0 ₽</div>
         </div>
         <div>
-          <div class="stat-label">Прибыль</div>
+          <div class="stat-label" data-i18n="tool.barter-live.ui.profit">Прибыль</div>
           <div class="stat-value" id="profit">0 ₽</div>
         </div>
         <div>
-          <div class="stat-label">ROI</div>
+          <div class="stat-label" data-i18n="tool.barter-live.ui.roi">ROI</div>
           <div class="stat-value" id="roi">—</div>
         </div>
       </div>
-      <p class="hint">Прибыль = (продажа − комиссия) − сумма компонентов. Налог барахолки в игре сложнее — здесь упрощённый %.</p>
+      <p class="hint" data-i18n="tool.barter-live.ui.hint">Прибыль = (продажа − комиссия) − сумма компонентов. Налог барахолки в игре сложнее — здесь упрощённый %.</p>
     </div>
   </div>
 
@@ -315,11 +315,12 @@
   <script type="module" src="../core/tarkov-names.js"></script>
   <script type="module" src="../core/tarkov-storage.js"></script>
   <script type="module" src="../core/tarkov-api.js"></script>
+  <script type="module" src="../core/tarkov-item-domain.js"></script>
   <script type="module" src="../core/tarkov-ui.js"></script>
   <script type="module" src="../core/tarkov-state.js"></script>
   <script type="module" src="../core/tarkov-common.js"></script>
   <script type="module" src="../js/barter-live.js"></script>
-  <script type="module" src="../js/barter-live-ui.js"></script>
+  <script type="module" src="../js/tarkov-barter-live-ui.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>
 </html>

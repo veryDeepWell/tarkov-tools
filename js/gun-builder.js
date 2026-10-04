@@ -1,6 +1,12 @@
 (function () {
 "use strict";
 
+function t(key, params) {
+return window.TarkovI18n && TarkovI18n.t
+? TarkovI18n.t("tool.gun-builder.ui." + key, params)
+: key;
+}
+
 var byId = {};
 var weapons = [];
 var mods = [];
@@ -8,30 +14,21 @@ var baseWeapon = null;
 var installed = {};
 var abGoal = "balanced";
 var abBuilds = [];
+var activeBuildIndex = -1;
+var abStatusState = null;
 var schemaZoom = 1;
 var dragState = null;
+var activeSlot = null;
 
-var SLOT_LABEL = {
-mod_pistol_grip: "Пистолетная рукоять",
-mod_pistolgrip: "Пистолетная рукоять",
-mod_stock: "Приклад",
-mod_barrel: "Ствол",
-mod_handguard: "Цевьё",
-mod_muzzle: "ДТК / дульный",
-mod_scope: "Прицел",
-mod_sight_rear: "Целик",
-mod_sight_front: "Мушка",
-mod_magazine: "Магазин",
-mod_charge: "Рукоятка взведения",
-mod_gas_block: "Газблок",
-mod_reciever: "Ресивер",
-mod_receiver: "Ресивер",
-mod_mount: "Крепление",
-mod_tactical: "Тактический",
-mod_foregrip: "Рукоять",
-mod_bipod: "Сошки",
-mod_launcher: "Подствольник"
-};
+function setAbStatus(key, params) {
+abStatusState = { key: key, params: params };
+renderAbStatus();
+}
+
+function renderAbStatus() {
+if (!abStatusState) return;
+document.getElementById("abStatus").textContent = t(abStatusState.key, abStatusState.params);
+}
 
 var REGION_ORDER = ["FRONT", "FRONT_BOTTOM", "RECEIVER", "TOP", "BOTTOM", "REAR", "OTHER"];
 
@@ -135,7 +132,10 @@ return s;
 
 function slotLabel(nameId) {
 var b = slotBase(nameId);
-return SLOT_LABEL[b] || SLOT_LABEL[nameId] || humanize(nameId);
+var label = t("slot." + b);
+return label === "slot." + b || label === "tool.gun-builder.ui.slot." + b
+? humanize(nameId)
+: label;
 }
 
 function fillPriority(nameId) {
@@ -311,18 +311,6 @@ parts: parts
 };
 }
 
-function scoreBuild(st, goal, budget, forceOptic) {
-if (!st) return -Infinity;
-if (budget > 0 && st.cost > budget) return -Infinity;
-if (forceOptic && !st.hasOptic) return -Infinity;
-var ergo = st.ergo;
-var rec = st.recV + 0.5 * st.recH;
-if (goal === "maxErgo") return ergo - rec * 0.02;
-if (goal === "minRecoil") return -rec + ergo * 0.05;
-if (goal === "budget") return ergo * 2 - rec - st.cost / 50000;
-return ergo * 1.2 - rec * 0.8;
-}
-
 function removeSlotCascade(key, map) {
 map = map || installed;
 var id = map[key];
@@ -340,10 +328,17 @@ if (byId[child]) walk(byId[child]);
 })(byId[id]);
 }
 
-function setStatus(msg, ok) {
+var statusState = null;
+function setStatus(key, params, ok) {
+statusState = { key: key, params: params, ok: ok };
+renderStatus();
+}
+
+function renderStatus() {
+if (!statusState) return;
 var el = document.getElementById("status");
-el.className = "status" + (ok === true ? " ok" : ok === false ? " err" : "");
-el.textContent = msg || "";
+el.className = "status" + (statusState.ok === true ? " ok" : statusState.ok === false ? " err" : "");
+el.textContent = t(statusState.key, statusState.params);
 }
 
 function applyZoom() {
@@ -386,7 +381,7 @@ box.innerHTML =
 esc(label) +
 (s.required ? " *" : "") +
 (s.isOptic ? " ◎" : "") +
-'</div><div class="meta">пусто</div>';
+'</div><div class="meta">' + esc(t("empty")) + '</div>';
 }
 box.onclick = function () {
 openSlot(s);
@@ -395,13 +390,13 @@ return box;
 }
 
 var REGION_TITLE = {
-FRONT: "Дуло / ствол",
-FRONT_BOTTOM: "Цевьё / обвес",
-RECEIVER: "Ресивер",
-TOP: "Прицелы",
-BOTTOM: "Магазин / рукоять",
-REAR: "Приклад / взведение",
-OTHER: "Прочее"
+FRONT: "front",
+FRONT_BOTTOM: "frontBottom",
+RECEIVER: "receiver",
+TOP: "top",
+BOTTOM: "bottom",
+REAR: "rear",
+OTHER: "other"
 };
 
 function renderSchematic() {
@@ -436,7 +431,7 @@ function makeRegion(key, slotsArr, areaClass, bodyCol) {
 if (!slotsArr || !slotsArr.length) return null;
 var reg = document.createElement("div");
 reg.className = "region " + (areaClass || "");
-reg.innerHTML = '<div class="region-label">' + esc(REGION_TITLE[key] || key) + "</div>";
+reg.innerHTML = '<div class="region-label">' + esc(t("region." + (REGION_TITLE[key] || key))) + "</div>";
 var body = document.createElement("div");
 body.className = "region-body" + (bodyCol ? " col" : "");
 slotsArr.forEach(function (s) {
@@ -457,13 +452,13 @@ if (fb) root.appendChild(fb);
 
 var mid = document.createElement("div");
 mid.className = "region area-mid";
-mid.innerHTML = '<div class="region-label">Оружие</div>';
+mid.innerHTML = '<div class="region-label">' + esc(t("weapon")) + '</div>';
 var midBody = document.createElement("div");
 midBody.className = "region-body col";
 var core = document.createElement("div");
 core.className = "slot-box core has";
 core.innerHTML =
-'<div class="slot-label">база</div>' +
+'<div class="slot-label">' + esc(t("base")) + '</div>' +
 (baseWeapon.iconLink || baseWeapon.gridImageLink
 ? '<img src="' + esc(baseWeapon.iconLink || baseWeapon.gridImageLink) + '" alt="">'
 : "") +
@@ -497,25 +492,25 @@ return;
 el.innerHTML =
 '<div class="stat"><div class="v">' +
 st.ergo +
-'</div><div class="l">Ergonomics</div></div>' +
+'</div><div class="l">' + esc(t("ergonomics")) + '</div></div>' +
 '<div class="stat"><div class="v">' +
 st.recV +
-'</div><div class="l">V. Recoil</div></div>' +
+'</div><div class="l">' + esc(t("verticalRecoil")) + '</div></div>' +
 '<div class="stat"><div class="v">' +
 st.recH +
-'</div><div class="l">H. Recoil</div></div>' +
+'</div><div class="l">' + esc(t("horizontalRecoil")) + '</div></div>' +
 '<div class="stat"><div class="v">' +
 st.weight +
-' кг</div><div class="l">Вес</div></div>' +
+' ' + esc(t("weightUnit")) + '</div><div class="l">' + esc(t("weight")) + '</div></div>' +
 '<div class="stat"><div class="v">' +
 fmt(st.cost) +
-' ₽</div><div class="l">Цена</div></div>' +
+' ₽</div><div class="l">' + esc(t("price")) + '</div></div>' +
 '<div class="stat"><div class="v">' +
 (st.sight || "—") +
-'</div><div class="l">Дальность</div></div>' +
+'</div><div class="l">' + esc(t("range")) + '</div></div>' +
 '<div class="stat"><div class="v">' +
-(st.hasOptic ? "да" : "нет") +
-'</div><div class="l">Прицел</div></div>';
+(st.hasOptic ? t("yes") : t("no")) +
+'</div><div class="l">' + esc(t("optic")) + '</div></div>';
 }
 
 function renderSlots() {
@@ -523,7 +518,7 @@ var box = document.getElementById("slotList");
 var slots = collectSlots();
 var conf = conflictSet();
 if (!slots.length) {
-box.innerHTML = '<p class="muted">Нет слотов</p>';
+box.innerHTML = '<p class="muted">' + esc(t("noSlots")) + '</p>';
 return;
 }
 slots.sort(function (a, b) {
@@ -546,13 +541,13 @@ esc(s.key) +
 esc(slotLabel(s.nameId)) +
 (s.isOptic ? " ◎" : "") +
 '</div><div class="slot-meta">' +
-esc(REGION_TITLE[s.region] || s.region) +
+esc(t("region." + (REGION_TITLE[s.region] || s.region))) +
 " · " +
-(mod ? esc(itemName(mod)) + " · " + fmt(itemPrice(mod)) + " ₽" : "пусто") +
-(bad ? " · конфликт" : "") +
+(mod ? esc(itemName(mod)) + " · " + fmt(itemPrice(mod)) + " ₽" : t("empty")) +
+(bad ? " · " + t("conflict") : "") +
 '</div></div><div class="slot-actions">' +
-'<button type="button" class="btn-sm accent" data-a="pick">Выбрать</button>' +
-(mod ? '<button type="button" class="btn-sm" data-a="clr">Снять</button>' : "") +
+'<button type="button" class="btn-sm accent" data-a="pick">' + esc(t("choose")) + '</button>' +
+(mod ? '<button type="button" class="btn-sm" data-a="clr">' + esc(t("remove")) + '</button>' : "") +
 "</div></div>"
 );
 })
@@ -575,12 +570,13 @@ if (b.getAttribute("data-a") === "pick" && slot) openSlot(slot);
 });
 }
 
-function openSlot(s) {
+function openSlot(s, preserveFilter) {
+activeSlot = s;
 document.getElementById("modalTitle").textContent =
-slotLabel(s.nameId) + (s.required ? " (обяз.)" : "") + (s.isOptic ? " · прицел" : "");
+slotLabel(s.nameId) + (s.required ? " (" + t("required") + ")" : "") + (s.isOptic ? " · " + t("optic") : "");
 document.getElementById("modal").classList.add("show");
 var filterInp = document.getElementById("modalFilter");
-filterInp.value = "";
+if (!preserveFilter) filterInp.value = "";
 function draw() {
 var q = (filterInp.value || "").toLowerCase().trim();
 var list = allowedForSlot(s.filters).slice();
@@ -602,7 +598,7 @@ return (
 }
 var box = document.getElementById("modalList");
 if (!list.length) {
-box.innerHTML = '<p class="muted">Нет совместимых модов</p>';
+box.innerHTML = '<p class="muted">' + esc(t("noCompatibleMods")) + '</p>';
 return;
 }
 box.innerHTML = list
@@ -622,7 +618,7 @@ esc(m.id) +
 "<div><div><b>" +
 esc(itemName(m)) +
 "</b>" +
-(bad ? ' <span class="muted">конфликт</span>' : "") +
+(bad ? ' <span class="muted">' + esc(t("conflict")) + '</span>' : "") +
 '</div><div class="muted">' +
 fmt(itemPrice(m)) +
 " ₽" +
@@ -724,7 +720,7 @@ var k = keyOf(map);
 if (seen.has(k)) return;
 seen.add(k);
 var st = computeStats(map);
-var sc = scoreBuild(st, goal, budget, forceOptic);
+var sc = TarkovWeaponDomain.scoreBuild(st, goal, budget, forceOptic);
 if (sc === -Infinity) return;
 results.push({ map: map, stats: st, score: sc });
 }
@@ -941,7 +937,7 @@ parts.push(
 (left + plotW / 2) +
 '" y="244" text-anchor="middle" font-size="10.5" fill="' +
 muted +
-'">Ergonomics →</text>'
+'">' + t("ergonomics") + ' →</text>'
 );
 parts.push(
 '<text x="12" y="' +
@@ -950,7 +946,7 @@ parts.push(
 muted +
 '" transform="rotate(-90 12 ' +
 (top + plotH / 2) +
-')">Recoil →</text>'
+')">' + t("verticalRecoil") + ' →</text>'
 );
 
 var front = paretoFront(builds);
@@ -1019,9 +1015,9 @@ var cy = yScale(b.stats.recV);
 tip.innerHTML =
 "<b>#" +
 (i + 1) +
-"</b> · ergo <b>" +
+"</b> · " + t("ergonomics") + " <b>" +
 b.stats.ergo +
-"</b> · recoil <b>" +
+"</b> · " + t("verticalRecoil") + " <b>" +
 b.stats.recV +
 "</b> · " +
 fmt(b.stats.cost) +
@@ -1042,9 +1038,11 @@ if (card) card.click();
 
 function renderAbResults(builds) {
 abBuilds = builds;
+if (!builds.length) activeBuildIndex = -1;
+else if (activeBuildIndex < 0 || activeBuildIndex >= builds.length) activeBuildIndex = 0;
 var box = document.getElementById("abResults");
 if (!builds.length) {
-box.innerHTML = '<p class="muted">Нет сборок</p>';
+box.innerHTML = '<p class="muted">' + esc(t("noneBuilds")) + '</p>';
 renderChart([]);
 return;
 }
@@ -1052,23 +1050,21 @@ box.innerHTML = builds
 .map(function (b, i) {
 return (
 '<div class="ab-card' +
-(i === 0 ? " on" : "") +
+(i === activeBuildIndex ? " on" : "") +
 '" data-i="' +
 i +
 '"><div class="t">#' +
 (i + 1) +
-" · ergo " +
+" · " + t("ergonomics") + " " +
 b.stats.ergo +
-" · V.rec " +
+" · " + t("verticalRecoil") + " " +
 b.stats.recV +
 " · " +
 fmt(b.stats.cost) +
 ' ₽</div><div class="m">' +
-Object.keys(b.map).length +
-" модов · вес " +
+t("modsCount", { count: Object.keys(b.map).length }) + " · " + t("weight") + " " +
 b.stats.weight +
-" кг · прицел: " +
-(b.stats.hasOptic ? "да" : "нет") +
+" " + t("weightUnit") + " · " + t("opticSummary", { value: b.stats.hasOptic ? t("yes") : t("no") }) +
 "</div></div>"
 );
 })
@@ -1078,12 +1074,13 @@ card.onclick = function () {
 var i = Number(card.getAttribute("data-i"));
 var b = abBuilds[i];
 if (!b) return;
+activeBuildIndex = i;
 installed = Object.assign({}, b.map);
 paint();
 box.querySelectorAll(".ab-card").forEach(function (c) {
 c.classList.toggle("on", c === card);
 });
-document.getElementById("abStatus").textContent = "Применена сборка #" + (i + 1);
+setAbStatus("appliedBuild", { index: i + 1 });
 };
 });
 renderChart(builds);
@@ -1094,16 +1091,14 @@ if (!baseWeapon) return;
 var budget = Math.max(0, Number(document.getElementById("abBudget").value) || 0);
 var onlyBuyable = document.getElementById("abBuyable").value === "1";
 var forceOptic = document.getElementById("abForceOptic").checked;
-document.getElementById("abStatus").textContent = "Сканирование…";
+setAbStatus("scanning");
 setTimeout(function () {
 try {
 var builds = scanBuilds(abGoal, budget, onlyBuyable, forceOptic);
 renderAbResults(builds);
-document.getElementById("abStatus").textContent = builds.length
-? "Найдено: " + builds.length + ". Кликни, чтобы применить."
-: "Пусто — ослабь бюджет или сними «обязательный прицел».";
+setAbStatus(builds.length ? "buildsFound" : "buildsEmpty", builds.length ? { count: builds.length } : null);
 } catch (e) {
-document.getElementById("abStatus").textContent = e.message || String(e);
+setAbStatus("buildError", { message: e.message || String(e) });
 }
 }, 30);
 }
@@ -1154,10 +1149,10 @@ vp.classList.remove("dragging");
 document.getElementById("loadBtn").onclick = async function () {
 var btn = document.getElementById("loadBtn");
 btn.disabled = true;
-setStatus("Loading…");
+setStatus("loading");
 var P = window.TarkovUI && TarkovUI.progress;
 try {
-if (P) P.start({ label: "Items…" });
+if (P) P.start({ label: t("loadingItems") });
 var mode = document.getElementById("gameMode").value || "pve";
 var items = asArray(await TarkovAPI.items(mode));
 byId = {};
@@ -1169,11 +1164,11 @@ byId[it.id] = it;
 if (isWeapon(it)) weapons.push(it);
 if (isMod(it)) mods.push(it);
 });
-setStatus("Оружие: " + weapons.length + " · моды: " + mods.length, true);
+setStatus("loaded", { weapons: weapons.length, mods: mods.length }, true);
 document.getElementById("pickCard").style.display = "block";
 if (P) P.done();
 } catch (e) {
-setStatus(e.message || String(e), false);
+setStatus("loadError", { message: e.message || String(e) }, false);
 if (P) P.fail(e.message);
 } finally {
 btn.disabled = false;
@@ -1239,14 +1234,14 @@ document.getElementById("copyBuild").onclick = function () {
 var st = computeStats();
 if (!st) return;
 var lines = st.parts.map(function (p) {
-return (p.slot === "base" ? "WEAPON" : p.slot) + ": " + itemName(p.it);
+return (p.slot === "base" ? t("weapon") : slotLabel(p.slot)) + ": " + itemName(p.it);
 });
 lines.push(
-"— ergo " + st.ergo + " | V " + st.recV + " | H " + st.recH + " | " + fmt(st.cost) + " ₽ | optic " + (st.hasOptic ? "yes" : "no")
+"— " + t("ergonomics") + " " + st.ergo + " | " + t("verticalRecoil") + " " + st.recV + " | " + t("horizontalRecoil") + " " + st.recH + " | " + t("price") + " " + fmt(st.cost) + " ₽ | " + t("optic") + " " + (st.hasOptic ? t("yes") : t("no"))
 );
 if (navigator.clipboard && navigator.clipboard.writeText) {
 navigator.clipboard.writeText(lines.join("\n"));
-setStatus("Скопировано", true);
+setStatus("copied", null, true);
 }
 };
 document.getElementById("abGoal").onclick = function (ev) {
@@ -1260,10 +1255,25 @@ c.classList.toggle("on", c.getAttribute("data-g") === abGoal);
 document.getElementById("abScan").onclick = runAutoBuild;
 document.getElementById("modalClose").onclick = function () {
 document.getElementById("modal").classList.remove("show");
+activeSlot = null;
 };
 document.getElementById("modal").onclick = function (e) {
-if (e.target.id === "modal") e.target.classList.remove("show");
+if (e.target.id === "modal") {
+e.target.classList.remove("show");
+activeSlot = null;
+}
 };
+
+window.addEventListener("tt-lang-changed", function () {
+renderStatus();
+renderAbStatus();
+if (baseWeapon) document.getElementById("weaponQ").value = itemName(baseWeapon);
+paint();
+renderAbResults(abBuilds);
+var modal = document.getElementById("modal");
+if (activeSlot && modal.classList.contains("show")) openSlot(activeSlot, true);
+document.getElementById("abChart").setAttribute("aria-label", t("autoBuild"));
+});
 
 bindZoom();
 })();

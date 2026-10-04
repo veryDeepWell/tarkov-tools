@@ -8,13 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- TBD
+- Shared P3 item/weapon domain APIs, item view models, scoring, compatibility, and market calculations.
+- Namespaced `tt:` storage keys with centralized migration from legacy key formats.
+- A generated hub catalog, category/type filters, and local SVG category icons.
+- Architecture lint and GitHub Actions checks for catalog, script, API, and tool contracts.
 
 ### Changed
-- TBD
+- Localized the P3-affected item and utility tools in English and Russian, including dynamic UI updates on language changes.
+- Storage export/import now uses canonical namespaced keys while accepting legacy backups.
+- Consolidated the hub runtime and archived superseded documentation and catalog artifacts.
 
 ### Fixed
-- TBD
+- Fixed barter calculator i18n initialization and refresh after locale loading; corrected P3 tool script-loading issues found during browser checks.
+- Closing a live mini-tab now stops its poll schedule before removing the iframe.
+- Corrected tool-page script URLs that pointed to nonexistent JavaScript files.
 
 ---
 
@@ -22,8 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architectural
 - **Core modules:** `tarkov-names.js`, `tarkov-api.js`, `tarkov-state.js`, `tarkov-i18n.js`, `tarkov-common.js`
-- **Platform contract:** [`docs/PLATFORM.md`](docs/PLATFORM.md) — how tools, hub, and core interact
-- **Tool checklist:** [`docs/TOOL_CHECKLIST.md`](docs/TOOL_CHECKLIST.md) — acceptance criteria
+- **Platform contract:** [`_archive/docs/PLATFORM.md`](_archive/docs/PLATFORM.md) — historical platform notes
+- **Tool checklist:** [`_archive/docs/TOOL_CHECKLIST.md`](_archive/docs/TOOL_CHECKLIST.md) — historical acceptance criteria
 
 ### Core modules (unified core)
 - **TarkovAPI:** Single network + cache boundary to tarkov.dev
@@ -38,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Restock Alert:** `tools/tarkovtool-restock.html` + `.js`
 
 ### Static utilities
-- Barter Live, Bosses DB, Ammo Catalog, Barters Live, and more (see [`catalog.json`](hub/catalog.json))
+- Barter Live, Bosses DB, Ammo Catalog, Barters Live, and more (see the generated [`hub/catalog.js`](hub/catalog.js))
 
 ### Localization
 - RU/EN support via `tarkov-names.js` and `tarkov-i18n.js`

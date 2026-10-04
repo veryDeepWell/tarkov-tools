@@ -10,3 +10,4 @@ git push origin main
 ```
 
 Root: docs + catalog.json + index.html + tarkovtool-hub.html + core/ hub/ tools/ locales/ assets/
+<!-- Archived deployment notes; follow the current CONTRIBUTING.md. -->

@@ -1,5 +1,5 @@
 /*! TarkovLiveRuntime — hub owns the clock for live tool polls.
- * Source of truth: TarkovStorage tarkovPoll.<id> (same as TarkovPoll).
+ * Source of truth: TarkovStorage tt:tool:<id>:meta (same as TarkovPoll).
  * Hub: setInterval → when nextAt due → postMessage tt-poll-fire to tool iframe.
  * Tool iframe: TarkovPoll holds onFire and runs work (timers not armed under hub).
  */
@@ -15,12 +15,9 @@
   function readPoll(id) {
     try {
       if (global.TarkovPoll && TarkovPoll.read) return TarkovPoll.read(id);
-    } catch (e) {}
-    try {
-      return JSON.parse(localStorage.getItem(PREFIX + id) || "null") || null;
-    } catch (e2) {
-      return null;
-    }
+      if (global.TarkovStorage) return TarkovStorage.getJson(PREFIX + id, null);
+      throw new Error("TarkovStorage is required by TarkovLiveRuntime");
+    } catch (e) { console.error("Unable to read poll state", e); return null; }
   }
 
   function writePoll(id, obj) {
@@ -29,11 +26,10 @@
         TarkovPoll.write(id, obj);
         return;
       }
-    } catch (e) {}
-    try {
-      if (!obj) localStorage.removeItem(PREFIX + id);
-      else localStorage.setItem(PREFIX + id, JSON.stringify(obj));
-    } catch (e2) {}
+      if (!global.TarkovStorage) throw new Error("TarkovStorage is required by TarkovLiveRuntime");
+      if (!obj) TarkovStorage.remove(PREFIX + id);
+      else TarkovStorage.setJson(PREFIX + id, obj);
+    } catch (e) { console.error("Unable to write poll state", e); }
   }
 
   function toolFileForPoll(id) {

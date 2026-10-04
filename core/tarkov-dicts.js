@@ -170,8 +170,6 @@
     try {
       if (global.TarkovStorage && TarkovStorage.get) {
         current = TarkovStorage.get(KEY, "pve") || "pve";
-      } else {
-        current = localStorage.getItem(KEY) || "pve";
       }
     } catch (e) {}
 
@@ -188,8 +186,6 @@
         try {
           if (global.TarkovStorage && TarkovStorage.set) {
             TarkovStorage.set(KEY, val);
-          } else {
-            localStorage.setItem(KEY, val);
           }
         } catch (e2) {}
         selects.forEach(function (other) {

@@ -48,6 +48,7 @@
     }
     .hub-search { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     .hub-search input { min-width: min(320px, 70vw); }
+    .hub-search select { min-width: 140px; }
     .cat-section { margin-bottom: 22px; }
     .changelog { margin-top: 28px; padding: 16px 18px; }
     .changelog h3 { margin: 0 0 10px; font-size: 1rem; }
@@ -148,6 +149,21 @@
           </div>
           <div class="hub-search">
             <input id="q" type="search" placeholder="Search tools…" data-i18n-placeholder="hub.searchPlaceholder" autocomplete="off" />
+            <select id="catFilter" data-i18n="hub.filterCategory" data-i18n-attr="aria-label" aria-label="Filter by category">
+              <option value="" data-i18n="hub.allCategories">All categories</option>
+              <option value="flea" data-i18n="cat.flea">Flea market</option>
+              <option value="loadout" data-i18n="cat.loadout">Loadout</option>
+              <option value="hideout" data-i18n="cat.hideout">Hideout</option>
+              <option value="quests" data-i18n="cat.quests">Quests</option>
+              <option value="med" data-i18n="cat.med">Med / food</option>
+              <option value="util" data-i18n="cat.util">Utilities</option>
+              <option value="other" data-i18n="cat.other">Other</option>
+            </select>
+            <select id="kindFilter" data-i18n="hub.filterKind" data-i18n-attr="aria-label" aria-label="Filter by tool type">
+              <option value="" data-i18n="hub.allKinds">All types</option>
+              <option value="static" data-i18n="hub.staticTools">Static</option>
+              <option value="live" data-i18n="hub.liveTools">Live</option>
+            </select>
             <span id="count" class="meta"></span>
           </div>
         </div>
@@ -194,9 +210,9 @@
   <script defer src="core/tarkov-ui.js"></script>
   <script defer src="core/tarkov-i18n-bridge.js"></script>
   <script defer src="core/tarkov-icons.js"></script>
-  <script defer src="hub/catalog-data.js?v=3"></script>
-  <script defer src="hub/tarkov-hub-catalog.js?v=5"></script>
-  <script defer src="hub/tarkov-hub-app.js?v=10"></script>
+  <script defer src="hub/catalog.js"></script>
+  <script defer src="hub/tarkov-hub-mini.js?v=1"></script>
+  <script defer src="hub/tarkov-hub-app.js?v=11"></script>
   <script defer src="hub/tarkov-hub-cats.js?v=12"></script>
   <script defer src="hub/tarkov-settings-tabs.js?v=6"></script>
   <script defer src="hub/tarkov-hub-notif.js?v=5"></script>

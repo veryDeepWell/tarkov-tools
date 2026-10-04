@@ -1,101 +1,43 @@
-/*! TarkovIcons — custom icon architecture */
+/*! TarkovIcons — catalog icons are local assets only */
 (function (global) {
   "use strict";
 
-  var EMOJI = [
-    [/btc|bitcoin/i, "₿"], [/cultist/i, "⛧"], [/my-tarkov/i, "👤"],
-    [/helmet/i, "🪖"], [/headphone/i, "🎧"], [/challenge/i, "🎯"], [/marathon/i, "🏃"], [/prestige/i, "⭐"], [/\bxp\b|опыт/i, "✨"], [/repair|починк/i, "🔧"], [/shopping|покуп/i, "🛒"], [/nvg/i, "🌑"], [/price-track/i, "📈"], [/price-alarm/i, "🔔"],
-    [/food/i, "🍖"], [/random-loadout/i, "🎲"], [/loadout-budget/i, "💰"],
-    [/loadout-builder/i, "🧰"], [/drip-builder/i, "🎨"], [/drip-loadout/i, "✨"],
-    [/ammo/i, "🔫"], [/armor/i, "🛡️"], [/barter-opt/i, "📐"], [/barter/i, "🧮"], [/boss/i, "👹"],
-    [/compare/i, "⚖️"], [/container/i, "🎒"], [/craft/i, "🔧"], [/drip/i, "🕶️"],
-    [/gun-rating/i, "📊"], [/gun/i, "🛠️"], [/hideout/i, "🏗️"], [/key/i, "🔑"], [/lang/i, "🌐"],
-    [/loot/i, "📦"], [/item-use/i, "💡"], [/mag/i, "📟"], [/medkit|med/i, "💊"],
-    [/mods/i, "🔩"], [/plate/i, "🧱"], [/quest-cheese/i, "🧀"], [/quest/i, "📜"], [/cases/i, "🗃️"], [/raid/i, "✅"],
-    [/restock/i, "⏰"], [/scope/i, "🔭"], [/short/i, "🏷️"], [/skill/i, "📈"],
-    [/stim/i, "💉"], [/streamer/i, "📺"], [/trader/i, "🏪"]
-  ];
-
-  var BASE = (function(){
-    try {
-      if (location.pathname.indexOf("/tools/") >= 0) return "../assets/icons/";
-    } catch (e) {}
-    return "assets/icons/";
-  })();
+  var BASE = location.pathname.indexOf("/tools/") >= 0 ? "../assets/icons/" : "assets/icons/";
   var registry = Object.create(null);
-  var missing = Object.create(null);
-
-  function iconIdFromFile(file) {
-    if (!file) return "";
-    var f = String(file).split("/").pop();
-    if (typeof CATALOG !== "undefined") {
-      for (var i = 0; i < CATALOG.length; i++) {
-        if (CATALOG[i].file === f && CATALOG[i].icon) return CATALOG[i].icon;
-      }
-    }
-    return f.replace(/^tarkovtool-/, "").replace(/\.html$/, "");
-  }
-
-  function emojiFor(file, title) {
-    var hay = (file || "") + " " + (title || "");
-    for (var i = 0; i < EMOJI.length; i++) {
-      if (EMOJI[i][0].test(hay)) return EMOJI[i][1];
-    }
-    return "📎";
-  }
 
   function catalogEntry(file) {
-    if (typeof CATALOG === "undefined") return null;
-    var f = String(file || "").split("/").pop();
-    for (var i = 0; i < CATALOG.length; i++) {
-      if (CATALOG[i].file === f) return CATALOG[i];
+    var catalog = global.TarkovHubCATALOG || global.TarkovHubCatalog || [];
+    var basename = String(file || "").split("/").pop();
+    for (var i = 0; i < catalog.length; i++) {
+      if (String(catalog[i].file || "").split("/").pop() === basename) return catalog[i];
     }
     return null;
   }
 
-  function resolveUrl(file, title) {
+  function resolveUrl(file) {
     var entry = catalogEntry(file);
-    if (entry && entry.iconUrl) return entry.iconUrl;
-    var id = (entry && entry.icon) || iconIdFromFile(file);
-    if (id && registry[id]) return registry[id];
-    if (global.TarkovIcons && TarkovIcons.useAssetFolder && id && !missing[id]) {
-      return BASE + id + ".svg";
-    }
-    return null;
+    var id = entry && entry.icon ? String(entry.icon) : "other";
+    if (!/^[a-z0-9-]+$/i.test(id)) id = "other";
+    return registry[id] || BASE + id + ".svg";
   }
 
-  function imgTag(url, emoji) {
-    return (
-      '<img class="tt-icon-img" src="' +
-      url +
-      '" alt="" width="28" height="28" loading="lazy" ' +
-      'onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'' +
-      emoji.replace(/'/g, "") +
-      "'));\" />"
-    );
-  }
-
-  function html(file, title) {
-    var emo = emojiFor(file, title);
-    var url = resolveUrl(file, title);
-    if (url) return imgTag(url, emo);
-    return emo;
+  function html(file) {
+    var url = resolveUrl(file);
+    return '<img class="tt-icon-img" src="' + url + '" alt="" width="28" height="28" loading="lazy" onerror="this.onerror=null;this.src=\'' + BASE + 'other.svg\'">';
   }
 
   function register(id, url) {
-    if (!id) return;
-    registry[String(id)] = url;
-    delete missing[String(id)];
+    if (!/^[a-z0-9-]+$/i.test(String(id || ""))) return;
+    if (!/^assets\/icons\/[a-z0-9-]+\.svg$/i.test(String(url || ""))) {
+      throw new Error("TarkovIcons only accepts local SVGs under assets/icons");
+    }
+    registry[id] = url;
   }
 
   global.TarkovIcons = {
-    useAssetFolder: false,
     html: html,
-    emoji: emojiFor,
     resolve: resolveUrl,
     register: register,
-    markMissing: function (id) { if (id) missing[String(id)] = true; },
-    basePath: BASE,
-    resetCache: function () { missing = Object.create(null); }
+    basePath: BASE
   };
 })(typeof window !== "undefined" ? window : globalThis);

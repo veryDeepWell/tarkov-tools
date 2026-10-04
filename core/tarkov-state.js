@@ -3,22 +3,21 @@
  * Cross-frame: BroadcastChannel('tarkov-tools') so mini-tab iframes update hub badges.
  */
 (function (global) {
-  const ROOT = 'tarkovState.v1';
-  const NOTIF = 'tarkovNotifications.v1';
-  const MINI = 'tarkovMiniTabs.v1';
+  const ROOT = 'tt:state:v1';
+  const NOTIF = 'tt:notif:v1';
+  const MINI = 'tt:mini:v1';
   const CHANNEL = 'tarkov-tools';
 
   let bc = null;
   try { bc = new BroadcastChannel(CHANNEL); } catch (e) { bc = null; }
 
   function read(key, fallback) {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch (e) { return fallback; }
+    if (!global.TarkovStorage || !TarkovStorage.getJson) throw new Error("TarkovStorage must load before TarkovState");
+    return TarkovStorage.getJson(key, fallback);
   }
   function write(key, val) {
-    try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
+    if (!global.TarkovStorage || !TarkovStorage.setJson) throw new Error("TarkovStorage must load before TarkovState");
+    TarkovStorage.setJson(key, val);
   }
 
   function getState() {

@@ -101,6 +101,10 @@
     let nextId = 3;
     let activePreset = 'item-case';
     let catalog = null; // cached items array
+    let resultMatch = null;
+    let resultSearchMiss = false;
+    let statusState = null;
+    let resultNameUserEdited = false;
 
     const itemsList = document.getElementById('itemsList');
     const presetsEl = document.getElementById('presets');
@@ -113,6 +117,32 @@
     const progressBar = document.getElementById('progressBar');
     const progressLabel = document.getElementById('progressLabel');
     const resultMeta = document.getElementById('resultMeta');
+
+    function t(key, params) {
+      return window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t(key, params) : key;
+    }
+
+    function setStatus(key, params, tone) {
+      statusState = { key, params, tone: tone || '' };
+      renderStatus();
+    }
+
+    function renderStatus() {
+      if (!statusState) return;
+      statusEl.className = 'status' + (statusState.tone ? ' ' + statusState.tone : '');
+      statusEl.textContent = t('tool.barter-live.ui.' + statusState.key, statusState.params);
+    }
+
+    function renderResultMeta() {
+      if (resultMatch) {
+        const icon = resultMatch.iconLink || resultMatch.gridImageLink || '';
+        resultMeta.innerHTML = `${icon ? `<img class="ico ico-sm" src="${escapeHtml(icon)}" loading="lazy" alt="" style="vertical-align:middle;margin-right:6px">` : ''}<span class="matched">✓ ${escapeHtml(resultMatch.normalizedName)}</span> · ${t('tool.barter-live.ui.average')} ${formatNum(resultMatch.avg24hPrice || 0)} · ${t('tool.barter-live.ui.minimum')} ${formatNum(resultMatch.lastLowPrice || 0)} · ${t('tool.barter-live.ui.offers')} ${resultMatch.lastOfferCount || '—'}`;
+      } else if (resultSearchMiss) {
+        resultMeta.innerHTML = `<span class="unmatched">${escapeHtml(t('tool.barter-live.ui.unmatched', { key: resultSearchInput.value }))}</span>`;
+      } else {
+        resultMeta.textContent = '';
+      }
+    }
 
         function calcItemCost(item) {
       return (Number(item.qty) || 0) * (Number(item.price) || 0);
@@ -163,15 +193,15 @@
 
       if (mode === 'avg24h') {
         const u = avg || low || 0;
-        return { unit: u, total: u * qty, detail: `avg × ${qty}` };
+        return { unit: u, total: u * qty, detail: `${t('tool.barter-live.ui.average')} × ${qty}` };
       }
       if (mode === 'lastLow') {
         const u = low || avg || 0;
-        return { unit: u, total: u * qty, detail: `min × ${qty}` };
+        return { unit: u, total: u * qty, detail: `${t('tool.barter-live.ui.minimum')} × ${qty}` };
       }
       if (mode === 'max') {
         const u = Math.max(avg, low) || 0;
-        return { unit: u, total: u * qty, detail: `max(avg,min) × ${qty}` };
+        return { unit: u, total: u * qty, detail: `${t('tool.barter-live.ui.high')} (${t('tool.barter-live.ui.average')}/${t('tool.barter-live.ui.minimum')}) × ${qty}` };
       }
 
       // buyN — оценка суммы N лотов
@@ -192,9 +222,9 @@
       const total = atCheap * cheap + atMid * mid + atHigh * expensive;
       const unit = qty > 0 ? total / qty : 0;
       const detail = [
-        atCheap ? `${atCheap}×min(${formatNum(cheap)})` : '',
-        atMid ? `${atMid}×avg(${formatNum(mid)})` : '',
-        atHigh ? `${atHigh}×high(${formatNum(expensive)})` : ''
+        atCheap ? `${atCheap}×${t('tool.barter-live.ui.minimum')}(${formatNum(cheap)})` : '',
+        atMid ? `${atMid}×${t('tool.barter-live.ui.average')}(${formatNum(mid)})` : '',
+        atHigh ? `${atHigh}×${t('tool.barter-live.ui.high')}(${formatNum(expensive)})` : ''
       ].filter(Boolean).join(' + ');
       return { unit, total, detail, offers, cheap, mid };
     }
@@ -241,7 +271,7 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'preset-btn' + (activePreset === p.id ? ' active' : '');
-        btn.textContent = p.label;
+        btn.textContent = t('tool.barter-live.ui.presetLabel.' + p.id);
         btn.onclick = () => applyPreset(p);
         presetsEl.appendChild(btn);
       });
@@ -249,7 +279,8 @@
 
     function applyPreset(p) {
       activePreset = p.id;
-      resultNameInput.value = p.resultName;
+      resultNameUserEdited = false;
+      resultNameInput.value = t('tool.barter-live.ui.resultName.' + p.id);
       resultSearchInput.value = p.resultSearch || '';
       sellPriceInput.value = '';
       items = p.items.map((it, i) => ({
@@ -262,6 +293,8 @@
       }));
       nextId = items.length + 1;
       resultMeta.textContent = '';
+      resultMatch = null;
+      resultSearchMiss = false;
       renderPresets();
       renderItems();
       recalculate();
@@ -273,28 +306,29 @@
         const row = document.createElement('div');
         row.className = 'item-row';
         const matchCls = item.match ? 'matched' : (item.search ? 'unmatched' : '');
+        const estimate = item.match ? estimateBuyCost(item.match, item.qty) : null;
         const matchText = item.match
-          ? `✓ ${item.match.normalizedName} · avg ${formatNum(item.match.avg24hPrice || 0)} · min ${formatNum(item.match.lastLowPrice || 0)} · офферов ${item.match.lastOfferCount || '—'}`
-            + (item.buyDetail ? ` · оценка: ${item.buyDetail} = ${formatNum(item.buyTotal || calcItemCost(item))} ₽` : '')
-          : (item.search ? `ключ: ${item.search}` : '');
+          ? `✓ ${item.match.normalizedName} · ${t('tool.barter-live.ui.average')} ${formatNum(item.match.avg24hPrice || 0)} · ${t('tool.barter-live.ui.minimum')} ${formatNum(item.match.lastLowPrice || 0)} · ${t('tool.barter-live.ui.offers')} ${item.match.lastOfferCount || '—'}`
+            + (estimate && estimate.detail ? ` · ${t('tool.barter-live.ui.estimate')}: ${estimate.detail} = ${formatNum(item.buyTotal || calcItemCost(item))} ₽` : '')
+          : (item.search ? `${t('tool.barter-live.ui.searchKey')}: ${item.search}` : '');
 
         const icon = (item.match && (item.match.iconLink || item.match.gridImageLink)) || '';
         row.innerHTML = `
           ${icon ? `<img class="ico" src="${escapeHtml(icon)}" loading="lazy" alt="" style="align-self:center">` : ''}
           <div class="field" style="flex:1.4;min-width:120px;">
-            <label>Название</label>
+            <label>${escapeHtml(t('tool.barter-live.ui.itemName'))}</label>
             <input type="text" class="item-name" value="${escapeHtml(item.name)}">
           </div>
           <div class="field" style="flex:1;min-width:110px;">
-            <label>Ключ API</label>
+            <label>${escapeHtml(t('tool.barter-live.ui.apiKey'))}</label>
             <input type="text" class="item-search" value="${escapeHtml(item.search || '')}" placeholder="normalized-name">
           </div>
           <div class="field narrow">
-            <label>Кол-во</label>
+            <label>${escapeHtml(t('tool.barter-live.ui.quantity'))}</label>
             <input type="number" class="item-qty" min="1" value="${item.qty}">
           </div>
           <div class="field">
-            <label>Цена, ₽</label>
+            <label>${escapeHtml(t('tool.barter-live.ui.unitPrice'))}</label>
             <input type="number" class="item-price" min="0" step="1000" value="${item.price}">
           </div>
           <div class="price-quick">
@@ -302,7 +336,7 @@
             <button type="button" class="btn-quick" data-delta="1000">+</button>
           </div>
           <div class="item-cost">${formatNum(calcItemCost(item))} ₽</div>
-          <button type="button" class="btn-danger remove-btn" title="Удалить">✕</button>
+          <button type="button" class="btn-danger remove-btn" title="${escapeHtml(t('tool.barter-live.ui.remove'))}">✕</button>
           <div class="price-meta ${matchCls}" style="width:100%;">${escapeHtml(matchText)}</div>
         `;
 
@@ -359,18 +393,19 @@
       const totalCost = items.reduce((s, i) => s + calcItemCost(i), 0);
       const sellPrice = Number(sellPriceInput.value) || 0;
       const bp = resultBasePrice || 0;
-      let tax = 0, netSell = sellPrice;
-      if (bp > 0 && sellPrice > 0) {
-        tax = fleaTax(bp, sellPrice, 1, taxOpts());
-        netSell = sellPrice - tax;
-      } else {
-        // fallback % if no basePrice yet
-        const commission = Number(document.getElementById('commission')?.value) || 0;
-        tax = sellPrice * commission / 100;
-        netSell = sellPrice - tax;
-      }
-      const profit = netSell - totalCost;
-      const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
+      const result = TarkovItemDomain.evaluateProfit(
+        bp,
+        sellPrice,
+        1,
+        totalCost,
+        Object.assign({}, taxOpts(), {
+          commissionPercent: Number(document.getElementById('commission')?.value) || 0
+        })
+      );
+      const tax = result.tax;
+      const netSell = result.revenue;
+      const profit = result.profit;
+      const roi = result.roi;
 
       document.getElementById('totalCost').textContent = formatNum(totalCost) + ' ₽';
       document.getElementById('netSell').textContent = formatNum(netSell) + ' ₽';
@@ -393,7 +428,7 @@
         const json = await TarkovAPI.getJson(`/${mode}/items`);
         itemsData = TarkovAPI.asArray ? TarkovAPI.asArray(json) : (json?.data?.items || json || []);
       } else {
-        throw new Error('TarkovAPI недоступен');
+        throw new Error(t('tool.barter-live.ui.apiUnavailable'));
       }
       if (!Array.isArray(itemsData)) itemsData = Object.values(itemsData);
       catalog = itemsData;
@@ -403,13 +438,12 @@
     document.getElementById('fetchPricesBtn').addEventListener('click', async () => {
       const btn = document.getElementById('fetchPricesBtn');
       btn.disabled = true;
-      statusEl.className = 'status';
-      statusEl.textContent = 'Гружу каталог…';
-      setProgress(10, 'Качаю items с json.tarkov.dev…', true);
+      setStatus('loading');
+      setProgress(10, t('tool.barter-live.ui.loadingItems'), true);
 
       try {
         await fetchCatalog();
-        setProgress(60, 'Ищу совпадения…', false);
+        setProgress(60, t('tool.barter-live.ui.matching'), false);
         await new Promise(r => setTimeout(r, 30));
 
         let found = 0, missed = 0;
@@ -417,14 +451,18 @@
         // result
         const resultHit = findInCatalog(resultSearchInput.value);
         if (resultHit) {
+          resultMatch = resultHit;
+          resultSearchMiss = false;
           // продажа — ориентир avg24h (или lastLow), не «покупка N»
           const sellRef = resultHit.avg24hPrice || resultHit.lastLowPrice || 0;
           if (sellRef > 0) sellPriceInput.value = sellRef;
           resultBasePrice = Number(resultHit.basePrice) || 0;
-          resultMeta.innerHTML = `${resultHit.iconLink||resultHit.gridImageLink?`<img class="ico ico-sm" src="${escapeHtml(resultHit.iconLink||resultHit.gridImageLink)}" loading="lazy" alt="" style="vertical-align:middle;margin-right:6px">`:''}<span class="matched">✓ ${escapeHtml(resultHit.normalizedName)}</span> · avg ${formatNum(resultHit.avg24hPrice || 0)} · min ${formatNum(resultHit.lastLowPrice || 0)} · офферов ${resultHit.lastOfferCount || '—'}`;
+          renderResultMeta();
           found++;
         } else {
-          resultMeta.innerHTML = `<span class="unmatched">не найдено по ключу «${escapeHtml(resultSearchInput.value)}»</span>`;
+          resultMatch = null;
+          resultSearchMiss = true;
+          renderResultMeta();
           missed++;
         }
 
@@ -444,17 +482,15 @@
           }
         });
 
-        setProgress(100, 'Готово', false);
-        statusEl.className = 'status ok';
-        statusEl.textContent = `Цены обновлены · найдено ${found}, не найдено ${missed}`;
+        setProgress(100, t('tool.barter-live.ui.done'), false);
+        setStatus('updated', { found, missed }, 'ok');
         renderItems();
         recalculate();
         playDoneSound();
         setTimeout(hideProgress, 800);
       } catch (err) {
         console.error(err);
-        statusEl.className = 'status err';
-        statusEl.textContent = 'Ошибка: ' + (err.message || err);
+        setStatus('loadError', { message: err.message || err }, 'err');
         hideProgress();
       } finally {
         btn.disabled = false;
@@ -464,6 +500,8 @@
     document.getElementById('addItemBtn').addEventListener('click', () => {
       items.push({ id: nextId++, name: '', search: '', qty: 1, price: 0, match: null });
       activePreset = null;
+      const initialPreset = PRESETS.find(p => p.id === activePreset);
+      if (initialPreset) resultNameInput.value = t('tool.barter-live.ui.resultName.' + initialPreset.id);
       renderPresets();
       renderItems();
       recalculate();
@@ -471,6 +509,16 @@
 
     sellPriceInput.addEventListener('input', recalculate);
     commissionInput.addEventListener('input', recalculate);
+    resultNameInput.addEventListener('input', () => {
+      resultNameUserEdited = true;
+      activePreset = null;
+      renderPresets();
+    });
+    resultSearchInput.addEventListener('input', () => {
+      activePreset = null;
+      renderPresets();
+      if (resultSearchMiss) renderResultMeta();
+    });
     document.getElementById('priceMode').addEventListener('change', () => {
       if (!catalog) return;
       items.forEach(item => {
@@ -494,6 +542,32 @@
     renderPresets();
     renderItems();
     recalculate();
+
+    window.addEventListener('tt-lang-changed', () => {
+      const preset = PRESETS.find(p => p.id === activePreset);
+      if (preset && !resultNameUserEdited) {
+        resultNameInput.value = t('tool.barter-live.ui.resultName.' + preset.id);
+      }
+      renderPresets();
+      renderItems();
+      renderResultMeta();
+      renderStatus();
+      recalculate();
+    });
+
+    if (window.TarkovI18n && typeof TarkovI18n.ready === 'function') {
+      TarkovI18n.ready().then(() => {
+        const preset = PRESETS.find(p => p.id === activePreset);
+        if (preset && !resultNameUserEdited) {
+          resultNameInput.value = t('tool.barter-live.ui.resultName.' + preset.id);
+        }
+        renderPresets();
+        renderItems();
+        renderResultMeta();
+        renderStatus();
+        recalculate();
+      });
+    }
   
     (function() {
   function itemName(it){

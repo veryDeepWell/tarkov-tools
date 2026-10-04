@@ -16,7 +16,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-ammo.html",
       "title": "Патроны",
       "description": "Пробитие по калибрам; скрытые статы патрона по наведению.",
-      "icon": "ammo",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -24,7 +24,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-armor.html",
       "title": "Броня",
       "description": "Рейтинг брони по классу, зонам, плитам, без упора в цену.",
-      "icon": "armor",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -32,7 +32,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-barter-calc.html",
       "title": "Бартер (ручной)",
       "description": "Калькулятор выгодности бартера: компоненты, комиссия flea.",
-      "icon": "barter-calc",
+      "icon": "flea",
       "cat": "flea",
       "kind": "static"
     },
@@ -40,15 +40,15 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-barter-live.html",
       "title": "Бартер (live)",
       "description": "Бартер с ценами барахолки через API, пресеты трейдов.",
-      "icon": "barter-live",
+      "icon": "flea",
       "cat": "flea",
-      "kind": "live"
+      "kind": "static"
     },
     {
       "file": "tools/tarkovtool-barter-opt.html",
       "title": "Оптимизатор бартера",
       "description": "Бартер под покупку в бюджет: реальные цены ингредиентов, не флип.",
-      "icon": "barter-opt",
+      "icon": "flea",
       "cat": "flea",
       "kind": "static"
     },
@@ -56,7 +56,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-battle-pass.html",
       "title": "Боевой пропуск",
       "description": "Трекинг Kord Breach BP: доки, страницы, награды.",
-      "icon": "battle-pass",
+      "icon": "util",
       "cat": "util",
       "kind": "static"
     },
@@ -64,15 +64,15 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-bosses.html",
       "title": "Боссы и гуны",
       "description": "Шансы боссов, таймеры карт, текущая локация гунов.",
-      "icon": "bosses",
-      "cat": "util",
+      "icon": "quests",
+      "cat": "quests",
       "kind": "static"
     },
     {
       "file": "tools/tarkovtool-btc-farm.html",
       "title": "Биткоин-ферма",
       "description": "ROI майнинга: GPU, топливо, солнечная, Hideout Management, графики.",
-      "icon": "btc-farm",
+      "icon": "hideout",
       "cat": "hideout",
       "kind": "static"
     },
@@ -80,7 +80,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-cases.html",
       "title": "Ящики",
       "description": "Кейсы и контейнеры: что влезает. Сетка + поиск.",
-      "icon": "cases",
+      "icon": "hideout",
       "cat": "hideout",
       "kind": "static"
     },
@@ -88,7 +88,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-challenge.html",
       "title": "Челлендж",
       "description": "Рандом: карта, задание, лоадаут. Особые правила, локальный XP.",
-      "icon": "challenge",
+      "icon": "util",
       "cat": "util",
       "kind": "static"
     },
@@ -96,7 +96,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-compare.html",
       "title": "Сравнение",
       "description": "Сравнение нескольких предметов одной категории, моды под ствол.",
-      "icon": "compare",
+      "icon": "other",
       "cat": "other",
       "kind": "static"
     },
@@ -104,7 +104,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-containers.html",
       "title": "Разгрузки и рюкзаки",
       "description": "Рейтинг контейнеров: слоты, вес, сегменты.",
-      "icon": "containers",
+      "icon": "hideout",
       "cat": "hideout",
       "kind": "static"
     },
@@ -112,7 +112,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-crafts.html",
       "title": "Крафты убежища",
       "description": "ROI крафтов hideout, цены, время.",
-      "icon": "crafts",
+      "icon": "hideout",
       "cat": "hideout",
       "kind": "static"
     },
@@ -120,7 +120,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-cultist.html",
       "title": "Круг культистов",
       "description": "Base value 350k/400k, цена: торговцы / flea / бартер-цепочки.",
-      "icon": "cultist",
+      "icon": "other",
       "cat": "other",
       "kind": "static"
     },
@@ -128,7 +128,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-desk.html",
       "title": "Desk",
       "description": "Мини-вкладки: несколько инструментов сразу поверх общего состояния.",
-      "icon": "desk",
+      "icon": "other",
       "cat": "other",
       "kind": "static"
     },
@@ -136,7 +136,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-drip-builder.html",
       "title": "Дрип-билдер (моды)",
       "description": "Поиск модов оружия по цветам — заглушка.",
-      "icon": "drip-builder",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -144,7 +144,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-drip-loadout.html",
       "title": "Дрип-лоадаут",
       "description": "Стили + цвета, раскладка как на персонаже.",
-      "icon": "drip-loadout",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -152,7 +152,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-drip.html",
       "title": "Дрип по цветам",
       "description": "Экип по цветам (песок, чёрный, MC…) + score статов.",
-      "icon": "drip",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -160,7 +160,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-food.html",
       "title": "Еда и вода",
       "description": "Пища / вода: energy, hydration, цена, рейтинг ₽/очко.",
-      "icon": "food",
+      "icon": "med",
       "cat": "med",
       "kind": "static"
     },
@@ -168,7 +168,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-gun-budget.html",
       "title": "Сборка за N ₽",
       "description": "Оружие под бюджет: максимум статов, схема модов, прицел.",
-      "icon": "gun-budget",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -176,7 +176,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-gun-builder.html",
       "title": "Сборка оружия",
       "description": "Схема (дуло←приклад), зоны, зум, Auto Build.",
-      "icon": "gun-builder",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -184,7 +184,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-gun-rating.html",
       "title": "Рейтинг оружия",
       "description": "Оружие по цене, патронам, модам, эрго/отдаче и доступности.",
-      "icon": "gun-rating",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -192,7 +192,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-headphones.html",
       "title": "Наушники",
       "description": "Характеристики наушников из API, рейтинг цена/слух, фильтры.",
-      "icon": "headphones",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -200,7 +200,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-helmets.html",
       "title": "Шлемы",
       "description": "Класс, зоны, штрафы; наведение — ricochet / blunt / слоты.",
-      "icon": "helmets",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -208,7 +208,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-hideout-mgmt.html",
       "title": "Качатель Hideout Management",
       "description": "Какой крафт крутить на каждой станции за минимум ₽ за цикл скилла.",
-      "icon": "hideout-mgmt",
+      "icon": "hideout",
       "cat": "hideout",
       "kind": "static"
     },
@@ -224,7 +224,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-hitboxes.html",
       "title": "Хитбоксы и урон",
       "description": "Механика HP, хитбоксов, переноса урона + симулятор попаданий",
-      "icon": "hitboxes",
+      "icon": "util",
       "cat": "util",
       "kind": "static"
     },
@@ -232,7 +232,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-item-use.html",
       "title": "Что с предметом",
       "description": "Ввёл предмет — продажа, крафт, убежище, квесты, бартер.",
-      "icon": "item-use",
+      "icon": "other",
       "cat": "other",
       "kind": "static"
     },
@@ -240,7 +240,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-keys.html",
       "title": "Ключи",
       "description": "Ключи по локациям, цена и рейтинг.",
-      "icon": "keys",
+      "icon": "other",
       "cat": "other",
       "kind": "static"
     },
@@ -248,7 +248,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-lang-search.html",
       "title": "Локализатор",
       "description": "Поиск предметов и квестов по именам в выбранных языках API.",
-      "icon": "lang-search",
+      "icon": "other",
       "cat": "other",
       "kind": "static"
     },
@@ -256,7 +256,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-loadout-budget.html",
       "title": "Лоадаут за N ₽",
       "description": "Полный лоадаут под бюджет — заглушка.",
-      "icon": "loadout-budget",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -264,7 +264,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-loadout-builder.html",
       "title": "Лоадаут-билдер",
       "description": "Сборка лоадаута с сохранением и загрузкой пресетов.",
-      "icon": "loadout-builder",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -272,7 +272,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-loot-slot.html",
       "title": "Лут ₽/слот",
       "description": "Цена за клетку: flea и торговец, пометка квеста.",
-      "icon": "loot-slot",
+      "icon": "other",
       "cat": "other",
       "kind": "static"
     },
@@ -280,7 +280,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-mags.html",
       "title": "Магазины",
       "description": "Магазины по калибрам: ёмкость, эрга, отдача.",
-      "icon": "mags",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -288,7 +288,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-marathon.html",
       "title": "Марафон",
       "description": "Цепочка переходов: расходники, XP, где лутать ресурсы, выходы.",
-      "icon": "marathon",
+      "icon": "util",
       "cat": "util",
       "kind": "static"
     },
@@ -296,7 +296,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-medkits.html",
       "title": "Аптечки",
       "description": "HP на клетку, скорость применения, ₽/HP. Аптечки и таблетки.",
-      "icon": "medkits",
+      "icon": "med",
       "cat": "med",
       "kind": "static"
     },
@@ -304,7 +304,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-mods.html",
       "title": "Моды",
       "description": "Рейтинг обвесов по статам и совместимости.",
-      "icon": "mods",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -312,7 +312,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-my-tarkov.html",
       "title": "My Tarkov",
       "description": "Дашборд над общим локальным состоянием: убежище, квесты, алерты.",
-      "icon": "my-tarkov",
+      "icon": "other",
       "cat": "other",
       "kind": "static"
     },
@@ -320,7 +320,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-nvg.html",
       "title": "ПНВ",
       "description": "Night vision: intensity, noise, diffuse, эвристический score.",
-      "icon": "nvg",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -328,7 +328,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-plates.html",
       "title": "Плиты",
       "description": "Эффективность плит: класс, вес, прочность, стоимость ремонта.",
-      "icon": "plates",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -336,7 +336,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-prestige.html",
       "title": "Престиж-оптимизатор",
       "description": "Что передать при престиже: ранние квесты, капитал, плотность слотов.",
-      "icon": "prestige",
+      "icon": "util",
       "cat": "util",
       "kind": "static"
     },
@@ -344,7 +344,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-price-alarm.html",
       "title": "Сирена цен",
       "description": "Оповещение, когда цена или число офферов пересекает порог",
-      "icon": "price-alarm",
+      "icon": "flea",
       "cat": "flea",
       "kind": "live"
     },
@@ -352,7 +352,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-price-track.html",
       "title": "Price track",
       "description": "Flea price history, background snapshots, countdown.",
-      "icon": "price-track",
+      "icon": "flea",
       "cat": "flea",
       "kind": "live"
     },
@@ -360,7 +360,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-quest-cheese.html",
       "title": "Квест-чиз",
       "description": "Что скрафтить / получить с других квестов для нужного квеста или предмета.",
-      "icon": "quest-cheese",
+      "icon": "quests",
       "cat": "quests",
       "kind": "static"
     },
@@ -368,7 +368,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-quest-items.html",
       "title": "Квест-предметы",
       "description": "FIR-предметы для квестов, трекинг.",
-      "icon": "quest-items",
+      "icon": "quests",
       "cat": "quests",
       "kind": "static"
     },
@@ -384,7 +384,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-raid-checklist.html",
       "title": "Чек-лист рейда",
       "description": "Сборки под карты, DnD списка, В РЕЙД → сброс галочек через 20 мин.",
-      "icon": "raid-checklist",
+      "icon": "quests",
       "cat": "quests",
       "kind": "static"
     },
@@ -392,7 +392,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-random-loadout.html",
       "title": "Рандомный лоадаут",
       "description": "Случайный ган без модов — раскладка как на персонаже.",
-      "icon": "random-loadout",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -400,7 +400,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-repair.html",
       "title": "Починка",
       "description": "Ремонт брони и оружия: качество, стоимость, материалы, скиллы.",
-      "icon": "repair",
+      "icon": "util",
       "cat": "util",
       "kind": "static"
     },
@@ -408,7 +408,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-restock.html",
       "title": "Таймер рестока",
       "description": "Обновление торговцев, пилик, история.",
-      "icon": "restock",
+      "icon": "flea",
       "cat": "flea",
       "kind": "live"
     },
@@ -416,7 +416,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-scopes.html",
       "title": "Прицелы",
       "description": "Рейтинг оптики: кратность, ПНВ, community tier.",
-      "icon": "scopes",
+      "icon": "loadout",
       "cat": "loadout",
       "kind": "static"
     },
@@ -424,7 +424,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-seasons.html",
       "title": "Сезоны",
       "description": "История сезонов: модификаторы, доки, даты.",
-      "icon": "seasons",
+      "icon": "util",
       "cat": "util",
       "kind": "static"
     },
@@ -432,7 +432,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-shopping-list.html",
       "title": "Список покупок",
       "description": "Вишлист после рестока: патроны, мед, флип — с копированием имён.",
-      "icon": "shopping-list",
+      "icon": "flea",
       "cat": "flea",
       "kind": "static"
     },
@@ -440,7 +440,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-shortname.html",
       "title": "Короткие имена",
       "description": "Поиск по short name + цена торговца/flea.",
-      "icon": "shortname",
+      "icon": "other",
       "cat": "other",
       "kind": "static"
     },
@@ -448,7 +448,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-skills.html",
       "title": "Скиллы + чизы",
       "description": "Уровень и способ быстрой прокачки каждого навыка.",
-      "icon": "skills",
+      "icon": "other",
       "cat": "other",
       "kind": "static"
     },
@@ -456,7 +456,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-stim-combos.html",
       "title": "Комбо стимуляторов",
       "description": "Связки вроде Meldonin+SJ1, SJ6+Trimadol, Propital+MULE. Иконки и копир.",
-      "icon": "stim-combos",
+      "icon": "med",
       "cat": "med",
       "kind": "static"
     },
@@ -464,7 +464,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-stims.html",
       "title": "Стимуляторы",
       "description": "Рейтинг инъекторов: бой, выносливость, отхил, вес. Эффекты из API.",
-      "icon": "stims",
+      "icon": "med",
       "cat": "med",
       "kind": "static"
     },
@@ -472,7 +472,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-streamer-flip.html",
       "title": "Стример-флип",
       "description": "Ивент-предметы и флип",
-      "icon": "streamer-flip",
+      "icon": "flea",
       "cat": "flea",
       "kind": "static"
     },
@@ -480,7 +480,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-trader-flip.html",
       "title": "Трейдер-флип",
       "description": "Покупка у торговца → flea",
-      "icon": "trader-flip",
+      "icon": "flea",
       "cat": "flea",
       "kind": "static"
     },
@@ -488,7 +488,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-xp.html",
       "title": "Опыт",
       "description": "Источники XP, множители выхода, калькулятор киллов и таблица уровней.",
-      "icon": "xp",
+      "icon": "util",
       "cat": "util",
       "kind": "static"
     }

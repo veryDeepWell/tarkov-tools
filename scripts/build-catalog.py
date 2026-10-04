@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Собирает hub/catalog-data.js из tools/*.html → #tarkovtool-meta.
+Builds hub/catalog.js from tools/*.html → #tarkovtool-meta.
 
 Каждый тул сам описывает себя. Каталог не правится руками.
 
@@ -26,8 +26,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ROOT / "tools"
-OUT_HUB = ROOT / "hub" / "catalog-data.js"
-OUT_ROOT = ROOT / "catalog-data.js"
+OUT_HUB = ROOT / "hub" / "catalog.js"
+ICON_DIR = ROOT / "assets" / "icons"
 
 CATEGORIES = {
     "flea": "Барахолка",
@@ -44,12 +44,12 @@ CAT_HINTS = [
     (("barter", "price", "flea", "flip", "shopping", "alarm", "track", "restock"), "flea"),
     (("gun", "ammo", "armor", "helmet", "mag", "scope", "mod", "loadout", "drip", "nvg", "plate", "headphone"), "loadout"),
     (("hideout", "craft", "case", "container", "btc"), "hideout"),
-    (("quest", "raid-checklist"), "quests"),
+    (("quest", "raid-checklist", "boss"), "quests"),
     (("med", "stim", "food"), "med"),
-    (("season", "battle-pass", "hitbox", "xp", "repair", "prestige", "marathon", "challenge", "boss"), "util"),
+    (("season", "battle-pass", "hitbox", "xp", "repair", "prestige", "marathon", "challenge"), "util"),
 ]
 
-LIVE_HINTS = ("live", "alarm", "track", "restock", "poll")
+LIVE_SLUGS = {"price-track", "price-alarm", "restock"}
 
 META_RE = re.compile(
     r'<script[^>]*\bid=["\']tarkovtool-meta["\'][^>]*>(.*?)</script>',
@@ -75,10 +75,7 @@ def infer_cat(slug: str, title: str) -> str:
 def infer_kind(slug: str, meta_kind: str | None) -> str:
     if meta_kind in ("static", "live"):
         return meta_kind
-    blob = slug.lower()
-    if any(k in blob for k in LIVE_HINTS):
-        return "live"
-    return "static"
+    return "live" if slug.lower() in LIVE_SLUGS else "static"
 
 
 def parse_meta(html: str) -> dict | None:
@@ -118,7 +115,8 @@ def collect() -> list[dict]:
             warnings.append(f"{path.name}: unknown cat={cat!r} → other")
             cat = "other"
         kind = infer_kind(slug, meta.get("kind"))
-        icon = (meta.get("icon") or slug).strip()
+        requested_icon = (meta.get("icon") or "").strip()
+        icon = requested_icon if (ICON_DIR / f"{requested_icon}.svg").is_file() else cat
 
         if not meta:
             warnings.append(f"{path.name}: no valid #tarkovtool-meta — used filename defaults")
@@ -163,11 +161,17 @@ window.__TT_CATALOG_DATA = {body};
 def main() -> None:
     tools, warnings = collect()
     js = emit_js(tools)
+    if len(sys.argv) > 1 and sys.argv[1] == "--check":
+        if not OUT_HUB.is_file() or OUT_HUB.read_text(encoding="utf-8") != js:
+            print(f"ERROR: {OUT_HUB.relative_to(ROOT)} is stale; run scripts/build-catalog.py", file=sys.stderr)
+            sys.exit(1)
+        print(f"Catalog is up to date ({len(tools)} tools)")
+        for w in warnings:
+            print("  warn:", w)
+        return
     OUT_HUB.parent.mkdir(parents=True, exist_ok=True)
     OUT_HUB.write_text(js, encoding="utf-8")
-    OUT_ROOT.write_text(js, encoding="utf-8")
     print(f"Wrote {OUT_HUB.relative_to(ROOT)} ({len(tools)} tools)")
-    print(f"Wrote {OUT_ROOT.relative_to(ROOT)}")
     for w in warnings:
         print("  warn:", w)
 

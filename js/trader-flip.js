@@ -9,15 +9,21 @@
      */
         
         
+    function t(key, params) {
+      return window.TarkovI18n && TarkovI18n.t
+        ? TarkovI18n.t('tool.trader-flip.ui.' + key, params)
+        : key;
+    }
+
     const TRADERS_UI = [
-      { id: 'prapor', ru: 'Прапор' },
-      { id: 'therapist', ru: 'Терапевт' },
-      { id: 'skier', ru: 'Лыжник' },
-      { id: 'peacekeeper', ru: 'Миротворец' },
-      { id: 'mechanic', ru: 'Механик' },
-      { id: 'ragman', ru: 'Барахольщик' },
-      { id: 'jaeger', ru: 'Егерь' },
-      { id: 'ref', ru: 'Реф' }
+      { id: 'prapor' },
+      { id: 'therapist' },
+      { id: 'skier' },
+      { id: 'peacekeeper' },
+      { id: 'mechanic' },
+      { id: 'ragman' },
+      { id: 'jaeger' },
+      { id: 'ref' }
     ];
 
     const TRADER_ID_FALLBACK = (window.TarkovDicts && TarkovDicts.traders)
@@ -35,28 +41,20 @@
       '638f541a29ffd1183d187f57': 'lightkeeper'
     };
 
-    const TRADER_RU = (window.TarkovDicts && TarkovDicts.traders)
-      ? TarkovDicts.traders.reduce((acc, t) => { acc[t.key] = t.ru; return acc; }, {})
-      : {
-      prapor: 'Прапор', therapist: 'Терапевт', fence: 'Скупщик',
-      skier: 'Лыжник', peacekeeper: 'Миротворец', mechanic: 'Механик',
-      ragman: 'Барахольщик', jaeger: 'Егерь', ref: 'Реф', lightkeeper: 'Смотритель'
-    };
-
     const COLUMNS = [
-      { key: 'name', label: 'Предмет', sort: true },
-      { key: 'trader', label: 'Торговец', sort: true },
-      { key: 'll', label: 'УЛ', sort: true },
-      { key: 'quest', label: 'Квест', sort: true },
-      { key: 'buyLimit', label: 'Лимит', sort: true },
-      { key: 'traderPrice', label: 'Цена торговца', sort: true },
-      { key: 'avg24h', label: 'Средняя 24ч', sort: true },
-      { key: 'lastLow', label: 'Мин. сейчас', sort: true },
-      { key: 'offers', label: 'Офферов', sort: true },
-      { key: 'profit', label: 'Профит', sort: true },
-      { key: 'roi', label: 'ROI %', sort: true },
-      { key: 'types', label: 'Тип', sort: false },
-      { key: 'copy', label: '', sort: false }
+      { key: 'name', sort: true },
+      { key: 'trader', sort: true },
+      { key: 'll', sort: true },
+      { key: 'quest', sort: true },
+      { key: 'buyLimit', sort: true },
+      { key: 'traderPrice', sort: true },
+      { key: 'avg24h', sort: true },
+      { key: 'lastLow', sort: true },
+      { key: 'offers', sort: true },
+      { key: 'profit', sort: true },
+      { key: 'roi', sort: true },
+      { key: 'types', sort: false },
+      { key: 'copy', sort: false }
     ];
 
     let rawRows = [];
@@ -64,6 +62,7 @@
     let sortKey = 'profit';
     let sortDir = -1;
     let activeTypes = new Set();
+    let filtersInitialized = false;
 
     const tradersEl = document.getElementById('traders');
     const _savedLL = (function() {
@@ -86,19 +85,19 @@
         return s.traderLevels || {};
       } catch (e) { return {}; }
     })();
-    TRADERS_UI.forEach(t => {
+    TRADERS_UI.forEach(trader => {
       const div = document.createElement('div');
       div.className = 'trader-row';
-      const saved = _savedLL[t.id];
+      const saved = _savedLL[trader.id];
       const cur = saved != null ? String(saved) : '3';
       div.innerHTML = `
-        <label>${t.ru}</label>
-        <select data-trader="${t.id}">
-          <option value="0"${cur==='0'?' selected':''}>Нет</option>
-          <option value="1"${cur==='1'?' selected':''}>УЛ 1</option>
-          <option value="2"${cur==='2'?' selected':''}>УЛ 2</option>
-          <option value="3"${cur==='3'?' selected':''}>УЛ 3</option>
-          <option value="4"${cur==='4'?' selected':''}>УЛ 4</option>
+        <label>${TarkovDicts.traderName ? TarkovDicts.traderName(trader.id) : t('trader.' + trader.id)}</label>
+        <select data-trader="${trader.id}">
+          <option value="0"${cur==='0'?' selected':''}>${t('no')}</option>
+          <option value="1"${cur==='1'?' selected':''}>${t('loyaltyLevel', { level: 1 })}</option>
+          <option value="2"${cur==='2'?' selected':''}>${t('loyaltyLevel', { level: 2 })}</option>
+          <option value="3"${cur==='3'?' selected':''}>${t('loyaltyLevel', { level: 3 })}</option>
+          <option value="4"${cur==='4'?' selected':''}>${t('loyaltyLevel', { level: 4 })}</option>
         </select>`;
       tradersEl.appendChild(div);
       div.querySelector('select').addEventListener('change', () => {
@@ -132,19 +131,33 @@
 
     function traderLabel(idOrKey) {
       const key = (traderIdMap[idOrKey] || idOrKey || '').toLowerCase();
-      return TRADER_RU[key] || key || idOrKey;
+      return window.TarkovDicts && TarkovDicts.traderName
+        ? TarkovDicts.traderName(key)
+        : (t('trader.' + key) === 'trader.' + key ? key : t('trader.' + key));
     }
 
     const statusEl = document.getElementById('status');
     const fetchBtn = document.getElementById('fetchBtn');
+    let statusState = null;
+    function setStatus(key, params, tone) {
+      statusState = { key, params, tone: tone || '' };
+      renderStatus();
+    }
+    function renderStatus() {
+      if (!statusState) return;
+      statusEl.className = 'status' + (statusState.tone ? ' ' + statusState.tone : '');
+      statusEl.textContent = t(statusState.key, statusState.params);
+    }
 
     const progressWrap = document.getElementById('progressWrap');
     const progressBar = document.getElementById('progressBar');
     const progressLabel = document.getElementById('progressLabel');
+    let progressState = null;
 
-    function setProgress(pct, label, indeterminate) {
+    function setProgress(pct, key, params, indeterminate) {
+      progressState = { pct, key, params, indeterminate };
       progressWrap.classList.add('visible');
-      progressLabel.textContent = label || '';
+      progressLabel.textContent = t(key, params);
       progressBar.classList.toggle('indeterminate', !!indeterminate);
       if (!indeterminate) {
         progressBar.style.width = Math.max(0, Math.min(100, pct)) + '%';
@@ -156,44 +169,49 @@
       progressBar.classList.remove('indeterminate');
       progressBar.style.width = '0%';
       progressLabel.textContent = '';
+      progressState = null;
+    }
+
+    function renderProgress() {
+      if (!progressState) return;
+      progressLabel.textContent = t(progressState.key, progressState.params);
     }
 
 
 
     fetchBtn.addEventListener('click', async () => {
       fetchBtn.disabled = true;
-      statusEl.className = 'status';
       const mode = document.getElementById('gameMode').value || 'regular';
-      statusEl.textContent = `Гружу данные с json.tarkov.dev (${mode})…`;
-      setProgress(5, 'Подключаюсь…', true);
+      setStatus('loading', { mode });
+      setProgress(5, 'connecting', null, true);
 
       try {
-        setProgress(15, 'Качаю items…', true);
+        setProgress(15, 'loadingItems', null, true);
         const itemsPromise = TarkovAPI.items(mode);
         const tradersPromise = TarkovAPI.traders(mode).catch(() => null);
 
         const [items, tradersList] = await Promise.all([itemsPromise, tradersPromise]);
-        setProgress(55, 'Разбираю ответ…', false);
+        setProgress(55, 'processing');
 
         (tradersList || []).forEach(t => {
           if (t && t.id && t.normalizedName) traderIdMap[t.id] = t.normalizedName;
         });
 
-        setProgress(75, `Считаю флипы · ${items.length} предметов…`, false);
+        setProgress(75, 'calculating', { count: items.length });
         // yield so the browser can paint the progress bar
         await new Promise(r => setTimeout(r, 40));
         processItems(items);
-        setProgress(100, 'Готово!', false);
+        setProgress(100, 'done');
 
-        statusEl.className = 'status ok';
-        statusEl.textContent = `Загружено ${items.length} предметов · ${rawRows.length} офферов у торговцев под твои УЛ`;
+        setStatus('loaded', { items: items.length, offers: rawRows.length }, 'ok');
         document.getElementById('resultsCard').style.display = 'block';
+        filtersInitialized = false;
         renderFilters();
         renderTable();
         if (typeof Notify === 'function') {
           Notify({
-            title: 'Trader flip',
-            body: `Loaded ${items.length} items · ${rawRows.length} trader offers`,
+            title: t('notificationTitle'),
+            body: t('notificationBody', { items: items.length, offers: rawRows.length }),
             tool: 'tarkovtool-trader-flip.html',
             kind: 'ok'
           });
@@ -201,8 +219,7 @@
         setTimeout(hideProgress, 900);
       } catch (err) {
         console.error(err);
-        statusEl.className = 'status err';
-        statusEl.textContent = 'Ошибка: ' + (err.message || err);
+        setStatus('loadError', { message: err.message || err }, 'err');
         hideProgress();
       } finally {
         fetchBtn.disabled = false;
@@ -240,10 +257,11 @@
 
           const fleaRef = avg || lastLow;
           const basePrice = Number(item.basePrice) || 0;
-          const tax = fleaTax(basePrice, fleaRef, 1, taxOpts);
-          const netFlea = fleaRef - tax;
-          const profit = Math.round(netFlea - traderPrice);
-          const roi = traderPrice > 0 ? (profit / traderPrice) * 100 : 0;
+          const result = TarkovItemDomain.evaluateProfit(basePrice, fleaRef, 1, traderPrice, taxOpts);
+          const tax = result.tax;
+          const netFlea = result.revenue;
+          const profit = Math.round(result.profit);
+          const roi = result.roi;
 
           const tu = offer.taskUnlock;
           const questLocked = tu != null && tu !== '' && tu !== false;
@@ -265,7 +283,7 @@
             trader: traderLabel(traderId),
             traderKey,
             ll: reqLL,
-            quest: questLocked ? 'да' : 'нет',
+            quest: questLocked,
             questName: String(questName),
             buyLimit: offer.buyLimit != null ? Number(offer.buyLimit) : null,
             traderPrice,
@@ -286,22 +304,26 @@
       rawRows.forEach(r => r.typesArr.forEach(t => types.add(t)));
       const sorted = [...types].sort();
       const el = document.getElementById('typeFilters');
-      el.innerHTML = '<span style="font-size:0.8rem;color:var(--muted)">Категории:</span>';
-      activeTypes = new Set(sorted);
+      el.innerHTML = '<span style="font-size:0.8rem;color:var(--muted)">' + t('categories') + '</span>';
+      if (!filtersInitialized) {
+        activeTypes = new Set(sorted);
+        filtersInitialized = true;
+      }
 
       const allBtn = document.createElement('span');
       allBtn.className = 'chip active';
-      allBtn.textContent = 'Все';
+      allBtn.textContent = t('all');
       allBtn.onclick = () => {
         activeTypes = new Set(sorted);
-        el.querySelectorAll('.chip').forEach(c => c.classList.add('active'));
+        el.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c === allBtn || activeTypes.has(c.dataset.type)));
         renderTable();
       };
       el.appendChild(allBtn);
 
       sorted.forEach(t => {
         const chip = document.createElement('span');
-        chip.className = 'chip active';
+        chip.className = 'chip' + (activeTypes.has(t) ? ' active' : '');
+        chip.dataset.type = t;
         chip.textContent = t;
         chip.onclick = () => {
           if (activeTypes.has(t)) { activeTypes.delete(t); chip.classList.remove('active'); }
@@ -323,7 +345,7 @@
         if (r.profit < minProfit) return false;
         if (r.roi < minRoi) return false;
         if (r.offers < minOffers) return false;
-        if (hideQuest && r.quest === 'да') return false;
+        if (hideQuest && r.quest) return false;
         if (search) {
           const hay = (r.name + ' ' + r.shortName + ' ' + r.normalizedName).toLowerCase();
           if (!hay.includes(search)) return false;
@@ -335,7 +357,8 @@
       });
 
       rows.sort((a, b) => {
-        let va = a[sortKey], vb = b[sortKey];
+        let va = sortKey === 'trader' ? traderLabel(a.traderKey) : a[sortKey];
+        let vb = sortKey === 'trader' ? traderLabel(b.traderKey) : b[sortKey];
         if (typeof va === 'string') {
           va = va.toLowerCase();
           vb = (vb || '').toLowerCase();
@@ -353,7 +376,7 @@
       thead.innerHTML = '';
       COLUMNS.forEach(col => {
         const th = document.createElement('th');
-        th.innerHTML = col.label + (col.sort ? '<span class="sort">↕</span>' : '');
+        th.innerHTML = t('column.' + col.key) + (col.sort ? '<span class="sort">↕</span>' : '');
         if (col.key === sortKey) th.classList.add('sorted');
         if (col.sort) {
           th.onclick = () => {
@@ -373,7 +396,7 @@
       tbody.innerHTML = '';
 
       if (!rows.length) {
-        tbody.innerHTML = `<tr><td colspan="${COLUMNS.length}" class="empty">Ничего не найдено под фильтры</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${COLUMNS.length}" class="empty">${t('empty')}</td></tr>`;
         document.getElementById('meta').textContent = '';
         return;
       }
@@ -384,9 +407,9 @@
         const copyName = r.normalizedName || r.name;
         tr.innerHTML = `
           <td title="${escapeHtml(r.name)}"><div class="name-cell">${r.icon?`<img class="ico ico-sm" src="${escapeHtml(r.icon)}" loading="lazy" alt="">`:''}<div class="txt">${escapeHtml(r.name)}</div></div></td>
-          <td>${escapeHtml(r.trader)}</td>
+          <td>${escapeHtml(traderLabel(r.traderKey))}</td>
           <td>${r.ll}</td>
-          <td class="${r.quest === 'да' ? 'quest-yes' : 'quest-no'}" title="${escapeHtml(r.questName)}">${r.quest}</td>
+          <td class="${r.quest ? 'quest-yes' : 'quest-no'}" title="${escapeHtml(r.questName)}">${t(r.quest ? 'questYes' : 'questNo')}</td>
           <td>${r.buyLimit != null ? r.buyLimit : '—'}</td>
           <td>${formatNum(r.traderPrice)}</td>
           <td>${r.avg24h ? formatNum(r.avg24h) : '—'}</td>
@@ -395,7 +418,7 @@
           <td class="${r.profit >= 0 ? 'profit-pos' : 'profit-neg'}">${r.profit >= 0 ? '+' : ''}${formatNum(r.profit)}</td>
           <td class="${r.roi >= 0 ? 'profit-pos' : 'profit-neg'}">${r.roi.toFixed(1)}%</td>
           <td style="color:var(--muted);font-size:0.8rem;">${escapeHtml(r.types)}</td>
-          <td><button type="button" class="copy-btn" data-name="${escapeHtml(copyName)}">копир.</button></td>`;
+          <td><button type="button" class="copy-btn" data-name="${escapeHtml(copyName)}">${t('copy')}</button></td>`;
         frag.appendChild(tr);
       });
       tbody.appendChild(frag);
@@ -403,20 +426,43 @@
       tbody.querySelectorAll('.copy-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           navigator.clipboard.writeText(btn.dataset.name).then(() => {
-            btn.textContent = '✓';
-            setTimeout(() => { btn.textContent = 'копир.'; }, 800);
+            btn.textContent = t('copied');
+            setTimeout(() => { btn.textContent = t('copy'); }, 800);
           });
         });
       });
 
-      document.getElementById('meta').textContent =
-        `Показано ${rows.length} из ${rawRows.length} · сортировка: ${sortKey} ${sortDir < 0 ? '↓' : '↑'}`;
+      document.getElementById('meta').textContent = t('meta', {
+        visible: rows.length,
+        total: rawRows.length,
+        sort: t('sort.' + sortKey),
+        direction: sortDir < 0 ? '↓' : '↑'
+      });
     }
 
     ['minProfit', 'minRoi', 'minOffers', 'search', 'hideQuest'].forEach(id => {
       const el = document.getElementById(id);
       el.addEventListener('input', renderTable);
       el.addEventListener('change', renderTable);
+    });
+
+    window.addEventListener('tt-lang-changed', () => {
+      TRADERS_UI.forEach(trader => {
+        const select = tradersEl.querySelector(`select[data-trader="${trader.id}"]`);
+        if (!select) return;
+        const label = select.parentElement.querySelector('label');
+        if (label) label.textContent = traderLabel(trader.id);
+        select.options[0].text = t('no');
+        for (let level = 1; level <= 4; level++) {
+          select.options[level].text = t('loyaltyLevel', { level });
+        }
+      });
+      renderStatus();
+      renderProgress();
+      if (rawRows.length) {
+        renderFilters();
+        renderTable();
+      }
     });
   
     // settings persist

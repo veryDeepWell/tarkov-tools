@@ -63,3 +63,4 @@ python3 scripts/build-catalog.py
 - Иконки + локали только для 22 живых тулов.
 - Удалить или заархивировать осколочные папки (по согласованию).
 - restock: есть только `.js`, HTML нет — в каталог не включён.
+<!-- Archived structure proposal; the active repository uses flat tool HTML pages. -->

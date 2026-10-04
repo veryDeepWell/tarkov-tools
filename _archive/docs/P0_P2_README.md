@@ -33,9 +33,10 @@ Already had `tool:` in `TarkovPoll.start` and TarkovStorage — keep current fix
 
 ## Storage keys (export-safe)
 
-- `tarkovRestockEnabled`, `tarkovRestockHistory`, `tarkovRestockFired`, `tarkovRestockCycleMs`, `tarkovRestockSnapshot`
-- `tarkovPriceAlarmRules` (and poll state via `tarkovPoll.price-alarm`)
-- Export migrates legacy `restock*` → `tarkovRestock*` on dump/import
+- Canonical namespaces: `tt:settings:*`, `tt:notif:v1`, `tt:mini:v1`,
+  `tt:state:v1`, `tt:tool:<id>:meta`, `tt:tool:<id>:data:*`, `tt:api:<hash>`.
+- Legacy `tarkov*`, `ttApi:*`, and pre-prefix `restock*` values are migrated
+  centrally by `TarkovStorage.migrateLegacyKeys()` and remain import-compatible.
 
 ## Not in this pack (use existing site copies)
 
@@ -58,9 +59,10 @@ Locales: `p0/locales/ru.json`, `en.json` (also patched site root copies).
 
 | Item | Status |
 |------|--------|
-| Common/settings via TarkovStorage | `get`/`set`/`pushNotif`/`export` prefer `TarkovStorage`; settings tabs too |
-| Checklist | `scripts/tool-contract-check.sh [root]` |
-| Archive fixed/push | `artifacts/_archive/fixed-push/` (removed from workspace root) |
-| Schema `_v` | `core/tarkov-schema.js`; alarm rules `{ _v:1, rules:[] }`; restock snapshot `{ _v:1, traders:[] }` |
+| Common/settings via TarkovStorage | Complete: storage access is centralized in `core/tarkov-storage.js`; common APIs and settings tabs use it |
+| Checklist | Run `bash scripts/tool-contract-check.sh [root]` |
+| Archive fixed/push | No fixed/push artifacts remain in the workspace root |
+| Schema `_v` | Complete: alarm rules `{ _v:1, rules:[] }`; restock snapshot `{ _v:1, traders:[] }`; legacy payloads migrate via `TarkovSchema` |
 
 Hub loads `tarkov-schema.js` right after `tarkov-storage.js`.
+<!-- Archived phase implementation notes. -->

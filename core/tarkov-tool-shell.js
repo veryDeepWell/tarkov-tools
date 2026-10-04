@@ -330,7 +330,14 @@
     });
   }
 
-  window.addEventListener("tt-lang-changed", localizeToolChrome);
+  window.addEventListener("tt-lang-changed", function () {
+    try {
+      if (window.TarkovI18n && TarkovI18n.applyDom) TarkovI18n.applyDom(document);
+    } catch (e) {
+      console.error(e);
+    }
+    localizeToolChrome();
+  });
 
   // Restore #gameMode as early as possible: the per-tool sync blocks removed in
   // Phase 2 ran at parse time, so the shell must not wait for DOMContentLoaded
@@ -342,6 +349,4 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 
-  // catalog-index.js — генерирует каталог инструментов для hub/index.html
-  import './catalog-index.js'
 })();

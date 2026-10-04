@@ -34,3 +34,4 @@ grep -R "TarkovAPI" --include="tarkovtool-*.html" -l
 ```
 
 Goal: first set empty (or only comments), second set = all data tools.
+<!-- Archived API checklist snapshot. -->

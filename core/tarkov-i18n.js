@@ -158,7 +158,7 @@
       .then(function () {
         current = code;
         try {
-          localStorage.setItem(STORAGE_KEY, code);
+          if (global.TarkovStorage) TarkovStorage.set(STORAGE_KEY, code);
         } catch (e) {}
         try {
           document.documentElement.lang = code === "zh-CN" ? "zh-CN" : code;
@@ -186,7 +186,7 @@
 
   function storedLang() {
     try {
-      return normalizeCode(localStorage.getItem(STORAGE_KEY) || "ru");
+      return normalizeCode(global.TarkovStorage ? TarkovStorage.get(STORAGE_KEY, "ru") : "ru");
     } catch (e) {
       return "ru";
     }

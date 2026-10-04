@@ -22,28 +22,13 @@
 
   function loadState() {
     var def = { claimed: {}, docs: {}, openPages: { 1: true }, _v: 1 };
-    try {
-      if (window.TarkovStorage && TarkovStorage.get) {
-        var s = TarkovStorage.get(STORAGE_KEY);
-        if (s && typeof s === "object") return Object.assign(def, s);
-      }
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return Object.assign(def, JSON.parse(raw));
-    } catch (e) {}
-    return def;
+    var doc = TarkovSchema.readJson(STORAGE_KEY, 1);
+    return doc && typeof doc === "object" ? Object.assign(def, doc) : def;
   }
 
   function saveState(st) {
     st._v = 1;
-    try {
-      if (window.TarkovStorage && TarkovStorage.set) {
-        TarkovStorage.set(STORAGE_KEY, st);
-        return;
-      }
-    } catch (e) {}
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(st));
-    } catch (e2) {}
+    TarkovSchema.writeJson(STORAGE_KEY, st);
   }
 
   var state = loadState();
@@ -220,4 +205,3 @@
   renderStats();
   renderPages();
 })();
-

@@ -1,39 +1,28 @@
 
 
-    function fleaTax(basePrice, offerPrice, count, opts) {
-      opts = opts || {};
-      const bp = Number(basePrice) || 0;
-      const op = Number(offerPrice) || 0;
-      const n = Math.max(1, Number(count) || 1);
-      if (bp <= 0 || op <= 0) return 0;
-      const Ti = 0.05, Tr = 0.05;
-      let PO = Math.log10(bp / op);
-      let PR = Math.log10(op / bp);
-      if (op < bp) PO = Math.pow(PO, 1.08);
-      if (op >= bp) PR = Math.pow(PR, 1.08);
-      let tax = (bp * Ti * Math.pow(4, PO) + op * Tr * Math.pow(4, PR)) * n;
-      if (opts.intelCenter3) {
-        const hm = Math.max(0, Math.min(50, Number(opts.hmLvl) || 0));
-        tax *= (1 - Math.min(0.45, 0.30 + hm * 0.003));
-      }
-      return Math.max(0, Math.ceil(tax));
-    }
-
     function loadSettings(key, defaults) { return TarkovUI.loadSettings(key, defaults); }
     function saveSettings(key, obj) { TarkovUI.saveSettings(key, obj); }
 
-    const TRADER_RU = {
-      prapor: 'Прапор',
-      therapist: 'Терапевт',
-      fence: 'Скупщик',
-      skier: 'Лыжник',
-      peacekeeper: 'Миротворец',
-      mechanic: 'Механик',
-      ragman: 'Барахольщик',
-      jaeger: 'Егерь',
-      ref: 'Реф',
-      lightkeeper: 'Смотритель'
-    };
+    function t(key, params) {
+      return window.TarkovI18n && TarkovI18n.t
+        ? TarkovI18n.t('tool.shortname.ui.' + key, params)
+        : key;
+    }
+    let statusState = null;
+    function setStatus(key, params, tone) {
+      statusState = { key, params, tone: tone || '' };
+      renderStatus();
+    }
+    function renderStatus() {
+      if (!statusState) return;
+      statusEl.className = 'status' + (statusState.tone ? ' ' + statusState.tone : '');
+      statusEl.textContent = t(statusState.key, statusState.params);
+    }
+    function traderName(key) {
+      if (window.TarkovDicts && TarkovDicts.traderName) return TarkovDicts.traderName(key);
+      const label = t('trader.' + key);
+      return label === 'trader.' + key ? key : label;
+    }
     const TRADER_ID = {
       '54cb50c76803fa8b248b4571': 'prapor',
       '54cb57776803fa99248b456e': 'therapist',
@@ -104,7 +93,7 @@
         const key = TRADER_ID[o.trader] || o.trader;
         return {
           key,
-          name: TRADER_RU[key] || key,
+          name: traderName(key),
           price: o.priceRUB != null ? Number(o.priceRUB) : Number(o.price) || 0
         };
       }).filter(o => o.price > 0 && o.key !== 'fence');
@@ -137,15 +126,17 @@
 
     async function loadCatalog() {
       const mode = document.getElementById('gameMode').value || 'regular';
-      statusEl.className = 'status';
-      statusEl.textContent = 'Гружу items…';
+      setStatus('loading');
       const items = await TarkovAPI.items(mode);
-      if (!items.length) throw new Error('Нет items');
+      if (!items.length) throw new Error(t('noItems'));
       catalog = items.map(normalizeItem);
       // try pull short names from overrides count
       const withShort = catalog.filter(i => getShort(i)).length;
-      statusEl.className = 'status ok';
-      statusEl.textContent = `Каталог: ${catalog.length} · shortName в правках: ${Object.keys(overrides).length} · с именем сейчас: ${withShort}`;
+      setStatus('loaded', {
+        total: catalog.length,
+        edited: Object.keys(overrides).length,
+        named: withShort
+      }, 'ok');
       render();
     }
 
@@ -198,15 +189,15 @@
       const edit = editModeEl.checked;
       const { rows, total } = filterItems();
       document.getElementById('countMeta').textContent = catalog.length
-        ? `(${rows.length} из ${total})`
+        ? t('count', { visible: rows.length, total })
         : '';
 
       if (!catalog.length) {
-        listEl.innerHTML = '<div class="item"><div class="meta">Сначала загрузи предметы</div></div>';
+        listEl.innerHTML = '<div class="item"><div class="meta">' + escapeHtml(t('initialEmpty')) + '</div></div>';
         return;
       }
       if (!rows.length) {
-        listEl.innerHTML = '<div class="item"><div class="meta">Ничего не найдено</div></div>';
+        listEl.innerHTML = '<div class="item"><div class="meta">' + escapeHtml(t('empty')) + '</div></div>';
         return;
       }
 
@@ -229,12 +220,12 @@
         let priceHtml = '';
         if (cached) {
           priceHtml = `
-            <div><strong>${escapeHtml(cached.traderName)}</strong>: <strong>${formatNum(cached.traderPrice)}</strong></div>
-            <div>avg <strong>${formatNum(cached.avg)}</strong> · налог <strong>${formatNum(cached.tax)}</strong></div>
-            <div>net <strong>${formatNum(cached.netFlea)}</strong>${cached.diff != null ? ` · <span class="${cached.diff >= 0 ? 'pos' : ''}">Δ ${formatNum(cached.diff)}</span>` : ''}</div>
+            <div><strong>${escapeHtml(cached.traderKey ? traderName(cached.traderKey) : '—')}</strong>: <strong>${formatNum(cached.traderPrice)}</strong></div>
+            <div>${escapeHtml(t('average'))} <strong>${formatNum(cached.avg)}</strong> · ${escapeHtml(t('tax'))} <strong>${formatNum(cached.tax)}</strong></div>
+            <div>${escapeHtml(t('net'))} <strong>${formatNum(cached.netFlea)}</strong>${cached.diff != null ? ` · <span class="${cached.diff >= 0 ? 'pos' : ''}">Δ ${formatNum(cached.diff)}</span>` : ''}</div>
           `;
         } else {
-          priceHtml = '<div class="meta">нет запроса</div>';
+          priceHtml = '<div class="meta">' + escapeHtml(t('noRequest')) + '</div>';
         }
 
         const iconHtml = item.icon
@@ -250,7 +241,7 @@
             </div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-            <button type="button" class="btn-req" data-id="${item.id}">ЗАПРОС</button>
+            <button type="button" class="btn-req" data-id="${item.id}">${escapeHtml(t('request'))}</button>
             <div class="price-box" data-price="${item.id}">${priceHtml}</div>
           </div>
         `;
@@ -294,12 +285,19 @@
         intelCenter3: document.getElementById('intel3')?.value === '1',
         hmLvl: Number(document.getElementById('hmLvl')?.value) || 0
       };
-      const tax = fleaTax(bp || item._basePrice || 0, avg, 1, taxOpts);
-      const netFlea = avg - tax;
-      const diff = traderPrice && avg ? netFlea - traderPrice : null;
+      const profit = TarkovItemDomain.evaluateProfit(
+        bp || item._basePrice || 0,
+        avg,
+        1,
+        traderPrice,
+        taxOpts
+      );
+      const tax = profit.tax;
+      const netFlea = profit.revenue;
+      const diff = traderPrice && avg ? profit.profit : null;
 
       priceCache[id] = {
-        traderName,
+        traderKey: sell ? sell.key : '',
         traderPrice,
         avg,
         low,
@@ -323,8 +321,7 @@
       try {
         await loadCatalog();
       } catch (e) {
-        statusEl.className = 'status err';
-        statusEl.textContent = 'Ошибка: ' + e.message;
+        setStatus('loadError', { message: e.message }, 'err');
       } finally {
         btn.disabled = false;
       }
@@ -353,28 +350,46 @@
       try {
         const text = await file.text();
         const data = JSON.parse(text);
-        if (typeof data !== 'object' || Array.isArray(data)) throw new Error('нужен объект { id: shortName }');
+        if (typeof data !== 'object' || Array.isArray(data) || data === null) throw new Error(t('importFormatError'));
         overrides = { ...overrides, ...data };
         saveOverrides();
-        statusEl.className = 'status ok';
-        statusEl.textContent = `Импорт: ${Object.keys(data).length} записей · всего правок ${Object.keys(overrides).length}`;
+        setStatus('imported', {
+          imported: Object.keys(data).length,
+          total: Object.keys(overrides).length
+        }, 'ok');
         render();
       } catch (err) {
-        statusEl.className = 'status err';
-        statusEl.textContent = 'Импорт: ' + err.message;
+        setStatus('importError', { message: err.message }, 'err');
       }
       e.target.value = '';
     });
 
     document.getElementById('clearOverridesBtn').addEventListener('click', () => {
-      if (!confirm('Сбросить все ручные shortName?')) return;
+      if (!confirm(t('confirmClear'))) return;
       overrides = {};
       saveOverrides();
       render();
-      statusEl.textContent = 'Правки очищены';
+      setStatus('editsCleared', null, 'ok');
     });
 
     loadOverrides();
+    setStatus('loadPrompt');
+    function refreshAfterLocaleReady() {
+      if (!window.TarkovI18n || typeof TarkovI18n.ready !== 'function') return;
+      TarkovI18n.ready().then(() => {
+        render();
+        renderStatus();
+      });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', refreshAfterLocaleReady, { once: true });
+    } else {
+      refreshAfterLocaleReady();
+    }
+    window.addEventListener('tt-lang-changed', () => {
+      render();
+      renderStatus();
+    });
     (function() {
   function itemName(it){
     if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);

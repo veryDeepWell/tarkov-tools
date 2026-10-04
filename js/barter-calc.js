@@ -1,16 +1,9 @@
 
-    /* Shared TarkovUI wrappers (were incorrectly placed inside a JSON script block before) */
-    function fleaTax(basePrice, offerPrice, count, opts) {
-      return (window.TarkovUI || {}).fleaTax ? TarkovUI.fleaTax(basePrice, offerPrice, count, opts) : 0;
-    }
-    function fleaNet(basePrice, offerPrice, count, opts) {
-      return (window.TarkovUI || {}).fleaNet ? TarkovUI.fleaNet(basePrice, offerPrice, count, opts)
-        : ((Number(offerPrice)||0)*(Number(count)||1) - fleaTax(basePrice, offerPrice, count, opts));
-    }
     function formatNum(n) { return TarkovDicts.fmtNum(n); }
     function escapeHtml(s) { return TarkovDicts.esc(s); }
     function loadSettings(key, defaults) { return TarkovUI.loadSettings(key, defaults); }
     function saveSettings(key, obj) { TarkovUI.saveSettings(key, obj); }
+    function t(key, params) { return TarkovI18n.t(key, params); }
 
     const PRESETS = [
       {
@@ -130,7 +123,7 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'preset-btn' + (activePreset === p.id ? ' active' : '');
-        btn.textContent = p.label;
+        btn.textContent = t('tool.barter-calc.ui.presetLabel.' + p.id);
         btn.addEventListener('click', () => applyPreset(p));
         presetsEl.appendChild(btn);
       });
@@ -138,7 +131,7 @@
 
     function applyPreset(preset) {
       activePreset = preset.id;
-      resultNameInput.value = preset.resultName;
+      resultNameInput.value = t('tool.barter-calc.ui.resultName.' + preset.id);
       sellPriceInput.value = preset.sellPrice || '';
       items = preset.items.map((it, i) => ({
         id: i + 1,
@@ -150,6 +143,17 @@
       renderPresets();
       renderItems();
       recalculate();
+
+      if (window.TarkovI18n && typeof TarkovI18n.ready === 'function') {
+        TarkovI18n.ready().then(() => {
+          if (activePreset) {
+            resultNameInput.value = t('tool.barter-calc.ui.resultName.' + activePreset);
+          }
+          renderPresets();
+          renderItems();
+          recalculate();
+        });
+      }
     }
 
     function renderItems() {
@@ -161,15 +165,15 @@
 
         row.innerHTML = `
           <div class="field" style="flex: 2; min-width: 140px;">
-            <label>Название</label>
-            <input type="text" class="item-name" value="${escapeHtml(item.name)}" placeholder="Предмет">
+            <label>${escapeHtml(t('tool.barter-calc.ui.itemName'))}</label>
+            <input type="text" class="item-name" value="${escapeHtml(item.name)}" placeholder="${escapeHtml(t('tool.barter-calc.ui.itemPlaceholder'))}">
           </div>
           <div class="field narrow">
-            <label>Кол-во</label>
+            <label>${escapeHtml(t('tool.barter-calc.ui.quantity'))}</label>
             <input type="number" class="item-qty" min="1" step="1" value="${item.qty}">
           </div>
           <div class="field">
-            <label>Цена за шт., ₽</label>
+            <label>${escapeHtml(t('tool.barter-calc.ui.unitPrice'))}</label>
             <input type="number" class="item-price" min="0" step="1000" value="${item.price}">
           </div>
           <div class="price-quick">
@@ -177,7 +181,7 @@
             <button type="button" class="btn-quick" data-delta="1000" title="+1 000">+</button>
           </div>
           <div class="item-cost" data-cost>${formatNum(calcItemCost(item))} ₽</div>
-          <button type="button" class="btn btn-danger remove-btn" title="Удалить">✕</button>
+          <button type="button" class="btn btn-danger remove-btn" title="${escapeHtml(t('tool.barter-calc.ui.remove'))}">✕</button>
         `;
 
         const nameInput = row.querySelector('.item-name');
@@ -229,20 +233,23 @@
         intelCenter3: document.getElementById('intel3')?.value === '1',
         hmLvl: Number(document.getElementById('hmLvl')?.value) || 0
       };
-      let tax = 0, netSell = sellPrice;
-      if (basePrice > 0 && sellPrice > 0) {
-        tax = fleaTax(basePrice, sellPrice, 1, taxOpts);
-        netSell = sellPrice - tax;
-      } else {
-        const commission = Number(commissionInput.value) || 0;
-        tax = sellPrice * commission / 100;
-        netSell = sellPrice - tax;
-      }
-      const profit = netSell - totalCost;
-      const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
+      const result = TarkovItemDomain.evaluateProfit(
+        basePrice,
+        sellPrice,
+        1,
+        totalCost,
+        Object.assign({}, taxOpts, {
+          commissionPercent: Number(commissionInput.value) || 0
+        })
+      );
+      const tax = result.tax;
+      const netSell = result.revenue;
+      const profit = result.profit;
+      const roi = result.roi;
 
       document.getElementById('totalCost').textContent = formatNum(totalCost) + ' ₽';
-      document.getElementById('netSell').textContent = formatNum(netSell) + ' ₽' + (tax ? ' (налог ' + formatNum(tax) + ')' : '');
+      document.getElementById('netSell').textContent = formatNum(netSell) + ' ₽' +
+        (tax ? ' (' + t('tool.barter-calc.ui.tax') + ' ' + formatNum(tax) + ')' : '');
 
       const profitEl = document.getElementById('profit');
       profitEl.textContent = (profit >= 0 ? '+' : '') + formatNum(profit) + ' ₽';
@@ -272,7 +279,18 @@
       renderPresets();
     });
 
+    window.addEventListener('tt-lang-changed', () => {
+      if (activePreset) {
+        const preset = PRESETS.find(p => p.id === activePreset);
+        if (preset) resultNameInput.value = t('tool.barter-calc.ui.resultName.' + preset.id);
+      }
+      renderPresets();
+      renderItems();
+      recalculate();
+    });
+
     // init
+    if (activePreset) resultNameInput.value = t('tool.barter-calc.ui.resultName.' + activePreset);
     renderPresets();
     renderItems();
     recalculate();

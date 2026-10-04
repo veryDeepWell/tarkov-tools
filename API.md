@@ -219,19 +219,27 @@ const name = TarkovNames.display('20587'); // "Броня (Kevlar 4)"
 
 ## Storage Scheme
 
-Все данные в `localStorage` / IndexedDB используют префикс `tarkov`:
+Все данные приложения в `localStorage` используют канонический префикс `tt:`
+и namespace:
 
 ```javascript
-// Ключи:
-// - tarkovShortNames    (shortnames cache)
-// - tarkovNotifications.v1  (уведомления)
-// - tarkovMiniTabs.v1      (активные табы)
-// - {tool}Meta             (live tool config)
+// - tt:settings:*             (общие настройки)
+// - tt:notif:v1                (уведомления)
+// - tt:mini:v1                  (активные mini-tabs)
+// - tt:state:v1                 (общий state)
+// - tt:tool:<id>:meta           (live schedule / metadata)
+// - tt:tool:<id>:data:*         (tool data)
+// - tt:api:<hash>               (API cache)
 
 // Пример: записать meta price-track
-TarkovStorage.setJson('priceTrackMeta', {
-  items: ['item_id'],
-  threshold: 0.15,
-  nextSnapAt: Date.now() + 30000
+TarkovStorage.setJson('tt:tool:price-track:meta', {
+  on: true,
+  mins: 5,
+  nextAt: Date.now() + 30000
 });
 ```
+
+Старые logical keys (`tarkov*`, `ttApi:*`) продолжают приниматься адаптером;
+`TarkovStorage.migrateLegacyKeys()` переносит их централизованно. Новые
+инструменты должны использовать `TarkovStorage`, не обращаться к
+`localStorage` напрямую.

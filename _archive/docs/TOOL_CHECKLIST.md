@@ -46,3 +46,4 @@ Use before merging a tool change or adding a new tool.
 - [ ] Open from hub + as mini-tab
 - [ ] F5 / restore does not lose the tool frame for pinned mini
 - [ ] EN/RU switch does not break the shell (when i18n wired)
+<!-- Archived checklist; the current contributor checklist is in CONTRACT.md. -->

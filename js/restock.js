@@ -3,17 +3,6 @@
   var POLL_ID = "restock";
   var TOOL = "tarkovtool-restock.html";
 
-  // P0: migrate pre-prefix keys â†’ tarkov* (export-compatible)
-  (function migrateRestockKeys() {
-    try {
-      if (!window.TarkovStorage || !TarkovStorage.migrateKey) return;
-      TarkovStorage.migrateKey("restockEnabled", "tarkovRestockEnabled");
-      TarkovStorage.migrateKey("restockHistory", "tarkovRestockHistory");
-      TarkovStorage.migrateKey("restockFired", "tarkovRestockFired");
-      TarkovStorage.migrateKey("restockCycleMs", "tarkovRestockCycleMs");
-      TarkovStorage.migrateKey("restockSnapshot", "tarkovRestockSnapshot");
-    } catch (e) {}
-  })();
   /** Default trader restock period (EFT: most traders every 3h) */
   var DEFAULT_CYCLE_MS = 3 * 60 * 60 * 1000;
   var TRADER_RU = {
@@ -54,20 +43,23 @@
   var refreshBtn = document.getElementById("refreshBtn");
 
   function loadEnabled() {
-    if (window.TarkovStorage && TarkovStorage.getJson)
-      return TarkovStorage.getJson("tarkovRestockEnabled", {}) || {};
-    try { return JSON.parse(localStorage.getItem("tarkovRestockEnabled") || "{}") || {}; } catch (e) { return {}; }
+    if (!window.TarkovStorage || !TarkovStorage.getJson)
+      throw new Error("TarkovStorage is required by restock");
+    return TarkovStorage.getJson("tarkovRestockEnabled", {}) || {};
   }
   function saveEnabled() {
     var map = {};
     traders.forEach(function (t) {
       map[t.key] = t.enabled;
     });
-    if (window.TarkovStorage) TarkovStorage.setJson("tarkovRestockEnabled", map);
+    if (!window.TarkovStorage || !TarkovStorage.setJson)
+      throw new Error("TarkovStorage is required by restock");
+    TarkovStorage.setJson("tarkovRestockEnabled", map);
   }
   function loadHistory() {
-    var raw =
-      (window.TarkovStorage && TarkovStorage.getJson("tarkovRestockHistory", {})) || {};
+    if (!window.TarkovStorage || !TarkovStorage.getJson)
+      throw new Error("TarkovStorage is required by restock");
+    var raw = TarkovStorage.getJson("tarkovRestockHistory", {}) || {};
     restockHistory = {};
     Object.keys(raw).forEach(function (k) {
       var v = raw[k];
@@ -78,10 +70,8 @@
           happenedAt: Number(v.happenedAt)
         };
     });
-    fired =
-      (window.TarkovStorage && TarkovStorage.getJson("tarkovRestockFired", {})) || {};
-    cycleMs =
-      (window.TarkovStorage && TarkovStorage.getJson("tarkovRestockCycleMs", {})) || {};
+    fired = TarkovStorage.getJson("tarkovRestockFired", {}) || {};
+    cycleMs = TarkovStorage.getJson("tarkovRestockCycleMs", {}) || {};
   }
   function saveHistory() {
     try {
@@ -90,7 +80,9 @@
         TarkovStorage.setJson("tarkovRestockFired", fired);
         TarkovStorage.setJson("tarkovRestockCycleMs", cycleMs);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Unable to save restock history", e);
+    }
   }
 
   function formatRemain(ms) {
@@ -222,23 +214,26 @@
       return ia - ib;
     });
     try {
-      if (window.TarkovStorage) {
-        TarkovStorage.setJson("tarkovRestockCycleMs", cycleMs);
-        TarkovStorage.setJson("tarkovRestockSnapshot", {
-          _v: 1,
-          traders: traders.map(function (t) {
-            return {
-              id: t.id,
-              key: t.key,
-              name: t.name,
-              resetAt: t.resetAt ? t.resetAt.getTime() : 0,
-              enabled: !!t.enabled,
-              _prevResetAt: t._prevResetAt || null
-            };
-          })
-        });
-      }
-    } catch (e) {}
+      if (!window.TarkovStorage || !TarkovStorage.setJson)
+        throw new Error("TarkovStorage is required by restock");
+      TarkovStorage.setJson("tarkovRestockCycleMs", cycleMs);
+      var snapshot = {
+        _v: 1,
+        traders: traders.map(function (t) {
+          return {
+            id: t.id,
+            key: t.key,
+            name: t.name,
+            resetAt: t.resetAt ? t.resetAt.getTime() : 0,
+            enabled: !!t.enabled,
+            _prevResetAt: t._prevResetAt || null
+          };
+        })
+      };
+      TarkovSchema.writeJson("tarkovRestockSnapshot", snapshot);
+    } catch (e) {
+      console.error("Unable to save restock snapshot", e);
+    }
   }
 
   function onRestock(t) {
@@ -495,9 +490,8 @@
 
   function restoreFromSnapshot() {
     try {
-      var snap =
-        (window.TarkovStorage && TarkovStorage.getJson("tarkovRestockSnapshot", null)) ||
-        null;
+      var snapshot = TarkovSchema.readJson("tarkovRestockSnapshot", 1, { listKey: "traders" });
+      var snap = snapshot && Array.isArray(snapshot.traders) ? snapshot.traders : [];
       if (!snap || !snap.length) return false;
       var enabledMap = loadEnabled();
       var now = Date.now();
@@ -523,6 +517,7 @@
         });
       return traders.length > 0;
     } catch (e) {
+      console.error("Unable to restore restock snapshot", e);
       return false;
     }
   }
@@ -580,4 +575,3 @@
     }
   });
 })();
-

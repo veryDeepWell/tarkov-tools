@@ -13,13 +13,13 @@
  *   4) id last resort
  */
 (function (global) {
-  const KEY = "tarkovShortNames";
+  const KEY = "tt:tool:shortname:data:overrides";
   let cache = null;
 
   function load() {
     if (cache) return cache;
     try {
-      cache = JSON.parse(localStorage.getItem(KEY) || "{}") || {};
+      cache = (global.TarkovStorage && TarkovStorage.getJson(KEY, {})) || {};
     } catch (e) {
       cache = {};
     }

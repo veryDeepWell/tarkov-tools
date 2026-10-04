@@ -3,17 +3,10 @@
   "use strict";
 
   function allNotifications() {
-    try {
-      if (window.TarkovStorage && TarkovStorage.getJson) {
-        var list = TarkovStorage.getJson("tarkovNotifications.v1", []) || [];
-        return Array.isArray(list) ? list : [];
-      }
-    } catch (e0) {}
-    try {
-      return JSON.parse(localStorage.getItem("tarkovNotifications.v1") || "[]") || [];
-    } catch (e) {
-      return [];
-    }
+    var list = window.TarkovStorage
+      ? TarkovStorage.getJson("tt:notif:v1", []) || []
+      : [];
+    return Array.isArray(list) ? list : [];
   }
 
   function totalUnread() {
@@ -136,8 +129,8 @@
       var list = allNotifications().map(function (n) {
         return Object.assign({}, n, { read: true });
       });
-      if (window.TarkovStorage && TarkovStorage.setJson) TarkovStorage.setJson("tarkovNotifications.v1", list);
-      else localStorage.setItem("tarkovNotifications.v1", JSON.stringify(list));
+      if (!window.TarkovStorage) throw new Error("TarkovStorage is required for notifications");
+      TarkovStorage.setJson("tt:notif:v1", list);
     } catch (e) {}
     try {
       if (window.TarkovState && TarkovState.getMiniTabs) {
@@ -189,7 +182,7 @@
   } catch (e) {}
   try {
     window.addEventListener("storage", function (e) {
-      if (e.key === "tarkovNotifications.v1") refreshNotifUI();
+      if (e.key === "tt:notif:v1") refreshNotifUI();
     });
   } catch (e) {}
   try {

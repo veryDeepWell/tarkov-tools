@@ -21,17 +21,17 @@
 <body>
   <div class="container">
     <h1>Еда и вода</h1>
-    <p class="sub">Только provisions · energy / hydration · цена flea · рейтинг ценности</p>
+    <p class="sub">Питательная ценность, доступность и цена за восстановление</p>
     <div class="card">
-      <div class="card-title">Фильтр</div>
+      <div class="card-title" data-i18n="tool.itemScore.filter">Фильтр</div>
       <div class="chips" id="kindChips">
-        <button type="button" class="chip active" data-k="all">Всё</button>
-        <button type="button" class="chip" data-k="food">Только пища</button>
-        <button type="button" class="chip" data-k="drink">Только вода</button>
+        <button type="button" class="chip active" data-k="all" data-i18n="tool.food.ui.kind.all">Всё</button>
+        <button type="button" class="chip" data-k="food" data-i18n="tool.food.ui.kind.food">Только пища</button>
+        <button type="button" class="chip" data-k="drink" data-i18n="tool.food.ui.kind.drink">Только вода</button>
       </div>
       <div class="row">
         <div class="field" style="max-width:160px">
-          <label>Режим</label>
+          <label data-i18n="tool.itemScore.gameMode">Режим</label>
           <select id="gameMode">
             <option value="pve" selected>pve</option>
             <option value="regular">regular</option>
@@ -39,26 +39,26 @@
           </select>
         </div>
         <div class="field" style="max-width:200px">
-          <label>Поиск</label>
-          <input type="search" id="q" placeholder="имя…">
+          <label data-i18n="tool.itemScore.search">Поиск</label>
+          <input type="search" id="q" data-i18n-placeholder="tool.itemScore.searchPlaceholder" placeholder="имя…">
         </div>
-        <button type="button" class="btn" id="btnLoad">Загрузить</button>
+        <button type="button" class="btn" id="btnLoad" data-i18n="tool.itemScore.load">Загрузить</button>
       </div>
-      <p class="status" id="status">Нажми «Загрузить»</p>
+      <p class="status" id="status" data-i18n="tool.food.ui.loadPrompt">Нажми «Загрузить»</p>
     </div>
     <div class="card">
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th data-s="name">Предмет</th>
-              <th data-s="kind">Тип</th>
-              <th data-s="energy">Energy</th>
-              <th data-s="hydration">Hydration</th>
-              <th data-s="units">Units</th>
-              <th data-s="avg">Цена ₽</th>
-              <th data-s="perPoint">₽/очко</th>
-              <th data-s="score">Рейтинг</th>
+              <th data-s="name" data-i18n="tool.itemScore.name">Предмет</th>
+              <th data-s="kind" data-i18n="tool.itemScore.type">Тип</th>
+              <th data-s="energy" data-i18n="tool.food.ui.energy">Energy</th>
+              <th data-s="hydration" data-i18n="tool.food.ui.hydration">Hydration</th>
+              <th data-s="units" data-i18n="tool.food.ui.units">Units</th>
+              <th data-s="avg" data-i18n="tool.itemScore.price">Цена ₽</th>
+              <th data-s="perPoint" data-i18n="tool.food.ui.pricePerPoint">Цена / очко</th>
+              <th data-s="score" data-i18n="tool.itemScore.score">Рейтинг</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -71,6 +71,8 @@
   <script type="module" src="../core/tarkov-names.js"></script>
   <script type="module" src="../core/tarkov-storage.js"></script>
   <script type="module" src="../core/tarkov-api.js"></script>
+  <script type="module" src="../core/tarkov-item-domain.js"></script>
+  <script type="module" src="../core/tarkov-item-view-models.js"></script>
   <script type="module" src="../core/tarkov-ui.js"></script>
   <script type="module" src="../core/tarkov-state.js"></script>
   <script type="module" src="../core/tarkov-common.js"></script>

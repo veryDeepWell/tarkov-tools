@@ -6,16 +6,11 @@
   const mem = new Map();
   const DEFAULT_TTL = 90 * 1000;
   const LS_TTL = 5 * 60 * 1000;
-  const LS_PREFIX = "ttApi:";
+  const LS_PREFIX = "tt:api:";
 
   function storage() {
-    if (global.TarkovStorage) return global.TarkovStorage;
-    return {
-      get: function (key, fallback) { try { var value = localStorage.getItem(key); return value == null ? fallback : value; } catch (e) { return fallback; } },
-      set: function (key, value) { try { localStorage.setItem(key, String(value)); return true; } catch (e) { return false; } },
-      remove: function (key) { try { localStorage.removeItem(key); return true; } catch (e) { return false; } },
-      keys: function (prefix) { var out = []; try { for (var i = 0; i < localStorage.length; i++) { var key = localStorage.key(i); if (key && (!prefix || key.indexOf(prefix) === 0)) out.push(key); } } catch (e) {} return out; }
-    };
+    if (!global.TarkovStorage) throw new Error("TarkovStorage must load before TarkovAPI");
+    return global.TarkovStorage;
   }
 
   function clock() { return global.TarkovClock && global.TarkovClock.now ? global.TarkovClock : { now: Date.now }; }

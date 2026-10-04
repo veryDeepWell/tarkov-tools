@@ -85,83 +85,62 @@ Phase 3 — Domain layer до конца (4–5 дней)
 Exit criteria: grep по tools/ не находит fetch( и не находит сырых формул пробития/цен, которые дублируются.
 
 Phase 4 — Storage & Live protocol (2–3 дня)
+Статус: ✅ Выполнено.
+
 Storage:
 
-Единый префикс: tt: (или tarkov:) + namespace.
-Схема ключей в docs/CONTRACT.md:texttt:settings:*
-tt:notif:v1
-tt:mini:v1
-tt:tool:<id>:meta
-tt:tool:<id>:data
-tt:api:<hash>
-storage.js — единственный, кто трогает localStorage. Никаких fallback-ов в api/common.
+- [x] Единый префикс `tt:` с namespaces settings, notifications, mini-tabs,
+  tool metadata/data и API cache.
+- [x] `core/tarkov-storage.js` — единственный модуль с прямым доступом к
+  localStorage; legacy keys централизованно мигрируются, legacy import/API
+  остаются совместимыми.
+- [x] Storage keys, migration и export/import описаны в
+  `docs/TOOL_CONTRACT.md`, `ARCHITECTURE.md` и `API.md`.
 
 Live:
 
-Один runtime: core/live.js.
-Контракт тула:JavaScriptexport const live = {
-  id: 'price-track',
-  intervalMin: 25,
-  async tick(meta) { /* snapshot + Notify */ },
-  serialize() { return meta },
-};
-Hub пингует только kind: live. Mini-tab = iframe жив → tick идёт; закрыли → stop.
-Никаких per-tool boot-файлов.
+- [x] Единый live protocol через `TarkovPoll` (callback и standalone timer) и
+  `TarkovLiveRuntime` (hub clock); callback остаётся внутри iframe.
+- [x] Hub определяет инструменты через `kind: live`; live registry задаёт
+  poll id и iframe route, а инструменты передают `opts.tool`; закрытие
+  mini-tab останавливает poll до удаления iframe.
+- [x] Все live-инструменты используют общий poll API; отдельных расписаний
+  `setInterval` нет (UI countdown/render ticks не выполняют poll work).
 
-Exit criteria: все live-тулы используют один и тот же API; ключи storage документированы и мигрируются одной функцией.
+Exit criteria: все live-тулы используют один и тот же API; ключи storage
+документированы и мигрируются одной функцией — выполнено.
 
 Phase 5 — Hub cleanup (2 дня)
 
-Один app.js, один catalog.js (generated).
-Settings / notif / mini-tabs — отдельные модули без циклических зависимостей.
-Каталог: фильтр по cat + kind + поиск; иконки только из assets/icons/.
-Убрать app.html.new.bak и любые .bak.
+- [x] Один канонический runtime app и один generated `hub/catalog.js`.
+- [x] Settings, notifications и mini-tabs вынесены в отдельные модули без
+  циклических зависимостей; mini-tab модуль получает app helpers через API.
+- [x] Каталог фильтруется по категории, типу и поиску; используются только
+  локальные SVG из `assets/icons/`.
+- [x] Удалены резервные `.bak`; архитектурный lint запрещает их появление.
 
 
 Phase 6 — Docs & CI hygiene (1–2 дня)
 Оставить в корне docs:
 
-ARCHITECTURE.md — слои, диаграмма, принципы.
-CONTRACT.md — script order, live API, storage keys, meta schema.
-CONTRIBUTING.md — как добавить тул (meta.json → build-catalog → done).
+- [x] `ARCHITECTURE.md` — слои, диаграмма, принципы.
+- [x] `CONTRACT.md` — script order, live API, storage keys, metadata schema.
+- [x] `CONTRIBUTING.md` — добавление инструмента и регенерация каталога.
 
-Всё остальное (Fixes.md, CONTEXT.md, ideas.md, куски roadmap) → _archive/docs/ или GitHub Wiki.
-CI / lint:
-Bashpython scripts/lint-architecture.py
-# - каждый tools/*/ имеет meta.json + index.html + tool.js
-# - нет fetch("https://json.tarkov.dev в tools/
-# - catalog.js совпадает с meta.json
-# - script order в index.html ∈ {static_set, live_set}
+- [x] Устаревшие заметки и руководства перемещены в `_archive/docs/`.
+- [x] Добавлен CI workflow с архитектурной, catalog и contract проверками.
+- [x] `scripts/lint-architecture.py` проверяет текущую структуру проекта,
+  скрипты страниц, прямые API fetch, каталог, локальные иконки, hub loading и
+  резервные файлы.
+
+Примечание: плановая схема `tools/<id>/{meta.json,index.html,tool.js}` не
+применялась, так как проект использует плоские `tools/tarkovtool-*.html`
+страницы с метаданными в `#tarkovtool-meta` и логикой в `js/`. Генератор и lint
+проверяют существующий контракт без рискованной массовой миграции.
+
+Статус P5/P6: ✅ выполнено; проверки запускаются из `.github/workflows/architecture.yml`.
 
 Phase 7 — Polish pass (2–3 дня)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ТемаДействиеi18nвсе user-visible строки через t(); meta titles тожеCSSодин theme token set; убрать inline-дублиОшибкиединый error surface в shell (toast / empty state)PerformanceAPI cache hit-rate; не грузить domain в pure-static тулы без нуждыREADME1 страница: что это, как открыть hub, как добавить тул
 

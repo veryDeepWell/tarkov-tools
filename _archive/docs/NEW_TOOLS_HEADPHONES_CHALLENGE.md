@@ -16,3 +16,4 @@ Add the two objects from `hub/catalog-entries.json` to `hub/catalog-data.js` (an
 ## Notes
 - Headphones: filters `types: headphones` / `ItemPropertiesHeadphone`; score is a **heuristic** (distance, distortion, weight, price).
 - Challenge: local schema `tarkovChallengeState` `{ _v, xp, level, history }`; optional API pool for gear names.
+<!-- Archived new-tools proposal. -->

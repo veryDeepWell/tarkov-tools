@@ -1,98 +1,57 @@
 
 
-    function fleaTax(basePrice, offerPrice, count, opts) {
-      opts = opts || {};
-      const bp = Number(basePrice) || 0;
-      const op = Number(offerPrice) || 0;
-      const n = Math.max(1, Number(count) || 1);
-      if (bp <= 0 || op <= 0) return 0;
-      const Ti = 0.05, Tr = 0.05;
-      let PO = Math.log10(bp / op);
-      let PR = Math.log10(op / bp);
-      if (op < bp) PO = Math.pow(PO, 1.08);
-      if (op >= bp) PR = Math.pow(PR, 1.08);
-      let tax = (bp * Ti * Math.pow(4, PO) + op * Tr * Math.pow(4, PR)) * n;
-      if (opts.intelCenter3) {
-        const hm = Math.max(0, Math.min(50, Number(opts.hmLvl) || 0));
-        const reduction = Math.min(0.45, 0.30 + hm * 0.003);
-        tax *= (1 - reduction);
-      }
-      return Math.max(0, Math.ceil(tax));
-    }
-    function fleaNet(basePrice, offerPrice, count, opts) {
-      const gross = (Number(offerPrice) || 0) * (Number(count) || 1);
-      return gross - fleaTax(basePrice, offerPrice, count, opts);
-    }
-
     function loadSettings(key, defaults) { return TarkovUI.loadSettings(key, defaults); }
     function saveSettings(key, obj) { TarkovUI.saveSettings(key, obj); }
 
-    const STATION_RU = {
-      'vostok-water-collector': 'Водосборник',
-      'water-collector': 'Водосборник',
-      'security': 'Безопасность',
-      'lavatory': 'Санузел',
-      'stashes': 'Схрон',
-      'stash': 'Схрон',
-      'generator': 'Генератор',
-      'heating': 'Обогрев',
-      'ventilation': 'Вентиляция',
-      'medstation': 'Медблок',
-      'nutrition-unit': 'Пищеблок',
-      'rest-space': 'Комната отдыха',
-      'workbench': 'Верстак',
-      'intelligence-center': 'Разведцентр',
-      'shooting-range': 'Тир',
-      'library': 'Библиотека',
-      'scav-case': 'Scav Case',
-      'illumination': 'Освещение',
-      'air-filtering-unit': 'Фильтр воздуха',
-      'solar-power': 'Солнечная энергия',
-      'booze-generator': 'Самогонный аппарат',
-      'bitcoin-farm': 'Биткоин-ферма',
-      'christmas-tree': 'Ёлка',
-      'defective-wall': 'Стена',
-      'gym': 'Спортзал',
-      'weapon-rack': 'Оружейная стойка',
-      'gear-rack': 'Стойка снаряжения',
-      'cultist-circle': 'Круг культистов',
-      'hall-of-fame': 'Зал славы'
-    };
-
     const COLS = [
-      { key: 'product', label: 'Продукт', sort: true },
-      { key: 'station', label: 'Станция', sort: true },
-      { key: 'level', label: 'Ур.', sort: true },
-      { key: 'duration', label: 'Время', sort: true },
-      { key: 'cost', label: 'Входы', sort: true },
-      { key: 'revenue', label: 'Выход', sort: true },
-      { key: 'profit', label: 'Профит', sort: true },
-      { key: 'perHour', label: '₽/час', sort: true },
-      { key: 'roi', label: 'ROI %', sort: true }
+      { key: 'product', label: 'product', sort: true },
+      { key: 'station', label: 'station', sort: true },
+      { key: 'level', label: 'level', sort: true },
+      { key: 'duration', label: 'duration', sort: true },
+      { key: 'cost', label: 'cost', sort: true },
+      { key: 'revenue', label: 'revenue', sort: true },
+      { key: 'profit', label: 'profit', sort: true },
+      { key: 'perHour', label: 'perHour', sort: true },
+      { key: 'roi', label: 'roi', sort: true }
     ];
 
     let rows = [];
     let stationsMap = {};
     let itemsMap = {};
     let activeStations = new Set();
+    let stationsInitialized = false;
     let sortKey = 'perHour';
     let sortDir = -1;
+    let statusState = null;
 
     const statusEl = document.getElementById('status');
 
+    function t(key, params) { return TarkovI18n.t(key, params); }
+    function setStatus(key, params, tone) {
+      statusState = { key, params, tone: tone || '' };
+      renderStatus();
+    }
+    function renderStatus() {
+      if (!statusState) return;
+      statusEl.className = 'status' + (statusState.tone ? ' ' + statusState.tone : '');
+      statusEl.textContent = t(statusState.key, statusState.params);
+    }
     function formatNum(n) { return TarkovDicts.fmtNum(n); }
     function formatDur(sec) {
       sec = Number(sec) || 0;
       const h = Math.floor(sec / 3600);
       const m = Math.floor((sec % 3600) / 60);
-      if (h > 0) return h + 'ч ' + m + 'м';
-      return m + 'м';
+      return h > 0
+        ? t('tool.crafts.ui.durationHoursMinutes', { hours: h, minutes: m })
+        : t('tool.crafts.ui.durationMinutes', { minutes: m });
     }
     function humanize(slug) { return TarkovDicts.humanize(slug); }
     function stationName(idOrSlug) {
       const s = stationsMap[idOrSlug];
       const slug = (s && s.normalizedName) || idOrSlug;
-      return STATION_RU[slug] || humanize(slug);
+      const key = 'tool.crafts.ui.station.' + slug;
+      const translated = t(key);
+      return translated === key ? humanize(slug) : translated;
     }
     function itemName(id) {
       const it = itemsMap[id];
@@ -111,9 +70,8 @@
     document.getElementById('loadBtn').addEventListener('click', async () => {
       const btn = document.getElementById('loadBtn');
       btn.disabled = true;
-      statusEl.className = 'status';
       const mode = document.getElementById('gameMode').value || 'regular';
-      statusEl.textContent = 'Гружу crafts + items + hideout…';
+      setStatus('tool.crafts.ui.loading');
 
       try {
         const [crafts, items, stationList] = await Promise.all([
@@ -164,13 +122,19 @@
           const prodItem = itemsMap[prodId];
           const unitOut = pickPrice(prodItem, priceOut);
           const baseOut = Number(prodItem && prodItem.basePrice) || 0;
-          const gross = unitOut * prodCount;
-          const tax = fleaTax(baseOut, unitOut, prodCount, taxOpts);
-          const revenue = gross - tax;
-          const profit = revenue - cost;
+          const profitResult = TarkovItemDomain.evaluateProfit(
+            baseOut,
+            unitOut,
+            prodCount,
+            cost,
+            taxOpts
+          );
+          const tax = profitResult.tax;
+          const revenue = profitResult.revenue;
+          const profit = profitResult.profit;
           const dur = Number(c.duration) || 0;
           const perHour = dur > 0 ? profit / (dur / 3600) : 0;
-          const roi = cost > 0 ? (profit / cost) * 100 : 0;
+          const roi = profitResult.roi;
           const stId = c.station;
           const stSlug = (stationsMap[stId] && stationsMap[stId].normalizedName) || stId;
 
@@ -200,15 +164,14 @@
         });
 
         activeStations = new Set(rows.map(r => r.stationSlug));
+        stationsInitialized = false;
         document.getElementById('resultsCard').style.display = 'block';
         renderStationChips();
         renderTable();
-        statusEl.className = 'status ok';
-        statusEl.textContent = `Крафтов: ${rows.length} · предметов: ${items.length}`;
+        setStatus('tool.crafts.ui.loaded', { crafts: rows.length, items: items.length }, 'ok');
       } catch (e) {
         console.error(e);
-        statusEl.className = 'status err';
-        statusEl.textContent = 'Ошибка: ' + e.message;
+        setStatus('tool.crafts.ui.loadError', { message: e.message }, 'err');
       } finally {
         btn.disabled = false;
       }
@@ -238,11 +201,12 @@
         const baseOut = Number(prodItem && prodItem.basePrice) || 0;
         r.unitOut = unitOut;
         r.cost = cost;
-        const tax = fleaTax(baseOut, unitOut, r.prodCount, taxOpts);
-        r.revenue = unitOut * r.prodCount - tax;
-        r.profit = r.revenue - r.cost;
+        const result = TarkovItemDomain.evaluateProfit(baseOut, unitOut, r.prodCount, r.cost, taxOpts);
+        r.tax = result.tax;
+        r.revenue = result.revenue;
+        r.profit = result.profit;
         r.perHour = r.duration > 0 ? r.profit / (r.duration / 3600) : 0;
-        r.roi = r.cost > 0 ? (r.profit / r.cost) * 100 : 0;
+        r.roi = result.roi;
         r.missing = missing;
       });
       renderTable();
@@ -256,11 +220,14 @@
     function renderStationChips() {
       const el = document.getElementById('stationChips');
       const all = [...new Set(rows.map(r => r.stationSlug))].sort();
-      activeStations = new Set(all);
+      if (!stationsInitialized) {
+        activeStations = new Set(all);
+        stationsInitialized = true;
+      }
       el.innerHTML = '';
       const allBtn = document.createElement('span');
-      allBtn.className = 'chip active';
-      allBtn.textContent = 'Все';
+      allBtn.className = 'chip' + (activeStations.size === all.length ? ' active' : '');
+      allBtn.textContent = t('tool.crafts.ui.allStations');
       allBtn.onclick = () => {
         activeStations = new Set(all);
         el.querySelectorAll('.chip').forEach(c => c.classList.add('active'));
@@ -269,8 +236,8 @@
       el.appendChild(allBtn);
       all.forEach(slug => {
         const chip = document.createElement('span');
-        chip.className = 'chip active';
-        chip.textContent = STATION_RU[slug] || humanize(slug);
+        chip.className = 'chip' + (activeStations.has(slug) ? ' active' : '');
+        chip.textContent = stationName(slug);
         chip.onclick = () => {
           if (activeStations.has(slug)) {
             activeStations.delete(slug);
@@ -322,7 +289,7 @@
       thead.innerHTML = '';
       COLS.forEach(col => {
         const th = document.createElement('th');
-        th.innerHTML = col.label + (col.sort ? '<span class="s">↕</span>' : '');
+        th.innerHTML = esc(t('tool.crafts.ui.column.' + col.label)) + (col.sort ? '<span class="s">↕</span>' : '');
         if (col.key === sortKey) th.classList.add('sorted');
         if (col.sort) {
           th.onclick = () => {
@@ -341,7 +308,7 @@
       const tbody = document.getElementById('tbody');
       tbody.innerHTML = '';
       if (!list.length) {
-        tbody.innerHTML = `<tr><td colspan="${COLS.length}" class="muted" style="text-align:center;padding:28px;">Пусто</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${COLS.length}" class="muted" style="text-align:center;padding:28px;">${esc(t('tool.crafts.ui.empty'))}</td></tr>`;
         document.getElementById('meta').textContent = '';
         return;
       }
@@ -350,14 +317,14 @@
       list.forEach(r => {
         const tr = document.createElement('tr');
         const inputsStr = r.inputs.map(i =>
-          `${i.count}× ${i.name}${i.isTool ? ' (tool)' : ''}`
+          `${i.count}× ${i.name}${i.isTool ? ' (' + t('tool.crafts.ui.tool') + ')' : ''}`
         ).join(', ');
         tr.innerHTML = `
           <td>
-            <div class="name-cell">${r.productIcon?`<img class="ico ico-sm" src="${esc(r.productIcon)}" loading="lazy" alt="">`:''}<div class="txt"><div class="name">${esc(r.product)}${r.prodCount > 1 ? ' ×' + r.prodCount : ''} <button type="button" class="copy-btn" data-name="${esc(r.productSlug || r.product)}">копир.</button></div></div></div>
+            <div class="name-cell">${r.productIcon?`<img class="ico ico-sm" src="${esc(r.productIcon)}" loading="lazy" alt="">`:''}<div class="txt"><div class="name">${esc(r.product)}${r.prodCount > 1 ? ' ×' + r.prodCount : ''} <button type="button" class="copy-btn" data-name="${esc(r.productSlug || r.product)}">${esc(t('tool.crafts.ui.copy'))}</button></div></div></div>
             <div class="detail">${esc(inputsStr)}</div>
-            ${r.quest ? '<div class="quest">нужен квест</div>' : ''}
-            ${r.missing ? '<div class="quest">нет цены на вход</div>' : ''}
+            ${r.quest ? '<div class="quest">' + esc(t('tool.crafts.ui.questRequired')) + '</div>' : ''}
+            ${r.missing ? '<div class="quest">' + esc(t('tool.crafts.ui.missingInputPrice')) + '</div>' : ''}
           </td>
           <td>${esc(r.station)}</td>
           <td>${r.level}</td>
@@ -379,8 +346,12 @@
           }).catch(() => {});
         });
       });
-      document.getElementById('meta').textContent =
-        `Показано ${list.length} из ${rows.length} · сортировка: ${sortKey} ${sortDir < 0 ? '↓' : '↑'}`;
+      document.getElementById('meta').textContent = t('tool.crafts.ui.rowsMeta', {
+        visible: list.length,
+        total: rows.length,
+        sort: t('tool.crafts.ui.column.' + sortKey),
+        direction: sortDir < 0 ? '↓' : '↑'
+      });
     }
 
     function esc(s) { return TarkovDicts.esc(s); }
@@ -389,6 +360,16 @@
       const el = document.getElementById(id);
       el.addEventListener('input', renderTable);
       el.addEventListener('change', renderTable);
+    });
+    window.addEventListener('tt-lang-changed', () => {
+      rows.forEach(row => {
+        row.station = stationName(row.stationId);
+        row.inputs.forEach(input => { input.name = itemName(input.id); });
+        row.product = itemName(row.productId);
+      });
+      renderStationChips();
+      renderTable();
+      renderStatus();
     });
   
     (function() {

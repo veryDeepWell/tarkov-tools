@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Сравнение предметов — Tarkov</title>
+  <title data-i18n="tool.compare.ui.heading">Сравнение предметов — Tarkov</title>
   <link rel="stylesheet" href="../core/tarkov-common.css">
   <script type="application/json" id="tarkovtool-meta">
   {"id": "tarkovtool-compare.html", "title": "Сравнение", "description": "Сравнение нескольких предметов одной категории, моды под ствол.", "file": "tarkovtool-compare.html"}
@@ -62,50 +62,50 @@
 </head>
 <body>
   <div class="container">
-    <h1>Сравнение предметов</h1>
-    <p class="sub">Несколько предметов одной категории · подкатегории · фильтр «под ствол» (моды) · иконки</p>
+    <h1 data-i18n="tool.compare.ui.heading">Сравнение предметов</h1>
+    <p class="sub" data-i18n="tool.compare.ui.subtitle">Несколько предметов одной категории · подкатегории · фильтр «под ствол» (моды) · иконки</p>
 
     <div class="card">
-      <div class="card-title">Данные</div>
+      <div class="card-title" data-i18n="tool.compare.ui.data">Данные</div>
       <div class="row">
-        <div class="field"><label>Режим</label>
+        <div class="field"><label data-i18n="tool.compare.ui.mode">Режим</label>
           <select id="gameMode"><option value="regular">regular</option><option value="pvp-season">pvp-season</option><option value="pve" selected>pve</option></select>
         </div>
-        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
-        <button type="button" class="btn-ghost" id="clearSel">Очистить выбор</button>
+        <button type="button" class="btn" id="loadBtn" data-i18n="tool.compare.ui.load">ЗАГРУЗИТЬ</button>
+        <button type="button" class="btn-ghost" id="clearSel" data-i18n="tool.compare.ui.clearSelection">Очистить выбор</button>
       </div>
-      <p class="status" id="status">Загрузи items</p>
+      <p class="status" id="status" data-i18n="tool.compare.ui.loadPrompt">Загрузи items</p>
     </div>
 
     <div class="card" id="catCard" style="display:none">
-      <div class="card-title">Категория</div>
+      <div class="card-title" data-i18n="tool.compare.ui.category">Категория</div>
       <div class="chips" id="cats"></div>
       <div id="subWrap" style="display:none;margin-top:12px">
-        <div class="card-title">Подкатегория</div>
+        <div class="card-title" data-i18n="tool.compare.ui.subcategory">Подкатегория</div>
         <div class="chips" id="subs"></div>
       </div>
       <div class="row" style="margin-top:12px">
         <div class="field" style="flex:1;min-width:160px">
-          <label>Поиск</label>
-          <input type="text" id="search" placeholder="название…" style="width:100%">
+          <label data-i18n="tool.compare.ui.search">Поиск</label>
+          <input type="text" id="search" data-i18n-placeholder="tool.compare.ui.searchPlaceholder" placeholder="название…" style="width:100%">
         </div>
         <div class="field" id="weaponFilterField" style="display:none;flex:1;min-width:200px">
-          <label>Совместимо с оружием</label>
-          <input type="text" id="weaponFilter" placeholder="ak-74, m4a1, mcx…" style="width:100%">
+          <label data-i18n="tool.compare.ui.compatibleWeapon">Совместимо с оружием</label>
+          <input type="text" id="weaponFilter" data-i18n-placeholder="tool.compare.ui.weaponPlaceholder" placeholder="ak-74, m4a1, mcx…" style="width:100%">
         </div>
       </div>
     </div>
 
     <div class="layout" id="main" style="display:none">
       <div class="card">
-        <div class="card-title">Выбор <span id="pickCount" class="meta"></span></div>
+        <div class="card-title"><span data-i18n="tool.compare.ui.selected">Выбор</span> <span id="pickCount" class="meta"></span></div>
         <div class="pick-list" id="pickList"></div>
       </div>
       <div class="card">
-        <div class="card-title">Сравнение</div>
+        <div class="card-title" data-i18n="tool.compare.ui.compare">Сравнение</div>
         <div class="selected-bar" id="selectedBar"></div>
-        <div class="compare-wrap" id="compareWrap"><div class="empty">Отметь предметы слева</div></div>
-        <p class="hint">Для модов: укажи ствол (ak-74) — покажет рукояти/приклады, которые лезут на него напрямую или через переходник (1 уровень вложенности).</p>
+        <div class="compare-wrap" id="compareWrap"><div class="empty" data-i18n="tool.compare.ui.emptySelection">Отметь предметы слева</div></div>
+        <p class="hint" data-i18n="tool.compare.ui.hint">Для модов: укажи ствол (ak-74) — покажет рукояти/приклады, которые лезут на него напрямую или через переходник (1 уровень вложенности).</p>
       </div>
     </div>
   </div>

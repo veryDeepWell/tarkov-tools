@@ -30,43 +30,39 @@
   }
 
   function fleaTax(basePrice, offerPrice, count, opts) {
-    opts = opts || {};
-    var bp = Number(basePrice) || 0;
-    var op = Number(offerPrice) || 0;
-    var n = Math.max(1, Number(count) || 1);
-    if (bp <= 0 || op <= 0) return 0;
-    var Ti = 0.05, Tr = 0.05;
-    var PO = Math.log10(bp / op);
-    var PR = Math.log10(op / bp);
-    if (op < bp) PO = Math.pow(PO, 1.08);
-    if (op >= bp) PR = Math.pow(PR, 1.08);
-    var tax = (bp * Ti * Math.pow(4, PO) + op * Tr * Math.pow(4, PR)) * n;
-    if (opts.intelCenter3) {
-      var hm = Math.max(0, Math.min(50, Number(opts.hmLvl) || 0));
-      var reduction = Math.min(0.45, 0.30 + hm * 0.003);
-      tax *= (1 - reduction);
+    if (!global.TarkovItemDomain || typeof TarkovItemDomain.fleaTax !== "function") {
+      throw new Error("TarkovItemDomain.fleaTax missing");
     }
-    return Math.max(0, Math.ceil(tax));
+    return TarkovItemDomain.fleaTax(basePrice, offerPrice, count, opts);
   }
 
   function fleaNet(basePrice, offerPrice, count, opts) {
-    var gross = (Number(offerPrice) || 0) * Math.max(1, Number(count) || 1);
-    return gross - fleaTax(basePrice, offerPrice, count, opts);
+    if (!global.TarkovItemDomain || typeof TarkovItemDomain.fleaNet !== "function") {
+      throw new Error("TarkovItemDomain.fleaNet missing");
+    }
+    return TarkovItemDomain.fleaNet(basePrice, offerPrice, count, opts);
+  }
+
+  function evaluateProfit(basePrice, offerPrice, count, cost, opts) {
+    if (!global.TarkovItemDomain || typeof TarkovItemDomain.evaluateProfit !== "function") {
+      throw new Error("TarkovItemDomain.evaluateProfit missing");
+    }
+    return TarkovItemDomain.evaluateProfit(basePrice, offerPrice, count, cost, opts);
   }
 
   function loadSettings(key, defaults) {
     defaults = defaults || {};
     try {
-      var raw = localStorage.getItem(key);
-      if (!raw) return Object.assign({}, defaults);
-      return Object.assign({}, defaults, JSON.parse(raw));
+      var saved = global.TarkovStorage ? TarkovStorage.getJson(key, null) : null;
+      return Object.assign({}, defaults, saved || {});
     } catch (e) {
       return Object.assign({}, defaults);
     }
   }
 
   function saveSettings(key, data) {
-    try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {}
+    if (!global.TarkovStorage || !TarkovStorage.setJson) throw new Error("TarkovStorage is required by TarkovUI settings");
+    TarkovStorage.setJson(key, data);
   }
 
   function settingsStore(key, defaults) {
@@ -331,6 +327,7 @@
     fmtRub: fmtRub,
     fleaTax: fleaTax,
     fleaNet: fleaNet,
+    evaluateProfit: evaluateProfit,
     loadSettings: loadSettings,
     saveSettings: saveSettings,
     settingsStore: settingsStore,

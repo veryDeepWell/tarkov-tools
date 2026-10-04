@@ -29,48 +29,13 @@
 
   /** Rules schema v1: { _v: 1, rules: [...] } â€” bare array migrated once */
   function loadRules() {
-    try {
-      if (window.TarkovSchema && TarkovSchema.readJson) {
-        var doc = TarkovSchema.readJson(RULES_KEY, 1, { listKey: "rules" });
-        return TarkovSchema.listOf(doc, "rules");
-      }
-    } catch (e0) {}
-    try {
-      if (window.TarkovStorage && TarkovStorage.getJson) {
-        var r = TarkovStorage.getJson(RULES_KEY, null);
-        if (Array.isArray(r)) {
-          var wrapped = { _v: 1, rules: r };
-          TarkovStorage.setJson(RULES_KEY, wrapped);
-          return r;
-        }
-        if (r && Array.isArray(r.rules)) return r.rules;
-      }
-    } catch (e) {}
-    try {
-      var raw = JSON.parse(localStorage.getItem(RULES_KEY) || "[]");
-      if (Array.isArray(raw)) return raw;
-      if (raw && Array.isArray(raw.rules)) return raw.rules;
-    } catch (e2) {}
-    return [];
+    var doc = TarkovSchema.readJson(RULES_KEY, 1, { listKey: "rules" });
+    return TarkovSchema.listOf(doc, "rules");
   }
 
   function saveRules(rules) {
     var doc = { _v: 1, rules: Array.isArray(rules) ? rules : [] };
-    try {
-      if (window.TarkovSchema && TarkovSchema.writeJson) {
-        TarkovSchema.writeJson(RULES_KEY, doc);
-        return;
-      }
-    } catch (e0) {}
-    try {
-      if (window.TarkovStorage && TarkovStorage.setJson) {
-        TarkovStorage.setJson(RULES_KEY, doc);
-        return;
-      }
-    } catch (e) {}
-    try {
-      localStorage.setItem(RULES_KEY, JSON.stringify(doc));
-    } catch (e2) {}
+    TarkovSchema.writeJson(RULES_KEY, doc);
   }
 
   function progress() {
@@ -621,4 +586,3 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();
-

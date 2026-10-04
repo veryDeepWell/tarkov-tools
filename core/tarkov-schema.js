@@ -43,26 +43,21 @@
 
   function readJson(key, ver, opts) {
     opts = opts || {};
-    var raw = null;
-    try {
-      if (global.TarkovStorage && TarkovStorage.getJson) raw = TarkovStorage.getJson(key, null);
-    } catch (e) {}
+    if (!global.TarkovStorage || !TarkovStorage.getJson || !TarkovStorage.setJson)
+      throw new Error("TarkovStorage must load before TarkovSchema");
+    var raw = TarkovStorage.getJson(key, null);
     var res = ensure(raw, ver, opts);
     if (res.migrated) {
-      try {
-        if (global.TarkovStorage && TarkovStorage.setJson) TarkovStorage.setJson(key, res.value);
-      } catch (e2) {}
+      TarkovStorage.setJson(key, res.value);
     }
     return res.value;
   }
 
   function writeJson(key, obj) {
-    try {
-      if (global.TarkovStorage && TarkovStorage.setJson) {
-        TarkovStorage.setJson(key, obj);
-        return;
-      }
-    } catch (e) {}
+    if (!global.TarkovStorage || !TarkovStorage.setJson)
+      throw new Error("TarkovStorage must load before TarkovSchema");
+    TarkovStorage.setJson(key, obj);
+    return obj;
   }
 
   function listOf(doc, listKey) {

@@ -19,19 +19,15 @@
     return fb || key;
   }
   function get(k, d) {
-    try {
-      if (window.TarkovStorage && TarkovStorage.get) {
-        var v0 = TarkovStorage.get(k, null);
-        if (v0 != null) return v0;
-      }
-    } catch (e0) {}
-    try { return TarkovTools.get(k, d); } catch (e) { return d; }
+    if (!window.TarkovStorage || !TarkovStorage.get)
+      throw new Error("TarkovStorage is required by settings tabs");
+    var value = TarkovStorage.get(k, null);
+    return value == null ? d : value;
   }
   function set(k, v) {
-    try {
-      if (window.TarkovStorage && TarkovStorage.set) { TarkovStorage.set(k, v); return; }
-    } catch (e0) {}
-    try { TarkovTools.set(k, v); } catch (e) {}
+    if (!window.TarkovStorage || !TarkovStorage.set)
+      throw new Error("TarkovStorage is required by settings tabs");
+    TarkovStorage.set(k, v);
   }
 
   function escAttr(s) {

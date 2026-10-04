@@ -1,35 +1,30 @@
 
-    const TRADER_RU = (window.TarkovDicts && TarkovDicts.traders)
-      ? TarkovDicts.traders.reduce((acc, t) => { acc[t.id] = t.ru; return acc; }, {})
-      : {
-      '54cb50c76803fa8b248b4571': 'Прапор',
-      '54cb57776803fa99248b456e': 'Терапевт',
-      '58330581ace78e27b8b10cee': 'Лыжник',
-      '5935c25fb3acc3127c3d8cd9': 'Миротворец',
-      '5a7c2eca46aef81a7ca2145d': 'Механик',
-      '5ac3b934156ae10c4430e83c': 'Барахольщик',
-      '5c0647fdd443bc2504c2d371': 'Егерь',
-      '6617beeaa9cfa777ca915b7c': 'Реф'
-    };
-
-    const KIND_RU = (window.TarkovDicts && TarkovDicts.armorKinds)
-      ? Object.keys(TarkovDicts.armorKinds).reduce((acc, k) => { acc[k] = TarkovDicts.armorKinds[k].ru; return acc; }, {})
-      : {
-      armor: 'Броник',
-      rig: 'Разгруз / carrier',
-      helmet: 'Шлем',
-      plate: 'Плита',
-      glasses: 'Очки',
-      other: 'Другое'
-    };
+    function t(key, params) {
+      return window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t(key, params) : key;
+    }
+    let statusState = null;
+    function renderStatus() {
+      if (!statusState) return;
+      const status = document.getElementById('status');
+      status.className = 'status' + (statusState.tone ? ' ' + statusState.tone : '');
+      status.textContent = t(statusState.key, statusState.params);
+    }
+    function setStatus(key, params, tone) {
+      statusState = { key, params, tone };
+      renderStatus();
+    }
+    function kindLabel(kind) {
+      return window.TarkovDicts && TarkovDicts.armorKindLabel
+        ? TarkovDicts.armorKindLabel(kind)
+        : kind;
+    }
 
     let rows = [];
     let platesById = {};
     let activeTypes = new Set(['armor', 'rig', 'helmet']);
     let activeClasses = new Set([1,2,3,4,5,6]);
-    let sortKey = 'rating';
+    let sortKey = 'score';
     let sortDir = -1;
-    let expandedId = null;
 
     function loadSettings(key, defaults) { return TarkovUI.loadSettings(key, defaults); }
     function saveSettings(key, obj) { TarkovUI.saveSettings(key, obj); }
@@ -38,53 +33,53 @@
     function formatNum(n) { return TarkovDicts.fmtNum(n); }
     function esc(s) { return TarkovDicts.esc(s); }
 
-    function simplifyZones(zones) {
-      const tags = new Set();
-      (zones || []).forEach(z => {
-        const s = String(z);
-        if (/Head|Parietal|Nape|Ear|Jaw|Face|Eyes|Top of the Head/i.test(s) || /Collider Type Head/i.test(s)) tags.add('голова');
-        else if (/Neck/i.test(s)) tags.add('шея');
-        else if (/chest|Thorax|RibcageUp|SpineTop|Plate_.*chest/i.test(s)) tags.add('грудь');
-        else if (/back|SpineDown|Plate_.*back/i.test(s)) tags.add('спина');
-        else if (/Side|LeftSide|RightSide|side_left|side_right/i.test(s)) tags.add('бока');
-        else if (/Arm|Shoulder/i.test(s)) tags.add('руки');
-        else if (/Pelvis|Groin|Stomach|RibcageLow/i.test(s)) tags.add('живот/таз');
-        else if (/Leg|Thigh/i.test(s)) tags.add('ноги');
-      });
-      return [...tags];
+    function scoreTitle(components, details) {
+      if (!components) return "";
+      const lines = ["quality", "accessibility", "value", "load"].map(key =>
+        t("tool.itemScore.factor." + key) + ": " + components[key]
+      );
+      if (details) {
+        lines.push(t("tool.itemScore.detail.fleaPrice") + ": " + (details.fleaPrice ? formatNum(details.fleaPrice) : "—"));
+        lines.push(t("tool.itemScore.detail.traderPrice") + ": " + (details.traderPrice ? formatNum(details.traderPrice) : "—"));
+        lines.push(t("tool.itemScore.detail.traderLevel") + ": " + (details.traderPrice ? details.traderLevel : "—"));
+        lines.push(t("tool.itemScore.detail.questLocked") + ": " + t(details.questLocked ? "tool.itemScore.yes" : "tool.itemScore.no"));
+        lines.push(t("tool.itemScore.detail.listingCount") + ": " + (details.listingCount || "—"));
+        lines.push(t("tool.itemScore.detail.weightSize") + ": " + details.weight + " / " + details.size);
+      }
+      return lines.join("\n");
     }
 
-    function bestBuy(it) {
-      const offers = it.buyFromTrader || [];
-      if (!offers.length) return null;
-      let best = null;
-      offers.forEach(o => {
-        const price = Number(o.priceRUB != null ? o.priceRUB : o.price) || 0;
-        if (!price) return;
-        if (!best || price < best.price) {
-          best = {
-            price,
-            name: TRADER_RU[o.trader] || 'Торговец',
-            ll: Number(o.minTraderLevel) || 0,
-            quest: !!o.taskUnlock
-          };
+    function showPlates(row) {
+      const dialog = document.getElementById("plateDialog");
+      const title = document.getElementById("plateDialogTitle");
+      const body = document.getElementById("plateDialogBody");
+      title.textContent = row.name + " — " + t("tool.armor.ui.compatiblePlates");
+      body.innerHTML = row.plateIds.map(id => {
+        const plate = platesById[id];
+        if (!plate) {
+          return `<div class="plate-option"><span>${esc(id)}</span><span class="meta">${esc(t("tool.armor.ui.unresolved"))}</span></div>`;
         }
-      });
-      return best;
+        const icon = plate.icon
+          ? `<img class="plate-icon" src="${esc(plate.icon)}" alt="${esc(plate.name)}" title="${esc(plate.name)}" loading="lazy">`
+          : "";
+        const price = plate.avg || plate.low;
+        return `<div class="plate-option">${icon}<span><strong>${esc(plate.name)}</strong><small>${esc(t("tool.itemScore.class"))} ${plate.class} · ${esc(plate.material || "—")} · ${price ? formatNum(price) + " ₽" : "—"}</small></span></div>`;
+      }).join("");
+      if (typeof dialog.showModal === "function") dialog.showModal();
     }
 
     document.getElementById('loadBtn').addEventListener('click', async () => {
       const btn = document.getElementById('loadBtn');
-      const status = document.getElementById('status');
       btn.disabled = true;
-      status.className = 'status';
       const mode = document.getElementById('gameMode').value || 'regular';
-      status.textContent = 'Гружу items…';
+      const progress = window.TarkovUI && TarkovUI.progress;
+      if (progress) progress.start({ label: t("tool.itemScore.loading"), indeterminate: true });
+      setStatus("tool.armor.ui.loading");
       try {
         const items = await TarkovAPI.items(mode);
 
         const view = TarkovItemViewModels.armor(items, {
-          traderLabel: id => TRADER_RU[id] || 'Торговец'
+          traderLabel: id => TarkovDicts.traderName(id)
         });
         rows = view.rows;
         platesById = view.platesById;
@@ -94,12 +89,12 @@
         renderTypeChips();
         renderClassChips();
         renderTable();
-        status.className = 'status ok';
-        status.textContent = `Броня/риги/шлемы/плиты: ${rows.length} · плит в базе: ${Object.keys(platesById).length}`;
+        setStatus("tool.itemScore.loaded", { count: rows.length }, "ok");
+        if (progress) progress.done(t("tool.itemScore.loaded", { count: rows.length }));
       } catch (e) {
         console.error(e);
-        status.className = 'status err';
-        status.textContent = 'Ошибка: ' + e.message;
+        setStatus("tool.itemScore.loadError", { message: e.message }, "err");
+        if (progress) progress.fail(t("tool.itemScore.loadError", { message: e.message }));
       } finally {
         btn.disabled = false;
       }
@@ -112,7 +107,7 @@
       kinds.forEach(k => {
         const c = document.createElement('span');
         c.className = 'chip' + (activeTypes.has(k) ? ' active' : '');
-        c.textContent = KIND_RU[k] || k;
+        c.textContent = kindLabel(k);
         c.onclick = () => {
           if (activeTypes.has(k)) activeTypes.delete(k);
           else activeTypes.add(k);
@@ -130,7 +125,7 @@
       [1,2,3,4,5,6].forEach(cl => {
         const c = document.createElement('span');
         c.className = 'chip' + (activeClasses.has(cl) ? ' active' : '');
-        c.textContent = 'Класс ' + cl;
+        c.textContent = t("tool.itemScore.class") + ' ' + cl;
         c.onclick = () => {
           if (activeClasses.has(cl)) activeClasses.delete(cl);
           else activeClasses.add(cl);
@@ -146,18 +141,12 @@
       const q = (document.getElementById('search').value || '').toLowerCase().trim();
       const hideQuest = document.getElementById('hideQuest').checked;
       const onlyFlea = document.getElementById('onlyFlea').checked;
-      let list = rows.filter(r => {
-        if (!activeTypes.has(r.kind)) return false;
-        if (r.class && !activeClasses.has(r.class)) return false;
-        if (!r.class && r.kind !== 'rig') return false;
-        if (hideQuest && r.quest) return false;
-        if (onlyFlea && !r.onFlea) return false;
-        if (q) {
-          const hay = (r.name + ' ' + r.slug + ' ' + r.material).toLowerCase();
-          if (!hay.includes(q)) return false;
-        }
-        return true;
-      });
+      let list = TarkovItemDomain.filter(rows, {
+        kinds: [...activeTypes],
+        classes: [...activeClasses],
+        onlyFlea: onlyFlea,
+        search: q
+      }).filter(r => !(hideQuest && r.quest) && (r.class || r.kind === 'rig'));
       list.sort((a, b) => {
         let va = a[sortKey], vb = b[sortKey];
         if (sortKey === 'quest') { va = a.quest ? 1 : 0; vb = b.quest ? 1 : 0; }
@@ -167,66 +156,51 @@
       return list;
     }
 
-    function platesHtml(r) {
-      if (!r.plateIds.length) return '<span class="meta">нет слотов плит</span>';
-      const lines = r.plateIds.map(id => {
-        const pl = platesById[id];
-        if (!pl) return `<div class="plate-line">· ${id.slice(0,8)}…</div>`;
-        return `<div class="plate-line">· <b>кл.${pl.class}</b> ${esc(pl.name)}` +
-          (pl.material ? ` <span class="meta">(${esc(pl.material)})</span>` : '') +
-          (pl.avg ? ` · ${formatNum(pl.avg)} ₽` : '') +
-          ` · dur ${pl.dur}</div>`;
-      });
-      // sort by class desc inside
-      return `<div class="meta">Совместимые плиты (${r.plateIds.length}):</div>` + lines.join('');
-    }
-
     function renderTable() {
       const list = getFiltered();
       const tbody = document.getElementById('tbody');
       tbody.innerHTML = '';
       if (!list.length) {
-        tbody.innerHTML = '<tr><td colspan="11" class="meta" style="text-align:center;padding:24px;">Пусто</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="11" class="meta empty-cell">${esc(t("common.empty"))}</td></tr>`;
         return;
       }
       list.forEach(r => {
         const tr = document.createElement('tr');
-        if (expandedId === r.id) tr.classList.add('expanded');
-        const zones = r.zones.map(z => `<span class="zone-tag">${esc(z)}</span>`).join('') || '—';
-        const flea = r.onFlea ? formatNum(r.avg) : '<span class="bad">нет</span>';
+        const zones = r.zones.map(z => `<span class="zone-tag">${esc(t("tool.itemScore.zone." + z))}</span>`).join('') || '—';
+        const flea = r.onFlea ? formatNum(r.avg || r.low) : `<span class="bad">${esc(t("tool.itemScore.no"))}</span>`;
         const trader = r.traderPrice
-          ? `${esc(r.traderName)}${r.traderLL ? ' LL'+r.traderLL : ''}<br><strong>${formatNum(r.traderPrice)}</strong>`
+          ? `${esc(r.traderName)}${r.traderLL ? ' LL'+r.traderLL : ''}${r.quest ? ' · ' + esc(t("tool.itemScore.questLocked")) : ''}<br><strong>${formatNum(r.traderPrice)}</strong>`
           : '—';
-        const quest = r.quest ? '<span class="bad">да</span>' : (r.traderPrice ? '<span class="ok">нет</span>' : '—');
-        const plates = r.plateSlots ? r.plateSlots + ' слот.' : (r.kind === 'plate' ? '—' : '0');
+        const quest = r.quest ? `<span class="bad">${esc(t("tool.itemScore.yes"))}</span>` : (r.traderPrice ? `<span class="ok">${esc(t("tool.itemScore.no"))}</span>` : '—');
+        const plates = r.plateIds.length
+          ? `<button type="button" class="btn-sm plate-show" data-id="${esc(r.id)}">${esc(t("tool.armor.ui.show"))} (${r.plateIds.length})</button>`
+          : (r.plateSlots ? `${r.plateSlots} ${esc(t("tool.armor.ui.slots"))}` : (r.kind === 'plate' ? '—' : '0'));
         tr.innerHTML = `
           <td>
             <div class="name-cell">${r.icon?`<img class="ico" src="${esc(r.icon)}" loading="lazy" alt="">`:''}<div class="txt">
             <div class="name">${esc(r.name)}</div>
-            <div class="meta">${esc(r.slug)}${r.armorType ? ' · ' + esc(r.armorType) : ''}${r.material ? ' · ' + esc(r.material) : ''}${r.capacity ? ' · cap ' + r.capacity : ''}</div>
-            <div class="plates-panel">${platesHtml(r)}</div>
+            <div class="meta">${esc(r.slug)}${r.armorType ? ' · ' + esc(r.armorType) : ''}${r.material ? ' · ' + esc(r.material) : ''}</div>
             </div></div>
           </td>
           <td><strong>${r.class || '—'}</strong></td>
           <td>${r.dur || '—'}</td>
-          <td>${KIND_RU[r.kind] || r.kind}</td>
+          <td>${esc(kindLabel(r.kind))}</td>
           <td style="max-width:160px;">${zones}</td>
           <td>${flea}</td>
           <td>${trader}</td>
           <td>${quest}</td>
           <td>${plates}</td>
-          <td>${r.rating ? formatNum(r.rating) : '—'}</td>
+          <td title="${esc(scoreTitle(r.scoreComponents, r.scoreDetails))}">${r.score.toFixed(1)}</td>
           <td>
-            ${r.plateIds.length ? `<button type="button" class="btn-sm" data-id="${r.id}">плиты</button>` : ''}
-            <button type="button" class="copy-btn" data-name="${esc(r.slug)}">копир.</button>
+            <button type="button" class="copy-btn" data-name="${esc(r.slug)}">${esc(t("tool.itemScore.copy"))}</button>
           </td>
         `;
         tbody.appendChild(tr);
       });
-      tbody.querySelectorAll('.btn-sm').forEach(btn => {
+      tbody.querySelectorAll('.plate-show').forEach(btn => {
         btn.addEventListener('click', () => {
-          expandedId = expandedId === btn.dataset.id ? null : btn.dataset.id;
-          renderTable();
+          const row = rows.find(item => item.id === btn.dataset.id);
+          if (row) showPlates(row);
         });
       });
       tbody.querySelectorAll('.copy-btn').forEach(btn => {
@@ -235,7 +209,7 @@
             const old = btn.textContent;
             btn.textContent = '✓';
             setTimeout(() => { btn.textContent = old; }, 700);
-          }).catch(() => {});
+          }).catch(e => console.error(e));
         });
       });
     }
@@ -257,10 +231,19 @@
         else { sortKey = k; sortDir = k === 'name' || k === 'kind' ? 1 : -1; }
         renderTable();
       });
+      document.getElementById("plateDialogClose").addEventListener("click", () => {
+        document.getElementById("plateDialog").close();
+      });
     });
     ['search', 'hideQuest', 'onlyFlea'].forEach(id => {
       document.getElementById(id).addEventListener('input', renderTable);
       document.getElementById(id).addEventListener('change', () => { renderTable(); persist(); });
+    });
+    window.addEventListener("tt-lang-changed", () => {
+      renderTypeChips();
+      renderClassChips();
+      renderTable();
+      renderStatus();
     });
 
     (function() {

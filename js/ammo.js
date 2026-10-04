@@ -1,58 +1,27 @@
 
-    const CAL_LABEL = (window.TarkovDicts && TarkovDicts.calibers)
-      ? Object.keys(TarkovDicts.calibers).reduce((acc, k) => { acc[k] = TarkovDicts.calibers[k].label; return acc; }, {})
-      : {
-      'Caliber9x18PM': '9×18 ПМ',
-      'Caliber9x19PARA': '9×19',
-      'Caliber9x21': '9×21',
-      'Caliber9x33R': '.357 Mag',
-      'Caliber9x39': '9×39',
-      'Caliber1143x23ACP': '.45 ACP',
-      'Caliber46x30': '4.6×30',
-      'Caliber57x28': '5.7×28',
-      'Caliber545x39': '5.45×39',
-      'Caliber556x45NATO': '5.56×45',
-      'Caliber762x25TT': '7.62×25 ТТ',
-      'Caliber762x35': '.300 BLK',
-      'Caliber762x39': '7.62×39',
-      'Caliber762x51': '7.62×51',
-      'Caliber762x54R': '7.62×54R',
-      'Caliber366TKM': '.366 ТКМ',
-      'Caliber127x33': '.50 AE',
-      'Caliber127x55': '12.7×55',
-      'Caliber127x99': '.50 BMG',
-      'Caliber12g': '12/70',
-      'Caliber20g': '20/70',
-      'Caliber23x75': '23×75',
-      'Caliber26x75': '26×75',
-      'Caliber40x46': '40×46',
-      'Caliber40mmRU': '40 мм',
-      'Caliber86x70': '.338 LM',
-      'Caliber20x1mm': '20×1 мм'
-    };
-
-    // пороги pen для «уверенного» пробития класса (упрощение)
-    const CLASS_THRESH = [10, 20, 30, 40, 50, 60];
-
     let byCaliber = {};
     let activeCal = null;
     let sortKey = 'pen';
     let sortDir = -1;
+    let statusState = { key: 'tool.ammo.ui.loadPrompt', params: null, tone: '' };
+
+    function t(key, params) { return TarkovI18n.t(key, params); }
+    function caliberLabel(key) { return TarkovDicts.caliberLabel(key); }
+    function renderStatus() {
+      const status = document.getElementById('status');
+      status.className = 'status' + (statusState.tone ? ' ' + statusState.tone : '');
+      status.textContent = t(statusState.key, statusState.params);
+    }
+    function setStatus(key, params, tone) {
+      statusState = { key, params, tone: tone || '' };
+      renderStatus();
+    }
 
     function loadSettings(key, defaults) { return TarkovUI.loadSettings(key, defaults); }
     function saveSettings(key, obj) { TarkovUI.saveSettings(key, obj); }
 
     function humanize(slug) { return TarkovDicts.humanize(slug); }
     function formatNum(n) { return TarkovDicts.fmtNum(n); }
-    function classRating(pen, classIdx) {
-      // classIdx 0..5
-      const need = CLASS_THRESH[classIdx];
-      const margin = pen - need;
-      if (margin >= 5) return 'g';
-      if (margin >= -2) return 'y';
-      return 'r';
-    }
-
     function shortAmmoName(slug) {
       // 556x45mm-m855 -> M855
       if (!slug) return '?';
@@ -62,13 +31,11 @@
 
     document.getElementById('loadBtn').addEventListener('click', async () => {
       const btn = document.getElementById('loadBtn');
-      const status = document.getElementById('status');
       btn.disabled = true;
-      status.className = 'status';
-      status.textContent = 'Гружу items…';
+      setStatus('tool.ammo.ui.loadingItems');
       const mode = document.getElementById('gameMode').value || 'regular';
       try {
-        status.textContent = 'Гружу items + crafts…';
+        setStatus('tool.ammo.ui.loadingCrafts');
         const [items, craftsList] = await Promise.all([
           TarkovAPI.items(mode),
           TarkovAPI.crafts(mode)
@@ -89,19 +56,6 @@
           craftByProduct[pid].push(entry);
         });
 
-        const TRADER_ID = (window.TarkovDicts && TarkovDicts.traders)
-          ? TarkovDicts.traders.reduce((acc, t) => { acc[t.id] = t.ru; return acc; }, {})
-          : {
-          '54cb50c76803fa8b248b4571': 'Прапор',
-          '54cb57776803fa99248b456e': 'Терапевт',
-          '58330581ace78e27b8b10cee': 'Лыжник',
-          '5935c25fb3acc3127c3d8cd9': 'Миротворец',
-          '5a7c2eca46aef81a7ca2145d': 'Механик',
-          '5ac3b934156ae10c4430e83c': 'Барахольщик',
-          '5c0647fdd443bc2504c2d371': 'Егерь',
-          '6617beeaa9cfa777ca915b7c': 'Реф'
-        };
-
         byCaliber = {};
         items.forEach(it => {
           const types = it.types || [];
@@ -121,7 +75,7 @@
             usable.sort((a, b) => (a.priceRUB || a.price) - (b.priceRUB || b.price));
             const best = usable[0];
             traderPrice = Number(best.priceRUB != null ? best.priceRUB : best.price) || 0;
-            traderName = TRADER_ID[best.trader] || 'Торговец';
+            traderName = TarkovDicts.traderName(best.trader) || t('tool.compare.ui.trader');
             traderQuest = !!best.taskUnlock;
             traderLL = Number(best.minTraderLevel) || 0;
           }
@@ -175,9 +129,9 @@
 
         // sort calibers by label
         const cals = Object.keys(byCaliber).sort((a, b) => {
-          const la = CAL_LABEL[a] || a;
-          const lb = CAL_LABEL[b] || b;
-          return la.localeCompare(lb, 'ru');
+          const la = caliberLabel(a);
+          const lb = caliberLabel(b);
+          return la.localeCompare(lb, TarkovI18n.lang());
         });
 
         const box = document.getElementById('calibers');
@@ -186,7 +140,8 @@
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'cal-btn' + (activeCal === cal ? ' active' : '');
-          btn.innerHTML = `${CAL_LABEL[cal] || cal.replace('Caliber','')}<span class="count">${byCaliber[cal].length}</span>`;
+          btn.dataset.cal = cal;
+          btn.innerHTML = `${caliberLabel(cal)}<span class="count">${byCaliber[cal].length}</span>`;
           btn.onclick = () => {
             activeCal = cal;
             box.querySelectorAll('.cal-btn').forEach(b => b.classList.remove('active'));
@@ -201,8 +156,10 @@
         });
 
         document.getElementById('calCard').style.display = 'block';
-        status.className = 'status ok';
-        status.textContent = `Патронов: ${Object.values(byCaliber).reduce((s, a) => s + a.length, 0)} · калибров: ${cals.length}`;
+        setStatus('tool.ammo.ui.loaded', {
+          items: Object.values(byCaliber).reduce((s, a) => s + a.length, 0),
+          calibers: cals.length
+        }, 'ok');
 
         const saved = loadSettings('tarkovAmmoSettings', {});
         if (saved.activeCal && byCaliber[saved.activeCal]) {
@@ -213,8 +170,7 @@
           renderTable();
         }
       } catch (e) {
-        status.className = 'status err';
-        status.textContent = 'Ошибка: ' + e.message;
+        setStatus('tool.ammo.ui.loadError', { message: e.message }, 'err');
       } finally {
         btn.disabled = false;
       }
@@ -227,23 +183,23 @@
     }
     function tipHtml(r) {
       const rows = [
-        ['Масса, г', r.mass || '—'],
-        ['Диаметр, мм', r.diam || '—'],
-        ['Баллист. коэф.', r.bc ? r.bc.toFixed(3) : '—'],
-        ['Скорость, м/с', r.speed || '—'],
-        ['Шанс рикошета', pct(r.rico)],
-        ['Шанс пробития', pct(r.penChance)],
-        ['Шанс фрагментации', pct(r.frag)],
-        ['Pen deviation', r.penDev || '—'],
-        ['Урон по стамине / HP', r.stamina ? r.stamina.toFixed(3) : '—'],
-        ['Поломка брони ×', r.durBurn ? r.durBurn.toFixed(2) : '—'],
-        ['Нагрев ×', r.heat ? r.heat.toFixed(2) : '—'],
-        ['Осечка', pct(r.misfire)],
-        ['Неподача (FTF)', pct(r.ftf)],
-        ['Точность', r.acc ? ((r.acc * 100).toFixed(0) + '%') : '0%'],
-        ['Отдача', r.reco ? ((r.reco * 100).toFixed(0) + '%') : '0%'],
-        ['Лёгкое кровотечение', r.bleedL || '—'],
-        ['Тяжёлое кровотечение', r.bleedH || '—']
+        [t('tool.ammo.ui.detail.mass'), r.mass || '—'],
+        [t('tool.ammo.ui.detail.diameter'), r.diam || '—'],
+        [t('tool.ammo.ui.detail.ballisticCoefficient'), r.bc ? r.bc.toFixed(3) : '—'],
+        [t('tool.ammo.ui.detail.speed'), r.speed || '—'],
+        [t('tool.ammo.ui.detail.ricochet'), pct(r.rico)],
+        [t('tool.ammo.ui.detail.penetration'), pct(r.penChance)],
+        [t('tool.ammo.ui.detail.fragmentation'), pct(r.frag)],
+        [t('tool.ammo.ui.detail.deviation'), r.penDev || '—'],
+        [t('tool.ammo.ui.detail.stamina'), r.stamina ? r.stamina.toFixed(3) : '—'],
+        [t('tool.ammo.ui.detail.durability'), r.durBurn ? r.durBurn.toFixed(2) : '—'],
+        [t('tool.ammo.ui.detail.heat'), r.heat ? r.heat.toFixed(2) : '—'],
+        [t('tool.ammo.ui.detail.misfire'), pct(r.misfire)],
+        [t('tool.ammo.ui.detail.failureToFeed'), pct(r.ftf)],
+        [t('tool.ammo.ui.detail.accuracy'), r.acc ? ((r.acc * 100).toFixed(0) + '%') : '0%'],
+        [t('tool.ammo.ui.detail.recoil'), r.reco ? ((r.reco * 100).toFixed(0) + '%') : '0%'],
+        [t('tool.ammo.ui.detail.lightBleed'), r.bleedL || '—'],
+        [t('tool.ammo.ui.detail.heavyBleed'), r.bleedH || '—']
       ];
       return `<div class="tip-title">${esc(r.name)}</div><div class="tip-grid">${
         rows.map(([k,v]) => `<span class="k">${esc(k)}</span><span class="v">${esc(String(v))}</span>`).join('')
@@ -288,7 +244,7 @@
       }
       card.style.display = 'block';
       document.getElementById('tableTitle').textContent =
-        (CAL_LABEL[activeCal] || activeCal) + ' · ' + byCaliber[activeCal].length + ' шт.';
+        caliberLabel(activeCal) + ' · ' + t('tool.ammo.ui.caliberRows', { count: byCaliber[activeCal].length });
 
       let rows = [...byCaliber[activeCal]];
       rows.sort((a, b) => {
@@ -300,22 +256,21 @@
       const tbody = document.getElementById('tbody');
       tbody.innerHTML = '';
       rows.forEach(r => {
-        const cls = CLASS_THRESH.map((_, i) => {
-          const rating = classRating(r.pen, i);
-          return `<span class="${rating}">${i + 1}</span>`;
+        const cls = TarkovWeaponDomain.penChart(r.pen).map(cell => {
+          return `<span class="${cell.rating}">${cell.class}</span>`;
         }).join('');
         const tr = document.createElement('tr');
         const traderCell = r.traderPrice
           ? `<div>${esc(r.traderName)}${r.traderLL ? ' LL' + r.traderLL : ''}</div><div><strong>${formatNum(r.traderPrice)}</strong></div>`
           : '<span class="meta">—</span>';
         const questCell = r.traderQuest
-          ? '<span class="bad">да</span>'
-          : (r.traderPrice ? '<span class="ok">нет</span>' : '—');
+          ? '<span class="bad">' + esc(t('tool.ammo.ui.yes')) + '</span>'
+          : (r.traderPrice ? '<span class="ok">' + esc(t('tool.ammo.ui.no')) + '</span>' : '—');
         const craftCell = r.hasCraft
           ? (r.craftQuest
-              ? `<span class="bad">да</span> <span class="meta">квест</span>`
-              : `<span class="ok">да</span>${r.craftCount > 1 ? ' <span class="meta">×' + r.craftCount + '</span>' : ''}`)
-          : '<span class="meta">нет</span>';
+              ? `<span class="bad">${esc(t('tool.ammo.ui.yes'))}</span> <span class="meta">${esc(t('tool.ammo.ui.quest'))}</span>`
+              : `<span class="ok">${esc(t('tool.ammo.ui.yes'))}</span>${r.craftCount > 1 ? ' <span class="meta">×' + r.craftCount + '</span>' : ''}`)
+          : '<span class="meta">' + esc(t('tool.ammo.ui.no')) + '</span>';
         tr.innerHTML = `
           <td>
             <div class="name-cell" data-tip="1">
@@ -334,7 +289,7 @@
           <td>${questCell}</td>
           <td>${craftCell}</td>
           <td><div class="cls">${cls}</div></td>
-          <td><button type="button" class="copy-btn" data-name="${esc(r.slug)}">копир.</button></td>
+          <td><button type="button" class="copy-btn" data-name="${esc(r.slug)}">${esc(t('tool.ammo.ui.copy'))}</button></td>
         `;
         tbody.appendChild(tr);
       });
@@ -364,6 +319,14 @@
         const k = th.dataset.k;
         if (sortKey === k) sortDir *= -1;
         else { sortKey = k; sortDir = k === 'name' ? 1 : -1; }
+        renderTable();
+      });
+      window.addEventListener('tt-lang-changed', () => {
+        renderStatus();
+        document.querySelectorAll('.cal-btn').forEach(btn => {
+          const cal = btn.dataset.cal;
+          btn.innerHTML = `${esc(caliberLabel(cal))}<span class="count">${byCaliber[cal] ? byCaliber[cal].length : 0}</span>`;
+        });
         renderTable();
       });
     });

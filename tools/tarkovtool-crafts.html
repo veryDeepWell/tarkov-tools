@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Крафты убежища ROI — Tarkov</title>
+  <title data-i18n="tool.crafts.ui.heading">Крафты убежища ROI — Tarkov</title>
   <style>
     :root {
       --bg: #0f1115;
@@ -175,14 +175,14 @@
 </head>
 <body>
   <div class="container">
-    <h1>Крафты убежища — ROI</h1>
-    <p class="sub">json.tarkov.dev · стоимость входов vs цена выхода · профит / час</p>
+    <h1 data-i18n="tool.crafts.ui.heading">Крафты убежища — ROI</h1>
+    <p class="sub" data-i18n="tool.crafts.ui.subtitle">json.tarkov.dev · стоимость входов vs цена выхода · профит / час</p>
 
     <div class="card">
-      <div class="card-title">Данные</div>
+      <div class="card-title" data-i18n="tool.crafts.ui.data">Данные</div>
       <div class="row">
         <div class="field">
-          <label>Режим</label>
+          <label data-i18n="tool.crafts.ui.mode">Режим</label>
           <select id="gameMode">
             <option value="regular">regular</option>
             <option value="pvp-season">pvp-season</option>
@@ -190,60 +190,60 @@
           </select>
         </div>
         <div class="field">
-          <label>Цена входов</label>
+          <label data-i18n="tool.crafts.ui.inputPrice">Цена входов</label>
           <select id="priceIn">
-            <option value="avg24h" selected>avg 24ч</option>
-            <option value="lastLow">min сейчас</option>
-            <option value="max">max(avg,min)</option>
+            <option value="avg24h" selected data-i18n="tool.crafts.ui.avgPrice">avg 24ч</option>
+            <option value="lastLow" data-i18n="tool.crafts.ui.currentMin">min сейчас</option>
+            <option value="max" data-i18n="tool.crafts.ui.maxPrice">max(avg,min)</option>
           </select>
         </div>
         <div class="field">
-          <label>Цена выхода</label>
+          <label data-i18n="tool.crafts.ui.outputPrice">Цена выхода</label>
           <select id="priceOut">
-            <option value="avg24h" selected>avg 24ч</option>
-            <option value="lastLow">min сейчас</option>
-            <option value="max">max(avg,min)</option>
+            <option value="avg24h" selected data-i18n="tool.crafts.ui.avgPrice">avg 24ч</option>
+            <option value="lastLow" data-i18n="tool.crafts.ui.currentMin">min сейчас</option>
+            <option value="max" data-i18n="tool.crafts.ui.maxPrice">max(avg,min)</option>
           </select>
         </div>
         <div class="field">
-          <label>РЦ 3</label>
-          <select id="intel3"><option value="0">Нет</option><option value="1">Да</option></select>
+          <label data-i18n="tool.crafts.ui.intelCenter">РЦ 3</label>
+          <select id="intel3"><option value="0" data-i18n="tool.crafts.ui.no">Нет</option><option value="1" data-i18n="tool.crafts.ui.yes">Да</option></select>
         </div>
         <div class="field">
-          <label>HM lvl</label>
+          <label data-i18n="tool.crafts.ui.hideoutManagement">HM lvl</label>
           <input type="number" id="hmLvl" min="0" max="50" value="0">
         </div>
-        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+        <button type="button" class="btn" id="loadBtn" data-i18n="tool.crafts.ui.load">ЗАГРУЗИТЬ</button>
       </div>
-      <p class="status" id="status">Инструменты (tool) в стоимость крафта не входят</p>
+      <p class="status" id="status" data-i18n="tool.crafts.ui.loadPrompt">Инструменты (tool) в стоимость крафта не входят</p>
     </div>
 
     <div class="card" id="resultsCard" style="display:none;">
-      <div class="card-title">Фильтры</div>
+      <div class="card-title" data-i18n="tool.crafts.ui.filters">Фильтры</div>
       <div class="chips" id="stationChips"></div>
       <div class="row" style="margin-bottom:10px;">
         <div class="field">
-          <label>Мин. профит, ₽</label>
+          <label data-i18n="tool.crafts.ui.minProfit">Мин. профит, ₽</label>
           <input type="number" id="minProfit" value="0" step="1000">
         </div>
         <div class="field">
-          <label>Мин. ₽/час</label>
+          <label data-i18n="tool.crafts.ui.minPerHour">Мин. ₽/час</label>
           <input type="number" id="minPerHour" value="0" step="1000">
         </div>
         <div class="field" style="flex:1;min-width:160px;">
-          <label>Поиск</label>
-          <input type="text" id="search" placeholder="патроны, bitcoin, workbench…">
+          <label data-i18n="tool.crafts.ui.search">Поиск</label>
+          <input type="text" id="search" data-i18n-placeholder="tool.crafts.ui.searchPlaceholder" placeholder="патроны, bitcoin, workbench…">
         </div>
         <div class="field" style="min-width:auto;padding-bottom:2px;">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;padding-top:18px;">
             <input type="checkbox" id="hideQuest" checked>
-            Скрыть за квестом
+            <span data-i18n="tool.crafts.ui.hideQuest">Скрыть за квестом</span>
           </label>
         </div>
         <div class="field" style="min-width:auto;padding-bottom:2px;">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;padding-top:18px;">
             <input type="checkbox" id="onlyProfit">
-            Только плюс
+            <span data-i18n="tool.crafts.ui.onlyProfit">Только плюс</span>
           </label>
         </div>
       </div>
@@ -255,7 +255,7 @@
         </table>
       </div>
       <p class="meta" id="meta"></p>
-      <p class="hint">
+      <p class="hint" data-i18n="tool.crafts.ui.hint">
         Профит = (цена выхода × кол-во − комиссия) − сумма входов (без tool).
         ₽/час = профит / (duration/3600). Цены барахолки — ориентир, не гарантия ликвидности.
       </p>
@@ -266,6 +266,7 @@
   <script type="module" src="../core/tarkov-names.js"></script>
   <script type="module" src="../core/tarkov-storage.js"></script>
   <script type="module" src="../core/tarkov-api.js"></script>
+  <script type="module" src="../core/tarkov-item-domain.js"></script>
   <script type="module" src="../core/tarkov-ui.js"></script>
   <script type="module" src="../core/tarkov-state.js"></script>
   <script type="module" src="../core/tarkov-common.js"></script>

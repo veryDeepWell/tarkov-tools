@@ -20,19 +20,13 @@
   };
 
   function get(k, d) {
-    try {
-      if (global.TarkovStorage && TarkovStorage.get) {
-        var v0 = TarkovStorage.get(k, null);
-        return v0 == null ? d : v0;
-      }
-    } catch (e0) {}
-    try { var v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; }
+    if (!global.TarkovStorage || !TarkovStorage.get) throw new Error("TarkovStorage is required by TarkovTools");
+    var value = TarkovStorage.get(k, null);
+    return value == null ? d : value;
   }
   function set(k, v) {
-    try {
-      if (global.TarkovStorage && TarkovStorage.set) { TarkovStorage.set(k, v); return; }
-    } catch (e0) {}
-    try { localStorage.setItem(k, String(v)); } catch (e) {}
+    if (!global.TarkovStorage || !TarkovStorage.set) throw new Error("TarkovStorage is required by TarkovTools");
+    TarkovStorage.set(k, v);
   }
 
   function lang() {
@@ -183,14 +177,10 @@
       }
     } catch (e) {}
     try {
-      var key = "tarkovNotifications.v1";
-      var list = [];
-      try {
-        if (global.TarkovStorage && TarkovStorage.getJson)
-          list = TarkovStorage.getJson(key, []) || [];
-        else
-          list = JSON.parse(localStorage.getItem(key) || "[]") || [];
-      } catch (e2) { list = []; }
+      var key = "tt:notif:v1";
+      if (!global.TarkovStorage || !TarkovStorage.getJson || !TarkovStorage.setJson)
+        throw new Error("TarkovStorage is required for notifications");
+      var list = TarkovStorage.getJson(key, []) || [];
       if (!Array.isArray(list)) list = [];
       var item = {
         id: "n" + Date.now() + Math.random().toString(36).slice(2, 6),
@@ -203,12 +193,12 @@
       };
       list.unshift(item);
       list = list.slice(0, 200);
-      try {
-        if (global.TarkovStorage && TarkovStorage.setJson) TarkovStorage.setJson(key, list);
-        else localStorage.setItem(key, JSON.stringify(list));
-      } catch (e3) {}
+      TarkovStorage.setJson(key, list);
       return item;
-    } catch (e) { return null; }
+    } catch (e) {
+      console.error("Unable to store notification", e);
+      return null;
+    }
   }
 
   function i18nNotif(opts) {
@@ -266,42 +256,21 @@
     /* overridden by settings-tabs.js */
   }
 
-  /** Export / import all tarkov* localStorage keys (settings + tool state). */
+  /** Export / import all namespaced TarkovStorage keys. */
   function exportAll() {
-    try {
-      if (window.TarkovStorage && TarkovStorage.migrateKey) {
-        [["restockEnabled","tarkovRestockEnabled"],["restockHistory","tarkovRestockHistory"],["restockFired","tarkovRestockFired"],["restockCycleMs","tarkovRestockCycleMs"],["restockSnapshot","tarkovRestockSnapshot"]].forEach(function (pair) {
-          TarkovStorage.migrateKey(pair[0], pair[1]);
-        });
-      }
-    } catch (eM) {}
+    if (!global.TarkovStorage || !TarkovStorage.keys || !TarkovStorage.get)
+      throw new Error("TarkovStorage is required for export");
+    TarkovStorage.migrateLegacyKeys();
     var data = {
       _schema: "tarkov-tools-export",
       _version: 1,
       _exportedAt: new Date().toISOString(),
       keys: {}
     };
-    try {
-      var ks = (global.TarkovStorage && TarkovStorage.keys)
-        ? TarkovStorage.keys("tarkov")
-        : (function () {
-            var a = [];
-            try {
-              for (var i = 0; i < localStorage.length; i++) {
-                var k = localStorage.key(i);
-                if (k && k.indexOf("tarkov") === 0) a.push(k);
-              }
-            } catch (e) {}
-            return a;
-          })();
-      ks.forEach(function (k) {
-        try {
-          data.keys[k] = global.TarkovStorage && TarkovStorage.get
-            ? TarkovStorage.get(k, null)
-            : localStorage.getItem(k);
-        } catch (e2) {}
-      });
-    } catch (e) {}
+    var ks = TarkovStorage.keys("tt:");
+    ks.forEach(function (k) {
+      data.keys[k] = TarkovStorage.get(k, null);
+    });
     var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -319,12 +288,11 @@
         var map = raw;
         if (raw && raw.keys && typeof raw.keys === "object") map = raw.keys;
         if (!map || typeof map !== "object") throw new Error("bad shape");
+        if (!global.TarkovStorage || !TarkovStorage.set)
+          throw new Error("TarkovStorage is required for import");
         Object.keys(map).forEach(function (k) {
-          if (k.indexOf("tarkov") === 0 && typeof map[k] === "string") {
-            try {
-              if (global.TarkovStorage && TarkovStorage.set) TarkovStorage.set(k, map[k]);
-              else localStorage.setItem(k, map[k]);
-            } catch (eS) {}
+          if ((k.indexOf("tt:") === 0 || k.indexOf("ttApi:") === 0 || k.indexOf("tarkov") === 0 || k.indexOf("restock") === 0) && typeof map[k] === "string") {
+            TarkovStorage.set(k, map[k]);
           }
         });
         try { applyTheme(); } catch (eT) {}
@@ -375,4 +343,3 @@
   try { applyTheme(); } catch (e) {}
   try { armAudioUnlock(); } catch (e2) {}
 })(typeof window !== "undefined" ? window : this);
-

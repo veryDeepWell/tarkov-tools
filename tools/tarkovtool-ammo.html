@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Патроны — пробитие — Tarkov</title>
+  <title data-i18n="tool.ammo.ui.heading">Патроны — пробитие — Tarkov</title>
   <style>
     :root {
       --bg: #0f1115;
@@ -262,57 +262,54 @@
 </head>
 <body>
   <div class="container">
-    <h1>Патроны — класс пробития</h1>
-    <p class="sub">калибр → таблица · pen / урон / бр% · наведение на патрон = скрытые статы</p>
+    <h1 data-i18n="tool.ammo.ui.heading">Патроны — класс пробития</h1>
+    <p class="sub" data-i18n="tool.ammo.ui.subtitle">калибр → таблица · pen / урон / бр% · наведение на патрон = скрытые статы</p>
 
     <div class="card">
-      <div class="card-title">Данные</div>
+      <div class="card-title" data-i18n="tool.ammo.ui.data">Данные</div>
       <div class="row">
         <div class="field">
-          <label>Режим</label>
+          <label data-i18n="tool.ammo.ui.mode">Режим</label>
           <select id="gameMode">
             <option value="regular">regular</option>
             <option value="pvp-season">pvp-season</option>
             <option value="pve" selected>pve</option>
           </select>
         </div>
-        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
+        <button type="button" class="btn" id="loadBtn" data-i18n="tool.ammo.ui.load">ЗАГРУЗИТЬ</button>
       </div>
-      <p class="status" id="status">Загрузи данные, потом выбери калибр</p>
+      <p class="status" id="status" data-i18n="tool.ammo.ui.loadPrompt">Загрузи данные, потом выбери калибр</p>
     </div>
 
     <div class="card" id="calCard" style="display:none;">
-      <div class="card-title">Калибры</div>
+      <div class="card-title" data-i18n="tool.ammo.ui.calibers">Калибры</div>
       <div class="calibers" id="calibers"></div>
     </div>
 
     <div class="card" id="tableCard" style="display:none;">
-      <div class="card-title" id="tableTitle">Таблица</div>
+      <div class="card-title" id="tableTitle" data-i18n="tool.ammo.ui.table">Таблица</div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th data-k="name">Патрон</th>
-              <th data-k="pen">Pen</th>
-              <th data-k="dmg">Урон</th>
-              <th data-k="ad">Бр%</th>
-              <th data-k="traderPrice">Торговец</th>
-              <th data-k="price">avg 24ч</th>
-              <th data-k="quest">Квест</th>
-              <th data-k="craft">Крафт</th>
-              <th>Классы 1–6</th>
+              <th data-k="name" data-i18n="tool.ammo.ui.column.ammo">Патрон</th>
+              <th data-k="pen" data-i18n="tool.ammo.ui.column.penetration">Pen</th>
+              <th data-k="dmg" data-i18n="tool.ammo.ui.column.damage">Урон</th>
+              <th data-k="ad" data-i18n="tool.ammo.ui.column.armorDamage">Бр%</th>
+              <th data-k="traderPrice" data-i18n="tool.ammo.ui.column.trader">Торговец</th>
+              <th data-k="price" data-i18n="tool.ammo.ui.column.average">avg 24ч</th>
+              <th data-k="quest" data-i18n="tool.ammo.ui.column.quest">Квест</th>
+              <th data-k="craft" data-i18n="tool.ammo.ui.column.craft">Крафт</th>
+              <th data-i18n="tool.ammo.ui.column.classes">Классы 1–6</th>
               <th></th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
-      <p class="hint">
-        Классы — упрощённая шкала по pen (не шанс в игре):
-        <span style="color:var(--green)">зелёный</span> уверенно,
-        <span style="color:var(--yellow)">жёлтый</span> впритык,
-        <span style="color:#8a555a">тёмный</span> слабо.
-        Пороги: 10 / 20 / 30 / 40 / 50 / 60 pen ≈ классы 1–6. «Квест» — покупка у торговца за заданием. «Крафт» — есть рецепт в убежище (если «квест» — рецепт тоже за заданием).
+      <p class="hint" data-i18n="tool.ammo.ui.hint">
+        Классы — упрощённая шкала по pen (не шанс в игре): зелёный — уверенно, жёлтый — впритык, тёмный — слабо.
+        Пороги: 10 / 20 / 30 / 40 / 50 / 60 pen ≈ классы 1–6. «Квест» — покупка у торговца за заданием. «Крафт» — есть рецепт в убежище.
       </p>
     </div>
   </div>
@@ -321,6 +318,7 @@
   <script type="module" src="../core/tarkov-names.js"></script>
   <script type="module" src="../core/tarkov-storage.js"></script>
   <script type="module" src="../core/tarkov-api.js"></script>
+  <script type="module" src="../core/tarkov-weapon-domain.js"></script>
   <script type="module" src="../core/tarkov-ui.js"></script>
   <script type="module" src="../core/tarkov-state.js"></script>
   <script type="module" src="../core/tarkov-common.js"></script>

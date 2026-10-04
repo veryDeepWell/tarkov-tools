@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tarkov Flip — json.tarkov.dev</title>
+  <title data-i18n="tool.trader-flip.ui.heading">Tarkov Flip — json.tarkov.dev</title>
   <style>
     :root {
       --bg: #0f1115;
@@ -244,40 +244,40 @@
 </head>
 <body>
   <div class="container">
-    <h1>Tarkov Flip</h1>
-    <p class="sub">json.tarkov.dev · купил у торговца → продал на барахолке</p>
+    <h1 data-i18n="tool.trader-flip.ui.heading">Tarkov Flip</h1>
+    <p class="sub" data-i18n="tool.trader-flip.ui.subtitle">json.tarkov.dev · купил у торговца → продал на барахолке</p>
 
     <div class="card">
-      <div class="card-title">Уровни лояльности торговцев</div>
+      <div class="card-title" data-i18n="tool.trader-flip.ui.traderLevels">Уровни лояльности торговцев</div>
       <div class="traders" id="traders"></div>
     </div>
 
     <div class="card">
-      <div class="card-title">Игрок</div>
+      <div class="card-title" data-i18n="tool.trader-flip.ui.player">Игрок</div>
       <div class="player-row">
         <div class="field">
-          <label>Уровень PMC</label>
+          <label data-i18n="tool.trader-flip.ui.playerLevel">Уровень PMC</label>
           <input type="number" id="playerLevel" min="1" max="79" value="31">
         </div>
         <div class="field">
-          <label>Разведцентр 3</label>
-          <select id="intel3"><option value="0">Нет</option><option value="1">Да (−30%+)</option></select>
+          <label data-i18n="tool.trader-flip.ui.intelCenter">Разведцентр 3</label>
+          <select id="intel3"><option value="0" data-i18n="tool.trader-flip.ui.no">Нет</option><option value="1" data-i18n="tool.trader-flip.ui.yes">Да (−30%+)</option></select>
         </div>
         <div class="field">
-          <label>Hideout Mgmt</label>
+          <label data-i18n="tool.trader-flip.ui.hideoutManagement">Hideout Mgmt</label>
           <input type="number" id="hmLvl" min="0" max="50" value="0" title="0–50">
         </div>
         <div class="field">
-          <label>Режим</label>
+          <label data-i18n="tool.trader-flip.ui.mode">Режим</label>
           <select id="gameMode">
-            <option value="regular">regular (PVP)</option>
-            <option value="pvp-season">pvp-season</option>
-            <option value="pve" selected>pve</option>
+            <option value="regular" data-i18n="tool.trader-flip.ui.modeRegular">regular (PVP)</option>
+            <option value="pvp-season" data-i18n="tool.trader-flip.ui.modeSeason">pvp-season</option>
+            <option value="pve" selected data-i18n="tool.trader-flip.ui.modePve">pve</option>
           </select>
         </div>
-        <button type="button" class="btn" id="fetchBtn">ПОЛУЧИТЬ</button>
+        <button type="button" class="btn" id="fetchBtn" data-i18n="tool.trader-flip.ui.fetch">ПОЛУЧИТЬ</button>
       </div>
-      <p class="status" id="status">Нажми «ПОЛУЧИТЬ» — данные с json.tarkov.dev</p>
+      <p class="status" id="status" data-i18n="tool.trader-flip.ui.loadPrompt">Нажми «ПОЛУЧИТЬ» — данные с json.tarkov.dev</p>
       <div class="progress-wrap" id="progressWrap">
         <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
         <div class="progress-label" id="progressLabel"></div>
@@ -285,29 +285,29 @@
     </div>
 
     <div class="card" id="resultsCard" style="display:none;">
-      <div class="card-title">Результаты</div>
+      <div class="card-title" data-i18n="tool.trader-flip.ui.results">Результаты</div>
       <div class="filters" id="typeFilters"></div>
       <div class="filter-inputs">
         <div class="field">
-          <label>Мин. профит, ₽</label>
+          <label data-i18n="tool.trader-flip.ui.minProfit">Мин. профит, ₽</label>
           <input type="number" id="minProfit" value="5000" step="1000">
         </div>
         <div class="field">
-          <label>Мин. ROI, %</label>
+          <label data-i18n="tool.trader-flip.ui.minRoi">Мин. ROI, %</label>
           <input type="number" id="minRoi" value="5" step="1">
         </div>
         <div class="field">
-          <label>Мин. офферов</label>
+          <label data-i18n="tool.trader-flip.ui.minOffers">Мин. офферов</label>
           <input type="number" id="minOffers" value="3" step="1" min="0">
         </div>
         <div class="field">
-          <label>Поиск</label>
-          <input type="text" id="search" placeholder="название...">
+          <label data-i18n="tool.trader-flip.ui.search">Поиск</label>
+          <input type="text" id="search" data-i18n-placeholder="tool.trader-flip.ui.searchPlaceholder" placeholder="название...">
         </div>
         <div class="field" style="min-width:auto; padding-top: 18px;">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
             <input type="checkbox" id="hideQuest" checked>
-            Скрыть за квестом
+            <span data-i18n="tool.trader-flip.ui.hideQuest">Скрыть за квестом</span>
           </label>
         </div>
       </div>
@@ -325,10 +325,11 @@
   <script type="module" src="../core/tarkov-names.js"></script>
   <script type="module" src="../core/tarkov-storage.js"></script>
   <script type="module" src="../core/tarkov-api.js"></script>
+  <script type="module" src="../core/tarkov-item-domain.js"></script>
   <script type="module" src="../core/tarkov-ui.js"></script>
   <script type="module" src="../core/tarkov-state.js"></script>
   <script type="module" src="../core/tarkov-common.js"></script>
-  <script type="module" src="../js/trade-flip.js"></script>
+  <script type="module" src="../js/trader-flip.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>
 </html>

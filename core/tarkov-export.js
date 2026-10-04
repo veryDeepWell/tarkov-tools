@@ -6,55 +6,18 @@
   "use strict";
 
 
-  var LEGACY_RESTOCK = [
-    ["restockEnabled", "tarkovRestockEnabled"],
-    ["restockHistory", "tarkovRestockHistory"],
-    ["restockFired", "tarkovRestockFired"],
-    ["restockCycleMs", "tarkovRestockCycleMs"],
-    ["restockSnapshot", "tarkovRestockSnapshot"]
-  ];
-
-  function migrateLegacyRestock() {
-    try {
-      if (window.TarkovStorage && TarkovStorage.migrateKey) {
-        LEGACY_RESTOCK.forEach(function (pair) {
-          TarkovStorage.migrateKey(pair[0], pair[1]);
-        });
-        return;
-      }
-    } catch (e) {}
-    LEGACY_RESTOCK.forEach(function (pair) {
-      try {
-        var n = localStorage.getItem(pair[1]);
-        if (n != null && n !== "") return;
-        var o = localStorage.getItem(pair[0]);
-        if (o == null) return;
-        localStorage.setItem(pair[1], o);
-        localStorage.removeItem(pair[0]);
-      } catch (e2) {}
-    });
-  }
-
   var SCHEMA = "tarkov-tools-export";
   var VERSION = 1;
 
-  /**
-   * Collected keys (all localStorage keys starting with "tarkov"):
-   * - tarkovTheme, tarkovAccent, tarkovLang, tarkovSound, tarkovSoundVolume / tarkovSoundVol
-   * - tarkovPreferredGameMode, tarkovTips / tarkovToolTips, tarkovHiddenTools
-   * - tarkovSoundKind.<kind>, tarkovSoundKindVol.<kind>
-   * - tarkovSoundTool.<toolBasename>
-   * - tarkovPoll.<pollId>, tool-specific state (tarkovPriceAlarmRules, restockEnabled, …)
-   * - tarkovNotifications.v1
-   */
+  /** Collected keys use the canonical tt: namespace. */
   function collectKeys() {
+    if (!global.TarkovStorage || !TarkovStorage.keys || !TarkovStorage.get || !TarkovStorage.migrateLegacyKeys)
+      throw new Error("TarkovStorage is required for export");
+    TarkovStorage.migrateLegacyKeys();
     var keys = {};
-    try {
-      for (var i = 0; i < localStorage.length; i++) {
-        var k = localStorage.key(i);
-        if (k && k.indexOf("tarkov") === 0) keys[k] = localStorage.getItem(k);
-      }
-    } catch (e) {}
+    TarkovStorage.keys("tt:").forEach(function (key) {
+      keys[key] = TarkovStorage.get(key, null);
+    });
     return keys;
   }
 
@@ -69,14 +32,16 @@
 
   function applyPayload(raw) {
     if (!raw || typeof raw !== "object") throw new Error("invalid export");
+    if (!global.TarkovStorage || !TarkovStorage.set)
+      throw new Error("TarkovStorage is required for import");
     var map = raw.keys && typeof raw.keys === "object" ? raw.keys : raw;
     if (raw._schema && raw._schema !== SCHEMA) {
       /* still accept legacy flat maps */
     }
     Object.keys(map).forEach(function (k) {
       if (k.charAt(0) === "_") return;
-      if (k.indexOf("tarkov") === 0 && typeof map[k] === "string") {
-        try { localStorage.setItem(k, map[k]); } catch (e) {}
+      if ((k.indexOf("tt:") === 0 || k.indexOf("ttApi:") === 0 || k.indexOf("tarkov") === 0 || k.indexOf("restock") === 0) && typeof map[k] === "string") {
+        TarkovStorage.set(k, map[k]);
       }
     });
   }

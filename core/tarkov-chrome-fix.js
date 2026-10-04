@@ -152,10 +152,10 @@
         try {
           var cur =
             (window.TarkovI18n && TarkovI18n.lang && TarkovI18n.lang()) ||
-            localStorage.getItem("tarkovLang") ||
+            (window.TarkovStorage && TarkovStorage.get("tarkovLang", null)) ||
             "ru";
           var next = cur === "ru" ? "en" : "ru";
-          localStorage.setItem("tarkovLang", next);
+          if (window.TarkovStorage) TarkovStorage.set("tarkovLang", next);
           if (window.TarkovI18n && TarkovI18n.setLang) TarkovI18n.setLang(next);
           else location.reload();
         } catch (err) {}

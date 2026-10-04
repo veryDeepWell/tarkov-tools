@@ -228,3 +228,4 @@ See also `docs/TOOL_CHECKLIST.md`.
 ---
 
 *Stage 0 — platform contract. Update this file when public APIs change.*
+<!-- Archived platform description; see root ARCHITECTURE.md and CONTRACT.md. -->

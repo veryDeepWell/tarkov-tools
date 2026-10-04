@@ -62,8 +62,35 @@
       if (typeof catalog === "string" && mode == null) { mode = catalog; catalog = null; }
       return snapshot(catalog, mode).then(function (x) { return x.byId[id] || null; });
     },
-    byType: function (type, mode) {
-      return snapshot(null, mode).then(function (x) { return x.byType[String(type || "").toLowerCase()] || []; });
+    byType: function (type, catalog, mode) {
+      if (typeof catalog === "string" && mode == null) { mode = catalog; catalog = null; }
+      return snapshot(catalog, mode).then(function (x) {
+        return (x.byType[String(type || "").toLowerCase()] || []).slice();
+      });
+    },
+    search: function (query, catalog, mode, options) {
+      if (typeof catalog === "string" && mode == null) { mode = catalog; catalog = null; }
+      options = options || {};
+      var term = String(query || "").trim().toLowerCase();
+      var wantedTypes = Array.isArray(options.types) ? options.types : options.types ? [options.types] : [];
+      wantedTypes = wantedTypes.map(function (type) { return String(type || "").toLowerCase(); });
+      return snapshot(catalog, mode).then(function (x) {
+        var list = x.all.filter(function (item) {
+          if (wantedTypes.length) {
+            var types = Array.isArray(item.types) ? item.types : item.types ? [item.types] : [];
+            if (!types.some(function (type) {
+              return wantedTypes.indexOf(String(type).toLowerCase()) >= 0;
+            })) return false;
+          }
+          if (!term) return true;
+          var fields = [item.id, item.name, item.shortName, item.normalizedName]
+            .concat(item.types || [])
+            .join(" ")
+            .toLowerCase();
+          return fields.indexOf(term) >= 0;
+        });
+        return list;
+      });
     },
     classify: function (item) {
       if (global.TarkovItemDomain && TarkovItemDomain.classifyItem) return TarkovItemDomain.classifyItem(item);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Поиск по короткому имени — Tarkov</title>
+  <title data-i18n="tool.shortname.ui.heading">Поиск по короткому имени — Tarkov</title>
   <style>
     :root {
       --bg: #0f1115;
@@ -186,69 +186,68 @@
 </head>
 <body>
   <div class="container">
-    <h1>Поиск по короткому имени</h1>
-    <p class="sub">Как на предмете в инвентаре (FFWB и т.п.) · цены — sellToTrader + барахолка</p>
+    <h1 data-i18n="tool.shortname.ui.heading">Поиск по короткому имени</h1>
+    <p class="sub" data-i18n="tool.shortname.ui.subtitle">Как на предмете в инвентаре (FFWB и т.п.) · цены — sellToTrader + барахолка</p>
 
     <div class="card">
-      <div class="card-title">Каталог</div>
+      <div class="card-title" data-i18n="tool.shortname.ui.catalog">Каталог</div>
       <div class="row">
         <div class="field" style="max-width:140px;">
-          <label>Режим</label>
+          <label data-i18n="tool.shortname.ui.mode">Режим</label>
           <select id="gameMode">
             <option value="regular">regular</option>
             <option value="pvp-season">pvp-season</option>
             <option value="pve" selected>pve</option>
           </select>
         </div>
-        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ ПРЕДМЕТЫ</button>
+        <button type="button" class="btn" id="loadBtn" data-i18n="tool.shortname.ui.load">ЗАГРУЗИТЬ ПРЕДМЕТЫ</button>
         <div class="field" style="max-width:90px;">
-          <label>РЦ 3</label>
-          <select id="intel3"><option value="0">Нет</option><option value="1">Да</option></select>
+          <label data-i18n="tool.shortname.ui.intelCenter">РЦ 3</label>
+          <select id="intel3"><option value="0" data-i18n="tool.shortname.ui.no">Нет</option><option value="1" data-i18n="tool.shortname.ui.yes">Да</option></select>
         </div>
         <div class="field" style="max-width:80px;">
-          <label>HM</label>
+          <label data-i18n="tool.shortname.ui.hideoutManagement">HM</label>
           <input type="number" id="hmLvl" min="0" max="50" value="0">
         </div>
         <label class="toggle">
           <input type="checkbox" id="editMode">
-          Режим правок shortName
+          <span data-i18n="tool.shortname.ui.editMode">Режим правок shortName</span>
         </label>
       </div>
       <div class="tools">
-        <button type="button" class="btn-ghost" id="exportBtn">Экспорт shortNames JSON</button>
-        <button type="button" class="btn-ghost" id="importBtn">Импорт JSON</button>
+        <button type="button" class="btn-ghost" id="exportBtn" data-i18n="tool.shortname.ui.export">Экспорт shortNames JSON</button>
+        <button type="button" class="btn-ghost" id="importBtn" data-i18n="tool.shortname.ui.import">Импорт JSON</button>
         <input type="file" id="importFile" accept="application/json,.json" hidden>
-        <button type="button" class="btn-ghost" id="clearOverridesBtn">Сбросить правки</button>
+        <button type="button" class="btn-ghost" id="clearOverridesBtn" data-i18n="tool.shortname.ui.clear">Сбросить правки</button>
       </div>
-      <p class="status" id="status">API не отдаёт нормальные shortName — правь руками, экспорт в файл. Загрузка каталога один раз.</p>
+      <p class="status" id="status" data-i18n="tool.shortname.ui.loadPrompt">API не отдаёт нормальные shortName — правь руками, экспорт в файл. Загрузка каталога один раз.</p>
     </div>
 
     <div class="card">
-      <div class="card-title">Поиск</div>
+      <div class="card-title" data-i18n="tool.shortname.ui.search">Поиск</div>
       <div class="row">
         <div class="field">
-          <label>Короткое имя</label>
-          <input type="text" id="qShort" placeholder="FFWB, LEDX, M4A1…" autocomplete="off">
+          <label data-i18n="tool.shortname.ui.shortName">Короткое имя</label>
+          <input type="text" id="qShort" data-i18n-placeholder="tool.shortname.ui.shortPlaceholder" placeholder="FFWB, LEDX, M4A1…" autocomplete="off">
         </div>
         <div class="field">
-          <label>Длинное / slug</label>
-          <input type="text" id="qLong" placeholder="fastfire, ophthalmoscope…" autocomplete="off">
+          <label data-i18n="tool.shortname.ui.longName">Длинное / slug</label>
+          <input type="text" id="qLong" data-i18n-placeholder="tool.shortname.ui.longPlaceholder" placeholder="fastfire, ophthalmoscope…" autocomplete="off">
         </div>
         <div class="field" style="max-width:120px;">
-          <label>Лимит строк</label>
+          <label data-i18n="tool.shortname.ui.rowLimit">Лимит строк</label>
           <input type="number" id="limit" min="20" max="500" value="80">
         </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">Результаты <span id="countMeta"></span></div>
+      <div class="card-title"><span data-i18n="tool.shortname.ui.results">Результаты</span> <span id="countMeta"></span></div>
       <div class="list" id="list">
-        <div class="item"><div class="meta">Сначала загрузи предметы</div></div>
+        <div class="item"><div class="meta" data-i18n="tool.shortname.ui.initialEmpty">Сначала загрузи предметы</div></div>
       </div>
       <p class="hint">
-        <b>ЗАПРОС</b> — лучшая цена продажи торговцу (умный выбор по типу) + avg/min барахолки из уже загруженного каталога.
-        shortName хранятся в localStorage и в JSON при экспорте.
+        <b data-i18n="tool.shortname.ui.hintTitle">ЗАПРОС</b> — <span data-i18n="tool.shortname.ui.hint">лучшая цена продажи торговцу (умный выбор по типу) + avg/min барахолки из уже загруженного каталога. shortName хранятся в localStorage и в JSON при экспорте.</span>
       </p>
     </div>
   </div>
@@ -257,10 +256,12 @@
   <script src="../core/tarkov-names.js"></script>
   <script src="../core/tarkov-storage.js"></script>
   <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-item-domain.js"></script>
   <script src="../core/tarkov-ui.js"></script>
   <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
-  <script src="tarkovtool-shortname.js"></script>
+  <script src="../core/tarkov-i18n.js"></script>
+  <script src="../js/shortname.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>
 </html>

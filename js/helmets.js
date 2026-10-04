@@ -1,133 +1,157 @@
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    var s=String(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s)) {
-      var n=String(it.name||'').trim();
-      var sl=String(it.normalizedName||'').trim();
-      if(n && !/^[a-f0-9]{20,}$/i.test(n)) s=n;
-      else if(sl) s=sl;
+(function () {
+  "use strict";
+
+  var rows = [];
+  var sortKey = "score";
+  var sortDir = -1;
+  var settingKey = "tarkovHelmets";
+  var statusState = null;
+
+  function t(key, params) {
+    return window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t(key, params) : key;
+  }
+  function renderStatus() {
+    if (!statusState) return;
+    var status = document.getElementById("status");
+    status.className = "status" + (statusState.tone ? " " + statusState.tone : "");
+    status.textContent = t(statusState.key, statusState.params);
+  }
+  function setStatus(key, params, tone) {
+    statusState = { key: key, params: params, tone: tone };
+    renderStatus();
+  }
+  function esc(value) { return TarkovDicts.esc(value); }
+  function formatNum(value) { return TarkovDicts.fmtNum(value); }
+  function scoreTitle(components, details) {
+    if (!components) return "";
+    var lines = ["quality", "accessibility", "value", "load"].map(function (key) {
+      return t("tool.itemScore.factor." + key) + ": " + components[key];
+    });
+    if (details) {
+      lines.push(t("tool.itemScore.detail.fleaPrice") + ": " + (details.fleaPrice ? formatNum(details.fleaPrice) : "—"));
+      lines.push(t("tool.itemScore.detail.traderPrice") + ": " + (details.traderPrice ? formatNum(details.traderPrice) : "—"));
+      lines.push(t("tool.itemScore.detail.traderLevel") + ": " + (details.traderPrice ? details.traderLevel : "—"));
+      lines.push(t("tool.itemScore.detail.questLocked") + ": " + t(details.questLocked ? "tool.itemScore.yes" : "tool.itemScore.no"));
+      lines.push(t("tool.itemScore.detail.listingCount") + ": " + (details.listingCount || "—"));
+      lines.push(t("tool.itemScore.detail.weightSize") + ": " + details.weight + " / " + details.size);
     }
-    return s||it.id||'';
+    return lines.join("\n");
+  }
+  function zoneLabels(row) {
+    return (row.zones || []).map(function (zone) {
+      return t("tool.itemScore.zone." + zone);
+    }).join(", ");
+  }
+  function tooltip(row) {
+    return [
+      t("tool.helmets.ui.ricochet") + ": " + [row.rx, row.ry, row.rz].map(function (value) {
+        return value == null ? "—" : value;
+      }).join(" / "),
+      t("tool.helmets.ui.blunt") + ": " + (row.blunt == null ? "—" : row.blunt),
+      t("tool.helmets.ui.repair") + ": " + (row.repair == null ? "—" : row.repair),
+      t("tool.helmets.ui.blocksEye") + ": " + t(row.blocksEye ? "tool.itemScore.yes" : "tool.itemScore.no"),
+      t("tool.helmets.ui.blocksHead") + ": " + t(row.blocksHead ? "tool.itemScore.yes" : "tool.itemScore.no"),
+      t("tool.helmets.ui.slots") + ": " + row.slotCount
+    ].join("\n");
+  }
+  function persist() {
+    TarkovStorage.setJson(settingKey, {
+      mode: document.getElementById("gameMode").value || "pve"
+    });
   }
 
-
-    const KEY = 'tarkovHelmets';
-    let rows = [];
-    let sortKey = 'cls', sortDir = -1;
-    function esc(s) { return TarkovDicts.esc(s); }
-    function fmt(n){if(n==null||n===0)return '—'; return Math.round(n).toLocaleString('ru-RU');}
-    function humanize(slug) { return TarkovDicts.humanize(slug).toLowerCase(); }
-
-    let tipEl;
-    function ensureTip(){if(tipEl)return tipEl; tipEl=document.createElement('div'); tipEl.className='tip'; document.body.appendChild(tipEl); return tipEl;}
-    function showTip(r,e){
-      const el=ensureTip();
-      const grid=[
-        ['Ricochet X', r.rx],['Ricochet Y', r.ry],['Ricochet Z', r.rz],
-        ['Blunt throughput', r.blunt],
-        ['Repair cost', r.repair],
-        ['Blocks eyewear', r.blocksEye?'да':'нет'],
-        ['Blocks headwear', r.blocksHead?'да':'нет'],
-        ['Тип', r.armorType||'—'],
-        ['Слоты брони', r.slotCount],
-      ];
-      el.innerHTML=`<div class="tip-title">${esc(r.name)}</div><div class="tip-grid">${grid.map(([k,v])=>`<span class="k">${esc(k)}</span><span class="v">${esc(String(v??'—'))}</span>`).join('')}</div>`;
-      el.style.display='block';
-      let x=e.clientX+14,y=e.clientY+14;
-      el.style.left=x+'px'; el.style.top=y+'px';
-      const rect=el.getBoundingClientRect();
-      if(x+rect.width>innerWidth-8) el.style.left=(innerWidth-rect.width-8)+'px';
-      if(y+rect.height>innerHeight-8) el.style.top=(innerHeight-rect.height-8)+'px';
-    }
-    function hideTip(){if(tipEl)tipEl.style.display='none';}
-
-    function render(){
-      const q=(document.getElementById('q').value||'').toLowerCase();
-      const minC=Number(document.getElementById('minClass').value)||0;
-      let list=rows.filter(r=>{
-        if(r.cls<minC) return false;
-        if(!q) return true;
-        return (r.name+r.slug+r.mat+(r.zones||'').join(' ')).toLowerCase().includes(q);
-      });
-      list.sort((a,b)=>{
-        const va=a[sortKey], vb=b[sortKey];
-        if(typeof va==='string') return sortDir*String(va).localeCompare(String(vb));
-        return sortDir*((va||0)-(vb||0));
-      });
-      const tb=document.getElementById('tbody');
-      tb.innerHTML=list.map(r=>`<tr>
-        <td><div class="name-cell" data-i="${esc(r.id)}">${r.icon?`<img class="ico" src="${esc(r.icon)}" loading="lazy">`:''}<div><div class="name">${esc(r.name)}</div><div class="meta">${esc(r.slug)}</div></div></div></td>
-        <td><strong>${r.cls||'—'}</strong></td>
-        <td>${r.dur||'—'}</td>
-        <td>${esc(r.mat||'—')}</td>
-        <td class="meta">${esc((r.zones||[]).join(', ')||'—')}</td>
-        <td>${r.ergo}</td>
-        <td>${r.turn}</td>
-        <td>${r.speed}</td>
-        <td>${r.blind!=null?Math.round(r.blind*100)+'%':'—'}</td>
-        <td>${fmt(r.avg)}</td>
-        <td><button type="button" class="copy-btn" data-n="${esc(r.slug)}">копир.</button></td>
-      </tr>`).join('');
-      const byId=Object.fromEntries(list.map(r=>[r.id,r]));
-      tb.querySelectorAll('.name-cell').forEach(cell=>{
-        const r=byId[cell.getAttribute('data-i')];
-        if(!r)return;
-        cell.onmouseenter=cell.onmousemove=e=>showTip(r,e);
-        cell.onmouseleave=hideTip;
-      });
-      tb.querySelectorAll('.copy-btn').forEach(b=>{
-        b.onclick=()=>navigator.clipboard.writeText(b.dataset.n||'');
-      });
-    }
-
-    document.getElementById('loadBtn').onclick=async()=>{
-      const st=document.getElementById('status');
-      const btn=document.getElementById('loadBtn');
-      btn.disabled=true; st.textContent='Гружу…'; st.className='status';
-      try{
-        const mode=document.getElementById('gameMode').value||'pve';
-        const arr=await TarkovAPI.items(mode);
-        rows=[];
-        arr.forEach(it=>{
-          const p=it.properties||{};
-          const pt=p.propertiesType||'';
-          if(pt!=='ItemPropertiesHelmet' && pt!=='ItemPropertiesHeadwear') return;
-          // skip pure cosmetic without class if headwear without armor
-          if(pt==='ItemPropertiesHeadwear' && !p.class && !p.ricochetX) return;
-          rows.push({
-            id:it.id,
-            slug:it.normalizedName||'',
-            name:it.shortName||humanize(it.normalizedName),
-            icon:it.iconLink||it.gridImageLink||'',
-            cls:Number(p.class)||0,
-            dur:Number(p.durability)||0,
-            mat:p.material||'',
-            zones:p.zones||[],
-            ergo:Number(p.ergoPenalty)||0,
-            turn:Number(p.turnPenalty)||0,
-            speed:Number(p.speedPenalty)||0,
-            blind:p.blindnessProtection!=null?Number(p.blindnessProtection):null,
-            avg:Number(it.avg24hPrice)||0,
-            rx:p.ricochetX, ry:p.ricochetY, rz:p.ricochetZ,
-            blunt:p.bluntThroughput, repair:p.repairCost,
-            blocksEye:!!p.blocksEyewear, blocksHead:!!p.blocksHeadwear,
-            armorType:p.armorType||'',
-            slotCount:(p.armorSlots||p.slots||[]).length||0
-          });
-        });
-        document.getElementById('tableCard').style.display='block';
-        st.className='status ok'; st.textContent='Шлемов: '+rows.length;
-        render();
-        try{TarkovStorage.setJson(KEY, {mode});}catch(e){}
-      }catch(e){st.className='status err'; st.textContent=e.message;}
-      finally{btn.disabled=false;}
-    };
-    document.getElementById('q').oninput=render;
-    document.getElementById('minClass').onchange=render;
-    document.querySelectorAll('#tbl th[data-k]').forEach(th=>{
-      th.onclick=()=>{const k=th.dataset.k; if(sortKey===k)sortDir*=-1; else{sortKey=k;sortDir=k==='name'?1:-1;} render();};
+  function render() {
+    var query = document.getElementById("q").value || "";
+    var minClass = Number(document.getElementById("minClass").value) || 0;
+    var onlyFlea = document.getElementById("onlyFlea").checked;
+    var hideQuest = document.getElementById("hideQuest").checked;
+    var list = TarkovItemDomain.filter(rows, {
+      search: query,
+      classes: minClass ? [minClass, minClass + 1, minClass + 2, minClass + 3, minClass + 4, 6] : [],
+      onlyFlea: onlyFlea
+    }).filter(function (row) {
+      return (!minClass || row.class >= minClass) && !(hideQuest && row.quest);
     });
+    list.sort(function (a, b) {
+      var left = a[sortKey];
+      var right = b[sortKey];
+      if (typeof left === "string") return sortDir * String(left).localeCompare(String(right));
+      return sortDir * ((Number(left) || 0) - (Number(right) || 0));
+    });
+    document.getElementById("tbody").innerHTML = list.map(function (row) {
+      var fleaPrice = row.avg || row.low;
+      var trader = row.traderPrice
+        ? formatNum(row.traderPrice) + (row.quest ? " · " + t("tool.itemScore.questLocked") : "")
+        : "—";
+      var icon = row.icon
+        ? '<img class="ico" src="' + esc(row.icon) + '" loading="lazy" alt="">'
+        : "";
+      return '<tr>' +
+        '<td title="' + esc(tooltip(row)) + '"><div class="name-cell">' + icon +
+        '<div><div class="name">' + esc(row.name) + '</div><div class="meta">' + esc(row.slug) + '</div></div></div></td>' +
+        '<td>' + (row.cls || "—") + '</td><td>' + (row.dur || "—") + '</td>' +
+        '<td>' + esc(row.mat || "—") + '</td><td>' + esc(zoneLabels(row) || "—") + '</td>' +
+        '<td>' + (fleaPrice ? formatNum(fleaPrice) : "—") + '</td><td>' + trader + '</td>' +
+        '<td>' + formatNum(row.weight) + ' / ' + (row.size || "—") + '</td>' +
+        '<td class="score" title="' + esc(scoreTitle(row.scoreComponents, row.scoreDetails)) + '">' + row.score.toFixed(1) + '</td>' +
+        '<td><button type="button" class="copy-btn" data-name="' + esc(row.slug) + '">' +
+        esc(t("tool.itemScore.copy")) + '</button></td></tr>';
+    }).join("") || '<tr><td colspan="10" class="meta empty-cell">' + esc(t("common.empty")) + '</td></tr>';
+    document.querySelectorAll("#tbody .copy-btn").forEach(function (button) {
+      button.addEventListener("click", function () {
+        navigator.clipboard.writeText(button.dataset.name || "").catch(function (error) {
+          console.error(error);
+        });
+      });
+    });
+  }
 
-  
+  document.getElementById("loadBtn").addEventListener("click", async function () {
+    var button = document.getElementById("loadBtn");
+    var progress = window.TarkovUI && TarkovUI.progress;
+    button.disabled = true;
+    setStatus("tool.helmets.ui.loading");
+    if (progress) progress.start({ label: t("tool.itemScore.loading"), indeterminate: true });
+    try {
+      var mode = document.getElementById("gameMode").value || "pve";
+      rows = TarkovItemViewModels.helmets(await TarkovAPI.items(mode));
+      document.getElementById("tableCard").style.display = "block";
+      render();
+      setStatus("tool.itemScore.loaded", { count: rows.length }, "ok");
+      if (progress) progress.done(t("tool.itemScore.loaded", { count: rows.length }));
+      persist();
+    } catch (error) {
+      setStatus("tool.itemScore.loadError", { message: error.message }, "err");
+      if (progress) progress.fail(t("tool.itemScore.loadError", { message: error.message }));
+      console.error(error);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  document.getElementById("q").addEventListener("input", render);
+  document.getElementById("minClass").addEventListener("change", render);
+  document.getElementById("onlyFlea").addEventListener("change", render);
+  document.getElementById("hideQuest").addEventListener("change", render);
+  document.querySelectorAll("#tbl th[data-k]").forEach(function (header) {
+    header.addEventListener("click", function () {
+      var key = header.dataset.k;
+      if (sortKey === key) sortDir *= -1;
+      else {
+        sortKey = key;
+        sortDir = key === "name" || key === "mat" ? 1 : -1;
+      }
+      render();
+    });
+  });
+  window.addEventListener("tt-lang-changed", function () {
+    render();
+    renderStatus();
+  });
+  try {
+    var saved = TarkovStorage.getJson(settingKey, {}) || {};
+    if (saved.mode) document.getElementById("gameMode").value = saved.mode;
+  } catch (error) {
+    console.error(error);
+  }
+})();

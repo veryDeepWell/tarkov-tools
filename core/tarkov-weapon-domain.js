@@ -9,6 +9,8 @@
     "mod_charge", "mod_gas_block", "mod_reciever", "mod_mount", "mod_tactical",
     "mod_bipod", "mod_launcher", "other"
   ];
+  var PEN_THRESHOLDS = [10, 20, 30, 40, 50, 60];
+  var compatibilityIndex = null;
 
   function props(item) { return item && item.properties && typeof item.properties === "object" ? item.properties : {}; }
   function types(item) { return Array.isArray(item && item.types) ? item.types : []; }
@@ -56,7 +58,8 @@
       });
     }
     (items || []).filter(isWeapon).forEach(function (weapon) { walk(weapon, weapon.id, 0); });
-    return { byId: byId, modToWeapons: modToWeapons, modToSlots: modToSlots };
+    compatibilityIndex = { byId: byId, modToWeapons: modToWeapons, modToSlots: modToSlots };
+    return compatibilityIndex;
   }
 
   function rating(item) {
@@ -96,12 +99,62 @@
     };
   }
 
+  function compat(gunId, modId, compatibility) {
+    var index = compatibility || compatibilityIndex;
+    var weapons = index && index.modToWeapons && index.modToWeapons[String(modId || "")];
+    return Array.isArray(weapons) && weapons.indexOf(String(gunId || "")) >= 0;
+  }
+
+  function penClassRating(penetration, classIndex) {
+    var index = Number(classIndex);
+    if (!isFinite(index) || index < 0 || index >= PEN_THRESHOLDS.length) return "r";
+    var margin = number(penetration) - PEN_THRESHOLDS[index];
+    if (margin >= 5) return "g";
+    if (margin >= -2) return "y";
+    return "r";
+  }
+
+  function armorClass(penetration) {
+    var value = Math.max(0, number(penetration));
+    for (var i = PEN_THRESHOLDS.length - 1; i >= 0; i--) {
+      if (value >= PEN_THRESHOLDS[i]) return i + 1;
+    }
+    return 0;
+  }
+
+  function penChart(penetration) {
+    return PEN_THRESHOLDS.map(function (threshold, index) {
+      return {
+        class: index + 1,
+        threshold: threshold,
+        rating: penClassRating(penetration, index)
+      };
+    });
+  }
+
+  function scoreBuild(stats, goal, budget, forceOptic) {
+    if (!stats) return -Infinity;
+    if (budget > 0 && stats.cost > budget) return -Infinity;
+    if (forceOptic && !stats.hasOptic) return -Infinity;
+    var ergo = number(stats.ergo);
+    var recoil = number(stats.recV) + 0.5 * number(stats.recH);
+    if (goal === "maxErgo") return ergo - recoil * 0.02;
+    if (goal === "minRecoil") return -recoil + ergo * 0.05;
+    if (goal === "budget") return ergo * 2 - recoil - number(stats.cost) / 50000;
+    return ergo * 1.2 - recoil * 0.8;
+  }
+
   global.TarkovWeaponDomain = {
     categories: CATEGORIES.slice(),
     normalizeSlot: normalizeSlot,
     isWeapon: isWeapon,
     isMod: isMod,
     buildCompatibility: buildCompatibility,
-    modModel: modModel
+    modModel: modModel,
+    compat: compat,
+    penChart: penChart,
+    armorClass: armorClass,
+    penClassRating: penClassRating,
+    scoreBuild: scoreBuild
   };
 })(window);
