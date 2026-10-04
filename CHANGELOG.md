@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Repository hygiene: expanded `.gitignore` (venv, caches, IDE), removed empty tool directories and leftover `core/catalog-index.js`, normalized shell script line endings, synced `VERSION` to 0.3.0.
+
 ### Added
 - Shared P3 item/weapon domain APIs, item view models, scoring, compatibility, and market calculations.
 - Namespaced `tt:` storage keys with centralized migration from legacy key formats.

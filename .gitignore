@@ -1,3 +1,15 @@
 .DS_Store
 Thumbs.db
 *.zip
+.venv/
+.venv-*/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.Python
