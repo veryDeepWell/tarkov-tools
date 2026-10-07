@@ -1,140 +1,73 @@
-/* TarkovItemGrid — shared tetris-style inventory grid */
+/* TarkovItemGrid — EFT-like inventory */
 .tt-igrid {
-  --tt-ig-cell: 36px;
-  --tt-ig-gap: 2px;
-  --tt-ig-bg: color-mix(in srgb, var(--input-bg, #1a1d24) 90%, #000);
-  --tt-ig-line: var(--border, #2a2f3a);
-  --tt-ig-item: color-mix(in srgb, var(--accent, #c9a227) 22%, var(--card, #12151c));
-  --tt-ig-item-border: color-mix(in srgb, var(--accent, #c9a227) 55%, transparent);
-  --tt-ig-hover: color-mix(in srgb, var(--accent, #c9a227) 28%, transparent);
-  --tt-ig-bad: color-mix(in srgb, #f07178 35%, transparent);
-  --tt-ig-ok: color-mix(in srgb, #3dd68c 30%, transparent);
+  --tt-ig-cell: 44px;
+  --tt-ig-line: color-mix(in srgb, var(--border, #2a2f3a) 80%, #000);
+  --tt-ig-bg: #0e1116;
+  --tt-ig-item-bg: color-mix(in srgb, var(--accent, #c9a227) 18%, #1a1f28);
+  --tt-ig-item-bd: color-mix(in srgb, var(--accent, #c9a227) 50%, #444);
   position: relative;
   display: inline-block;
   user-select: none;
   touch-action: none;
+  font-family: inherit;
 }
-
+.tt-igrid-toolbar {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  margin: 0 0 8px; font-size: 0.82rem; color: var(--muted, #9aa3b2);
+}
+.tt-igrid-toolbar strong { color: var(--text, #e8eaed); font-variant-numeric: tabular-nums; }
+.tt-igrid-hint { margin-top: 6px; font-size: 0.75rem; color: var(--muted, #9aa3b2); }
 .tt-igrid-board {
   position: relative;
-  background:
-    linear-gradient(to right, var(--tt-ig-line) 1px, transparent 1px) 0 0 / var(--tt-ig-cell) var(--tt-ig-cell),
-    linear-gradient(to bottom, var(--tt-ig-line) 1px, transparent 1px) 0 0 / var(--tt-ig-cell) var(--tt-ig-cell),
-    var(--tt-ig-bg);
-  border: 1px solid var(--tt-ig-line);
-  border-radius: 8px;
+  background-color: var(--tt-ig-bg);
+  background-image:
+    linear-gradient(to right, var(--tt-ig-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--tt-ig-line) 1px, transparent 1px);
+  border: 2px solid var(--tt-ig-line);
+  border-radius: 4px;
   box-sizing: border-box;
-  overflow: hidden;
+  outline: none;
 }
-
-.tt-igrid-cells {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
+.tt-igrid-board:focus {
+  border-color: color-mix(in srgb, var(--accent, #c9a227) 60%, var(--tt-ig-line));
 }
-
 .tt-igrid-item {
-  position: absolute;
-  box-sizing: border-box;
-  border: 1px solid var(--tt-ig-item-border);
-  border-radius: 4px;
-  background: var(--tt-ig-item);
-  color: var(--text, #e8eaed);
-  font-size: 0.68rem;
-  line-height: 1.15;
-  padding: 3px 4px;
-  overflow: hidden;
-  cursor: grab;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  z-index: 2;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+  position: absolute; box-sizing: border-box; margin: 1px;
+  border: 1px solid var(--tt-ig-item-bd); border-radius: 3px;
+  background: var(--tt-ig-item-bg); color: var(--text, #e8eaed);
+  font-size: 0.7rem; line-height: 1.15; padding: 4px 6px 4px 5px;
+  overflow: hidden; cursor: grab; z-index: 2;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
 }
-
-.tt-igrid-item:active {
-  cursor: grabbing;
-}
-
-.tt-igrid-item.is-dragging {
-  opacity: 0.88;
-  z-index: 5;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
-}
-
+.tt-igrid-item.selected { box-shadow: 0 0 0 2px var(--accent, #c9a227); z-index: 3; }
+.tt-igrid-item.is-dragging { opacity: 0.92; cursor: grabbing; z-index: 6; filter: brightness(1.08); }
 .tt-igrid-item .tt-ig-name {
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 100%; pointer-events: none;
 }
-
 .tt-igrid-item .tt-ig-meta {
-  color: var(--muted, #9aa3b2);
-  font-size: 0.62rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--muted, #9aa3b2); font-size: 0.62rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none;
 }
-
-.tt-igrid-item .tt-ig-x {
-  position: absolute;
-  top: 1px;
-  right: 2px;
-  border: 0;
-  background: transparent;
-  color: var(--muted, #9aa3b2);
-  cursor: pointer;
-  font-size: 0.75rem;
-  line-height: 1;
-  padding: 2px 4px;
-  border-radius: 4px;
+.tt-igrid-item .tt-ig-btns {
+  position: absolute; top: 1px; right: 1px; display: flex; gap: 1px; z-index: 4;
 }
-
-.tt-igrid-item .tt-ig-x:hover {
-  color: var(--text, #e8eaed);
-  background: rgba(0, 0, 0, 0.25);
+.tt-igrid-item .tt-ig-btns button {
+  border: 0; background: rgba(0,0,0,0.35); color: var(--muted, #9aa3b2);
+  width: 18px; height: 18px; line-height: 18px; padding: 0; border-radius: 3px;
+  cursor: pointer; font-size: 0.72rem;
 }
-
+.tt-igrid-item .tt-ig-btns button:hover { color: var(--text, #fff); background: rgba(0,0,0,0.55); }
 .tt-igrid-ghost {
-  position: absolute;
-  box-sizing: border-box;
-  border-radius: 4px;
-  border: 1px dashed var(--accent, #c9a227);
-  background: var(--tt-ig-hover);
-  pointer-events: none;
-  z-index: 4;
+  position: absolute; box-sizing: border-box; margin: 1px; border-radius: 3px;
+  pointer-events: none; z-index: 5;
+  border: 1px dashed #3dd68c;
+  background: color-mix(in srgb, #3dd68c 22%, transparent);
 }
-
 .tt-igrid-ghost.bad {
   border-color: #f07178;
-  background: var(--tt-ig-bad);
+  background: color-mix(in srgb, #f07178 22%, transparent);
 }
-
-.tt-igrid-ghost.ok {
-  border-color: #3dd68c;
-  background: var(--tt-ig-ok);
-}
-
-.tt-igrid.readonly .tt-igrid-item {
-  cursor: default;
-}
-
-.tt-igrid.readonly .tt-ig-x {
-  display: none;
-}
-
-.tt-igrid-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin: 0 0 8px;
-  font-size: 0.82rem;
-  color: var(--muted, #9aa3b2);
-}
-
-.tt-igrid-toolbar strong {
-  color: var(--text, #e8eaed);
-  font-variant-numeric: tabular-nums;
-}
+.tt-igrid.readonly .tt-igrid-item { cursor: default; }
+.tt-igrid.readonly .tt-ig-btns, .tt-igrid.readonly .tt-igrid-hint { display: none; }
