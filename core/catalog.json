@@ -1,0 +1,234 @@
+{
+  "drip-builder": {
+    "kind": "static",
+    "title": "drip-builder"
+  },
+  "helmets": {
+    "kind": "static",
+    "title": "helmets"
+  },
+  "mods": {
+    "kind": "static",
+    "title": "mods"
+  },
+  "stims": {
+    "kind": "static",
+    "title": "stims"
+  },
+  "medkits": {
+    "kind": "static",
+    "title": "medkits"
+  },
+  "loot-slot": {
+    "kind": "static",
+    "title": "loot-slot"
+  },
+  "armor": {
+    "kind": "static",
+    "title": "armor"
+  },
+  "shortname": {
+    "kind": "static",
+    "title": "shortname"
+  },
+  "nvg": {
+    "kind": "static",
+    "title": "nvg"
+  },
+  "btc-farm": {
+    "kind": "static",
+    "title": "btc-farm"
+  },
+  "raid-checklist": {
+    "kind": "static",
+    "title": "raid-checklist"
+  },
+  "gun-builder": {
+    "kind": "static",
+    "title": "gun-builder"
+  },
+  "hideout": {
+    "kind": "static",
+    "title": "hideout"
+  },
+  "trader-flip": {
+    "kind": "static",
+    "title": "trader-flip"
+  },
+  "stim-combos": {
+    "kind": "static",
+    "title": "stim-combos"
+  },
+  "compare": {
+    "kind": "static",
+    "title": "compare"
+  },
+  "containers": {
+    "kind": "static",
+    "title": "containers"
+  },
+  "drip": {
+    "kind": "static",
+    "title": "drip"
+  },
+  "drip-loadout": {
+    "kind": "static",
+    "title": "drip-loadout"
+  },
+  "challenge": {
+    "kind": "static",
+    "title": "challenge"
+  },
+  "headphones": {
+    "kind": "static",
+    "title": "headphones"
+  },
+  "repair": {
+    "kind": "static",
+    "title": "repair"
+  },
+  "crafts": {
+    "kind": "static",
+    "title": "crafts"
+  },
+  "shopping-list": {
+    "kind": "static",
+    "title": "shopping-list"
+  },
+  "xp": {
+    "kind": "static",
+    "title": "xp"
+  },
+  "bosses": {
+    "kind": "static",
+    "title": "bosses"
+  },
+  "scopes": {
+    "kind": "static",
+    "title": "scopes"
+  },
+  "food": {
+    "kind": "static",
+    "title": "food"
+  },
+  "prestige": {
+    "kind": "static",
+    "title": "prestige"
+  },
+  "desk": {
+    "kind": "static",
+    "title": "desk"
+  },
+  "plates": {
+    "kind": "static",
+    "title": "plates"
+  },
+  "gun-budget": {
+    "kind": "static",
+    "title": "gun-budget"
+  },
+  "lang-search": {
+    "kind": "static",
+    "title": "lang-search"
+  },
+  "barter-live": {
+    "kind": "static",
+    "title": "barter-live"
+  },
+  "marathon": {
+    "kind": "static",
+    "title": "marathon"
+  },
+  "ammo": {
+    "kind": "static",
+    "title": "ammo"
+  },
+  "quest-items": {
+    "kind": "static",
+    "title": "quest-items"
+  },
+  "streamer-flip": {
+    "kind": "static",
+    "title": "streamer-flip"
+  },
+  "restock": {
+    "kind": "static",
+    "title": "restock"
+  },
+  "cultist": {
+    "kind": "static",
+    "title": "cultist"
+  },
+  "barter-calc": {
+    "kind": "static",
+    "title": "barter-calc"
+  },
+  "my-tarkov": {
+    "kind": "static",
+    "title": "my-tarkov"
+  },
+  "price-alarm": {
+    "kind": "static",
+    "title": "price-alarm"
+  },
+  "item-use": {
+    "kind": "static",
+    "title": "item-use"
+  },
+  "barter-opt": {
+    "kind": "static",
+    "title": "barter-opt"
+  },
+  "random-loadout": {
+    "kind": "static",
+    "title": "random-loadout"
+  },
+  "skills": {
+    "kind": "static",
+    "title": "skills"
+  },
+  "gun-rating": {
+    "kind": "static",
+    "title": "gun-rating"
+  },
+  "loadout-builder": {
+    "kind": "static",
+    "title": "loadout-builder"
+  },
+  "loadout-budget": {
+    "kind": "static",
+    "title": "loadout-budget"
+  },
+  "mags": {
+    "kind": "static",
+    "title": "mags"
+  },
+  "quest-cheese": {
+    "kind": "static",
+    "title": "quest-cheese"
+  },
+  "price-track": {
+    "kind": "static",
+    "title": "price-track"
+  },
+  "cases": {
+    "kind": "static",
+    "title": "cases"
+  },
+  "keys": {
+    "kind": "static",
+    "title": "keys"
+  },
+  "hideout-mgmt": {
+    "kind": "static",
+    "title": "hideout-mgmt"
+  },
+  "quests": {
+    "kind": "static",
+    "title": "quests"
+  },
+  "map": {
+    "kind": "static",
+    "title": "Карта"
+  }
+}

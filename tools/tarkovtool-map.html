@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Карта — Tarkov Tools</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {
+    "id": "tarkovtool-map.html",
+    "title": "Карта",
+    "description": "Интерактивные карты Tarkov.dev (экстракты, спавны, квесты, ключи, лут)",
+    "file": "tarkovtool-map.html",
+    "cat": "util",
+    "kind": "static",
+    "icon": "map"
+  }
+  </script>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .map-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+    }
+    .map-toolbar {
+      flex: 0 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 12px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      z-index: 20;
+    }
+    .map-toolbar h1 {
+      font-size: 1rem;
+      margin: 0 8px 0 0;
+      white-space: nowrap;
+    }
+    .map-toolbar select {
+      min-width: 180px;
+      max-width: 280px;
+      flex: 1;
+    }
+    .map-toolbar .btn,
+    .map-toolbar .btn-ghost {
+      min-width: auto;
+      padding: 0 12px !important;
+      height: 36px;
+      min-height: 36px !important;
+      font-size: 0.85rem;
+    }
+    .map-toolbar .hint {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-left: auto;
+    }
+    .map-frame-wrap {
+      flex: 1 1 auto;
+      position: relative;
+      min-height: 0;
+      background: #0a0a0a;
+    }
+    .map-frame-wrap iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #1b1919;
+    }
+    .map-loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 17, 21, 0.85);
+      color: var(--muted);
+      font-size: 0.95rem;
+      z-index: 5;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .map-loading.visible {
+      opacity: 1;
+    }
+    .map-credit {
+      position: absolute;
+      bottom: 8px;
+      right: 10px;
+      z-index: 10;
+      font-size: 0.7rem;
+      color: rgba(201, 162, 39, 0.7);
+      background: rgba(0,0,0,0.55);
+      padding: 3px 8px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+    @media (max-width: 640px) {
+      .map-toolbar .hint { display: none; }
+      .map-toolbar h1 { font-size: 0.9rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="map-shell">
+    <div class="map-toolbar">
+      <h1>Карта</h1>
+      <select id="mapSelect" title="Выбор карты">
+        <option value="customs">Customs</option>
+        <option value="factory">Factory</option>
+        <option value="woods">Woods</option>
+        <option value="shoreline">Shoreline</option>
+        <option value="interchange">Interchange</option>
+        <option value="reserve">Reserve</option>
+        <option value="lighthouse">Lighthouse</option>
+        <option value="streets">Streets of Tarkov</option>
+        <option value="ground-zero">Ground Zero</option>
+        <option value="labs">The Lab</option>
+        <option value="terminal">Terminal</option>
+        <option value="labyrinth">The Labyrinth</option>
+        <option value="icebreaker">Icebreaker</option>
+      </select>
+      <button type="button" class="btn" id="btnReload" title="Перезагрузить карту">↻</button>
+      <button type="button" class="btn-ghost" id="btnOpen" title="Открыть на tarkov.dev">↗</button>
+      <button type="button" class="btn-ghost" id="btnFullscreen" title="На весь экран">⛶</button>
+      <span class="hint">Источник: tarkov.dev · экстракты, спавны, квесты, ключи</span>
+    </div>
+    <div class="map-frame-wrap" id="frameWrap">
+      <div class="map-loading visible" id="loading">Загрузка карты…</div>
+      <iframe
+        id="mapFrame"
+        title="Tarkov.dev Interactive Map"
+        allow="fullscreen"
+        referrerpolicy="no-referrer-when-downgrade"
+        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
+      ></iframe>
+      <div class="map-credit">Maps by tarkov.dev</div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    const MAPS = {
+      customs:      { path: "customs",      label: "Customs" },
+      factory:      { path: "factory",      label: "Factory" },
+      woods:        { path: "woods",        label: "Woods" },
+      shoreline:    { path: "shoreline",    label: "Shoreline" },
+      interchange:  { path: "interchange",  label: "Interchange" },
+      reserve:      { path: "reserve",      label: "Reserve" },
+      lighthouse:   { path: "lighthouse",   label: "Lighthouse" },
+      streets:      { path: "streets",      label: "Streets of Tarkov" },
+      "ground-zero":{ path: "ground-zero",  label: "Ground Zero" },
+      labs:         { path: "labs",         label: "The Lab" },
+      terminal:     { path: "terminal",     label: "Terminal" },
+      labyrinth:    { path: "labyrinth",    label: "The Labyrinth" },
+      icebreaker:   { path: "icebreaker",   label: "Icebreaker" }
+    };
+
+    const BASE = "https://tarkov.dev/map/";
+    const select = document.getElementById("mapSelect");
+    const frame  = document.getElementById("mapFrame");
+    const loading = document.getElementById("loading");
+    const STORAGE_KEY = "tt:map:last";
+
+    function getUrl(key) {
+      const m = MAPS[key] || MAPS.customs;
+      return BASE + m.path;
+    }
+
+    function showLoading(on) {
+      loading.classList.toggle("visible", !!on);
+    }
+
+    function loadMap(key, force) {
+      const url = getUrl(key);
+      const current = frame.src || "";
+      if (!force && current.indexOf(url) === 0) return;
+      showLoading(true);
+      frame.src = url;
+      try { localStorage.setItem(STORAGE_KEY, key); } catch (_) {}
+      // hide loading after a short delay (iframe load events are cross-origin limited)
+      setTimeout(() => showLoading(false), 1800);
+    }
+
+    // restore last map
+    let initial = "customs";
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved && MAPS[saved]) initial = saved;
+    } catch (_) {}
+    select.value = initial;
+    loadMap(initial);
+
+    select.addEventListener("change", () => loadMap(select.value));
+
+    document.getElementById("btnReload").addEventListener("click", () => {
+      loadMap(select.value, true);
+    });
+
+    document.getElementById("btnOpen").addEventListener("click", () => {
+      window.open(getUrl(select.value), "_blank", "noopener,noreferrer");
+    });
+
+    document.getElementById("btnFullscreen").addEventListener("click", () => {
+      const wrap = document.getElementById("frameWrap");
+      if (!document.fullscreenElement) {
+        (wrap.requestFullscreen || wrap.webkitRequestFullscreen || wrap.msRequestFullscreen)?.call(wrap);
+      } else {
+        (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen)?.call(document);
+      }
+    });
+
+    // notify parent hub (if embedded) that tool is ready
+    try {
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: "tt-tool-ready", tool: "map" }, "*");
+      }
+    } catch (_) {}
+  })();
+  </script>
+</body>
+</html>
