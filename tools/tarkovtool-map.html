@@ -102,6 +102,8 @@
 
     var layerByFilter = {};
     var imageOverlay = null;
+    var activeZoneLayer = null;
+    var activeZoneKey = null;
 
     var map = L.map("map", {
       crs: L.CRS.Simple,
@@ -202,6 +204,7 @@
 
     function loadMap() {
       if (imageOverlay) map.removeLayer(imageOverlay);
+      if (activeZoneLayer) { map.removeLayer(activeZoneLayer); activeZoneLayer = null; activeZoneKey = null; }
       Object.keys(layerByFilter).forEach(function (k) { map.removeLayer(layerByFilter[k]); });
       layerByFilter = {};
 
@@ -209,27 +212,50 @@
       imageOverlay.addTo(map);
       map.fitBounds(BOUNDS, { padding: [16, 16] });
 
+      function clearActiveZone() {
+        if (activeZoneLayer) {
+          map.removeLayer(activeZoneLayer);
+          activeZoneLayer = null;
+          activeZoneKey = null;
+        }
+      }
+
+      function showZoneFor(item, key) {
+        if (activeZoneKey === key) {
+          clearActiveZone();
+          return;
+        }
+        clearActiveZone();
+        if (!item.outline || item.outline.length < 3) return;
+        var latlngs = item.outline.map(function (p) { return toLatLng(p[0], p[1]); });
+        activeZoneLayer = L.polygon(latlngs, {
+          color: "#f0c040",
+          weight: 2,
+          fillColor: "#f0c040",
+          fillOpacity: 0.25,
+          interactive: false
+        });
+        activeZoneLayer.addTo(map);
+        activeZoneKey = key;
+      }
+
       function addList(list, isLabel) {
-        (list || []).forEach(function (item) {
+        (list || []).forEach(function (item, idx) {
           var fid = item.filter;
           if (!fid) return;
           if (!layerByFilter[fid]) layerByFilter[fid] = L.layerGroup();
           var m;
-          if (item.outline && item.outline.length >= 3) {
+          // Hazard outlines: always drawn with the layer (filter-controlled)
+          if (item.outline && item.outline.length >= 3 && fid.indexOf("task-") !== 0) {
             var latlngs = item.outline.map(function (p) { return toLatLng(p[0], p[1]); });
-            m = L.polygon(latlngs, {
-              color: fid === "task-zone" ? "#f0c040" : "#e05050",
+            var poly = L.polygon(latlngs, {
+              color: "#e05050",
               weight: 1.5,
-              fillColor: fid === "task-zone" ? "#f0c040" : "#e05050",
+              fillColor: "#e05050",
               fillOpacity: 0.2
             });
-            m.bindPopup("<strong>" + item.name + "</strong>" + (item.note ? "<br>" + item.note : ""));
-            layerByFilter[fid].addLayer(m);
-            // also center marker
-            m = L.marker(toLatLng(item.x, item.y), { icon: iconFor(fid) });
-            m.bindPopup("<strong>" + item.name + "</strong>" + (item.note ? "<br>" + item.note : ""));
-            layerByFilter[fid].addLayer(m);
-            return;
+            poly.bindPopup("<strong>" + item.name + "</strong>");
+            layerByFilter[fid].addLayer(poly);
           }
           if (isLabel) {
             m = L.marker(toLatLng(item.x, item.y), { icon: labelIcon(item.name) });
@@ -237,7 +263,18 @@
             m = L.marker(toLatLng(item.x, item.y), { icon: iconFor(fid) });
             var note = item.note ? '<br><span style="color:var(--muted)">' + item.note + "</span>" : "";
             var fac = item.faction ? " · " + item.faction : "";
-            m.bindPopup("<strong>" + item.name + "</strong>" + fac + note);
+            var tip = "<strong>" + item.name + "</strong>" + fac + note;
+            if (fid === "task-zone" && item.outline && item.outline.length >= 3) {
+              tip += '<br><span style="color:#f0c040">Клик — показать зону</span>';
+            }
+            m.bindPopup(tip);
+            if (fid === "task-zone") {
+              (function (it, i) {
+                m.on("click", function () {
+                  showZoneFor(it, it.name + "|" + it.x + "|" + it.y + "|" + i);
+                });
+              })(item, idx);
+            }
           }
           layerByFilter[fid].addLayer(m);
         });
