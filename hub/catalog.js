@@ -285,6 +285,14 @@ window.__TT_CATALOG_DATA = {
       "kind": "static"
     },
     {
+      "file": "tools/tarkovtool-map.html",
+      "title": "Карта",
+      "description": "Интерактивные карты Tarkov.dev (экстракты, спавны, квесты, ключи, лут)",
+      "icon": "util",
+      "cat": "util",
+      "kind": "static"
+    },
+    {
       "file": "tools/tarkovtool-marathon.html",
       "title": "Марафон",
       "description": "Цепочка переходов: расходники, XP, где лутать ресурсы, выходы.",
