@@ -287,7 +287,7 @@ window.__TT_CATALOG_DATA = {
     {
       "file": "tools/tarkovtool-map.html",
       "title": "Карта",
-      "description": "Интерактивные карты Tarkov.dev (экстракты, спавны, квесты, ключи, лут)",
+      "description": "Интерактивная карта Customs: фильтры как на tarkov.dev",
       "icon": "util",
       "cat": "util",
       "kind": "static"
