@@ -7,432 +7,264 @@
   <link rel="stylesheet" href="../core/tarkov-common.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <script type="application/json" id="tarkovtool-meta">
-  {
-    "id": "tarkovtool-map.html",
-    "title": "Карта",
-    "description": "Интерактивная карта Customs: экстракты, спавны, фильтры. Самобытный инструмент на SVG + Leaflet.",
-    "file": "tarkovtool-map.html",
-    "cat": "util",
-    "kind": "static",
-    "icon": "map"
-  }
+  {"id":"tarkovtool-map.html","title":"Карта","description":"Интерактивная карта Customs: фильтры как на tarkov.dev","file":"tarkovtool-map.html","cat":"util","kind":"static","icon":"map"}
   </script>
   <style>
-    html, body { height: 100%; margin: 0; overflow: hidden; background: var(--bg); }
-    .map-shell { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
-    .map-toolbar {
-      flex: 0 0 auto;
-      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-      padding: 8px 12px;
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      z-index: 1000;
-    }
-    .map-toolbar h1 { font-size: 1rem; margin: 0 6px 0 0; white-space: nowrap; }
-    .map-toolbar select {
-      min-width: 140px; max-width: 200px;
-      background: var(--input-bg); border: 1px solid var(--border);
-      border-radius: 8px; padding: 6px 10px; color: var(--text);
-      font-size: 0.9rem; min-height: 34px;
-    }
-    .map-toolbar .btn, .map-toolbar .btn-ghost {
-      min-width: auto !important; min-height: 34px !important;
-      height: 34px; padding: 0 12px !important; font-size: 0.85rem;
-    }
-    .filters {
-      display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
-    }
-    .chip {
-      background: var(--input-bg); border: 1px solid var(--border);
-      border-radius: 16px; padding: 4px 10px; font-size: 0.78rem;
-      color: var(--muted); cursor: pointer; user-select: none;
-      display: inline-flex; align-items: center; gap: 4px;
-    }
-    .chip.active { border-color: var(--accent); color: var(--accent); background: rgba(201,162,39,.12); }
-    .chip img { width: 14px; height: 14px; object-fit: contain; }
-    .map-body { flex: 1 1 auto; display: flex; min-height: 0; position: relative; }
-    #map { width: 100%; height: 100%; background: #1a1a1a; }
-    .sidebar {
-      width: 260px; flex-shrink: 0;
-      background: var(--card); border-left: 1px solid var(--border);
-      overflow-y: auto; padding: 12px; display: none;
-    }
-    .sidebar.open { display: block; }
-    .sidebar h2 { font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 10px; }
-    .marker-list { list-style: none; padding: 0; margin: 0; }
-    .marker-list li {
-      padding: 8px 10px; border-radius: 8px; cursor: pointer;
-      font-size: 0.9rem; border: 1px solid transparent;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .marker-list li:hover { background: var(--input-bg); border-color: var(--border); }
-    .marker-list li img { width: 20px; height: 20px; }
-    .marker-list .meta { font-size: 0.75rem; color: var(--muted); }
-    .leaflet-container { background: #1a1a1a; font-family: inherit; }
-    .leaflet-popup-content-wrapper {
-      background: var(--card); color: var(--text);
-      border: 1px solid var(--border); border-radius: 10px;
-      box-shadow: 0 8px 24px rgba(0,0,0,.4);
-    }
-    .leaflet-popup-tip { background: var(--card); }
-    .leaflet-popup-content { margin: 10px 14px; font-size: 0.9rem; }
-    .leaflet-popup-content strong { color: var(--accent); }
-    .leaflet-control-zoom a {
-      background: var(--card) !important; color: var(--text) !important;
-      border-color: var(--border) !important;
-    }
-    .tt-marker-icon {
-      background: transparent !important; border: none !important;
-    }
-    .tt-label {
-      background: transparent !important; border: none !important;
-    }
-    .tt-label span {
-      display: inline-block;
-      background: rgba(15,17,21,.75);
-      color: var(--accent);
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 1px 6px;
-      border-radius: 4px;
-      white-space: nowrap;
-      border: 1px solid rgba(201,162,39,.35);
-      pointer-events: none;
-    }
-    .tt-marker-icon img {
-      width: 28px; height: 28px; object-fit: contain;
-      filter: drop-shadow(0 1px 2px rgba(0,0,0,.8));
-    }
-    .credit {
-      position: absolute; bottom: 8px; left: 10px; z-index: 800;
-      font-size: 0.68rem; color: rgba(201,162,39,.65);
-      background: rgba(0,0,0,.5); padding: 3px 8px; border-radius: 4px;
-      pointer-events: none;
-    }
-    .status-bar {
-      position: absolute; top: 10px; right: 10px; z-index: 800;
-      font-size: 0.75rem; color: var(--muted);
-      background: rgba(15,17,21,.85); padding: 4px 10px; border-radius: 6px;
-      border: 1px solid var(--border);
-    }
-    @media (max-width: 720px) {
-      .sidebar { position: absolute; right: 0; top: 0; bottom: 0; z-index: 900; width: 220px; }
-      .map-toolbar .filters { width: 100%; }
-    }
+    html,body{height:100%;margin:0;overflow:hidden;background:var(--bg)}
+    .map-shell{display:flex;flex-direction:column;height:100vh;height:100dvh}
+    .map-toolbar{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--border);z-index:1000}
+    .map-toolbar h1{font-size:1rem;margin:0 6px 0 0;white-space:nowrap}
+    .map-toolbar select{min-width:130px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:.9rem;min-height:34px}
+    .map-toolbar .btn-ghost{min-width:auto!important;min-height:34px!important;height:34px;padding:0 12px!important;font-size:.85rem}
+    .map-body{flex:1 1 auto;display:flex;min-height:0;position:relative}
+    #map{flex:1;height:100%;background:#1a1a1a}
+    .filter-panel{width:280px;flex-shrink:0;background:var(--card);border-left:1px solid var(--border);overflow-y:auto;padding:0;display:flex;flex-direction:column}
+    .filter-panel.hidden{display:none}
+    .fp-head{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center;position:sticky;top:0;background:var(--card);z-index:2}
+    .fp-head strong{font-size:.85rem;flex:1}
+    .fp-head button{min-width:auto!important;min-height:28px!important;height:28px;padding:0 8px!important;font-size:.75rem}
+    .fg{border-bottom:1px solid var(--border)}
+    .fg-title{display:flex;align-items:center;gap:6px;padding:8px 12px;cursor:pointer;user-select:none;font-size:.82rem;font-weight:600;color:var(--text)}
+    .fg-title:hover{background:var(--input-bg)}
+    .fg-title .arrow{font-size:.65rem;color:var(--muted);width:12px;transition:transform .15s}
+    .fg-title input{accent-color:var(--accent);margin:0}
+    .fg-body{padding:0 8px 8px 28px;display:none}
+    .fg.open .fg-body{display:block}
+    .fg.open .arrow{transform:rotate(90deg)}
+    .fi{display:flex;align-items:center;gap:6px;padding:3px 4px;font-size:.78rem;color:var(--muted);cursor:pointer;border-radius:4px}
+    .fi:hover{background:var(--input-bg);color:var(--text)}
+    .fi input{accent-color:var(--accent);margin:0}
+    .fi img{width:16px;height:16px;object-fit:contain}
+    .fi .cnt{margin-left:auto;font-size:.7rem;color:var(--muted);opacity:.7}
+    .leaflet-container{background:#1a1a1a;font-family:inherit}
+    .leaflet-popup-content-wrapper{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+    .leaflet-popup-tip{background:var(--card)}
+    .leaflet-popup-content{margin:10px 14px;font-size:.9rem}
+    .leaflet-popup-content strong{color:var(--accent)}
+    .leaflet-control-zoom a{background:var(--card)!important;color:var(--text)!important;border-color:var(--border)!important}
+    .tt-marker-icon{background:transparent!important;border:none!important}
+    .tt-marker-icon img{width:24px;height:24px;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))}
+    .tt-label{background:transparent!important;border:none!important}
+    .tt-label span{display:inline-block;background:rgba(15,17,21,.78);color:var(--accent);font-size:.68rem;font-weight:600;padding:1px 6px;border-radius:4px;white-space:nowrap;border:1px solid rgba(201,162,39,.35);pointer-events:none}
+    .credit{position:absolute;bottom:8px;left:10px;z-index:800;font-size:.65rem;color:rgba(201,162,39,.6);background:rgba(0,0,0,.5);padding:2px 7px;border-radius:4px;pointer-events:none}
+    .status-bar{position:absolute;top:10px;right:10px;z-index:800;font-size:.75rem;color:var(--muted);background:rgba(15,17,21,.85);padding:4px 10px;border-radius:6px;border:1px solid var(--border)}
+    @media(max-width:800px){.filter-panel{position:absolute;right:0;top:0;bottom:0;z-index:900;box-shadow:-4px 0 20px rgba(0,0,0,.4)}}
   </style>
 </head>
 <body>
   <div class="map-shell">
     <div class="map-toolbar">
       <h1>Карта</h1>
-      <select id="mapSelect">
-        <option value="customs" selected>Customs</option>
-      </select>
-      <div class="filters" id="filters">
-        <span class="chip active" data-layer="extracts"><img src="map-assets/extract_pmc.png" alt=""> Экстракты</span>
-        <span class="chip active" data-layer="spawns"><img src="map-assets/spawn_pmc.png" alt=""> Спавны</span>
-        <span class="chip" data-layer="containers"><img src="map-assets/container_safe.png" alt=""> Контейнеры</span>
-        <span class="chip" data-layer="hazards"><img src="map-assets/hazard.png" alt=""> Опасности</span>
-        <span class="chip" data-layer="quests"><img src="map-assets/quest_objective.png" alt=""> Квесты</span>
-        <span class="chip" data-layer="switches"><img src="map-assets/switch.png" alt=""> Рычаги</span>
-        <span class="chip active" data-layer="labels">🏷 Метки</span>
-      </div>
-      <button type="button" class="btn-ghost" id="btnList" title="Список маркеров">☰</button>
-      <button type="button" class="btn-ghost" id="btnFit" title="Вписать карту">⤢</button>
+      <select id="mapSelect"><option value="customs" selected>Customs</option></select>
+      <button type="button" class="btn-ghost" id="btnFilters">☰ Фильтры</button>
+      <button type="button" class="btn-ghost" id="btnFit">⤢</button>
+      <button type="button" class="btn-ghost" id="btnAll">Все</button>
+      <button type="button" class="btn-ghost" id="btnNone">Нет</button>
     </div>
     <div class="map-body">
       <div id="map"></div>
-      <div class="sidebar" id="sidebar">
-        <h2>Маркеры</h2>
-        <ul class="marker-list" id="markerList"></ul>
+      <div class="filter-panel" id="filterPanel">
+        <div class="fp-head">
+          <strong>Слои</strong>
+          <button type="button" class="btn-ghost" id="btnAll2">Все</button>
+          <button type="button" class="btn-ghost" id="btnNone2">Нет</button>
+        </div>
+        <div id="filterGroups"></div>
       </div>
-      <div class="credit">SVG maps © the-hideout (CC BY-NC-SA) · icons from tarkov.dev</div>
-      <div class="status-bar" id="status">Customs · SVG</div>
+      <div class="credit">SVG © the-hideout (CC BY-NC-SA) · icons tarkov.dev</div>
+      <div class="status-bar" id="status">Customs</div>
     </div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="map-data-customs.js"></script>
   <script>
   (function () {
-    const ASSETS = "map-assets/";
-    // SVG viewBox: 0 0 1062.48 535.17
-    const BOUNDS = [[0, 0], [535.17, 1062.48]];
+    var ASSETS = "map-assets/";
+    var BOUNDS = [[0, 0], [535.17, 1062.48]];
 
-    const DATA = {
-      customs: {
-        label: "Customs",
-        svg: ASSETS + "Customs.svg",
-        extracts: [
-          { name: "ZB-1011", faction: "pmc", x: 68.2, y: 358.9, note: "Открытый · восток" },
-          { name: "ZB-1012", faction: "pmc", x: 232.5, y: 343.8, note: "Ключ / код Voron" },
-          { name: "ZB-013", faction: "pmc", x: 495.7, y: 375.8, note: "Рычаг Warehouse 4 + ключ Factory" },
-          { name: "Crossroads", faction: "shared", x: 1015.9, y: 323.0, note: "Открытый" },
-          { name: "Trailer Park", faction: "pmc", x: 1001.9, y: 445.1, note: "Открытый" },
-          { name: "RUAF Roadblock", faction: "pmc", x: 697.3, y: 363.9, note: "Условия ротируются" },
-          { name: "Smuggler's Boat", faction: "pmc", x: 721.9, y: 125.8, note: "Записка Voron" },
-          { name: "Dorms V-Ex", faction: "pmc", x: 503.3, y: 27.6, note: "5000₽ · до 4 игроков" },
-          { name: "Old Gas Station", faction: "pmc", x: 393.0, y: 415.2, note: "Зелёная ракета" },
-          { name: "Military Base CP", faction: "scav", x: 23.3, y: 111.5, note: "Scav" },
-          { name: "Passage Between Rocks", faction: "scav", x: 157.6, y: 36.1, note: "Scav" },
-          { name: "Railroad to Military Base", faction: "scav", x: 238.1, y: 55.1, note: "Scav" },
-          { name: "Old Road Gate", faction: "scav", x: 513.1, y: 22.6, note: "Scav" },
-          { name: "Sniper Roadblock", faction: "scav", x: 663.5, y: 116.4, note: "Scav" },
-          { name: "Railroad to Port", faction: "scav", x: 843.2, y: 209.8, note: "Scav" },
-          { name: "Railroad to Tarkov", faction: "scav", x: 858.2, y: 430.8, note: "Scav" },
-          { name: "Warehouse 17", faction: "scav", x: 645.9, y: 316.6, note: "Scav" },
-          { name: "Factory Far Corner", faction: "scav", x: 50.5, y: 381.4, note: "Scav" },
-          { name: "Trailer Park Workers Shack", faction: "scav", x: 943.2, y: 456.9, note: "Scav" },
-          { name: "Scav Checkpoint", faction: "scav", x: 50.5, y: 258.7, note: "Scav" },
-          { name: "Administration Gate", faction: "scav", x: 30.5, y: 290.5, note: "Scav" },
-          { name: "Factory Shacks", faction: "scav", x: 644.0, y: 282.3, note: "Scav" }
-        ],
-        spawns: [
-          { name: "PMC · Big Red", faction: "pmc", x: 907.4, y: 350.2 },
-          { name: "PMC · Dorms", faction: "pmc", x: 495.0, y: 85.6 },
-          { name: "PMC · Construction", faction: "pmc", x: 693.7, y: 134.8 },
-          { name: "PMC · Trailer Park", faction: "pmc", x: 1001.9, y: 430.0 },
-          { name: "PMC · Warehouse 4", faction: "pmc", x: 345.9, y: 272.5 },
-          { name: "PMC · Crossroads", faction: "pmc", x: 1010.0, y: 310.0 },
-          { name: "PMC · New Gas", faction: "pmc", x: 292.2, y: 202.7 },
-          { name: "PMC · Fortress", faction: "pmc", x: 594.4, y: 282.3 },
-          { name: "Scav · Old Gas", faction: "scav", x: 364.8, y: 403.3 },
-          { name: "Scav · Dorms", faction: "scav", x: 510.0, y: 100.0 },
-          { name: "Scav · Fortress", faction: "scav", x: 580.0, y: 270.0 },
-          { name: "Scav · Warehouse 17", faction: "scav", x: 645.9, y: 300.0 },
-          { name: "Scav · Military Base", faction: "scav", x: 40.0, y: 120.0 },
-          { name: "Boss · Reshala (Dorms)", faction: "boss", x: 500.0, y: 90.0, note: "~30–75%" },
-          { name: "Boss · Reshala (New Gas)", faction: "boss", x: 292.2, y: 202.7, note: "~30–75%" },
-          { name: "Boss · Reshala (Stronghold)", faction: "boss", x: 594.4, y: 282.3, note: "~30–75%" }
-        ],
-        containers: [
-          { name: "Safe · Dorms 214", type: "safe", x: 510.0, y: 80.0 },
-          { name: "Safe · Old Gas", type: "safe", x: 400.0, y: 410.0 },
-          { name: "Safe · Big Red", type: "safe", x: 900.0, y: 340.0 },
-          { name: "Weapon box · Warehouse 4", type: "weapon-box", x: 350.0, y: 260.0 },
-          { name: "Weapon box · Fortress", type: "weapon-box", x: 590.0, y: 270.0 },
-          { name: "Medcase · Big Red", type: "medcase", x: 910.0, y: 355.0 },
-          { name: "Medcase · Dorms", type: "medcase", x: 490.0, y: 95.0 },
-          { name: "Jacket · Trailer Park", type: "jacket", x: 990.0, y: 440.0 },
-          { name: "Jacket · Dorms", type: "jacket", x: 520.0, y: 70.0 },
-          { name: "PC block · Customs office", type: "pc-block", x: 480.0, y: 200.0 },
-          { name: "Ground cache · River", type: "ground-cache", x: 750.0, y: 250.0 },
-          { name: "Ground cache · Construction", type: "ground-cache", x: 700.0, y: 140.0 },
-          { name: "Toolbox · Construction", type: "toolbox", x: 680.0, y: 120.0 },
-          { name: "Toolbox · Warehouse 17", type: "toolbox", x: 640.0, y: 320.0 },
-          { name: "Wooden crate · Big Red", type: "weapon-box", x: 920.0, y: 360.0 },
-          { name: "Grenade box · Fortress", type: "weapon-box", x: 600.0, y: 290.0 }
-        ],
-        hazards: [
-          { name: "Sniper · West wall", type: "hazard", x: 1020.0, y: 200.0 },
-          { name: "Sniper · East wall", type: "hazard", x: 40.0, y: 200.0 },
-          { name: "Sniper Roadblock zone", type: "hazard", x: 663.5, y: 116.4 },
-          { name: "Mortar / danger zone", type: "mortar", x: 550.0, y: 300.0 }
-        ],
-        quests: [
-          { name: "Bronze pocket watch", type: "quest_item", x: 900.0, y: 340.0, note: "Background Check · Big Red" },
-          { name: "Dorms 203 safe", type: "quest_objective", x: 505.0, y: 78.0, note: "Shaking Up the Teller" },
-          { name: "Customs office docs", type: "quest_item", x: 480.0, y: 195.0, note: "Delivery from the Past" },
-          { name: "Fuel tank trucks", type: "quest_objective", x: 400.0, y: 250.0, note: "Oil Run · MS2000" },
-          { name: "UN Tigr vehicles", type: "quest_objective", x: 700.0, y: 200.0, note: "Tigr Safari · MS2000" },
-          { name: "REAP-IR stash (New Gas)", type: "quest_objective", x: 292.2, y: 202.7, note: "The Courier" }
-        ],
-        switches: [
-          { name: "ZB-013 Switch", x: 343.7, y: 273.3, note: "Warehouse 4 · питание ZB-013" }
-        ],
-        labels: [
-          { name: "Big Red", x: 907.4, y: 350.2 },
-          { name: "Dorms", x: 495.0, y: 85.6 },
-          { name: "New Gas", x: 292.2, y: 202.7 },
-          { name: "Old Gas", x: 364.8, y: 403.3 },
-          { name: "Fortress", x: 594.4, y: 282.3 },
-          { name: "Construction", x: 693.7, y: 134.8 },
-          { name: "Warehouse 4", x: 345.9, y: 272.5 },
-          { name: "Warehouse 17", x: 645.9, y: 316.6 },
-          { name: "Trailer Park", x: 1001.9, y: 445.1 },
-          { name: "Crossroads", x: 1015.9, y: 323.0 }
-        ]
-      }
-    };
+    var GROUPS = window.TT_MAP_GROUPS;
+    var DATA = window.TT_MAP_DATA;
 
-
-    const ICONS = {
-      pmc: ASSETS + "extract_pmc.png",
-      scav: ASSETS + "extract_scav.png",
-      shared: ASSETS + "extract_shared.png",
-      transit: ASSETS + "extract_transit.png",
-      spawn_pmc: ASSETS + "spawn_pmc.png",
-      spawn_scav: ASSETS + "spawn_scav.png",
-      boss: ASSETS + "spawn_boss.png",
-      safe: ASSETS + "container_safe.png",
-      "weapon-box": ASSETS + "container_weapon-box.png",
-      medcase: ASSETS + "container_medcase.png",
-      jacket: ASSETS + "container_jacket.png",
-      "pc-block": ASSETS + "container_pc-block.png",
-      "ground-cache": ASSETS + "container_ground-cache.png",
-      toolbox: ASSETS + "container_toolbox.png",
-      hazard: ASSETS + "hazard.png",
-      mortar: ASSETS + "hazard_mortar.png",
-      quest_item: ASSETS + "quest_item.png",
-      quest_objective: ASSETS + "quest_objective.png",
-      switch: ASSETS + "switch.png"
-    };
-
-    function iconFor(item, layer) {
-      let key;
-      if (layer === "extracts") key = item.faction || "shared";
-      else if (layer === "spawns") key = item.faction === "boss" ? "boss" : (item.faction === "scav" ? "spawn_scav" : "spawn_pmc");
-      else if (layer === "containers") key = item.type || "safe";
-      else if (layer === "hazards") key = item.type || "hazard";
-      else if (layer === "quests") key = item.type || "quest_objective";
-      else if (layer === "switches") key = "switch";
-      else key = "shared";
-      const url = ICONS[key] || ICONS.shared;
-      return L.divIcon({
-        className: "tt-marker-icon",
-        html: '<img src="' + url + '" alt="">',
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
-        popupAnchor: [0, -14]
+    var FILTER_ICON = {};
+    GROUPS.forEach(function (g) {
+      g.items.forEach(function (it) {
+        if (it.icon) FILTER_ICON[it.id] = ASSETS + it.icon;
       });
-    }
+    });
 
-    const map = L.map("map", {
+    var activeFilters = new Set();
+    GROUPS.forEach(function (g) {
+      g.items.forEach(function (it) {
+        if (it.defaultOn) activeFilters.add(it.id);
+      });
+    });
+
+    var layerByFilter = {};
+    var imageOverlay = null;
+
+    var map = L.map("map", {
       crs: L.CRS.Simple,
-      minZoom: -1,
-      maxZoom: 3,
-      zoomSnap: 0.25,
-      zoomDelta: 0.5,
+      minZoom: -1, maxZoom: 3,
+      zoomSnap: 0.25, zoomDelta: 0.5,
       attributionControl: false
     });
 
-    let imageOverlay = null;
-    const layerGroups = {
-      extracts: L.layerGroup(),
-      spawns: L.layerGroup(),
-      containers: L.layerGroup(),
-      hazards: L.layerGroup(),
-      quests: L.layerGroup(),
-      switches: L.layerGroup(),
-      labels: L.layerGroup()
-    };
-    const activeLayers = new Set(["extracts", "spawns", "labels"]);
-    let currentMarkers = [];
+    function toLatLng(x, y) { return [BOUNDS[1][0] - y, x]; }
 
-    function toLatLng(x, y) {
-      return [BOUNDS[1][0] - y, x];
-    }
-
-    function loadMap(key) {
-      const d = DATA[key];
-      if (!d) return;
-      document.getElementById("status").textContent = d.label + " · SVG";
-
-      if (imageOverlay) map.removeLayer(imageOverlay);
-      Object.values(layerGroups).forEach(function (g) { g.clearLayers(); map.removeLayer(g); });
-
-      imageOverlay = L.imageOverlay(d.svg, BOUNDS, { interactive: false, opacity: 0.95 });
-      imageOverlay.addTo(map);
-      map.fitBounds(BOUNDS, { padding: [20, 20] });
-
-      currentMarkers = [];
-      function addMarkers(list, layerName) {
-        (list || []).forEach(function (item) {
-          const m = L.marker(toLatLng(item.x, item.y), { icon: iconFor(item, layerName) });
-          const faction = item.faction ? " · " + item.faction : "";
-          const note = item.note ? "<br><span style=\"color:var(--muted)\">" + item.note + "</span>" : "";
-          m.bindPopup("<strong>" + item.name + "</strong>" + faction + note);
-          m._ttData = Object.assign({}, item, { layer: layerName });
-          layerGroups[layerName].addLayer(m);
-          currentMarkers.push(m);
-        });
-      }
-
-      addMarkers(d.extracts, "extracts");
-      addMarkers(d.spawns, "spawns");
-      addMarkers(d.containers, "containers");
-      addMarkers(d.hazards, "hazards");
-      addMarkers(d.quests, "quests");
-      addMarkers(d.switches, "switches");
-
-      // labels as text markers
-      (d.labels || []).forEach(function (item) {
-        var m = L.marker(toLatLng(item.x, item.y), {
-          icon: L.divIcon({
-            className: "tt-label",
-            html: "<span>" + item.name + "</span>",
-            iconSize: [80, 18],
-            iconAnchor: [40, 9]
-          })
-        });
-        m._ttData = Object.assign({}, item, { layer: "labels", name: item.name });
-        layerGroups.labels.addLayer(m);
-        currentMarkers.push(m);
+    function iconFor(filterId) {
+      var url = FILTER_ICON[filterId] || ASSETS + "loose_loot.png";
+      return L.divIcon({
+        className: "tt-marker-icon",
+        html: '<img src="' + url + '" alt="">',
+        iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -12]
       });
-
-      activeLayers.forEach(function (l) { layerGroups[l].addTo(map); });
-      rebuildList();
     }
 
-    function rebuildList() {
-      const ul = document.getElementById("markerList");
-      ul.innerHTML = "";
-      currentMarkers
-        .filter(function (m) { return activeLayers.has(m._ttData.layer); })
-        .sort(function (a, b) { return a._ttData.name.localeCompare(b._ttData.name); })
-        .forEach(function (m) {
-          const d = m._ttData;
-          const li = document.createElement("li");
-          var imgKey;
-          if (d.layer === "extracts") imgKey = d.faction || "shared";
-          else if (d.layer === "spawns") imgKey = d.faction === "boss" ? "boss" : (d.faction === "scav" ? "spawn_scav" : "spawn_pmc");
-          else if (d.layer === "containers") imgKey = d.type;
-          else if (d.layer === "hazards") imgKey = d.type || "hazard";
-          else if (d.layer === "switches") imgKey = "switch";
-          else if (d.layer === "labels") imgKey = "shared";
-          else imgKey = d.type || "quest_objective";
-          const src = ICONS[imgKey] || ICONS.shared;
-          li.innerHTML = "<img src=\"" + src + "\" alt=\"\"><div><div>" + d.name + "</div>" +
-            (d.note ? "<div class=\"meta\">" + d.note + "</div>" : "") + "</div>";
-          li.addEventListener("click", function () {
-            map.setView(m.getLatLng(), Math.max(map.getZoom(), 1.5));
-            m.openPopup();
-          });
-          ul.appendChild(li);
+    function labelIcon(name) {
+      return L.divIcon({
+        className: "tt-label",
+        html: "<span>" + name + "</span>",
+        iconSize: [90, 16], iconAnchor: [45, 8]
+      });
+    }
+
+    function buildFiltersUI() {
+      var host = document.getElementById("filterGroups");
+      host.innerHTML = "";
+      GROUPS.forEach(function (g) {
+        var counts = {};
+        g.items.forEach(function (it) { counts[it.id] = 0; });
+        (DATA[g.id] || []).forEach(function (m) {
+          if (m.filter && counts[m.filter] !== undefined) counts[m.filter]++;
         });
+
+        var fg = document.createElement("div");
+        fg.className = "fg open";
+        fg.dataset.group = g.id;
+
+        var title = document.createElement("div");
+        title.className = "fg-title";
+        var groupChecked = g.items.some(function (it) { return activeFilters.has(it.id); });
+        title.innerHTML = '<span class="arrow">▶</span><input type="checkbox"' + (groupChecked ? " checked" : "") + '><span>' + g.name + '</span>';
+        title.querySelector("input").addEventListener("click", function (e) {
+          e.stopPropagation();
+          var on = e.target.checked;
+          g.items.forEach(function (it) {
+            var fi = fg.querySelector('[data-filter="' + it.id + '"] input');
+            if (fi) fi.checked = on;
+            if (on) activeFilters.add(it.id); else activeFilters.delete(it.id);
+          });
+          applyFilters();
+        });
+        title.addEventListener("click", function (e) {
+          if (e.target.tagName === "INPUT") return;
+          fg.classList.toggle("open");
+        });
+        fg.appendChild(title);
+
+        var body = document.createElement("div");
+        body.className = "fg-body";
+        g.items.forEach(function (it) {
+          var row = document.createElement("label");
+          row.className = "fi";
+          row.dataset.filter = it.id;
+          var img = it.icon ? '<img src="' + ASSETS + it.icon + '" alt="">' : "";
+          row.innerHTML = '<input type="checkbox"' + (activeFilters.has(it.id) ? " checked" : "") + '>' + img + '<span>' + it.name + '</span><span class="cnt">' + (counts[it.id] || 0) + '</span>';
+          row.querySelector("input").addEventListener("change", function (e) {
+            if (e.target.checked) activeFilters.add(it.id); else activeFilters.delete(it.id);
+            applyFilters();
+            var any = g.items.some(function (x) { return activeFilters.has(x.id); });
+            title.querySelector("input").checked = any;
+          });
+          body.appendChild(row);
+        });
+        fg.appendChild(body);
+        host.appendChild(fg);
+      });
     }
 
-    document.getElementById("filters").addEventListener("click", function (e) {
-      const chip = e.target.closest(".chip");
-      if (!chip) return;
-      const layer = chip.dataset.layer;
-      chip.classList.toggle("active");
-      if (chip.classList.contains("active")) {
-        activeLayers.add(layer);
-        layerGroups[layer].addTo(map);
-      } else {
-        activeLayers.delete(layer);
-        map.removeLayer(layerGroups[layer]);
-      }
-      rebuildList();
-    });
+    function applyFilters() {
+      Object.keys(layerByFilter).forEach(function (fid) {
+        var lg = layerByFilter[fid];
+        if (activeFilters.has(fid)) {
+          if (!map.hasLayer(lg)) map.addLayer(lg);
+        } else {
+          if (map.hasLayer(lg)) map.removeLayer(lg);
+        }
+      });
+      var n = 0;
+      activeFilters.forEach(function (fid) {
+        if (layerByFilter[fid]) n += layerByFilter[fid].getLayers().length;
+      });
+      document.getElementById("status").textContent = "Customs · " + n + " маркеров";
+    }
 
-    document.getElementById("btnList").addEventListener("click", function () {
-      document.getElementById("sidebar").classList.toggle("open");
+    function loadMap() {
+      if (imageOverlay) map.removeLayer(imageOverlay);
+      Object.keys(layerByFilter).forEach(function (k) { map.removeLayer(layerByFilter[k]); });
+      layerByFilter = {};
+
+      imageOverlay = L.imageOverlay(ASSETS + "Customs.svg", BOUNDS, { interactive: false, opacity: 0.95 });
+      imageOverlay.addTo(map);
+      map.fitBounds(BOUNDS, { padding: [16, 16] });
+
+      function addList(list, isLabel) {
+        (list || []).forEach(function (item) {
+          var fid = item.filter;
+          if (!fid) return;
+          if (!layerByFilter[fid]) layerByFilter[fid] = L.layerGroup();
+          var m;
+          if (isLabel) {
+            m = L.marker(toLatLng(item.x, item.y), { icon: labelIcon(item.name) });
+          } else {
+            m = L.marker(toLatLng(item.x, item.y), { icon: iconFor(fid) });
+            var note = item.note ? '<br><span style="color:var(--muted)">' + item.note + "</span>" : "";
+            var fac = item.faction ? " · " + item.faction : "";
+            m.bindPopup("<strong>" + item.name + "</strong>" + fac + note);
+          }
+          layerByFilter[fid].addLayer(m);
+        });
+      }
+
+      addList(DATA.extracts);
+      addList(DATA.spawns);
+      addList(DATA.lootables);
+      addList(DATA.looseLoot);
+      addList(DATA.hazards);
+      addList(DATA.landmarks, true);
+      addList(DATA.switches);
+      addList(DATA.tasks);
+
+      applyFilters();
+      buildFiltersUI();
+    }
+
+    function setAll(on) {
+      GROUPS.forEach(function (g) {
+        g.items.forEach(function (it) {
+          if (on) activeFilters.add(it.id); else activeFilters.delete(it.id);
+        });
+      });
+      buildFiltersUI();
+      applyFilters();
+    }
+
+    document.getElementById("btnFilters").addEventListener("click", function () {
+      document.getElementById("filterPanel").classList.toggle("hidden");
     });
     document.getElementById("btnFit").addEventListener("click", function () {
-      map.fitBounds(BOUNDS, { padding: [20, 20] });
+      map.fitBounds(BOUNDS, { padding: [16, 16] });
     });
-    document.getElementById("mapSelect").addEventListener("change", function (e) {
-      loadMap(e.target.value);
-    });
+    document.getElementById("btnAll").addEventListener("click", function () { setAll(true); });
+    document.getElementById("btnNone").addEventListener("click", function () { setAll(false); });
+    document.getElementById("btnAll2").addEventListener("click", function () { setAll(true); });
+    document.getElementById("btnNone2").addEventListener("click", function () { setAll(false); });
 
-    loadMap("customs");
-
+    loadMap();
     try {
-      if (window.parent !== window) {
-        window.parent.postMessage({ type: "tt-tool-ready", tool: "map" }, "*");
-      }
-    } catch (_) {}
+      if (window.parent !== window) window.parent.postMessage({ type: "tt-tool-ready", tool: "map" }, "*");
+    } catch (e) {}
   })();
   </script>
 </body>
