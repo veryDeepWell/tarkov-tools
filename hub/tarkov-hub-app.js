@@ -208,3 +208,18 @@ function closeFaq() {
     });
   }
 })();
+/* Ensure Settings opens even if chrome-form is late or missing */
+(function wireSettings() {
+  var btn = document.getElementById("tt-open-settings");
+  if (!btn) return;
+  btn.addEventListener("click", function (e) {
+    e.preventDefault();
+    try {
+      if (window.TarkovTools && typeof TarkovTools.openSettings === "function") {
+        TarkovTools.openSettings();
+      }
+    } catch (err) {
+      try { console.error("[hub] openSettings failed", err); } catch (e2) {}
+    }
+  });
+})();

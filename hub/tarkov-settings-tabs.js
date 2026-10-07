@@ -77,8 +77,35 @@
       ".tt-hidden-list{max-height:240px;overflow:auto;}" +
       ".tt-hidden-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);}" +
       ".tt-set-modal{max-width:520px;width:min(520px,94vw);}" +
-      ".tt-set-modal .tt-set-body{max-height:min(70vh,560px);overflow:auto;padding-right:4px;}";
+      ".tt-set-modal .tt-set-body{max-height:min(70vh,560px);overflow:auto;padding-right:4px;}" +
+      /* overlay must sit above expanded tool chrome (z~100) and not join body flex layout */
+      "#tt-settings-bg.modal-bg{position:fixed!important;inset:0!important;z-index:300!important;" +
+      "display:none;align-items:center;justify-content:center;padding:16px;" +
+      "background:rgba(0,0,0,.55);box-sizing:border-box;}" +
+      "#tt-settings-bg.modal-bg.show{display:flex!important;}" +
+      "#tt-settings-bg .modal.tt-set-modal{max-height:min(90vh,720px);overflow:auto;margin:auto;}";
     document.head.appendChild(s);
+  }
+
+  function closeSettingsModal(bg) {
+    bg = bg || document.getElementById("tt-settings-bg");
+    if (!bg) return;
+    bg.classList.remove("show");
+    bg.hidden = true;
+    bg.style.display = "none";
+    try {
+      document.body.classList.remove("tt-settings-open");
+    } catch (e) {}
+  }
+
+  function openSettingsModal(bg) {
+    if (!bg) return;
+    bg.hidden = false;
+    bg.classList.add("show");
+    bg.style.display = "flex";
+    try {
+      document.body.classList.add("tt-settings-open");
+    } catch (e) {}
   }
 
   function kindRow(kind, label) {
@@ -109,11 +136,14 @@
     if (!bg) {
       bg = document.createElement("div");
       bg.id = "tt-settings-bg";
-      bg.className = "tt-modal-bg";
+      /* use shared .modal-bg / .modal so overlay is fixed + centered (not body flow) */
+      bg.className = "modal-bg";
+      bg.hidden = true;
+      bg.setAttribute("role", "presentation");
       bg.innerHTML =
-        '<div class="tt-modal tt-set-modal card" role="dialog" aria-modal="true">' +
+        '<div class="modal card tt-set-modal" role="dialog" aria-modal="true" aria-labelledby="tt-set-title">' +
         '<div class="tt-modal-head" style="display:flex;align-items:center;gap:8px">' +
-        '<strong style="flex:1">' + t("common.settings", "Настройки") + "</strong>" +
+        '<strong id="tt-set-title" style="flex:1">' + t("common.settings", "Настройки") + "</strong>" +
         '<button type="button" class="btn-ghost" id="tt-set-close" aria-label="Close">✕</button></div>' +
         '<div class="tt-set-tabs" id="tt-set-tabs">' +
         '<button type="button" class="tt-set-tab on" data-tab="general">' + t("common.tabGeneral", "Общее") + "</button>" +
@@ -166,10 +196,19 @@
         '<button type="button" class="btn" id="tt-set-save">' + t("common.save", "Сохранить") + '</button></div></div>';
       document.body.appendChild(bg);
       bg.addEventListener("click", function (e) {
-        if (e.target === bg) bg.classList.remove("show");
+        if (e.target === bg) closeSettingsModal(bg);
       });
+      if (!window.__ttSettingsEscBound) {
+        window.__ttSettingsEscBound = true;
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          var el = document.getElementById("tt-settings-bg");
+          if (el && el.classList.contains("show")) closeSettingsModal(el);
+        });
+      }
     }
-    var modal = bg.querySelector(".tt-modal");
+    var modal = bg.querySelector(".modal.tt-set-modal") || bg.querySelector(".tt-set-modal") || bg.querySelector(".modal");
+    if (!modal) return;
 
     function showTab(id) {
       modal.querySelectorAll(".tt-set-panel").forEach(function (p) {
@@ -317,52 +356,80 @@
       };
     });
 
-    document.getElementById("tt-set-cancel").onclick = function () { bg.classList.remove("show"); };
-    document.getElementById("tt-set-close").onclick = function () { bg.classList.remove("show"); };
+    document.getElementById("tt-set-cancel").onclick = function () { closeSettingsModal(bg); };
+    document.getElementById("tt-set-close").onclick = function () { closeSettingsModal(bg); };
     document.getElementById("tt-set-save").onclick = function () {
-      set("tarkovPreferredGameMode", document.getElementById("tt-set-mode").value);
-      set("tarkovTips", document.getElementById("tt-set-tips").value);
-      set("tarkovToolTips", document.getElementById("tt-set-tips").value);
-      set("tarkovSound", document.getElementById("tt-set-sound").value);
-      set("tarkovSoundVol", volEl.value);
-      set("tarkovSoundVolume", volEl.value);
-      set("tarkovTheme", document.getElementById("tt-set-theme").value);
-      var accBtn = row.querySelector(".tt-accent-swatch.on");
-      if (accBtn) set("tarkovAccent", accBtn.getAttribute("data-acc") || "gold");
-      modal.querySelectorAll(".tt-kind-on").forEach(function (cb) {
-        set("tarkovSoundKind." + cb.getAttribute("data-kind"), cb.checked ? "1" : "0");
-      });
-      modal.querySelectorAll(".tt-kind-vol").forEach(function (r) {
-        set("tarkovSoundKindVol." + r.getAttribute("data-kind"), r.value);
-      });
-      modal.querySelectorAll(".tt-tool-snd").forEach(function (cb) {
-        var f = cb.getAttribute("data-file") || "";
-        if (f) set("tarkovSoundTool." + f, cb.checked ? "1" : "0");
-      });
-      var langRow = langBox.querySelector(".tt-lang-row.on");
-      var lang = langRow ? langRow.getAttribute("data-lang") : curLang;
-      set("tarkovLang", lang);
-      var newHidden = [];
-      hidBox.querySelectorAll(".tt-hid-cb").forEach(function (cb) {
-        if (cb.checked) newHidden.push(cb.getAttribute("data-file"));
-      });
-      try { TarkovTools.setHiddenTools(newHidden); } catch (e) {}
-      try { if (TarkovTools.applyTheme) TarkovTools.applyTheme(); } catch (e) {}
+      try {
+        set("tarkovPreferredGameMode", document.getElementById("tt-set-mode").value);
+        set("tarkovTips", document.getElementById("tt-set-tips").value);
+        set("tarkovToolTips", document.getElementById("tt-set-tips").value);
+        set("tarkovSound", document.getElementById("tt-set-sound").value);
+        set("tarkovSoundVol", volEl.value);
+        set("tarkovSoundVolume", volEl.value);
+        set("tarkovTheme", document.getElementById("tt-set-theme").value);
+        var accBtn = row.querySelector(".tt-accent-swatch.on");
+        if (accBtn) set("tarkovAccent", accBtn.getAttribute("data-acc") || "gold");
+        modal.querySelectorAll(".tt-kind-on").forEach(function (cb) {
+          set("tarkovSoundKind." + cb.getAttribute("data-kind"), cb.checked ? "1" : "0");
+        });
+        modal.querySelectorAll(".tt-kind-vol").forEach(function (r) {
+          set("tarkovSoundKindVol." + r.getAttribute("data-kind"), r.value);
+        });
+        modal.querySelectorAll(".tt-tool-snd").forEach(function (cb) {
+          var f = cb.getAttribute("data-file") || "";
+          if (f) set("tarkovSoundTool." + f, cb.checked ? "1" : "0");
+        });
+        var langRow = langBox.querySelector(".tt-lang-row.on");
+        var lang = langRow ? langRow.getAttribute("data-lang") : curLang;
+        set("tarkovLang", lang);
+        var newHidden = [];
+        hidBox.querySelectorAll(".tt-hid-cb").forEach(function (cb) {
+          if (cb.checked) newHidden.push(cb.getAttribute("data-file"));
+        });
+        try { TarkovTools.setHiddenTools(newHidden); } catch (eH) {}
+        try { if (TarkovTools.applyTheme) TarkovTools.applyTheme(); } catch (eT) {}
 
-      function finish() {
-        if (TarkovTools.beep) TarkovTools.beep("ok");
-        bg.classList.remove("show");
-        try { window.dispatchEvent(new CustomEvent("tt-settings-applied")); } catch (e) {}
-        try { window.dispatchEvent(new CustomEvent("tt-lang-changed", { detail: { lang: lang } })); } catch (e) {}
-      }
+        function finish() {
+          try { if (TarkovTools.beep) TarkovTools.beep("ok"); } catch (eB) {}
+          closeSettingsModal(bg);
+          try {
+            window.dispatchEvent(new CustomEvent("tt-settings-applied", {
+              detail: {
+                lang: lang,
+                mode: document.getElementById("tt-set-mode").value,
+                theme: document.getElementById("tt-set-theme").value
+              }
+            }));
+          } catch (e) {}
+          try { window.dispatchEvent(new CustomEvent("tt-lang-changed", { detail: { lang: lang } })); } catch (e) {}
+          /* notify open tool iframes (theme / mode / lang) without tearing them down */
+          try {
+            var frames = document.querySelectorAll("#framePool iframe, #expandHost iframe");
+            var msg = {
+              type: "tt-settings-applied",
+              lang: lang,
+              mode: document.getElementById("tt-set-mode").value,
+              theme: document.getElementById("tt-set-theme").value
+            };
+            frames.forEach(function (ifr) {
+              try {
+                if (ifr && ifr.contentWindow) ifr.contentWindow.postMessage(msg, location.origin);
+              } catch (eF) {}
+            });
+          } catch (eP) {}
+        }
 
-      if (window.TarkovI18n && TarkovI18n.setLang) {
-        TarkovI18n.setLang(lang).then(function () {
-          try { TarkovI18n.applyDom(document); } catch (e) {}
+        if (window.TarkovI18n && TarkovI18n.setLang) {
+          Promise.resolve(TarkovI18n.setLang(lang)).then(function () {
+            try { TarkovI18n.applyDom(document); } catch (e) {}
+            finish();
+          }).catch(finish);
+        } else {
           finish();
-        }).catch(finish);
-      } else {
-        finish();
+        }
+      } catch (err) {
+        try { console.error("[settings] save failed", err); } catch (eC) {}
+        alert(t("common.saveFailed", "Не удалось сохранить настройки"));
       }
     };
 
@@ -375,7 +442,7 @@
       };
     }
 
-    bg.classList.add("show");
+    openSettingsModal(bg);
     showTab("general");
   };
 })();

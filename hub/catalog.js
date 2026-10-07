@@ -334,8 +334,8 @@ window.__TT_CATALOG_DATA = {
     },
     {
       "file": "tools/tarkovtool-prestige.html",
-      "title": "Престиж-оптимизатор",
-      "description": "Что передать при престиже: ранние квесты, капитал, плотность слотов.",
+      "title": "Престижинатор",
+      "description": "Окно престижа как инвентарь: клади предметы, собирай набор под деньги / квесты / каппу.",
       "icon": "util",
       "cat": "util",
       "kind": "static"

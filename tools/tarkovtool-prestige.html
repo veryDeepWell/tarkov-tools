@@ -3,44 +3,79 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Престижинатор — Tarkov Tools</title>
   <link rel="stylesheet" href="../core/tarkov-common.css">
-  <title>Престиж-оптимизатор — Tarkov</title>
+  <link rel="stylesheet" href="../core/tarkov-ui.css">
+  <link rel="stylesheet" href="../core/tarkov-item-grid.css">
   <script type="application/json" id="tarkovtool-meta">
-  {"title":"Престиж-оптимизатор","description":"Что передать при престиже: ранние квесты, капитал, плотность слотов.","kind":"static"}
+  {"id":"tarkovtool-prestige.html","title":"Престижинатор","description":"Окно престижа как инвентарь: клади предметы, собирай набор под деньги / квесты / каппу.","kind":"static","cat":"util"}
   </script>
   <style>
-    .container { max-width: min(980px, 96vw) !important; margin: 0 auto; padding: 12px 14px 64px; }
-    h1 { margin-bottom: 4px; }
-    .sub { color: var(--muted); margin-bottom: 14px; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
-    .card-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .container { max-width: min(1100px, 96vw); margin: 0 auto; padding: 12px 14px 72px; }
+    h1 { margin: 0 0 4px; font-size: 1.35rem; }
+    .sub { color: var(--muted); margin: 0 0 14px; font-size: .9rem; line-height: 1.4; }
+    .layout { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(300px, 360px); gap: 14px; align-items: start; }
+    @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+    .card-title { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
     .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
-    .field { flex: 1; min-width: 120px; }
-    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
-    .status { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+    .field { flex: 1; min-width: 110px; }
+    .field label { display: block; font-size: .78rem; color: var(--muted); margin-bottom: 4px; }
+    .status { font-size: .88rem; color: var(--muted); margin-top: 8px; }
     .status.ok { color: var(--green, #3dd68c); }
     .status.err { color: var(--red, #f07178); }
-    .muted { color: var(--muted); font-size: .8rem; }
-    .note { font-size: .82rem; color: var(--muted); margin: 8px 0 0; line-height: 1.45; }
-    table.rank { width: 100%; border-collapse: collapse; font-size: .84rem; }
-    table.rank th, table.rank td { padding: 7px 8px; border-top: 1px solid var(--border); text-align: left; vertical-align: top; }
-    table.rank th { color: var(--muted); font-size: .7rem; text-transform: uppercase; }
-    table.rank td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .search-box { position: relative; }
+    .search-box input { width: 100%; }
+    .suggest {
+      position: absolute; left: 0; right: 0; top: 100%; z-index: 20;
+      max-height: 240px; overflow: auto; margin-top: 4px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    }
+    .suggest[hidden] { display: none !important; }
+    .suggest button {
+      display: block; width: 100%; text-align: left; border: 0; background: transparent;
+      color: var(--text); padding: 8px 10px; cursor: pointer; font: inherit; font-size: .85rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .suggest button:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+    .suggest .muted { color: var(--muted); font-size: .75rem; }
+    .grid-wrap { overflow: auto; padding: 4px 0; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .note { font-size: .8rem; color: var(--muted); line-height: 1.45; margin: 8px 0 0; }
+    .opt-panel {
+      position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.55);
+      display: none; align-items: center; justify-content: center; padding: 16px;
+    }
+    .opt-panel.show { display: flex; }
+    .opt-modal {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      width: min(420px, 94vw); padding: 18px; max-height: 90vh; overflow: auto;
+    }
+    .opt-modal h2 { margin: 0 0 8px; font-size: 1.05rem; }
+    .opt-modal .focus-list { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+    .opt-modal label.focus {
+      display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px;
+      border: 1px solid var(--border); border-radius: 8px; cursor: pointer; background: var(--input-bg);
+    }
+    .opt-modal label.focus:hover { border-color: var(--accent); }
+    .opt-modal label.focus.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+    .opt-modal .focus strong { display: block; font-size: .9rem; }
+    .opt-modal .focus span { display: block; font-size: .78rem; color: var(--muted); margin-top: 2px; }
+    .summary-line { font-variant-numeric: tabular-nums; font-size: .9rem; margin: 6px 0 0; }
     .badge {
-      display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: .7rem; font-weight: 600;
-      background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); margin: 0 3px 3px 0;
+      display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: .68rem; font-weight: 600;
+      background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); margin: 0 3px 2px 0;
     }
     .badge.q { color: #a78bfa; background: color-mix(in srgb, #a78bfa 18%, transparent); }
     .badge.v { color: #e0a458; background: color-mix(in srgb, #e0a458 18%, transparent); }
-    .badge.s { color: #7dd3a0; background: color-mix(in srgb, #7dd3a0 18%, transparent); }
-    .pack { margin-top: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--input-bg); }
-    .pack h3 { margin: 0 0 8px; font-size: .95rem; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Престиж-оптимизатор</h1>
-    <p class="sub">Что положить в окно переноса: закрыть первые квесты, перенести капитал, уложиться в сетку слотов. Данные квестов/цен — из API; размер окна — по уровню престижа (wiki).</p>
+    <h1>Престижинатор</h1>
+    <p class="sub">Окно переноса престижа как инвентарь в игре. Клади предметы вручную или нажми «Собрать престиж» — старый оптимизатор с упором на деньги, ранние квесты или каппу.</p>
+
     <div class="card">
       <div class="card-title">Данные</div>
       <div class="row">
@@ -50,14 +85,7 @@
             <option value="regular">PvP</option>
           </select>
         </div>
-        <button type="button" class="btn" id="loadBtn">Загрузить</button>
-      </div>
-      <p class="status" id="status">Items + tasks.</p>
-    </div>
-    <div class="card" id="cfgCard" hidden>
-      <div class="card-title">Параметры переноса</div>
-      <div class="row">
-        <div class="field"><label>Уровень престижа (окно)</label>
+        <div class="field"><label>Уровень престижа</label>
           <select id="prestige">
             <option value="1">P1 — 8×3 (24)</option>
             <option value="2">P2 — 8×4 (32)</option>
@@ -67,41 +95,76 @@
             <option value="6" selected>P6 — 8×8 (64)</option>
           </select>
         </div>
-        <div class="field"><label>Квесты до уровня PMC</label>
-          <input type="number" id="maxLvl" min="1" max="40" value="15">
-        </div>
-        <div class="field"><label>Поиск</label>
-          <input type="search" id="q" placeholder="bitcoin, food, stim…" autocomplete="off">
-        </div>
-        <div class="field"><label>Сортировка</label>
-          <select id="sort">
-            <option value="score" selected>Скор (квест+ценность)</option>
-            <option value="quest">Квестовый спрос</option>
-            <option value="density">₽ / слот</option>
-            <option value="value">Цена</option>
-          </select>
+        <button type="button" class="btn" id="loadBtn">Загрузить</button>
+      </div>
+      <p class="status" id="status">Загрузи items + tasks, чтобы искать предметы и собирать набор.</p>
+    </div>
+
+    <div class="layout">
+      <div>
+        <div class="card">
+          <div class="card-title">Окно престижа</div>
+          <div class="grid-wrap">
+            <div id="prestigeGrid"></div>
+          </div>
+          <p class="summary-line" id="gridSummary">—</p>
+          <div class="actions">
+            <button type="button" class="btn" id="btnAssemble">Собрать престиж</button>
+            <button type="button" class="btn-ghost" id="btnClear">Очистить окно</button>
+          </div>
+          <p class="note">Перетаскивай предметы по сетке. × на плитке — убрать. Кейсы и большие контейнеры в автосбор обычно пропускаются.</p>
         </div>
       </div>
-      <p class="note">Кейсы обычно <b>не</b> переносятся — в списке упор на мелкие/стековые предметы. FIR сохраняется. Можно выйти с экрана переноса без подтверждения и пересобрать.</p>
-    </div>
-    <div class="card" id="packCard" hidden>
-      <div class="card-title">Черновик набора под окно</div>
-      <div id="packBody" class="pack"></div>
-    </div>
-    <div class="card" id="listCard" hidden>
-      <div class="card-title">Рейтинг предметов</div>
-      <div style="overflow:auto">
-        <table class="rank">
-          <thead>
-            <tr>
-              <th>#</th><th>Предмет</th><th>Слоты</th><th>Цена</th><th>₽/слот</th><th>Квест qty</th><th>Скор</th><th>Зачем</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
+
+      <div>
+        <div class="card" id="addCard">
+          <div class="card-title">Добавить предмет</div>
+          <div class="search-box">
+            <input type="search" id="itemSearch" placeholder="Название или id…" autocomplete="off" disabled>
+            <div class="suggest" id="suggest" hidden></div>
+          </div>
+          <p class="note">Выбери из списка — предмет встанет в первое свободное место (с поворотом при необходимости).</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Подсказка по набору</div>
+          <div id="packHints" class="note">После «Собрать престиж» здесь будет разбор: ценность, квестовые предметы, плотность.</div>
+        </div>
       </div>
     </div>
   </div>
+
+  <div class="opt-panel" id="optPanel" role="dialog" aria-modal="true" hidden>
+    <div class="opt-modal">
+      <h2>Собрать престиж</h2>
+      <p class="note" style="margin-top:0">Выбери упор — алгоритм заполнит окно (старый оптимизатор + тетра-укладка).</p>
+      <div class="field" style="margin-top:10px">
+        <label>Квесты до уровня PMC</label>
+        <input type="number" id="maxLvl" min="1" max="50" value="15">
+      </div>
+      <div class="focus-list" id="focusList">
+        <label class="focus on"><input type="radio" name="focus" value="balanced" checked>
+          <div><strong>Баланс</strong><span>Квесты + ценность + плотность слотов</span></div>
+        </label>
+        <label class="focus"><input type="radio" name="focus" value="money">
+          <div><strong>Деньги</strong><span>Максимум ₽ на слот (битки, GP, дорогой мелкий лут)</span></div>
+        </label>
+        <label class="focus"><input type="radio" name="focus" value="quests">
+          <div><strong>Ранние квесты</strong><span>Предметы giveItem/findItem до выбранного уровня</span></div>
+        </label>
+        <label class="focus"><input type="radio" name="focus" value="kappa">
+          <div><strong>Каппа / прогресс</strong><span>Сильнее вес квестовых и «ключевых» предметов</span></div>
+        </label>
+        <label class="focus"><input type="radio" name="focus" value="density">
+          <div><strong>Плотность</strong><span>Уложить как можно больше ценности в сетку</span></div>
+        </label>
+      </div>
+      <div class="actions" style="justify-content:flex-end">
+        <button type="button" class="btn-ghost" id="optCancel">Отмена</button>
+        <button type="button" class="btn" id="optRun">Собрать</button>
+      </div>
+    </div>
+  </div>
+
   <script src="../core/tarkov-dicts.js"></script>
   <script src="../core/tarkov-names.js"></script>
   <script src="../core/tarkov-storage.js"></script>
@@ -109,6 +172,7 @@
   <script src="../core/tarkov-ui.js"></script>
   <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
+  <script src="../core/tarkov-item-grid.js"></script>
   <script src="../js/prestige.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>
