@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Карта — Tarkov Tools</title>
   <link rel="stylesheet" href="../core/tarkov-common.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <script type="application/json" id="tarkovtool-meta">
   {
     "id": "tarkovtool-map.html",
     "title": "Карта",
-    "description": "Интерактивные карты Tarkov.dev (экстракты, спавны, квесты, ключи, лут)",
+    "description": "Интерактивная карта Customs: экстракты, спавны, фильтры. Самобытный инструмент на SVG + Leaflet.",
     "file": "tarkovtool-map.html",
     "cat": "util",
     "kind": "static",
@@ -17,98 +18,91 @@
   }
   </script>
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      overflow: hidden;
-      background: var(--bg);
-    }
-    .map-shell {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      height: 100dvh;
-    }
+    html, body { height: 100%; margin: 0; overflow: hidden; background: var(--bg); }
+    .map-shell { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
     .map-toolbar {
       flex: 0 0 auto;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
       padding: 8px 12px;
       background: var(--card);
       border-bottom: 1px solid var(--border);
-      z-index: 20;
+      z-index: 1000;
     }
-    .map-toolbar h1 {
-      font-size: 1rem;
-      margin: 0 8px 0 0;
-      white-space: nowrap;
-    }
+    .map-toolbar h1 { font-size: 1rem; margin: 0 6px 0 0; white-space: nowrap; }
     .map-toolbar select {
-      min-width: 180px;
-      max-width: 280px;
-      flex: 1;
+      min-width: 140px; max-width: 200px;
+      background: var(--input-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 10px; color: var(--text);
+      font-size: 0.9rem; min-height: 34px;
     }
-    .map-toolbar .btn,
-    .map-toolbar .btn-ghost {
-      min-width: auto;
-      padding: 0 12px !important;
-      height: 36px;
-      min-height: 36px !important;
-      font-size: 0.85rem;
+    .map-toolbar .btn, .map-toolbar .btn-ghost {
+      min-width: auto !important; min-height: 34px !important;
+      height: 34px; padding: 0 12px !important; font-size: 0.85rem;
     }
-    .map-toolbar .hint {
-      font-size: 0.75rem;
-      color: var(--muted);
-      margin-left: auto;
+    .filters {
+      display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
     }
-    .map-frame-wrap {
-      flex: 1 1 auto;
-      position: relative;
-      min-height: 0;
-      background: #0a0a0a;
+    .chip {
+      background: var(--input-bg); border: 1px solid var(--border);
+      border-radius: 16px; padding: 4px 10px; font-size: 0.78rem;
+      color: var(--muted); cursor: pointer; user-select: none;
+      display: inline-flex; align-items: center; gap: 4px;
     }
-    .map-frame-wrap iframe {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      border: 0;
-      background: #1b1919;
+    .chip.active { border-color: var(--accent); color: var(--accent); background: rgba(201,162,39,.12); }
+    .chip img { width: 14px; height: 14px; object-fit: contain; }
+    .map-body { flex: 1 1 auto; display: flex; min-height: 0; position: relative; }
+    #map { width: 100%; height: 100%; background: #1a1a1a; }
+    .sidebar {
+      width: 260px; flex-shrink: 0;
+      background: var(--card); border-left: 1px solid var(--border);
+      overflow-y: auto; padding: 12px; display: none;
     }
-    .map-loading {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(15, 17, 21, 0.85);
-      color: var(--muted);
-      font-size: 0.95rem;
-      z-index: 5;
+    .sidebar.open { display: block; }
+    .sidebar h2 { font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 10px; }
+    .marker-list { list-style: none; padding: 0; margin: 0; }
+    .marker-list li {
+      padding: 8px 10px; border-radius: 8px; cursor: pointer;
+      font-size: 0.9rem; border: 1px solid transparent;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .marker-list li:hover { background: var(--input-bg); border-color: var(--border); }
+    .marker-list li img { width: 20px; height: 20px; }
+    .marker-list .meta { font-size: 0.75rem; color: var(--muted); }
+    .leaflet-container { background: #1a1a1a; font-family: inherit; }
+    .leaflet-popup-content-wrapper {
+      background: var(--card); color: var(--text);
+      border: 1px solid var(--border); border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    }
+    .leaflet-popup-tip { background: var(--card); }
+    .leaflet-popup-content { margin: 10px 14px; font-size: 0.9rem; }
+    .leaflet-popup-content strong { color: var(--accent); }
+    .leaflet-control-zoom a {
+      background: var(--card) !important; color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+    .tt-marker-icon {
+      background: transparent !important; border: none !important;
+    }
+    .tt-marker-icon img {
+      width: 28px; height: 28px; object-fit: contain;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,.8));
+    }
+    .credit {
+      position: absolute; bottom: 8px; left: 10px; z-index: 800;
+      font-size: 0.68rem; color: rgba(201,162,39,.65);
+      background: rgba(0,0,0,.5); padding: 3px 8px; border-radius: 4px;
       pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.2s;
     }
-    .map-loading.visible {
-      opacity: 1;
+    .status-bar {
+      position: absolute; top: 10px; right: 10px; z-index: 800;
+      font-size: 0.75rem; color: var(--muted);
+      background: rgba(15,17,21,.85); padding: 4px 10px; border-radius: 6px;
+      border: 1px solid var(--border);
     }
-    .map-credit {
-      position: absolute;
-      bottom: 8px;
-      right: 10px;
-      z-index: 10;
-      font-size: 0.7rem;
-      color: rgba(201, 162, 39, 0.7);
-      background: rgba(0,0,0,0.55);
-      padding: 3px 8px;
-      border-radius: 4px;
-      pointer-events: none;
-    }
-    @media (max-width: 640px) {
-      .map-toolbar .hint { display: none; }
-      .map-toolbar h1 { font-size: 0.9rem; }
+    @media (max-width: 720px) {
+      .sidebar { position: absolute; right: 0; top: 0; bottom: 0; z-index: 900; width: 220px; }
+      .map-toolbar .filters { width: 100%; }
     }
   </style>
 </head>
@@ -116,112 +110,242 @@
   <div class="map-shell">
     <div class="map-toolbar">
       <h1>Карта</h1>
-      <select id="mapSelect" title="Выбор карты">
-        <option value="customs">Customs</option>
-        <option value="factory">Factory</option>
-        <option value="woods">Woods</option>
-        <option value="shoreline">Shoreline</option>
-        <option value="interchange">Interchange</option>
-        <option value="reserve">Reserve</option>
-        <option value="lighthouse">Lighthouse</option>
-        <option value="streets">Streets of Tarkov</option>
-        <option value="ground-zero">Ground Zero</option>
-        <option value="labs">The Lab</option>
-        <option value="terminal">Terminal</option>
-        <option value="labyrinth">The Labyrinth</option>
-        <option value="icebreaker">Icebreaker</option>
+      <select id="mapSelect">
+        <option value="customs" selected>Customs</option>
       </select>
-      <button type="button" class="btn" id="btnReload" title="Перезагрузить карту">↻</button>
-      <button type="button" class="btn-ghost" id="btnOpen" title="Открыть на tarkov.dev">↗</button>
-      <button type="button" class="btn-ghost" id="btnFullscreen" title="На весь экран">⛶</button>
-      <span class="hint">Источник: tarkov.dev · экстракты, спавны, квесты, ключи</span>
+      <div class="filters" id="filters">
+        <span class="chip active" data-layer="extracts"><img src="map-assets/extract_pmc.png" alt=""> Экстракты</span>
+        <span class="chip active" data-layer="spawns"><img src="map-assets/spawn_pmc.png" alt=""> Спавны</span>
+        <span class="chip" data-layer="containers"><img src="map-assets/container_safe.png" alt=""> Контейнеры</span>
+        <span class="chip" data-layer="hazards"><img src="map-assets/hazard.png" alt=""> Опасности</span>
+        <span class="chip" data-layer="quests"><img src="map-assets/quest_objective.png" alt=""> Квесты</span>
+      </div>
+      <button type="button" class="btn-ghost" id="btnList" title="Список маркеров">☰</button>
+      <button type="button" class="btn-ghost" id="btnFit" title="Вписать карту">⤢</button>
     </div>
-    <div class="map-frame-wrap" id="frameWrap">
-      <div class="map-loading visible" id="loading">Загрузка карты…</div>
-      <iframe
-        id="mapFrame"
-        title="Tarkov.dev Interactive Map"
-        allow="fullscreen"
-        referrerpolicy="no-referrer-when-downgrade"
-        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
-      ></iframe>
-      <div class="map-credit">Maps by tarkov.dev</div>
+    <div class="map-body">
+      <div id="map"></div>
+      <div class="sidebar" id="sidebar">
+        <h2>Маркеры</h2>
+        <ul class="marker-list" id="markerList"></ul>
+      </div>
+      <div class="credit">SVG maps © the-hideout (CC BY-NC-SA) · icons from tarkov.dev</div>
+      <div class="status-bar" id="status">Customs · SVG</div>
     </div>
   </div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script>
   (function () {
-    const MAPS = {
-      customs:      { path: "customs",      label: "Customs" },
-      factory:      { path: "factory",      label: "Factory" },
-      woods:        { path: "woods",        label: "Woods" },
-      shoreline:    { path: "shoreline",    label: "Shoreline" },
-      interchange:  { path: "interchange",  label: "Interchange" },
-      reserve:      { path: "reserve",      label: "Reserve" },
-      lighthouse:   { path: "lighthouse",   label: "Lighthouse" },
-      streets:      { path: "streets",      label: "Streets of Tarkov" },
-      "ground-zero":{ path: "ground-zero",  label: "Ground Zero" },
-      labs:         { path: "labs",         label: "The Lab" },
-      terminal:     { path: "terminal",     label: "Terminal" },
-      labyrinth:    { path: "labyrinth",    label: "The Labyrinth" },
-      icebreaker:   { path: "icebreaker",   label: "Icebreaker" }
+    const ASSETS = "map-assets/";
+    // SVG viewBox: 0 0 1062.48 535.17
+    const BOUNDS = [[0, 0], [535.17, 1062.48]];
+
+    const DATA = {
+      customs: {
+        label: "Customs",
+        svg: ASSETS + "Customs.svg",
+        extracts: [
+          { id: "crossroads", name: "Crossroads", faction: "pmc", x: 80, y: 260, note: "Открытый" },
+          { id: "trailer-park", name: "Trailer Park", faction: "pmc", x: 95, y: 420, note: "Открытый" },
+          { id: "ruaf", name: "RUAF Roadblock", faction: "pmc", x: 200, y: 480, note: "Открытый" },
+          { id: "zb-1011", name: "ZB-1011", faction: "pmc", x: 980, y: 380, note: "Открытый" },
+          { id: "zb-1012", name: "ZB-1012", faction: "pmc", x: 920, y: 450, note: "Ключ ZB-1012" },
+          { id: "old-gas", name: "Old Gas Station", faction: "pmc", x: 620, y: 420, note: "Зелёная ракета" },
+          { id: "dorms-vex", name: "Dorms V-Ex", faction: "pmc", x: 780, y: 180, note: "5000₽, до 4 игроков" },
+          { id: "smuggler", name: "Smuggler's Boat", faction: "pmc", x: 50, y: 120, note: "Открытый" },
+          { id: "railroad-tarkov", name: "Railroad to Tarkov", faction: "scav", x: 520, y: 500, note: "Scav" },
+          { id: "factory-shacks", name: "Factory Shacks", faction: "scav", x: 180, y: 200, note: "Scav" },
+          { id: "military-base", name: "Railroad to Military Base", faction: "scav", x: 900, y: 100, note: "Scav" },
+          { id: "passage", name: "Passage between rocks", faction: "scav", x: 350, y: 80, note: "Scav" },
+          { id: "scav-checkpoint", name: "Scav Checkpoint", faction: "shared", x: 450, y: 300, note: "Shared" },
+          { id: "zb-013", name: "ZB-013", faction: "pmc", x: 700, y: 280, note: "Ключ ZB-013 + питание" }
+        ],
+        spawns: [
+          { id: "pmc-bigred", name: "PMC · Big Red", faction: "pmc", x: 150, y: 280 },
+          { id: "pmc-dorms", name: "PMC · Dorms", faction: "pmc", x: 820, y: 200 },
+          { id: "pmc-construction", name: "PMC · Construction", faction: "pmc", x: 400, y: 100 },
+          { id: "pmc-trailer", name: "PMC · Trailer Park", faction: "pmc", x: 120, y: 400 },
+          { id: "pmc-warehouse", name: "PMC · Warehouse 4", faction: "pmc", x: 550, y: 200 },
+          { id: "scav-gas", name: "Scav · New Gas", faction: "scav", x: 600, y: 150 },
+          { id: "scav-fortress", name: "Scav · Fortress", faction: "scav", x: 300, y: 350 },
+          { id: "scav-dorms", name: "Scav · Dorms", faction: "scav", x: 750, y: 250 },
+          { id: "boss-reshala", name: "Boss · Reshala", faction: "boss", x: 720, y: 220, note: "~30–35%" }
+        ],
+        containers: [
+          { id: "safe-dorms", name: "Safe · Dorms 214", type: "safe", x: 790, y: 195 },
+          { id: "safe-gas", name: "Safe · Old Gas", type: "safe", x: 630, y: 410 },
+          { id: "weapon-box-1", name: "Weapon box · Warehouse", type: "weapon-box", x: 480, y: 220 },
+          { id: "medcase-1", name: "Medcase · Big Red", type: "medcase", x: 160, y: 270 },
+          { id: "jacket-1", name: "Jacket · Trailer", type: "jacket", x: 100, y: 410 },
+          { id: "pc-block", name: "PC block · Customs office", type: "pc-block", x: 340, y: 180 },
+          { id: "cache-1", name: "Ground cache", type: "ground-cache", x: 250, y: 320 },
+          { id: "toolbox-1", name: "Toolbox · Construction", type: "toolbox", x: 420, y: 90 }
+        ],
+        hazards: [
+          { id: "sniper-west", name: "Sniper · West", type: "hazard", x: 60, y: 200 },
+          { id: "sniper-east", name: "Sniper · East wall", type: "hazard", x: 1000, y: 300 },
+          { id: "mortar", name: "Mortar zone", type: "mortar", x: 500, y: 350 }
+        ],
+        quests: [
+          { id: "q-bronze", name: "Bronze pocket watch", type: "quest_item", x: 200, y: 250, note: "Background Check" },
+          { id: "q-teller", name: "Dorms 203 safe", type: "quest_objective", x: 785, y: 190, note: "Shaking Up the Teller" },
+          { id: "q-customs-office", name: "Customs office docs", type: "quest_item", x: 350, y: 175, note: "Delivery from the Past" }
+        ]
+      }
     };
 
-    const BASE = "https://tarkov.dev/map/";
-    const select = document.getElementById("mapSelect");
-    const frame  = document.getElementById("mapFrame");
-    const loading = document.getElementById("loading");
-    const STORAGE_KEY = "tt:map:last";
+    const ICONS = {
+      pmc: ASSETS + "extract_pmc.png",
+      scav: ASSETS + "extract_scav.png",
+      shared: ASSETS + "extract_shared.png",
+      transit: ASSETS + "extract_transit.png",
+      spawn_pmc: ASSETS + "spawn_pmc.png",
+      spawn_scav: ASSETS + "spawn_scav.png",
+      boss: ASSETS + "spawn_boss.png",
+      safe: ASSETS + "container_safe.png",
+      "weapon-box": ASSETS + "container_weapon-box.png",
+      medcase: ASSETS + "container_medcase.png",
+      jacket: ASSETS + "container_jacket.png",
+      "pc-block": ASSETS + "container_pc-block.png",
+      "ground-cache": ASSETS + "container_ground-cache.png",
+      toolbox: ASSETS + "container_toolbox.png",
+      hazard: ASSETS + "hazard.png",
+      mortar: ASSETS + "hazard_mortar.png",
+      quest_item: ASSETS + "quest_item.png",
+      quest_objective: ASSETS + "quest_objective.png"
+    };
 
-    function getUrl(key) {
-      const m = MAPS[key] || MAPS.customs;
-      return BASE + m.path;
+    function iconFor(item, layer) {
+      let key;
+      if (layer === "extracts") key = item.faction || "shared";
+      else if (layer === "spawns") key = item.faction === "boss" ? "boss" : (item.faction === "scav" ? "spawn_scav" : "spawn_pmc");
+      else if (layer === "containers") key = item.type || "safe";
+      else if (layer === "hazards") key = item.type || "hazard";
+      else if (layer === "quests") key = item.type || "quest_objective";
+      else key = "shared";
+      const url = ICONS[key] || ICONS.shared;
+      return L.divIcon({
+        className: "tt-marker-icon",
+        html: '<img src="' + url + '" alt="">',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        popupAnchor: [0, -14]
+      });
     }
 
-    function showLoading(on) {
-      loading.classList.toggle("visible", !!on);
-    }
-
-    function loadMap(key, force) {
-      const url = getUrl(key);
-      const current = frame.src || "";
-      if (!force && current.indexOf(url) === 0) return;
-      showLoading(true);
-      frame.src = url;
-      try { localStorage.setItem(STORAGE_KEY, key); } catch (_) {}
-      // hide loading after a short delay (iframe load events are cross-origin limited)
-      setTimeout(() => showLoading(false), 1800);
-    }
-
-    // restore last map
-    let initial = "customs";
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved && MAPS[saved]) initial = saved;
-    } catch (_) {}
-    select.value = initial;
-    loadMap(initial);
-
-    select.addEventListener("change", () => loadMap(select.value));
-
-    document.getElementById("btnReload").addEventListener("click", () => {
-      loadMap(select.value, true);
+    const map = L.map("map", {
+      crs: L.CRS.Simple,
+      minZoom: -1,
+      maxZoom: 3,
+      zoomSnap: 0.25,
+      zoomDelta: 0.5,
+      attributionControl: false
     });
 
-    document.getElementById("btnOpen").addEventListener("click", () => {
-      window.open(getUrl(select.value), "_blank", "noopener,noreferrer");
-    });
+    let imageOverlay = null;
+    const layerGroups = {
+      extracts: L.layerGroup(),
+      spawns: L.layerGroup(),
+      containers: L.layerGroup(),
+      hazards: L.layerGroup(),
+      quests: L.layerGroup()
+    };
+    const activeLayers = new Set(["extracts", "spawns"]);
+    let currentMarkers = [];
 
-    document.getElementById("btnFullscreen").addEventListener("click", () => {
-      const wrap = document.getElementById("frameWrap");
-      if (!document.fullscreenElement) {
-        (wrap.requestFullscreen || wrap.webkitRequestFullscreen || wrap.msRequestFullscreen)?.call(wrap);
-      } else {
-        (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen)?.call(document);
+    function toLatLng(x, y) {
+      return [BOUNDS[1][0] - y, x];
+    }
+
+    function loadMap(key) {
+      const d = DATA[key];
+      if (!d) return;
+      document.getElementById("status").textContent = d.label + " · SVG";
+
+      if (imageOverlay) map.removeLayer(imageOverlay);
+      Object.values(layerGroups).forEach(function (g) { g.clearLayers(); map.removeLayer(g); });
+
+      imageOverlay = L.imageOverlay(d.svg, BOUNDS, { interactive: false, opacity: 0.95 });
+      imageOverlay.addTo(map);
+      map.fitBounds(BOUNDS, { padding: [20, 20] });
+
+      currentMarkers = [];
+      function addMarkers(list, layerName) {
+        (list || []).forEach(function (item) {
+          const m = L.marker(toLatLng(item.x, item.y), { icon: iconFor(item, layerName) });
+          const faction = item.faction ? " · " + item.faction : "";
+          const note = item.note ? "<br><span style=\"color:var(--muted)\">" + item.note + "</span>" : "";
+          m.bindPopup("<strong>" + item.name + "</strong>" + faction + note);
+          m._ttData = Object.assign({}, item, { layer: layerName });
+          layerGroups[layerName].addLayer(m);
+          currentMarkers.push(m);
+        });
       }
+
+      addMarkers(d.extracts, "extracts");
+      addMarkers(d.spawns, "spawns");
+      addMarkers(d.containers, "containers");
+      addMarkers(d.hazards, "hazards");
+      addMarkers(d.quests, "quests");
+
+      activeLayers.forEach(function (l) { layerGroups[l].addTo(map); });
+      rebuildList();
+    }
+
+    function rebuildList() {
+      const ul = document.getElementById("markerList");
+      ul.innerHTML = "";
+      currentMarkers
+        .filter(function (m) { return activeLayers.has(m._ttData.layer); })
+        .sort(function (a, b) { return a._ttData.name.localeCompare(b._ttData.name); })
+        .forEach(function (m) {
+          const d = m._ttData;
+          const li = document.createElement("li");
+          var imgKey;
+          if (d.layer === "extracts") imgKey = d.faction || "shared";
+          else if (d.layer === "spawns") imgKey = d.faction === "boss" ? "boss" : (d.faction === "scav" ? "spawn_scav" : "spawn_pmc");
+          else if (d.layer === "containers") imgKey = d.type;
+          else if (d.layer === "hazards") imgKey = d.type || "hazard";
+          else imgKey = d.type || "quest_objective";
+          const src = ICONS[imgKey] || ICONS.shared;
+          li.innerHTML = "<img src=\"" + src + "\" alt=\"\"><div><div>" + d.name + "</div>" +
+            (d.note ? "<div class=\"meta\">" + d.note + "</div>" : "") + "</div>";
+          li.addEventListener("click", function () {
+            map.setView(m.getLatLng(), Math.max(map.getZoom(), 1.5));
+            m.openPopup();
+          });
+          ul.appendChild(li);
+        });
+    }
+
+    document.getElementById("filters").addEventListener("click", function (e) {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+      const layer = chip.dataset.layer;
+      chip.classList.toggle("active");
+      if (chip.classList.contains("active")) {
+        activeLayers.add(layer);
+        layerGroups[layer].addTo(map);
+      } else {
+        activeLayers.delete(layer);
+        map.removeLayer(layerGroups[layer]);
+      }
+      rebuildList();
     });
 
-    // notify parent hub (if embedded) that tool is ready
+    document.getElementById("btnList").addEventListener("click", function () {
+      document.getElementById("sidebar").classList.toggle("open");
+    });
+    document.getElementById("btnFit").addEventListener("click", function () {
+      map.fitBounds(BOUNDS, { padding: [20, 20] });
+    });
+    document.getElementById("mapSelect").addEventListener("change", function (e) {
+      loadMap(e.target.value);
+    });
+
+    loadMap("customs");
+
     try {
       if (window.parent !== window) {
         window.parent.postMessage({ type: "tt-tool-ready", tool: "map" }, "*");
