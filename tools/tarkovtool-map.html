@@ -215,6 +215,22 @@
           if (!fid) return;
           if (!layerByFilter[fid]) layerByFilter[fid] = L.layerGroup();
           var m;
+          if (item.outline && item.outline.length >= 3) {
+            var latlngs = item.outline.map(function (p) { return toLatLng(p[0], p[1]); });
+            m = L.polygon(latlngs, {
+              color: fid === "task-zone" ? "#f0c040" : "#e05050",
+              weight: 1.5,
+              fillColor: fid === "task-zone" ? "#f0c040" : "#e05050",
+              fillOpacity: 0.2
+            });
+            m.bindPopup("<strong>" + item.name + "</strong>" + (item.note ? "<br>" + item.note : ""));
+            layerByFilter[fid].addLayer(m);
+            // also center marker
+            m = L.marker(toLatLng(item.x, item.y), { icon: iconFor(fid) });
+            m.bindPopup("<strong>" + item.name + "</strong>" + (item.note ? "<br>" + item.note : ""));
+            layerByFilter[fid].addLayer(m);
+            return;
+          }
           if (isLabel) {
             m = L.marker(toLatLng(item.x, item.y), { icon: labelIcon(item.name) });
           } else {
