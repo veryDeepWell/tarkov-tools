@@ -84,6 +84,21 @@
     .tt-marker-icon {
       background: transparent !important; border: none !important;
     }
+    .tt-label {
+      background: transparent !important; border: none !important;
+    }
+    .tt-label span {
+      display: inline-block;
+      background: rgba(15,17,21,.75);
+      color: var(--accent);
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+      border: 1px solid rgba(201,162,39,.35);
+      pointer-events: none;
+    }
     .tt-marker-icon img {
       width: 28px; height: 28px; object-fit: contain;
       filter: drop-shadow(0 1px 2px rgba(0,0,0,.8));
@@ -119,6 +134,8 @@
         <span class="chip" data-layer="containers"><img src="map-assets/container_safe.png" alt=""> Контейнеры</span>
         <span class="chip" data-layer="hazards"><img src="map-assets/hazard.png" alt=""> Опасности</span>
         <span class="chip" data-layer="quests"><img src="map-assets/quest_objective.png" alt=""> Квесты</span>
+        <span class="chip" data-layer="switches"><img src="map-assets/switch.png" alt=""> Рычаги</span>
+        <span class="chip active" data-layer="labels">🏷 Метки</span>
       </div>
       <button type="button" class="btn-ghost" id="btnList" title="Список маркеров">☰</button>
       <button type="button" class="btn-ghost" id="btnFit" title="Вписать карту">⤢</button>
@@ -146,54 +163,97 @@
         label: "Customs",
         svg: ASSETS + "Customs.svg",
         extracts: [
-          { id: "crossroads", name: "Crossroads", faction: "pmc", x: 80, y: 260, note: "Открытый" },
-          { id: "trailer-park", name: "Trailer Park", faction: "pmc", x: 95, y: 420, note: "Открытый" },
-          { id: "ruaf", name: "RUAF Roadblock", faction: "pmc", x: 200, y: 480, note: "Открытый" },
-          { id: "zb-1011", name: "ZB-1011", faction: "pmc", x: 980, y: 380, note: "Открытый" },
-          { id: "zb-1012", name: "ZB-1012", faction: "pmc", x: 920, y: 450, note: "Ключ ZB-1012" },
-          { id: "old-gas", name: "Old Gas Station", faction: "pmc", x: 620, y: 420, note: "Зелёная ракета" },
-          { id: "dorms-vex", name: "Dorms V-Ex", faction: "pmc", x: 780, y: 180, note: "5000₽, до 4 игроков" },
-          { id: "smuggler", name: "Smuggler's Boat", faction: "pmc", x: 50, y: 120, note: "Открытый" },
-          { id: "railroad-tarkov", name: "Railroad to Tarkov", faction: "scav", x: 520, y: 500, note: "Scav" },
-          { id: "factory-shacks", name: "Factory Shacks", faction: "scav", x: 180, y: 200, note: "Scav" },
-          { id: "military-base", name: "Railroad to Military Base", faction: "scav", x: 900, y: 100, note: "Scav" },
-          { id: "passage", name: "Passage between rocks", faction: "scav", x: 350, y: 80, note: "Scav" },
-          { id: "scav-checkpoint", name: "Scav Checkpoint", faction: "shared", x: 450, y: 300, note: "Shared" },
-          { id: "zb-013", name: "ZB-013", faction: "pmc", x: 700, y: 280, note: "Ключ ZB-013 + питание" }
+          { name: "ZB-1011", faction: "pmc", x: 68.2, y: 358.9, note: "Открытый · восток" },
+          { name: "ZB-1012", faction: "pmc", x: 232.5, y: 343.8, note: "Ключ / код Voron" },
+          { name: "ZB-013", faction: "pmc", x: 495.7, y: 375.8, note: "Рычаг Warehouse 4 + ключ Factory" },
+          { name: "Crossroads", faction: "shared", x: 1015.9, y: 323.0, note: "Открытый" },
+          { name: "Trailer Park", faction: "pmc", x: 1001.9, y: 445.1, note: "Открытый" },
+          { name: "RUAF Roadblock", faction: "pmc", x: 697.3, y: 363.9, note: "Условия ротируются" },
+          { name: "Smuggler's Boat", faction: "pmc", x: 721.9, y: 125.8, note: "Записка Voron" },
+          { name: "Dorms V-Ex", faction: "pmc", x: 503.3, y: 27.6, note: "5000₽ · до 4 игроков" },
+          { name: "Old Gas Station", faction: "pmc", x: 393.0, y: 415.2, note: "Зелёная ракета" },
+          { name: "Military Base CP", faction: "scav", x: 23.3, y: 111.5, note: "Scav" },
+          { name: "Passage Between Rocks", faction: "scav", x: 157.6, y: 36.1, note: "Scav" },
+          { name: "Railroad to Military Base", faction: "scav", x: 238.1, y: 55.1, note: "Scav" },
+          { name: "Old Road Gate", faction: "scav", x: 513.1, y: 22.6, note: "Scav" },
+          { name: "Sniper Roadblock", faction: "scav", x: 663.5, y: 116.4, note: "Scav" },
+          { name: "Railroad to Port", faction: "scav", x: 843.2, y: 209.8, note: "Scav" },
+          { name: "Railroad to Tarkov", faction: "scav", x: 858.2, y: 430.8, note: "Scav" },
+          { name: "Warehouse 17", faction: "scav", x: 645.9, y: 316.6, note: "Scav" },
+          { name: "Factory Far Corner", faction: "scav", x: 50.5, y: 381.4, note: "Scav" },
+          { name: "Trailer Park Workers Shack", faction: "scav", x: 943.2, y: 456.9, note: "Scav" },
+          { name: "Scav Checkpoint", faction: "scav", x: 50.5, y: 258.7, note: "Scav" },
+          { name: "Administration Gate", faction: "scav", x: 30.5, y: 290.5, note: "Scav" },
+          { name: "Factory Shacks", faction: "scav", x: 644.0, y: 282.3, note: "Scav" }
         ],
         spawns: [
-          { id: "pmc-bigred", name: "PMC · Big Red", faction: "pmc", x: 150, y: 280 },
-          { id: "pmc-dorms", name: "PMC · Dorms", faction: "pmc", x: 820, y: 200 },
-          { id: "pmc-construction", name: "PMC · Construction", faction: "pmc", x: 400, y: 100 },
-          { id: "pmc-trailer", name: "PMC · Trailer Park", faction: "pmc", x: 120, y: 400 },
-          { id: "pmc-warehouse", name: "PMC · Warehouse 4", faction: "pmc", x: 550, y: 200 },
-          { id: "scav-gas", name: "Scav · New Gas", faction: "scav", x: 600, y: 150 },
-          { id: "scav-fortress", name: "Scav · Fortress", faction: "scav", x: 300, y: 350 },
-          { id: "scav-dorms", name: "Scav · Dorms", faction: "scav", x: 750, y: 250 },
-          { id: "boss-reshala", name: "Boss · Reshala", faction: "boss", x: 720, y: 220, note: "~30–35%" }
+          { name: "PMC · Big Red", faction: "pmc", x: 907.4, y: 350.2 },
+          { name: "PMC · Dorms", faction: "pmc", x: 495.0, y: 85.6 },
+          { name: "PMC · Construction", faction: "pmc", x: 693.7, y: 134.8 },
+          { name: "PMC · Trailer Park", faction: "pmc", x: 1001.9, y: 430.0 },
+          { name: "PMC · Warehouse 4", faction: "pmc", x: 345.9, y: 272.5 },
+          { name: "PMC · Crossroads", faction: "pmc", x: 1010.0, y: 310.0 },
+          { name: "PMC · New Gas", faction: "pmc", x: 292.2, y: 202.7 },
+          { name: "PMC · Fortress", faction: "pmc", x: 594.4, y: 282.3 },
+          { name: "Scav · Old Gas", faction: "scav", x: 364.8, y: 403.3 },
+          { name: "Scav · Dorms", faction: "scav", x: 510.0, y: 100.0 },
+          { name: "Scav · Fortress", faction: "scav", x: 580.0, y: 270.0 },
+          { name: "Scav · Warehouse 17", faction: "scav", x: 645.9, y: 300.0 },
+          { name: "Scav · Military Base", faction: "scav", x: 40.0, y: 120.0 },
+          { name: "Boss · Reshala (Dorms)", faction: "boss", x: 500.0, y: 90.0, note: "~30–75%" },
+          { name: "Boss · Reshala (New Gas)", faction: "boss", x: 292.2, y: 202.7, note: "~30–75%" },
+          { name: "Boss · Reshala (Stronghold)", faction: "boss", x: 594.4, y: 282.3, note: "~30–75%" }
         ],
         containers: [
-          { id: "safe-dorms", name: "Safe · Dorms 214", type: "safe", x: 790, y: 195 },
-          { id: "safe-gas", name: "Safe · Old Gas", type: "safe", x: 630, y: 410 },
-          { id: "weapon-box-1", name: "Weapon box · Warehouse", type: "weapon-box", x: 480, y: 220 },
-          { id: "medcase-1", name: "Medcase · Big Red", type: "medcase", x: 160, y: 270 },
-          { id: "jacket-1", name: "Jacket · Trailer", type: "jacket", x: 100, y: 410 },
-          { id: "pc-block", name: "PC block · Customs office", type: "pc-block", x: 340, y: 180 },
-          { id: "cache-1", name: "Ground cache", type: "ground-cache", x: 250, y: 320 },
-          { id: "toolbox-1", name: "Toolbox · Construction", type: "toolbox", x: 420, y: 90 }
+          { name: "Safe · Dorms 214", type: "safe", x: 510.0, y: 80.0 },
+          { name: "Safe · Old Gas", type: "safe", x: 400.0, y: 410.0 },
+          { name: "Safe · Big Red", type: "safe", x: 900.0, y: 340.0 },
+          { name: "Weapon box · Warehouse 4", type: "weapon-box", x: 350.0, y: 260.0 },
+          { name: "Weapon box · Fortress", type: "weapon-box", x: 590.0, y: 270.0 },
+          { name: "Medcase · Big Red", type: "medcase", x: 910.0, y: 355.0 },
+          { name: "Medcase · Dorms", type: "medcase", x: 490.0, y: 95.0 },
+          { name: "Jacket · Trailer Park", type: "jacket", x: 990.0, y: 440.0 },
+          { name: "Jacket · Dorms", type: "jacket", x: 520.0, y: 70.0 },
+          { name: "PC block · Customs office", type: "pc-block", x: 480.0, y: 200.0 },
+          { name: "Ground cache · River", type: "ground-cache", x: 750.0, y: 250.0 },
+          { name: "Ground cache · Construction", type: "ground-cache", x: 700.0, y: 140.0 },
+          { name: "Toolbox · Construction", type: "toolbox", x: 680.0, y: 120.0 },
+          { name: "Toolbox · Warehouse 17", type: "toolbox", x: 640.0, y: 320.0 },
+          { name: "Wooden crate · Big Red", type: "weapon-box", x: 920.0, y: 360.0 },
+          { name: "Grenade box · Fortress", type: "weapon-box", x: 600.0, y: 290.0 }
         ],
         hazards: [
-          { id: "sniper-west", name: "Sniper · West", type: "hazard", x: 60, y: 200 },
-          { id: "sniper-east", name: "Sniper · East wall", type: "hazard", x: 1000, y: 300 },
-          { id: "mortar", name: "Mortar zone", type: "mortar", x: 500, y: 350 }
+          { name: "Sniper · West wall", type: "hazard", x: 1020.0, y: 200.0 },
+          { name: "Sniper · East wall", type: "hazard", x: 40.0, y: 200.0 },
+          { name: "Sniper Roadblock zone", type: "hazard", x: 663.5, y: 116.4 },
+          { name: "Mortar / danger zone", type: "mortar", x: 550.0, y: 300.0 }
         ],
         quests: [
-          { id: "q-bronze", name: "Bronze pocket watch", type: "quest_item", x: 200, y: 250, note: "Background Check" },
-          { id: "q-teller", name: "Dorms 203 safe", type: "quest_objective", x: 785, y: 190, note: "Shaking Up the Teller" },
-          { id: "q-customs-office", name: "Customs office docs", type: "quest_item", x: 350, y: 175, note: "Delivery from the Past" }
+          { name: "Bronze pocket watch", type: "quest_item", x: 900.0, y: 340.0, note: "Background Check · Big Red" },
+          { name: "Dorms 203 safe", type: "quest_objective", x: 505.0, y: 78.0, note: "Shaking Up the Teller" },
+          { name: "Customs office docs", type: "quest_item", x: 480.0, y: 195.0, note: "Delivery from the Past" },
+          { name: "Fuel tank trucks", type: "quest_objective", x: 400.0, y: 250.0, note: "Oil Run · MS2000" },
+          { name: "UN Tigr vehicles", type: "quest_objective", x: 700.0, y: 200.0, note: "Tigr Safari · MS2000" },
+          { name: "REAP-IR stash (New Gas)", type: "quest_objective", x: 292.2, y: 202.7, note: "The Courier" }
+        ],
+        switches: [
+          { name: "ZB-013 Switch", x: 343.7, y: 273.3, note: "Warehouse 4 · питание ZB-013" }
+        ],
+        labels: [
+          { name: "Big Red", x: 907.4, y: 350.2 },
+          { name: "Dorms", x: 495.0, y: 85.6 },
+          { name: "New Gas", x: 292.2, y: 202.7 },
+          { name: "Old Gas", x: 364.8, y: 403.3 },
+          { name: "Fortress", x: 594.4, y: 282.3 },
+          { name: "Construction", x: 693.7, y: 134.8 },
+          { name: "Warehouse 4", x: 345.9, y: 272.5 },
+          { name: "Warehouse 17", x: 645.9, y: 316.6 },
+          { name: "Trailer Park", x: 1001.9, y: 445.1 },
+          { name: "Crossroads", x: 1015.9, y: 323.0 }
         ]
       }
     };
+
 
     const ICONS = {
       pmc: ASSETS + "extract_pmc.png",
@@ -213,7 +273,8 @@
       hazard: ASSETS + "hazard.png",
       mortar: ASSETS + "hazard_mortar.png",
       quest_item: ASSETS + "quest_item.png",
-      quest_objective: ASSETS + "quest_objective.png"
+      quest_objective: ASSETS + "quest_objective.png",
+      switch: ASSETS + "switch.png"
     };
 
     function iconFor(item, layer) {
@@ -223,6 +284,7 @@
       else if (layer === "containers") key = item.type || "safe";
       else if (layer === "hazards") key = item.type || "hazard";
       else if (layer === "quests") key = item.type || "quest_objective";
+      else if (layer === "switches") key = "switch";
       else key = "shared";
       const url = ICONS[key] || ICONS.shared;
       return L.divIcon({
@@ -249,9 +311,11 @@
       spawns: L.layerGroup(),
       containers: L.layerGroup(),
       hazards: L.layerGroup(),
-      quests: L.layerGroup()
+      quests: L.layerGroup(),
+      switches: L.layerGroup(),
+      labels: L.layerGroup()
     };
-    const activeLayers = new Set(["extracts", "spawns"]);
+    const activeLayers = new Set(["extracts", "spawns", "labels"]);
     let currentMarkers = [];
 
     function toLatLng(x, y) {
@@ -288,6 +352,22 @@
       addMarkers(d.containers, "containers");
       addMarkers(d.hazards, "hazards");
       addMarkers(d.quests, "quests");
+      addMarkers(d.switches, "switches");
+
+      // labels as text markers
+      (d.labels || []).forEach(function (item) {
+        var m = L.marker(toLatLng(item.x, item.y), {
+          icon: L.divIcon({
+            className: "tt-label",
+            html: "<span>" + item.name + "</span>",
+            iconSize: [80, 18],
+            iconAnchor: [40, 9]
+          })
+        });
+        m._ttData = Object.assign({}, item, { layer: "labels", name: item.name });
+        layerGroups.labels.addLayer(m);
+        currentMarkers.push(m);
+      });
 
       activeLayers.forEach(function (l) { layerGroups[l].addTo(map); });
       rebuildList();
@@ -307,6 +387,8 @@
           else if (d.layer === "spawns") imgKey = d.faction === "boss" ? "boss" : (d.faction === "scav" ? "spawn_scav" : "spawn_pmc");
           else if (d.layer === "containers") imgKey = d.type;
           else if (d.layer === "hazards") imgKey = d.type || "hazard";
+          else if (d.layer === "switches") imgKey = "switch";
+          else if (d.layer === "labels") imgKey = "shared";
           else imgKey = d.type || "quest_objective";
           const src = ICONS[imgKey] || ICONS.shared;
           li.innerHTML = "<img src=\"" + src + "\" alt=\"\"><div><div>" + d.name + "</div>" +
