@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../core/tarkov-common.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <script type="application/json" id="tarkovtool-meta">
-  {"id":"tarkovtool-map.html","title":"Карта","description":"Интерактивная карта Customs: фильтры как на tarkov.dev","file":"tarkovtool-map.html","cat":"util","kind":"static","icon":"map"}
+  {"id":"tarkovtool-map.html","title":"Карта","description":"Интерактивные карты EFT: extracts, spawns, loot, quests","file":"tarkovtool-map.html","cat":"util","kind":"static","icon":"map"}
   </script>
   <style>
     html,body{height:100%;margin:0;overflow:hidden;background:var(--bg)}
@@ -77,14 +77,13 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="map-data-customs.js"></script>
+  <script src="map-data-all.js"></script>
   <script>
   (function () {
     var ASSETS = "map-assets/";
-    var BOUNDS = [[0, 0], [535.17, 1062.48]];
-
     var GROUPS = window.TT_MAP_GROUPS;
-    var DATA = window.TT_MAP_DATA;
+    var MAPS = window.TT_MAPS || {};
+    var ORDER = window.TT_MAP_ORDER || Object.keys(MAPS);
 
     var FILTER_ICON = {};
     GROUPS.forEach(function (g) {
@@ -104,10 +103,12 @@
     var imageOverlay = null;
     var activeZoneLayer = null;
     var activeZoneKey = null;
+    var currentMapId = "customs";
+    var BOUNDS = [[0, 0], [535.17, 1062.48]];
 
     var map = L.map("map", {
       crs: L.CRS.Simple,
-      minZoom: -1, maxZoom: 3,
+      minZoom: -2, maxZoom: 4,
       zoomSnap: 0.25, zoomDelta: 0.5,
       attributionControl: false
     });
@@ -131,7 +132,22 @@
       });
     }
 
+    function fillMapSelect() {
+      var sel = document.getElementById("mapSelect");
+      sel.innerHTML = "";
+      ORDER.forEach(function (id) {
+        if (!MAPS[id]) return;
+        var opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = MAPS[id].title || id;
+        if (id === currentMapId) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+
     function buildFiltersUI() {
+      var meta = MAPS[currentMapId];
+      var DATA = (meta && meta.data) || {};
       var host = document.getElementById("filterGroups");
       host.innerHTML = "";
       GROUPS.forEach(function (g) {
@@ -171,8 +187,10 @@
           var row = document.createElement("label");
           row.className = "fi";
           row.dataset.filter = it.id;
-          var img = it.icon ? '<img src="' + ASSETS + it.icon + '" alt="">' : "";
-          row.innerHTML = '<input type="checkbox"' + (activeFilters.has(it.id) ? " checked" : "") + '>' + img + '<span>' + it.name + '</span><span class="cnt">' + (counts[it.id] || 0) + '</span>';
+          var checked = activeFilters.has(it.id) ? " checked" : "";
+          var icon = it.icon ? '<img src="' + ASSETS + it.icon + '" alt="">' : "";
+          var cnt = counts[it.id] || 0;
+          row.innerHTML = '<input type="checkbox"' + checked + '>' + icon + '<span>' + it.name + '</span><span class="cnt">' + cnt + '</span>';
           row.querySelector("input").addEventListener("change", function (e) {
             if (e.target.checked) activeFilters.add(it.id); else activeFilters.delete(it.id);
             applyFilters();
@@ -199,45 +217,48 @@
       activeFilters.forEach(function (fid) {
         if (layerByFilter[fid]) n += layerByFilter[fid].getLayers().length;
       });
-      document.getElementById("status").textContent = "Customs · " + n + " маркеров";
+      var title = (MAPS[currentMapId] && MAPS[currentMapId].title) || currentMapId;
+      document.getElementById("status").textContent = title + " · " + n + " маркеров";
     }
 
-    function loadMap() {
+    function clearActiveZone() {
+      if (activeZoneLayer) {
+        map.removeLayer(activeZoneLayer);
+        activeZoneLayer = null;
+        activeZoneKey = null;
+      }
+    }
+
+    function showZoneFor(item, key) {
+      if (activeZoneKey === key) { clearActiveZone(); return; }
+      clearActiveZone();
+      if (!item.outline || item.outline.length < 3) return;
+      var latlngs = item.outline.map(function (p) { return toLatLng(p[0], p[1]); });
+      activeZoneLayer = L.polygon(latlngs, {
+        color: "#f0c040", weight: 2, fillColor: "#f0c040", fillOpacity: 0.25, interactive: false
+      });
+      activeZoneLayer.addTo(map);
+      activeZoneKey = key;
+    }
+
+    function loadMap(mapId) {
+      if (mapId) currentMapId = mapId;
+      var meta = MAPS[currentMapId];
+      if (!meta) {
+        document.getElementById("status").textContent = "Нет данных: " + currentMapId;
+        return;
+      }
+      var DATA = meta.data || {};
+      BOUNDS = [[0, 0], [meta.H, meta.W]];
+
       if (imageOverlay) map.removeLayer(imageOverlay);
-      if (activeZoneLayer) { map.removeLayer(activeZoneLayer); activeZoneLayer = null; activeZoneKey = null; }
+      clearActiveZone();
       Object.keys(layerByFilter).forEach(function (k) { map.removeLayer(layerByFilter[k]); });
       layerByFilter = {};
 
-      imageOverlay = L.imageOverlay(ASSETS + "Customs.svg", BOUNDS, { interactive: false, opacity: 0.95 });
+      imageOverlay = L.imageOverlay(ASSETS + meta.svg, BOUNDS, { interactive: false, opacity: 0.95 });
       imageOverlay.addTo(map);
       map.fitBounds(BOUNDS, { padding: [16, 16] });
-
-      function clearActiveZone() {
-        if (activeZoneLayer) {
-          map.removeLayer(activeZoneLayer);
-          activeZoneLayer = null;
-          activeZoneKey = null;
-        }
-      }
-
-      function showZoneFor(item, key) {
-        if (activeZoneKey === key) {
-          clearActiveZone();
-          return;
-        }
-        clearActiveZone();
-        if (!item.outline || item.outline.length < 3) return;
-        var latlngs = item.outline.map(function (p) { return toLatLng(p[0], p[1]); });
-        activeZoneLayer = L.polygon(latlngs, {
-          color: "#f0c040",
-          weight: 2,
-          fillColor: "#f0c040",
-          fillOpacity: 0.25,
-          interactive: false
-        });
-        activeZoneLayer.addTo(map);
-        activeZoneKey = key;
-      }
 
       function addList(list, isLabel) {
         (list || []).forEach(function (item, idx) {
@@ -245,14 +266,10 @@
           if (!fid) return;
           if (!layerByFilter[fid]) layerByFilter[fid] = L.layerGroup();
           var m;
-          // Hazard outlines: always drawn with the layer (filter-controlled)
           if (item.outline && item.outline.length >= 3 && fid.indexOf("task-") !== 0) {
             var latlngs = item.outline.map(function (p) { return toLatLng(p[0], p[1]); });
             var poly = L.polygon(latlngs, {
-              color: "#e05050",
-              weight: 1.5,
-              fillColor: "#e05050",
-              fillOpacity: 0.2
+              color: "#e05050", weight: 1.5, fillColor: "#e05050", fillOpacity: 0.2
             });
             poly.bindPopup("<strong>" + item.name + "</strong>");
             layerByFilter[fid].addLayer(poly);
@@ -303,6 +320,9 @@
       applyFilters();
     }
 
+    document.getElementById("mapSelect").addEventListener("change", function (e) {
+      loadMap(e.target.value);
+    });
     document.getElementById("btnFilters").addEventListener("click", function () {
       document.getElementById("filterPanel").classList.toggle("hidden");
     });
@@ -314,11 +334,12 @@
     document.getElementById("btnAll2").addEventListener("click", function () { setAll(true); });
     document.getElementById("btnNone2").addEventListener("click", function () { setAll(false); });
 
-    loadMap();
+    fillMapSelect();
+    loadMap(currentMapId);
     try {
       if (window.parent !== window) window.parent.postMessage({ type: "tt-tool-ready", tool: "map" }, "*");
     } catch (e) {}
   })();
-  </script>
+  </script></script>
 </body>
 </html>
