@@ -44,6 +44,9 @@
     .leaflet-control-zoom a{background:var(--card)!important;color:var(--text)!important;border-color:var(--border)!important}
     .tt-marker-icon{background:transparent!important;border:none!important}
     .tt-marker-icon img{width:24px;height:24px;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))}
+    .tt-marker-ghost{opacity:.35}
+    .tt-marker-ghost img{filter:grayscale(.4) drop-shadow(0 1px 2px rgba(0,0,0,.5))}
+    .status-bar{display:none!important}
     .tt-label{background:transparent!important;border:none!important}
     .tt-label span{display:inline-block;background:rgba(15,17,21,.78);color:var(--accent);font-size:.68rem;font-weight:600;padding:1px 6px;border-radius:4px;white-space:nowrap;border:1px solid rgba(201,162,39,.35);pointer-events:none}
     .credit{position:absolute;bottom:8px;left:10px;z-index:800;font-size:.65rem;color:rgba(201,162,39,.6);background:rgba(0,0,0,.5);padding:2px 7px;border-radius:4px;pointer-events:none}
@@ -55,8 +58,10 @@
   <div class="map-shell">
     <div class="map-toolbar">
       <h1>Карта</h1>
-      <select id="mapSelect"><option value="customs" selected>Customs</option></select>
-      <button type="button" class="btn-ghost" id="btnFilters">☰ Фильтры</button>
+      <select id="mapSelect"></select>
+      <select id="floorSelect" title="Этаж" style="display:none"></select>
+      <button type="button" class="btn-ghost" id="btnFilters">☰ Слои</button>
+      <button type="button" class="btn-ghost" id="btnSettings">⚙</button>
       <button type="button" class="btn-ghost" id="btnFit">⤢</button>
       <button type="button" class="btn-ghost" id="btnAll">Все</button>
       <button type="button" class="btn-ghost" id="btnNone">Нет</button>
@@ -71,8 +76,17 @@
         </div>
         <div id="filterGroups"></div>
       </div>
-      <div class="credit">SVG © the-hideout (CC BY-NC-SA) · icons tarkov.dev</div>
-      <div class="status-bar" id="status">Customs</div>
+      <div class="filter-panel settings-panel hidden" id="settingsPanel">
+        <div class="fp-head"><strong>Настройки меток</strong></div>
+        <div style="padding:12px;font-size:.85rem;color:var(--muted);display:flex;flex-direction:column;gap:10px">
+          <label class="fi" style="cursor:pointer">
+            <input type="checkbox" id="optShowAllFloors">
+            <span>Показывать метки с других этажей</span>
+          </label>
+          <p style="margin:0;font-size:.75rem;opacity:.8">Если выключено — видны только метки текущего этажа. Если включено — метки других этажей полупрозрачные.</p>
+        </div>
+      </div>
+      <div class="credit">SVG © the-hideout (CC BY-NC-SA) · данные json.tarkov.dev</div>
     </div>
   </div>
 
@@ -104,7 +118,14 @@
     var activeZoneLayer = null;
     var activeZoneKey = null;
     var currentMapId = "customs";
+    var currentFloor = "ground";
+    var showAllFloors = false;
     var BOUNDS = [[0, 0], [535.17, 1062.48]];
+    var allMarkers = []; // {layer, item, fid}
+
+    try {
+      showAllFloors = localStorage.getItem("tt-map-show-all-floors") === "1";
+    } catch (e) {}
 
     var map = L.map("map", {
       crs: L.CRS.Simple,
@@ -115,10 +136,10 @@
 
     function toLatLng(x, y) { return [BOUNDS[1][0] - y, x]; }
 
-    function iconFor(filterId) {
+    function iconFor(filterId, ghost) {
       var url = FILTER_ICON[filterId] || ASSETS + "loose_loot.png";
       return L.divIcon({
-        className: "tt-marker-icon",
+        className: "tt-marker-icon" + (ghost ? " tt-marker-ghost" : ""),
         html: '<img src="' + url + '" alt="">',
         iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -12]
       });
@@ -145,6 +166,29 @@
       });
     }
 
+    function fillFloorSelect() {
+      var meta = MAPS[currentMapId];
+      var sel = document.getElementById("floorSelect");
+      var floors = (meta && meta.floors) || [];
+      if (floors.length <= 1) {
+        sel.style.display = "none";
+        currentFloor = floors[0] ? floors[0].id : "ground";
+        return;
+      }
+      sel.style.display = "";
+      sel.innerHTML = "";
+      floors.forEach(function (f, i) {
+        var opt = document.createElement("option");
+        opt.value = f.id;
+        opt.textContent = f.name || f.id;
+        sel.appendChild(opt);
+      });
+      // keep previous if exists
+      var has = floors.some(function (f) { return f.id === currentFloor; });
+      if (!has) currentFloor = floors[0].id;
+      sel.value = currentFloor;
+    }
+
     function buildFiltersUI() {
       var meta = MAPS[currentMapId];
       var DATA = (meta && meta.data) || {};
@@ -154,13 +198,13 @@
         var counts = {};
         g.items.forEach(function (it) { counts[it.id] = 0; });
         (DATA[g.id] || []).forEach(function (m) {
-          if (m.filter && counts[m.filter] !== undefined) counts[m.filter]++;
+          if (m.filter && counts[m.filter] !== undefined) {
+            if (showAllFloors || !m.floor || m.floor === currentFloor) counts[m.filter]++;
+          }
         });
 
         var fg = document.createElement("div");
         fg.className = "fg open";
-        fg.dataset.group = g.id;
-
         var title = document.createElement("div");
         title.className = "fg-title";
         var groupChecked = g.items.some(function (it) { return activeFilters.has(it.id); });
@@ -189,13 +233,11 @@
           row.dataset.filter = it.id;
           var checked = activeFilters.has(it.id) ? " checked" : "";
           var icon = it.icon ? '<img src="' + ASSETS + it.icon + '" alt="">' : "";
-          var cnt = counts[it.id] || 0;
-          row.innerHTML = '<input type="checkbox"' + checked + '>' + icon + '<span>' + it.name + '</span><span class="cnt">' + cnt + '</span>';
+          row.innerHTML = '<input type="checkbox"' + checked + '>' + icon + '<span>' + it.name + '</span><span class="cnt">' + (counts[it.id] || 0) + '</span>';
           row.querySelector("input").addEventListener("change", function (e) {
             if (e.target.checked) activeFilters.add(it.id); else activeFilters.delete(it.id);
             applyFilters();
-            var any = g.items.some(function (x) { return activeFilters.has(x.id); });
-            title.querySelector("input").checked = any;
+            title.querySelector("input").checked = g.items.some(function (x) { return activeFilters.has(x.id); });
           });
           body.appendChild(row);
         });
@@ -204,21 +246,36 @@
       });
     }
 
+    function markerVisible(item) {
+      if (!activeFilters.has(item.filter)) return false;
+      if (showAllFloors) return true;
+      if (!item.floor) return true;
+      return item.floor === currentFloor;
+    }
+
+    function isGhost(item) {
+      return showAllFloors && item.floor && item.floor !== currentFloor;
+    }
+
     function applyFilters() {
-      Object.keys(layerByFilter).forEach(function (fid) {
-        var lg = layerByFilter[fid];
-        if (activeFilters.has(fid)) {
-          if (!map.hasLayer(lg)) map.addLayer(lg);
+      allMarkers.forEach(function (rec) {
+        var vis = markerVisible(rec.item);
+        var ghost = isGhost(rec.item);
+        if (vis) {
+          if (!map.hasLayer(rec.layer)) map.addLayer(rec.layer);
+          // update icon ghost state for markers
+          if (rec.layer.setIcon && rec.item.filter && rec.item.filter.indexOf("landmark") !== 0) {
+            try {
+              rec.layer.setIcon(iconFor(rec.item.filter, ghost));
+            } catch (e) {}
+          }
+          if (rec.layer.setStyle) {
+            rec.layer.setStyle({ opacity: ghost ? 0.35 : 1, fillOpacity: ghost ? 0.08 : 0.2 });
+          }
         } else {
-          if (map.hasLayer(lg)) map.removeLayer(lg);
+          if (map.hasLayer(rec.layer)) map.removeLayer(rec.layer);
         }
       });
-      var n = 0;
-      activeFilters.forEach(function (fid) {
-        if (layerByFilter[fid]) n += layerByFilter[fid].getLayers().length;
-      });
-      var title = (MAPS[currentMapId] && MAPS[currentMapId].title) || currentMapId;
-      document.getElementById("status").textContent = title + " · " + n + " маркеров";
     }
 
     function clearActiveZone() {
@@ -244,43 +301,51 @@
     function loadMap(mapId) {
       if (mapId) currentMapId = mapId;
       var meta = MAPS[currentMapId];
-      if (!meta) {
-        document.getElementById("status").textContent = "Нет данных: " + currentMapId;
-        return;
-      }
+      if (!meta) return;
       var DATA = meta.data || {};
       BOUNDS = [[0, 0], [meta.H, meta.W]];
+      fillFloorSelect();
 
       if (imageOverlay) map.removeLayer(imageOverlay);
       clearActiveZone();
-      Object.keys(layerByFilter).forEach(function (k) { map.removeLayer(layerByFilter[k]); });
+      Object.keys(layerByFilter).forEach(function (k) {
+        if (map.hasLayer(layerByFilter[k])) map.removeLayer(layerByFilter[k]);
+      });
       layerByFilter = {};
+      allMarkers = [];
 
       imageOverlay = L.imageOverlay(ASSETS + meta.svg, BOUNDS, { interactive: false, opacity: 0.95 });
       imageOverlay.addTo(map);
       map.fitBounds(BOUNDS, { padding: [16, 16] });
 
+      function track(layer, item) {
+        allMarkers.push({ layer: layer, item: item });
+        var fid = item.filter;
+        if (!layerByFilter[fid]) layerByFilter[fid] = L.layerGroup();
+        layerByFilter[fid].addLayer(layer);
+      }
+
       function addList(list, isLabel) {
         (list || []).forEach(function (item, idx) {
           var fid = item.filter;
           if (!fid) return;
-          if (!layerByFilter[fid]) layerByFilter[fid] = L.layerGroup();
-          var m;
           if (item.outline && item.outline.length >= 3 && fid.indexOf("task-") !== 0) {
             var latlngs = item.outline.map(function (p) { return toLatLng(p[0], p[1]); });
             var poly = L.polygon(latlngs, {
               color: "#e05050", weight: 1.5, fillColor: "#e05050", fillOpacity: 0.2
             });
             poly.bindPopup("<strong>" + item.name + "</strong>");
-            layerByFilter[fid].addLayer(poly);
+            track(poly, item);
           }
+          var m;
           if (isLabel) {
             m = L.marker(toLatLng(item.x, item.y), { icon: labelIcon(item.name) });
           } else {
-            m = L.marker(toLatLng(item.x, item.y), { icon: iconFor(fid) });
+            m = L.marker(toLatLng(item.x, item.y), { icon: iconFor(fid, false) });
             var note = item.note ? '<br><span style="color:var(--muted)">' + item.note + "</span>" : "";
             var fac = item.faction ? " · " + item.faction : "";
-            var tip = "<strong>" + item.name + "</strong>" + fac + note;
+            var fl = item.floor ? '<br><span style="color:var(--muted)">Этаж: ' + item.floor + "</span>" : "";
+            var tip = "<strong>" + item.name + "</strong>" + fac + note + fl;
             if (fid === "task-zone" && item.outline && item.outline.length >= 3) {
               tip += '<br><span style="color:#f0c040">Клик — показать зону</span>';
             }
@@ -293,7 +358,7 @@
               })(item, idx);
             }
           }
-          layerByFilter[fid].addLayer(m);
+          track(m, item);
         });
       }
 
@@ -323,8 +388,26 @@
     document.getElementById("mapSelect").addEventListener("change", function (e) {
       loadMap(e.target.value);
     });
+    document.getElementById("floorSelect").addEventListener("change", function (e) {
+      currentFloor = e.target.value;
+      clearActiveZone();
+      applyFilters();
+      buildFiltersUI();
+    });
     document.getElementById("btnFilters").addEventListener("click", function () {
+      document.getElementById("settingsPanel").classList.add("hidden");
       document.getElementById("filterPanel").classList.toggle("hidden");
+    });
+    document.getElementById("btnSettings").addEventListener("click", function () {
+      document.getElementById("filterPanel").classList.add("hidden");
+      document.getElementById("settingsPanel").classList.toggle("hidden");
+    });
+    document.getElementById("optShowAllFloors").checked = showAllFloors;
+    document.getElementById("optShowAllFloors").addEventListener("change", function (e) {
+      showAllFloors = e.target.checked;
+      try { localStorage.setItem("tt-map-show-all-floors", showAllFloors ? "1" : "0"); } catch (err) {}
+      applyFilters();
+      buildFiltersUI();
     });
     document.getElementById("btnFit").addEventListener("click", function () {
       map.fitBounds(BOUNDS, { padding: [16, 16] });
