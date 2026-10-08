@@ -1,205 +1,44 @@
 # Changelog
 
-All notable changes to **Tarkov Tools** will be documented in this file.
+Формат близок к [Keep a Changelog](https://keepachangelog.com/). Версии проекта — по смыслу релизов Tarkov Tools (см. roadmap), не обязательно strict semver npm.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),  
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.0] — 2026-10-08 — «Я здесь»
 
-## [1.0] — 2026-10-08 (Я здесь)
+### Документация
 
-### ✨ Добавлено
-- **README.md** — полное описание проекта на русском языке с разделами:
-  - Возможности, доступные инструменты, локализация
-  - Запуск прямо из браузера, требования к браузерам
-  - Настройки, работа с инструментами, поиск и фильтрация
-  - Локализация RU/EN, безопасность и приватность
-  - Использование во время игры, FAQ для начинающих
+- README, USER_GUIDE, TROUBLESHOOTING, DESCRIPTION, API, ARCHITECTURE в актуальном виде под текущий контракт
+- Акцент на хаб, core, storage `tt:`, без выдуманных инструментов
 
-- **USER_GUIDE.md** — руководство пользователя:
-  - Быстрый старт, работа со статическими/живыми инструментами
-  - Настройки уведомлений, мини-табы
-  - Поиск, фильтрация, локализация
-  - Безопасность, сценарии использования во время игры
-  - Продвинутые функции (интервал опроса, экспорт данных)
+### Платформа (накопленное к 1.0)
 
-- **TROUBLESHOOTING.md** — устранение проблем:
-  - Общие проблемы (белый экран, пустой каталог, сброс настроек)
-  - Проблемы с уведомлениями, звуком
-  - Проблемы конкретных инструментов (Price Track, Restock Alert)
-  - Локализация, мобильные устройства
-  - Очистка и сброс настроек
+- Хаб: каталог, категории, закрепы, настройки, уведомления, мини-табы
+- Core: TarkovAPI, TarkovStorage, TarkovI18n, TarkovNames, TarkovPoll, domain-модули
+- Live: price-track, price-alarm, restock (и другие live по каталогу)
+- Набор статических справочников и калькуляторов в `tools/`
+- CI: architecture lint, catalog check, domain/tool contract scripts
 
-- **Полная локализация** — все тексты на русском языке для российских пользователей
+### Карта
 
-### 📚 Документация
-- Полностью обновлена README.md с разделом "Я здесь" (v1.0)
-- Создано подробное руководство пользователя USER_GUIDE.md
-- Создан справочник по устранению проблем TROUBLESHOOTING.md
-
-### 🎯 Для релиза 1.0
-- ✅ Валидация архитектуры через `lint-architecture.py`
-- ✅ Генерация каталога через `build-catalog.py --check`
-- ✅ Проверка контрактов инструментов и доменов
-- ✅ Все инструменты соответствуют требованиям patches/v.1.0.md
-
----
+- Инструмент карты: локальные assets, маркеры из API, несколько локаций, фильтры и этажи
+- Не iframe целого tarkov.dev
 
 ## [Unreleased]
 
-### Added
-- **Карта** (`tools/tarkovtool-map.html`) — интерактивные карты Tarkov.dev (Customs, Factory, Woods, Shoreline, Interchange, Reserve, Lighthouse, Streets, Ground Zero, Labs, Terminal, Labyrinth, Icebreaker). Выбор карты, fullscreen, открытие на сайте-источнике. Данные «одолжены» у tarkov.dev через iframe.
+- Уточнения roadmap 1.1+ (профиль ЧВК и далее) — вне кода, в docs roadmap
 
-### Changed
-- TBD
+## [0.3.x] — 2026-09
 
-### Fixed
-- TBD
+- Унификация core (API, state, i18n)
+- Контракты platform / tool checklist
+- Правки price-track (persist снимков, countdown, график)
 
----
+## [0.2.0] — 2026-09-17
 
-## [0.3.0+] — 2026-09-27 (current)
+- Мини-табы, Notify/reportStatus, категории каталога
+- Настройки звука и внешнего вида, скрытие инструментов
+- tarkov-api, tarkov-names, иконки
+- Ряд loadout/barter/price инструментов
 
-### Architectural
-- **Core modules:** `tarkov-names.js`, `tarkov-api.js`, `tarkov-state.js`, `tarkov-i18n.js`, `tarkov-common.js`
-- **Platform contract:** [`docs/PLATFORM.md`](docs/PLATFORM.md) — how tools, hub, and core interact
-- **Tool checklist:** [`docs/TOOL_CHECKLIST.md`](docs/TOOL_CHECKLIST.md) — acceptance criteria
+## [0.1.x] — 2026-09
 
-### Core modules (unified core)
-- **TarkovAPI:** Single network + cache boundary to tarkov.dev
-- **TarkovState:** Notifications, mini-tabs, cross-tab broadcast
-- **TarkovI18n:** Locale packs, DOM apply, fallback to English
-- **TarkovItems:** Normalized items, indexes, shared queries (planned Stage 2)
-- **TarkovUI:** Shared UI primitives (progress, help modals, cards — planned Stage 3)
-
-### Live utilities (background updates)
-- **Price Track:** `tools/tarkovtool-price-track.html` + `.js`
-- **Price Alarm:** `tools/tarkovtool-price-alarm.html` + `.js`
-- **Restock Alert:** `tools/tarkovtool-restock.html` + `.js`
-
-### Static utilities
-- Barter Live, Bosses DB, Ammo Catalog, Barters Live, and more (see [`catalog.json`](hub/catalog.json))
-
-### Localization
-- RU/EN support via `tarkov-names.js` and `tarkov-i18n.js`
-- Planned total i18n with `data-i18n` attributes
-
-### Fixes (from Wave 1)
-- **Price Track:**
-  - Persist `lastSnap` / `nextSnapAt` in localStorage (background + manual)
-  - Countdown timer on page + mini-tab ("via Xm Ys · was DD.MM HH:MM")
-  - Chart: dark canvas background, bright lines, Resize, 1 point drawn
-  - Resume respects `nextSnapAt` (no reset on tab open)
-
-### Removed
-- Direct `fetch("https://json.tarkov.dev/...")` → use `TarkovAPI` only
-- Duplicate notification handlers → unified `Notify` from `tarkov-common.js`
-- Repeated utility functions (`esc`, `humanize`, `loadSettings`) → moved to core
-
----
-
-## [0.2.x] — Previously
-
-### Added
-- Initial tools: `barter-live`, `bosses`, static utilities
-- Basic notification system (per-tool)
-
-### Fixed
-- Early prototypes of price tracking, barter monitoring
-
----
-
-**Created:** 2026-09-27  
-**Next review:** at versions 0.4.0+
-# Changelog
-
-**[Русский](#020--2026-09-17)** · **[English](#020--2026-09-17-en)**
-
----
-
-## 0.2.0 — 2026-09-17
-
-### Добавлено
-
-- Система мини-табов: пул iframe, чипы статуса, бейджи непрочитанного, expand/collapse
-- Мост `Notify` / `reportStatus` между инструментами и хабом
-- Общая панель уведомлений (по времени)
-- Категории каталога со свёрткой (`tarkov-hub-cats.js`)
-- Разделы настроек: общее, звук, внешний вид, скрытые инструменты
-- Выбор акцентного цвета
-- Общий слой запросов `tarkov-api.js`
-- Цепочка имён `tarkov-names.js` (shortName игры → имя API → пользовательский short)
-- `tarkov-icons.js` и каталог `assets/icons/` под кастомные иконки
-- Инструменты: price-alarm, food, random-loadout, drip-loadout, loadout-builder, loadout-budget (заглушка), drip-builder (заглушка)
-- Paperdoll-раскладка для лоадаутов
-- Описания для всех записей каталога
-
-### Изменено
-
-- Каталог хаба: инструменты сгруппированы по категориям
-- Expand ограничен высотой viewport; прокрутка контента внутри iframe
-- Price-track и restock: фоновый статус и обработка интервалов
-- UI круга культистов: слоты в колонку
-- Пайплайн уведомлений: хаб зеркалит события из iframe; бейдж не сбрасывается только от expand
-- Минимальный интервал уведомлений — 1 минута
-
-### Исправлено
-
-- Падение рендера категорий (рекурсия в `hiddenList`)
-- Двойной опрос / сброс интервала restock при сворачивании
-- Отсутствие страницы price-alarm (404)
-- Отображение имён предметов как сырых хешей
-- Выход expand-панели за нижний край экрана
-- Автозапуск опросов при одном лишь открытии мини-таба (открытие ≠ старт)
-
-### Удалено
-
-- Единственный режим каталога без категорий (вместо него категории и закрепления)
-
-### 0.1.x — 2026-09-09 … 2026-09-16
-
-Первый хаб на GitHub Pages, общая тема, ранние инструменты (barter, ammo, armor, hideout, cultist, restock, price-track).
-
----
-
-## 0.2.0 — 2026-09-17 (EN)
-
-### Added
-
-- Mini-tab system: iframe pool, status chips, unread badges, expand/collapse
-- `Notify` / `reportStatus` bridge between tools and hub
-- Global notification panel (chronological)
-- Catalog categories with collapse state (`tarkov-hub-cats.js`)
-- Settings sections: general, sound, appearance, hidden tools
-- Accent color selection
-- Shared `tarkov-api.js` request layer
-- `tarkov-names.js` display chain (game shortName → API name → custom short)
-- `tarkov-icons.js` and `assets/icons/` for custom tool icons
-- Tools: price-alarm, food, random-loadout, drip-loadout, loadout-builder, loadout-budget (stub), drip-builder (stub)
-- Paperdoll layout for loadout tools
-- Catalog descriptions for all registered tools
-
-### Changed
-
-- Hub catalog: tools grouped under category headers
-- Expand host limited to viewport; tool content scrolls inside the iframe
-- Price-track and restock: background run state and interval handling
-- Cultist circle UI: column layout for slots
-- Notification pipeline: hub mirrors iframe events; badge is not cleared on expand alone
-- Minimum notification interval reduced to 1 minute
-
-### Fixed
-
-- Category render crash (recursive `hiddenList`)
-- Double polling / interval reset on restock when collapsing
-- Missing price-alarm page (404)
-- Item labels shown as raw hashes
-- Expand panel overflow below the fold
-- Mini-tab auto-start of polls on mere open (open ≠ start)
-
-### Removed
-
-- Single unlabeled catalog mode only (categories + pins instead)
-
-### 0.1.x — 2026-09-09 … 2026-09-16
-
-Initial GitHub Pages hub, shared theme, early tools (barter, ammo, armor, hideout, cultist, restock, price-track).
+- Первый хаб на GitHub Pages, тема, ранние инструменты

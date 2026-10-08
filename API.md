@@ -1,245 +1,76 @@
-# API Reference — Tarkov Tools
+# API Reference (core)
 
-Документация по основным API для интеграции внешних систем и расширений.
+Краткий справочник по глобалям, которые подключают страницы из `core/`. Детали реализации — в соответствующих файлах.
 
----
+## TarkovAPI (`core/tarkov-api.js`)
 
-## TarkovAPI
+Единая точка сетевых запросов к json.tarkov.dev (и кэша).
 
-**Файл:** `core/tarkov-api.js`  
-**Роль:** Единый boundary для доступа к tarkov.dev
+- `getJson(path, opts?)` — GET относительного пути, опции кэша (минуты и т.п. по коду модуля)
+- `request(path, opts?)` — более низкоуровневый/legacy-ответ
+- `items(mode?)`, `barters(mode?)`, `traders(mode?)` — удобные обёртки, если экспортированы
+- `clearCache()` — сброс кэша
 
-### getJson(path, opts?)
+Инструменты не вызывают `fetch` к API напрямую.
 
-> **Описание:** Выполняет GET-запрос через API с кэшированием  
-> **Параметры:**
-> - `path` (string): URL путь относительно `https://json.tarkov.dev/`
-> - `opts.cache` (number): Время кэша в минутах (опционально, дефолт: 10)
+## TarkovStorage (`core/tarkov-storage.js`)
 
-**Примеры:**
+Единственный модуль с прямым доступом к `localStorage`.
 
-```javascript
-// Получить предметы
-const items = await TarkovAPI.getJson('items', { cache: 30 });
+- `get` / `set` / `remove`
+- `getJson` / `setJson`
+- `migrateKey(old, new)`, `keys(prefix?)`
 
-// Получить бартеры у торговца
-const barterData = await TarkovAPI.getJson('traders/merchant/barter', { mode: 'pve' });
-```
+Канонические ключи с префиксом `tt:` (settings, notif, mini, state, tool data, api cache). Легаси-ключи мигрируются централизованно.
 
-### request(path, opts?)
+## TarkovState (`core/tarkov-state.js`)
 
-> **Описание:** Legacy-метод для response-based consumers  
-> **Возвращает:** raw ответ сервера (object)
+Уведомления и связанное состояние хаба (мини-табы и т.д. — по факту модуля).
 
-```javascript
-const barters = await TarkovAPI.request('traders/merchant/barter');
-```
+## Уведомления
 
-### items(mode?)
+Через общий хелпер (например `Notify` из `tarkov-common.js`):
 
-> **Описание:** Получение нормализованного списка предметов  
-> **Параметры:**
-> - `mode` ('pve' | 'pvz'): Режим игры (опционально)
-
-**Возвращает:** `{ all, byId, byType }`
-
-### barters(mode?)
-
-> Возвращает данные бартеров у всех торговцов.
-
-### traders(mode?)
-
-> Возвращает информацию о торговых точках.
-
-### clearCache()
-
-> Очищает кэш (память + localStorage).
-
----
-
-## TarkovState
-
-**Файл:** `core/tarkov-state.js`  
-**Роль:** Общие уведомления и мини-табы
-
-### notify(payload)
-
-> Создает уведомление.  
-> **Параметры:**
-> - `payload.title` (string): Заголовок (i18n key или текст)
-> - `payload.body` (string): Тело сообщения
-> - `payload.tool` (string): HTML файл инструмента (для группировки)
-> - `payload.kind` ('success' | 'error' | 'warning' | 'info'): Цвет/тип
-
-**Пример:**
-
-```javascript
+```js
 Notify({
-  title: "Товар в наличии",
-  body: "+5 шт. у торговца",
-  tool: 'tarkovtool-restock.html',
-  kind: 'success'
+  title: "...",
+  body: "...",
+  tool: "tarkovtool-example.html",
+  kind: "info" // или success | error | warning | restock | alarm | ...
 });
 ```
 
-### notifications()
+В iframe хаба звук обычно обрабатывает родитель.
 
-> Возвращает список уведомлений (массив объектов).
+## TarkovI18n (`core/tarkov-i18n.js`)
 
-### markRead() / markToolRead(file)
+- `t(key, params?)`
+- `setLang(code)`, текущий язык
+- `applyDom(root?)`
+- ключи каталога: title/description инструментов
 
-> Помечает уведомления как прочитанные.
+## TarkovNames (`core/tarkov-names.js`)
 
----
+Отображаемые имена предметов: `display(id)`, поиск по строке — по API модуля.
 
-## TarkovI18n
+## TarkovPoll (`core/tarkov-poll.js`)
 
-**Файл:** `core/tarkov-i18n.js`  
-**Роль:** Локализация
+Расписание live-инструментов: `start`, `stop`, `bindCountdown`, `reportMini`. Под хабом часы может вести LiveRuntime; инструмент не дублирует тот же poll своим `setInterval`.
 
-### t(key, params?)
+## TarkovItems / domain
 
-> Ищет перевод по key с fallback на EN → key.  
-> **Параметры:**
-> - `key` (string): Ключ перевода (`locales/ru.json`)
-> - `params` (object): Значения для форматирования
+Нормализованные предметы и расчёты — `tarkov-items.js`, `tarkov-item-domain.js`, `tarkov-weapon-domain.js`, view-models. Страницы подключают только нужные модули после API.
 
-**Примеры:**
+## Storage (схема ключей)
 
-```javascript
-// Простой ключ
-const msg = TarkovI18n.t('prices.dropped'); // "Цена упала"
+| Префикс | Назначение |
+|---------|------------|
+| `tt:settings:*` | Общие настройки |
+| `tt:notif:v1` | Уведомления |
+| `tt:mini:v1` | Мини-табы |
+| `tt:state:v1` | Общее состояние |
+| `tt:tool:<id>:meta` | Расписание live |
+| `tt:tool:<id>:data:*` | Данные инструмента |
+| `tt:api:<hash>` | Кэш API |
 
-// С параметрами
-const title = TarkovI18n.t('price.alert', { percent: -5 }); // "-5%"
-```
-
-### setLang(code) / current
-
-> Устанавливает язык.  
-> **Параметры:** `code` ('ru' | 'en')
-
-```javascript
-TarkovI18n.setLang('ru'); // Применяет RU к DOM
-```
-
-### applyDom(root?)
-
-> Применяет локализацию к DOM с `[data-i18n]`.  
-> **Параметры:** `root` (selector, опционально)
-
-```javascript
-TarkovI18n.applyDom('#app'); // Apply to #app
-```
-
-### toolTitle / toolDescription / catTitle
-
-> Локализация заголовков каталога.
-
-### ready
-
-> Promise: когда все пакеты загружены.
-
----
-
-## TarkovStorage
-
-**Роль:** Abstraction over localStorage / IndexedDB
-
-### get(key) / getJson(key)
-
-> Получает данные из хранилища.  
-> **Возвращает:** `null` если нет.
-
-### set(key, value) / setJson(key, obj)
-
-> Записывает в хранилище.
-
-### remove(key)
-
-> Удаляет ключ.
-
----
-
-## TarkovNames
-
-**Файл:** `core/tarkov-names.js`  
-**Роль:** Локализация названий предметов
-
-### display(id)
-
-> Получает отображаемое название предмета.  
-> **Логика:** shortName игры → API name → custom
-
-```javascript
-const name = TarkovNames.display('20587'); // "Броня (Kevlar 4)"
-```
-
-### search(pattern)
-
-> Поиск предметов по части названия.
-
----
-
-## TarkovItems (planned / Stage 2)
-
-**Файл:** `core/tarkov-items.js`  
-**Роль:** Нормализованные предметы, индекс
-
-### load(mode?)
-
-> Загружает и кэширует данные предметов в память.  
-> **Возвращает:** `{ all, byId, byType }`
-
-### byId(id, mode?)
-
-> Получает предмет по ID.
-
-### byType(type, mode?)
-
-> Получает предметы по типу.
-
-### clear()
-
-> Очищает кэш из памяти.
-
----
-
-## Summary
-
-| API | Файл | Роль |
-|-----|------|------|
-| **TarkovAPI** | `tarkov-api.js` | Network boundary, кэширование |
-| **TarkovState** | `tarkov-state.js` | Notifications, mini-tabs |
-| **TarkovI18n** | `tarkov-i18n.js` | Локализация (t(), tt()) |
-| **TarkovNames** | `tarkov-names.js` | Названия предметов |
-| **TarkovCommon** | `tarkov-common.js` | Notify, beep(), fmtRub() |
-
----
-
-## Storage Scheme
-
-Все данные приложения в `localStorage` используют канонический префикс `tt:`
-и namespace:
-
-```javascript
-// - tt:settings:*             (общие настройки)
-// - tt:notif:v1                (уведомления)
-// - tt:mini:v1                  (активные mini-tabs)
-// - tt:state:v1                 (общий state)
-// - tt:tool:<id>:meta           (live schedule / metadata)
-// - tt:tool:<id>:data:*         (tool data)
-// - tt:api:<hash>               (API cache)
-
-// Пример: записать meta price-track
-TarkovStorage.setJson('tt:tool:price-track:meta', {
-  on: true,
-  mins: 5,
-  nextAt: Date.now() + 30000
-});
-```
-
-Старые logical keys (`tarkov*`, `ttApi:*`) продолжают приниматься адаптером;
-`TarkovStorage.migrateLegacyKeys()` переносит их централизованно. Новые
-инструменты должны использовать `TarkovStorage`, не обращаться к
-`localStorage` напрямую.
+Полный контракт страницы инструмента: [CONTRACT.md](./CONTRACT.md).
