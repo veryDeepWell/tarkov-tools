@@ -13,5 +13,5 @@ __pycache__/
 *.swo
 *~
 .Python
-._archive/
-.patches/
+_archive/
+patches/
