@@ -2,8 +2,6 @@
 
 Браузерные утилиты для Escape from Tarkov. Статический сайт без сборки и без модификации игры.
 
-Откройте [`tarkovtool-hub.html`](./tarkovtool-hub.html) или поднимите любой static-сервер из корня репозитория.
-
 ## Возможности
 
 - Каталог инструментов: поиск, категории, закрепления
@@ -21,7 +19,7 @@ python -m http.server 8000
 # открыть http://localhost:8000/tarkovtool-hub.html
 ```
 
-Или открыть `tarkovtool-hub.html` напрямую (для части API может понадобиться http(s), не `file://`).
+Или открыть `[tarkovtool-hub.html](https://verydeepwell.github.io/tarkov-tools/tarkovtool-hub.html)` напрямую.
 
 Браузеры: актуальные Chrome, Firefox, Edge, Safari.
 
