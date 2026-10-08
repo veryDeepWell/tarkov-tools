@@ -19,7 +19,7 @@ python -m http.server 8000
 # открыть http://localhost:8000/tarkovtool-hub.html
 ```
 
-Или открыть `[tarkovtool-hub.html](https://verydeepwell.github.io/tarkov-tools/tarkovtool-hub.html)` напрямую.
+Или открыть деплой на GitHub Pages напрямую.
 
 Браузеры: актуальные Chrome, Firefox, Edge, Safari.
 
