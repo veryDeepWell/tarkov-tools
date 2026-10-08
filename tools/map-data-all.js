@@ -65,8 +65,7 @@ window.TT_MAP_GROUPS = [
 window.TT_MAPS = {
   "factory": {
     id: "factory", title: "Завод", svg: "Factory.svg", W: 130.81831, H: 141.23242,
-    floors: [{"id": "basement", "name": "Подвал", "svgFile": "Factory-basement.svg"}, {"id": "ground", "name": "1 этаж", "svgFile": "Factory-ground.svg"}, {"id": "first", "name": "2 этаж", "svgFile": "Factory-first.svg"}, {"id": "second", "name": "3 этаж", "svgFile": "Factory-second.svg"}]}, {"id": "first", "name": "2 этаж", "svgGroup": "Second_Floor"}, {"id": "second", "name": "3 этаж", "svgGroup": "Third_Floor"}],
-    floorGroups: ["Basement", "Ground_Floor", "Second_Floor", "Third_Floor", "Connector-Ground_Floor"],
+    floors: [{"id": "basement", "name": "Подвал", "svgFile": "Factory-basement.svg"}, {"id": "ground", "name": "1 этаж", "svgFile": "Factory-ground.svg"}, {"id": "first", "name": "2 этаж", "svgFile": "Factory-first.svg"}, {"id": "second", "name": "3 этаж", "svgFile": "Factory-second.svg"}],
     data: {
       extracts: [
         { name: "Gate m", x: 126.7, y: 48.7, filter: "extract-pmc", floor: "ground", faction: "pmc" },
@@ -435,8 +434,7 @@ window.TT_MAPS = {
   },
   "night-factory": {
     id: "night-factory", title: "Завод (ночь)", svg: "Factory.svg", W: 130.81831, H: 141.23242,
-    floors: [{"id": "basement", "name": "Подвал", "svgFile": "Factory-basement.svg"}, {"id": "ground", "name": "1 этаж", "svgFile": "Factory-ground.svg"}, {"id": "first", "name": "2 этаж", "svgFile": "Factory-first.svg"}, {"id": "second", "name": "3 этаж", "svgFile": "Factory-second.svg"}]}, {"id": "first", "name": "2 этаж", "svgGroup": "Second_Floor"}, {"id": "second", "name": "3 этаж", "svgGroup": "Third_Floor"}],
-    floorGroups: ["Basement", "Ground_Floor", "Second_Floor", "Third_Floor", "Connector-Ground_Floor"],
+    floors: [{"id": "basement", "name": "Подвал", "svgFile": "Factory-basement.svg"}, {"id": "ground", "name": "1 этаж", "svgFile": "Factory-ground.svg"}, {"id": "first", "name": "2 этаж", "svgFile": "Factory-first.svg"}, {"id": "second", "name": "3 этаж", "svgFile": "Factory-second.svg"}],
     data: {
       extracts: [
         { name: "Подвалы", x: 95.4, y: 138.6, filter: "extract-shared", floor: "basement", faction: "shared" },
@@ -3273,8 +3271,7 @@ window.TT_MAPS = {
   },
   "shoreline": {
     id: "shoreline", title: "Берег", svg: "Shoreline.svg", W: 1559.5717, H: 1032.4935,
-    floors: [{"id": "ug", "name": "Подземка", "svgFile": "Shoreline-ug.svg"}, {"id": "ground", "name": "Земля", "svgFile": "Shoreline-ground.svg"}, {"id": "resort", "name": "Курорт", "svgFile": "Shoreline-resort.svg"}]}],
-    floorGroups: ["Underground_Level", "Ground_Level", "First_Floor", "Second_Floor", "Third_Floor"],
+    floors: [{"id": "ug", "name": "Подземка", "svgFile": "Shoreline-ug.svg"}, {"id": "ground", "name": "Земля", "svgFile": "Shoreline-ground.svg"}, {"id": "resort", "name": "Курорт", "svgFile": "Shoreline-resort.svg"}],
     data: {
       extracts: [
         { name: "Redrebel Alp", x: 717.3, y: 43.6, filter: "extract-pmc", floor: "resort", faction: "pmc" },
@@ -9568,8 +9565,7 @@ window.TT_MAPS = {
   },
   "streets-of-tarkov": {
     id: "streets-of-tarkov", title: "Улицы Таркова", svg: "StreetsOfTarkov.svg", W: 605.32395, H: 831.57753,
-    floors: [{"id": "ug", "name": "Подземка", "svgFile": "StreetsOfTarkov-ug.svg"}, {"id": "ground", "name": "Улица", "svgFile": "StreetsOfTarkov-ground.svg"}, {"id": "upper", "name": "Верхние этажи", "svgFile": "StreetsOfTarkov-upper.svg"}]}],
-    floorGroups: ["Underground_Level", "Ground_Level", "First_Floor", "Second_Floor", "Third_Floor", "Fourth_Floor", "Fifth_Floor"],
+    floors: [{"id": "ug", "name": "Подземка", "svgFile": "StreetsOfTarkov-ug.svg"}, {"id": "ground", "name": "Улица", "svgFile": "StreetsOfTarkov-ground.svg"}, {"id": "upper", "name": "Верхние этажи", "svgFile": "StreetsOfTarkov-upper.svg"}],
     data: {
       extracts: [
         { name: "E5", x: 107.3, y: 566.3, filter: "extract-pmc", floor: "ground", faction: "pmc" },
@@ -13192,8 +13188,7 @@ window.TT_MAPS = {
   },
   "ground-zero": {
     id: "ground-zero", title: "Эпицентр", svg: "GroundZero.svg", W: 348.92543, H: 488.44792,
-    floors: [{"id": "ug", "name": "Подземка", "svgFile": "GroundZero-ug.svg"}, {"id": "ground", "name": "Улица", "svgFile": "GroundZero-ground.svg"}, {"id": "upper", "name": "Этажи", "svgFile": "GroundZero-upper.svg"}]}],
-    floorGroups: ["Underground_Level", "Ground_Level", "First_Floor", "Second_Floor", "Third_Floor"],
+    floors: [{"id": "ug", "name": "Подземка", "svgFile": "GroundZero-ug.svg"}, {"id": "ground", "name": "Улица", "svgFile": "GroundZero-ground.svg"}, {"id": "upper", "name": "Этажи", "svgFile": "GroundZero-upper.svg"}],
     data: {
       extracts: [
         { name: "Nakatani Stairs Free Exit", x: 265.8, y: 459.5, filter: "extract-shared", floor: "ground", faction: "shared" },
@@ -14017,8 +14012,7 @@ window.TT_MAPS = {
   },
   "ground-zero-21": {
     id: "ground-zero-21", title: "Эпицентр 21+", svg: "GroundZero.svg", W: 348.92543, H: 488.44792,
-    floors: [{"id": "ug", "name": "Подземка", "svgFile": "GroundZero-ug.svg"}, {"id": "ground", "name": "Улица", "svgFile": "GroundZero-ground.svg"}, {"id": "upper", "name": "Этажи", "svgFile": "GroundZero-upper.svg"}]}],
-    floorGroups: ["Underground_Level", "Ground_Level", "First_Floor", "Second_Floor", "Third_Floor"],
+    floors: [{"id": "ug", "name": "Подземка", "svgFile": "GroundZero-ug.svg"}, {"id": "ground", "name": "Улица", "svgFile": "GroundZero-ground.svg"}, {"id": "upper", "name": "Этажи", "svgFile": "GroundZero-upper.svg"}],
     data: {
       extracts: [
         { name: "Sandbox Vexit", x: 269.2, y: 239.2, filter: "extract-shared", floor: "upper", faction: "shared" },
