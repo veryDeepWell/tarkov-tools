@@ -123,8 +123,7 @@
     var showAllFloors = false;
     var BOUNDS = [[0, 0], [535.17, 1062.48]];
     var allMarkers = []; // {layer, item, fid}
-    var svgTextCache = {};
-    var currentBlobUrl = null;
+
 
     try {
       showAllFloors = (window.TarkovStorage && TarkovStorage.get("tt-map-show-all-floors", "0")) === "1";
@@ -302,86 +301,22 @@
     }
 
 
-    function revokeBlob() {
-      if (currentBlobUrl) {
-        try { URL.revokeObjectURL(currentBlobUrl); } catch (e) {}
-        currentBlobUrl = null;
-      }
-    }
 
-    function getFloorSvgGroups(meta) {
+    function floorSvgUrl(meta) {
       var floors = (meta && meta.floors) || [];
-      var f = null;
       for (var i = 0; i < floors.length; i++) {
-        if (floors[i].id === currentFloor) { f = floors[i]; break; }
+        if (floors[i].id === currentFloor && floors[i].svgFile) {
+          return ASSETS + floors[i].svgFile;
+        }
       }
-      if (!f) return null;
-      if (f.svgGroups && f.svgGroups.length) return f.svgGroups;
-      if (f.svgGroup) return [f.svgGroup];
-      return null;
+      return ASSETS + meta.svg;
     }
 
-    function buildFloorSvgUrl(svgText, meta) {
-      var groups = meta.floorGroups;
-      var show = getFloorSvgGroups(meta);
-      if (!groups || !groups.length || !show || !show.length) {
-        // single-layer map — use original file URL
-        return null;
-      }
-      try {
-        var doc = new DOMParser().parseFromString(svgText, "image/svg+xml");
-        if (doc.querySelector("parsererror")) return null;
-        groups.forEach(function (gid) {
-          var el = doc.getElementById(gid);
-          if (!el) return;
-          var on = show.indexOf(gid) >= 0;
-          el.setAttribute("display", on ? "inline" : "none");
-          el.style.display = on ? "" : "none";
-        });
-        var serialized = new XMLSerializer().serializeToString(doc);
-        revokeBlob();
-        currentBlobUrl = URL.createObjectURL(new Blob([serialized], { type: "image/svg+xml" }));
-        return currentBlobUrl;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    function setMapBackground(meta, done) {
-      var fileUrl = ASSETS + meta.svg;
-      var groups = meta.floorGroups;
-      if (!groups || groups.length <= 1) {
-        if (imageOverlay) map.removeLayer(imageOverlay);
-        revokeBlob();
-        imageOverlay = L.imageOverlay(fileUrl, BOUNDS, { interactive: false, opacity: 0.95 });
-        imageOverlay.addTo(map);
-        if (done) done();
-        return;
-      }
-      function apply(svgText) {
-        var url = buildFloorSvgUrl(svgText, meta) || fileUrl;
-        if (imageOverlay) map.removeLayer(imageOverlay);
-        imageOverlay = L.imageOverlay(url, BOUNDS, { interactive: false, opacity: 0.95 });
-        imageOverlay.addTo(map);
-        if (done) done();
-      }
-      if (svgTextCache[meta.svg]) {
-        apply(svgTextCache[meta.svg]);
-        return;
-      }
-      fetch(fileUrl)
-        .then(function (r) { return r.text(); })
-        .then(function (txt) {
-          svgTextCache[meta.svg] = txt;
-          apply(txt);
-        })
-        .catch(function () {
-          apply(null);
-          if (imageOverlay) map.removeLayer(imageOverlay);
-          imageOverlay = L.imageOverlay(fileUrl, BOUNDS, { interactive: false, opacity: 0.95 });
-          imageOverlay.addTo(map);
-          if (done) done();
-        });
+    function setMapBackground(meta) {
+      var url = floorSvgUrl(meta);
+      if (imageOverlay) map.removeLayer(imageOverlay);
+      imageOverlay = L.imageOverlay(url, BOUNDS, { interactive: false, opacity: 0.95 });
+      imageOverlay.addTo(map);
     }
 
     function loadMap(mapId) {

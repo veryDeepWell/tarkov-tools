@@ -65,7 +65,7 @@ window.TT_MAP_GROUPS = [
 window.TT_MAPS = {
   "factory": {
     id: "factory", title: "Завод", svg: "Factory.svg", W: 130.81831, H: 141.23242,
-    floors: [{"id": "basement", "name": "Подвал", "svgGroup": "Basement"}, {"id": "ground", "name": "1 этаж", "svgGroup": "Ground_Floor", "svgGroups": ["Ground_Floor", "Connector-Ground_Floor"]}, {"id": "first", "name": "2 этаж", "svgGroup": "Second_Floor"}, {"id": "second", "name": "3 этаж", "svgGroup": "Third_Floor"}],
+    floors: [{"id": "basement", "name": "Подвал", "svgFile": "Factory-basement.svg"}, {"id": "ground", "name": "1 этаж", "svgFile": "Factory-ground.svg"}, {"id": "first", "name": "2 этаж", "svgFile": "Factory-first.svg"}, {"id": "second", "name": "3 этаж", "svgFile": "Factory-second.svg"}]}, {"id": "first", "name": "2 этаж", "svgGroup": "Second_Floor"}, {"id": "second", "name": "3 этаж", "svgGroup": "Third_Floor"}],
     floorGroups: ["Basement", "Ground_Floor", "Second_Floor", "Third_Floor", "Connector-Ground_Floor"],
     data: {
       extracts: [
@@ -435,7 +435,7 @@ window.TT_MAPS = {
   },
   "night-factory": {
     id: "night-factory", title: "Завод (ночь)", svg: "Factory.svg", W: 130.81831, H: 141.23242,
-    floors: [{"id": "basement", "name": "Подвал", "svgGroup": "Basement"}, {"id": "ground", "name": "1 этаж", "svgGroup": "Ground_Floor", "svgGroups": ["Ground_Floor", "Connector-Ground_Floor"]}, {"id": "first", "name": "2 этаж", "svgGroup": "Second_Floor"}, {"id": "second", "name": "3 этаж", "svgGroup": "Third_Floor"}],
+    floors: [{"id": "basement", "name": "Подвал", "svgFile": "Factory-basement.svg"}, {"id": "ground", "name": "1 этаж", "svgFile": "Factory-ground.svg"}, {"id": "first", "name": "2 этаж", "svgFile": "Factory-first.svg"}, {"id": "second", "name": "3 этаж", "svgFile": "Factory-second.svg"}]}, {"id": "first", "name": "2 этаж", "svgGroup": "Second_Floor"}, {"id": "second", "name": "3 этаж", "svgGroup": "Third_Floor"}],
     floorGroups: ["Basement", "Ground_Floor", "Second_Floor", "Third_Floor", "Connector-Ground_Floor"],
     data: {
       extracts: [
@@ -3273,7 +3273,7 @@ window.TT_MAPS = {
   },
   "shoreline": {
     id: "shoreline", title: "Берег", svg: "Shoreline.svg", W: 1559.5717, H: 1032.4935,
-    floors: [{"id": "ug", "name": "Подземка", "svgGroup": "Underground_Level"}, {"id": "ground", "name": "Земля", "svgGroup": "Ground_Level"}, {"id": "resort", "name": "Курорт", "svgGroup": "First_Floor", "svgGroups": ["First_Floor", "Second_Floor", "Third_Floor"]}],
+    floors: [{"id": "ug", "name": "Подземка", "svgFile": "Shoreline-ug.svg"}, {"id": "ground", "name": "Земля", "svgFile": "Shoreline-ground.svg"}, {"id": "resort", "name": "Курорт", "svgFile": "Shoreline-resort.svg"}]}],
     floorGroups: ["Underground_Level", "Ground_Level", "First_Floor", "Second_Floor", "Third_Floor"],
     data: {
       extracts: [
@@ -4881,8 +4881,7 @@ window.TT_MAPS = {
   },
   "interchange": {
     id: "interchange", title: "Развязка", svg: "Interchange.svg", W: 1127.6852, H: 947.02582,
-    floors: [{"id": "ground", "name": "Парковка", "svgGroup": "Ground_Level"}, {"id": "first", "name": "1 этаж", "svgGroup": "First_Floor"}, {"id": "second", "name": "2 этаж", "svgGroup": "Second_Floor"}],
-    floorGroups: ["Ground_Level", "First_Floor", "Second_Floor"],
+    floors: [{"id": "ground", "name": "Парковка", "svgFile": "Interchange-ground.svg"}, {"id": "first", "name": "1 этаж", "svgFile": "Interchange-first.svg"}, {"id": "second", "name": "2 этаж", "svgFile": "Interchange-second.svg"}],
     data: {
       extracts: [
         { name: "Scav Railway", x: 69.9, y: 5.6, filter: "extract-scav", floor: "ground", faction: "scav" },
@@ -6395,8 +6394,7 @@ window.TT_MAPS = {
   },
   "reserve": {
     id: "reserve", title: "Резерв", svg: "Reserve.svg", W: 827.28742, H: 761.16437,
-    floors: [{"id": "bunker", "name": "Бункеры", "svgGroup": "Bunkers"}, {"id": "ground", "name": "Поверхность", "svgGroup": "Ground_Level"}],
-    floorGroups: ["Bunkers", "Ground_Level"],
+    floors: [{"id": "bunker", "name": "Бункеры", "svgFile": "Reserve-bunker.svg"}, {"id": "ground", "name": "Поверхность", "svgFile": "Reserve-ground.svg"}],
     data: {
       extracts: [
         { name: "Exfil Train", x: 207.1, y: 216.5, filter: "extract-shared", floor: "bunker", faction: "shared" },
@@ -9570,7 +9568,7 @@ window.TT_MAPS = {
   },
   "streets-of-tarkov": {
     id: "streets-of-tarkov", title: "Улицы Таркова", svg: "StreetsOfTarkov.svg", W: 605.32395, H: 831.57753,
-    floors: [{"id": "ug", "name": "Подземка", "svgGroup": "Underground_Level"}, {"id": "ground", "name": "Улица", "svgGroup": "Ground_Level"}, {"id": "upper", "name": "Верхние этажи", "svgGroup": "First_Floor", "svgGroups": ["First_Floor", "Second_Floor", "Third_Floor", "Fourth_Floor", "Fifth_Floor"]}],
+    floors: [{"id": "ug", "name": "Подземка", "svgFile": "StreetsOfTarkov-ug.svg"}, {"id": "ground", "name": "Улица", "svgFile": "StreetsOfTarkov-ground.svg"}, {"id": "upper", "name": "Верхние этажи", "svgFile": "StreetsOfTarkov-upper.svg"}]}],
     floorGroups: ["Underground_Level", "Ground_Level", "First_Floor", "Second_Floor", "Third_Floor", "Fourth_Floor", "Fifth_Floor"],
     data: {
       extracts: [
@@ -12035,8 +12033,7 @@ window.TT_MAPS = {
   },
   "the-lab": {
     id: "the-lab", title: "Лаборатория", svg: "Labs.svg", W: 720.0, H: 586.0,
-    floors: [{"id": "tech", "name": "Тех. уровень", "svgGroup": "Technical_Level"}, {"id": "first", "name": "1 уровень", "svgGroup": "First_Level"}, {"id": "second", "name": "2 уровень", "svgGroup": "Second_Level"}],
-    floorGroups: ["Technical_Level", "First_Level", "Second_Level"],
+    floors: [{"id": "tech", "name": "Тех. уровень", "svgFile": "Labs-tech.svg"}, {"id": "first", "name": "1 уровень", "svgFile": "Labs-first.svg"}, {"id": "second", "name": "2 уровень", "svgFile": "Labs-second.svg"}],
     data: {
       extracts: [
         { name: "Lab Hangar Gate", x: 65.6, y: 348.3, filter: "extract-pmc", floor: "second", faction: "pmc" },
@@ -12784,8 +12781,7 @@ window.TT_MAPS = {
   },
   "the-lab-dark": {
     id: "the-lab-dark", title: "Лаборатория (тьма)", svg: "Labs.svg", W: 720.0, H: 586.0,
-    floors: [{"id": "tech", "name": "Тех. уровень", "svgGroup": "Technical_Level"}, {"id": "first", "name": "1 уровень", "svgGroup": "First_Level"}, {"id": "second", "name": "2 уровень", "svgGroup": "Second_Level"}],
-    floorGroups: ["Technical_Level", "First_Level", "Second_Level"],
+    floors: [{"id": "tech", "name": "Тех. уровень", "svgFile": "Labs-tech.svg"}, {"id": "first", "name": "1 уровень", "svgFile": "Labs-first.svg"}, {"id": "second", "name": "2 уровень", "svgFile": "Labs-second.svg"}],
     data: {
       extracts: [
       ],
@@ -13196,7 +13192,7 @@ window.TT_MAPS = {
   },
   "ground-zero": {
     id: "ground-zero", title: "Эпицентр", svg: "GroundZero.svg", W: 348.92543, H: 488.44792,
-    floors: [{"id": "ug", "name": "Подземка", "svgGroup": "Underground_Level"}, {"id": "ground", "name": "Улица", "svgGroup": "Ground_Level"}, {"id": "upper", "name": "Этажи", "svgGroup": "First_Floor", "svgGroups": ["First_Floor", "Second_Floor", "Third_Floor"]}],
+    floors: [{"id": "ug", "name": "Подземка", "svgFile": "GroundZero-ug.svg"}, {"id": "ground", "name": "Улица", "svgFile": "GroundZero-ground.svg"}, {"id": "upper", "name": "Этажи", "svgFile": "GroundZero-upper.svg"}]}],
     floorGroups: ["Underground_Level", "Ground_Level", "First_Floor", "Second_Floor", "Third_Floor"],
     data: {
       extracts: [
@@ -14021,7 +14017,7 @@ window.TT_MAPS = {
   },
   "ground-zero-21": {
     id: "ground-zero-21", title: "Эпицентр 21+", svg: "GroundZero.svg", W: 348.92543, H: 488.44792,
-    floors: [{"id": "ug", "name": "Подземка", "svgGroup": "Underground_Level"}, {"id": "ground", "name": "Улица", "svgGroup": "Ground_Level"}, {"id": "upper", "name": "Этажи", "svgGroup": "First_Floor", "svgGroups": ["First_Floor", "Second_Floor", "Third_Floor"]}],
+    floors: [{"id": "ug", "name": "Подземка", "svgFile": "GroundZero-ug.svg"}, {"id": "ground", "name": "Улица", "svgFile": "GroundZero-ground.svg"}, {"id": "upper", "name": "Этажи", "svgFile": "GroundZero-upper.svg"}]}],
     floorGroups: ["Underground_Level", "Ground_Level", "First_Floor", "Second_Floor", "Third_Floor"],
     data: {
       extracts: [
