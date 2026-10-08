@@ -91,6 +91,7 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="../core/tarkov-storage.js"></script>
   <script src="map-data-all.js"></script>
   <script>
   (function () {
@@ -124,7 +125,7 @@
     var allMarkers = []; // {layer, item, fid}
 
     try {
-      showAllFloors = localStorage.getItem("tt-map-show-all-floors") === "1";
+      showAllFloors = (window.TarkovStorage && TarkovStorage.get("tt-map-show-all-floors", "0")) === "1";
     } catch (e) {}
 
     var map = L.map("map", {
@@ -405,7 +406,7 @@
     document.getElementById("optShowAllFloors").checked = showAllFloors;
     document.getElementById("optShowAllFloors").addEventListener("change", function (e) {
       showAllFloors = e.target.checked;
-      try { localStorage.setItem("tt-map-show-all-floors", showAllFloors ? "1" : "0"); } catch (err) {}
+      try { if (window.TarkovStorage) TarkovStorage.set("tt-map-show-all-floors", showAllFloors ? "1" : "0"); } catch (err) {}
       applyFilters();
       buildFiltersUI();
     });
