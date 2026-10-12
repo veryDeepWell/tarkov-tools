@@ -11,7 +11,7 @@ Builds hub/catalog.js from tools/*.html → #tarkovtool-meta.
     "title": "Название",
     "description": "Кратко",
     "kind": "static" | "live",
-    "cat": "flea" | "loadout" | "hideout" | "quests" | "med" | "util" | "other",
+    "cat": "flea" | "loadout" | "hideout" | "quests" | "med" | "util" | "other" | "admin",
     "icon": "optional-id"
   }
 
@@ -37,6 +37,7 @@ CATEGORIES = {
     "med": "Мед / еда",
     "util": "Утилиты",
     "other": "Прочее",
+    "admin": "Админ",
 }
 
 # keyword → cat (filename / title, lower)

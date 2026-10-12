@@ -25,7 +25,7 @@ TOOLS = ROOT / "tools"
 CATALOG_HTML = re.compile(r"<script\b[^>]*\bid=[\"']tarkovtool-meta[\"'][^>]*>(.*?)</script>", re.I | re.S)
 SCRIPT_SRC = re.compile(r"<script\b[^>]*\bsrc=[\"']([^\"']+)[\"'][^>]*>", re.I)
 DIRECT_API = re.compile(r"fetch\s*\(\s*[\"']https?://json\.tarkov\.dev", re.I)
-VALID_CATEGORIES = {"flea", "loadout", "hideout", "quests", "med", "util", "other"}
+VALID_CATEGORIES = {"flea", "loadout", "hideout", "quests", "med", "util", "other", "admin"}
 LIVE_FILES = {
     "tools/tarkovtool-price-track.html",
     "tools/tarkovtool-price-alarm.html",

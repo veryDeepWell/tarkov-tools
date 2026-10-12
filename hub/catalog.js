@@ -9,7 +9,8 @@ window.__TT_CATALOG_DATA = {
     "quests": "Квесты",
     "med": "Мед / еда",
     "util": "Утилиты",
-    "other": "Прочее"
+    "other": "Прочее",
+    "admin": "Админ"
   },
   "tools": [
     {
@@ -289,7 +290,7 @@ window.__TT_CATALOG_DATA = {
       "title": "Карта · админ",
       "description": "Редактор меток карты (только админ).",
       "icon": "util",
-      "cat": "other",
+      "cat": "admin",
       "kind": "static"
     },
     {
