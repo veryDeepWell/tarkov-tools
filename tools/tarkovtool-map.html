@@ -49,6 +49,7 @@
     .status-bar{display:none!important}
     .tt-label{background:transparent!important;border:none!important}
     .tt-label span{display:inline-block;background:rgba(15,17,21,.78);color:var(--accent);font-size:.68rem;font-weight:600;padding:1px 6px;border-radius:4px;white-space:nowrap;border:1px solid rgba(201,162,39,.35);pointer-events:none}
+    .leaflet-control-attribution{display:none!important;}
     .credit{position:absolute;bottom:8px;left:10px;z-index:800;font-size:.65rem;color:rgba(201,162,39,.6);background:rgba(0,0,0,.5);padding:2px 7px;border-radius:4px;pointer-events:none}
     .status-bar{position:absolute;top:10px;right:10px;z-index:800;font-size:.75rem;color:var(--muted);background:rgba(15,17,21,.85);padding:4px 10px;border-radius:6px;border:1px solid var(--border)}
     @media(max-width:800px){.filter-panel{position:absolute;right:0;top:0;bottom:0;z-index:900;box-shadow:-4px 0 20px rgba(0,0,0,.4)}}
@@ -98,20 +99,28 @@
   <script>
   (function () {
     var ASSETS = "map-assets/";
-    var GROUPS = window.TT_MAP_GROUPS;
+    var GROUPS = window.TT_MAP_GROUPS || [];
     var MAPS = window.TT_MAPS || {};
     var ORDER = window.TT_MAP_ORDER || Object.keys(MAPS);
+    if (!ORDER.length) ORDER = Object.keys(MAPS);
+
+    if (!GROUPS.length) {
+      console.error("[map] TT_MAP_GROUPS missing — map-data-all.js not loaded?");
+    }
+    if (!Object.keys(MAPS).length) {
+      console.error("[map] TT_MAPS missing — map-data-all.js not loaded?");
+    }
 
     var FILTER_ICON = {};
     GROUPS.forEach(function (g) {
-      g.items.forEach(function (it) {
+      (g.items || []).forEach(function (it) {
         if (it.icon) FILTER_ICON[it.id] = ASSETS + it.icon;
       });
     });
 
     var activeFilters = new Set();
     GROUPS.forEach(function (g) {
-      g.items.forEach(function (it) {
+      (g.items || []).forEach(function (it) {
         if (it.defaultOn) activeFilters.add(it.id);
       });
     });
@@ -120,12 +129,11 @@
     var imageOverlay = null;
     var activeZoneLayer = null;
     var activeZoneKey = null;
-    var currentMapId = "customs";
+    var currentMapId = (ORDER.indexOf("customs") >= 0 ? "customs" : (ORDER[0] || "customs"));
     var currentFloor = "ground";
     var showAllFloors = false;
     var BOUNDS = [[0, 0], [535.17, 1062.48]];
     var allMarkers = []; // {layer, item, fid}
-
 
     try {
       showAllFloors = (window.TarkovStorage && TarkovStorage.get("tt-map-show-all-floors", "0")) === "1";
@@ -135,8 +143,12 @@
       crs: L.CRS.Simple,
       minZoom: -2, maxZoom: 4,
       zoomSnap: 0.25, zoomDelta: 0.5,
-      attributionControl: false
+      attributionControl: false,
+      zoomControl: true
     });
+    try {
+      if (map.attributionControl) map.removeControl(map.attributionControl);
+    } catch (eAttr) {}
 
     function toLatLng(x, y) { return [BOUNDS[1][0] - y, x]; }
 
@@ -316,20 +328,37 @@
 
     function setMapBackground(meta) {
       var url = floorSvgUrl(meta);
-      if (imageOverlay) map.removeLayer(imageOverlay);
-      imageOverlay = L.imageOverlay(url, BOUNDS, { interactive: false, opacity: 0.95 });
-      imageOverlay.addTo(map);
+      if (imageOverlay) {
+        try { map.removeLayer(imageOverlay); } catch (e) {}
+        imageOverlay = null;
+      }
+      if (!url || !meta) return;
+      try {
+        imageOverlay = L.imageOverlay(url, BOUNDS, { interactive: false, opacity: 0.95 });
+        imageOverlay.on("error", function () {
+          console.warn("[map] background failed:", url);
+        });
+        imageOverlay.addTo(map);
+      } catch (eBg) {
+        console.warn("[map] setMapBackground", eBg);
+      }
     }
 
     function loadMap(mapId) {
       if (mapId) currentMapId = mapId;
+      if (!MAPS[currentMapId] && ORDER.length) currentMapId = ORDER[0];
       var meta = MAPS[currentMapId];
-      if (!meta) return;
+      if (!meta) {
+        console.error("[map] unknown map", currentMapId);
+        return;
+      }
       var DATA = meta.data || {};
       try {
         if (window.TarkovMapOverrides) DATA = TarkovMapOverrides.apply(currentMapId, DATA);
       } catch (eOv) {}
-      BOUNDS = [[0, 0], [meta.H, meta.W]];
+      var H = Number(meta.H) || 1000;
+      var W = Number(meta.W) || 1000;
+      BOUNDS = [[0, 0], [H, W]];
       fillFloorSelect();
 
       clearActiveZone();
@@ -449,6 +478,20 @@
 
     fillMapSelect();
     loadMap(currentMapId);
+    function fixSize() {
+      try {
+        map.invalidateSize(true);
+        if (BOUNDS) map.fitBounds(BOUNDS, { padding: [16, 16] });
+      } catch (e) {}
+    }
+    setTimeout(fixSize, 50);
+    setTimeout(fixSize, 300);
+    setTimeout(fixSize, 1000);
+    try {
+      if (window.ResizeObserver) {
+        new ResizeObserver(function () { fixSize(); }).observe(document.getElementById("map"));
+      }
+    } catch (eRo) {}
     try {
       if (window.parent !== window) window.parent.postMessage({ type: "tt-tool-ready", tool: "map" }, "*");
     } catch (e) {}
