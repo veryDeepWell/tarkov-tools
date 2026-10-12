@@ -18,7 +18,19 @@
     }
     return s;
   }
-  var CAT_ORDER = ["flea", "loadout", "hideout", "quests", "med", "util", "other"];
+  var CAT_ORDER = ["flea", "loadout", "hideout", "quests", "med", "util", "other", "admin"];
+  var CAT_LABELS = {
+    flea: "Барахолка", loadout: "Лоадаут", hideout: "Убежка", quests: "Квесты",
+    med: "Мед / еда", util: "Утилиты", other: "Прочее", admin: "Админ"
+  };
+  function isElevated() {
+    try { return !!(window.TarkovSessionGate && TarkovSessionGate.isElevated()); } catch (e) { return false; }
+  }
+  function visibleCatalog() {
+    var list = getCatalogList().map(ensureCat);
+    if (isElevated()) return list;
+    return list.filter(function (t) { return t.cat !== "admin"; });
+  }
 
   function ensureCat(t) {
     if (!t.cat) {
@@ -44,6 +56,9 @@
     window.TarkovHubCATALOG = list;
     window.TarkovHubCatalog = list;
     window.CATALOG = list;
+  }
+  function catalogForView() {
+    return visibleCatalog();
   }
 
   function card(t, pinned) {
@@ -152,7 +167,7 @@
 
   window.renderCatalog = function () {
     publishCatalog();
-    var CATALOG = getCatalogList();
+    var CATALOG = visibleCatalog();
     if (!CATALOG.length) {
       var grid0 = document.getElementById("grid");
       if (grid0) {
@@ -228,6 +243,7 @@
         if (window.TarkovI18n && TarkovI18n.catTitle) title = TarkovI18n.catTitle(c) || title;
         else if (window.TarkovI18n && TarkovI18n.t) title = TarkovI18n.t("cat." + c) || title;
       } catch (e) {}
+      if (title === c && CAT_LABELS[c]) title = CAT_LABELS[c];
       html += '<div class="cat-section" data-cat="' + c + '">' +
         '<div class="cat-head' + (isCol ? " is-collapsed" : "") + '" data-cat="' + c + '">' +
         '<span class="cat-chevron">' + (isCol ? "▶" : "▼") + '</span>' +
@@ -262,6 +278,9 @@
     try { boot(); } catch (e) {}
   });
   window.addEventListener("tt-lang-changed", function () {
+    try { window.renderCatalog(); } catch (e) {}
+  });
+  window.addEventListener("tt-elevation", function () {
     try { window.renderCatalog(); } catch (e) {}
   });
 

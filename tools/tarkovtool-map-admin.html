@@ -3,83 +3,58 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Карта — админ</title>
+  <title>Карта · админ</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <link rel="stylesheet" href="../core/tarkov-common.css">
   <link rel="stylesheet" href="../core/tarkov-ui.css">
   <style>
-    .wrap{max-width:1000px;margin:0 auto;padding:12px}
-    .card{background:var(--panel,#1a1d23);border:1px solid var(--border,#2a3038);border-radius:8px;padding:12px;margin-bottom:12px}
-    .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
-    table{width:100%;border-collapse:collapse;font-size:.85rem}
-    th,td{border-bottom:1px solid var(--border,#2a3038);padding:4px 6px;text-align:left}
-    input[type=text],input[type=number],select,textarea{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    .shell{display:flex;flex-direction:column;height:100%}
+    .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border,#2a3038);background:var(--panel,#1a1d23)}
+    .bar h1{font-size:1rem;margin:0 8px 0 0}
+    #map{flex:1;min-height:0;background:#0b0d10}
+    .gate{max-width:420px;margin:40px auto;padding:16px}
+    .leaflet-container{background:#0b0d10;font:inherit}
+    .tt-admin-icon{background:transparent!important;border:none!important}
+    .tt-admin-icon span{display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;background:#c9a227;color:#111;font-size:11px;font-weight:700;box-shadow:0 0 0 2px #111}
+    .popup-form label{display:block;font-size:.8rem;opacity:.8;margin:6px 0 2px}
+    .popup-form input,.popup-form select,.popup-form textarea{width:100%;box-sizing:border-box}
+    .popup-form .row{display:flex;gap:6px}
+    .popup-form .row>*{flex:1}
     .meta{opacity:.75;font-size:.85rem}
-    #jsonOut{width:100%;min-height:120px;font-family:monospace;font-size:.8rem}
   </style>
   <script type="application/json" id="tarkovtool-meta">
-  {"id":"tarkovtool-map-admin.html","title":"Карта · админ","description":"Ручные метки, переименования и скрытие точек на карте.","kind":"static","cat":"util","icon":"util"}
+  {"id":"tarkovtool-map-admin.html","title":"Карта · админ","description":"Редактор меток карты (только админ).","kind":"static","cat":"admin","icon":"util"}
   </script>
 </head>
 <body>
-  <div class="wrap">
-    <h1>Карта — админ</h1>
-    <p class="meta">Оверрайды хранятся локально (<code>tt:map:overrides:*</code>) и накладываются на данные карты. Базовый дамп не перезаписывается.</p>
-    <p><a href="tarkovtool-map.html">← Открыть карту</a></p>
-
-    <div class="card">
-      <div class="row">
-        <label>Карта <select id="mapSelect"></select></label>
-        <button type="button" class="btn" id="btnReload">Обновить список</button>
-        <button type="button" class="btn-ghost" id="btnSave">Сохранить оверрайды</button>
-        <button type="button" class="btn-ghost" id="btnExport">Экспорт JSON</button>
-        <button type="button" class="btn-ghost" id="btnImport">Импорт JSON</button>
-        <input type="file" id="fileImport" accept="application/json,.json" hidden>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>Переименовать / скрыть базовые метки</h3>
-      <p class="meta">Фильтр: <input type="text" id="filterText" placeholder="поиск по имени" style="width:200px"></p>
-      <div style="max-height:320px;overflow:auto">
-        <table>
-          <thead><tr><th>Группа</th><th>Имя</th><th>x</th><th>y</th><th>Новое имя</th><th>Скрыть</th></tr></thead>
-          <tbody id="baseBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>Добавить метку / название локации</h3>
-      <div class="row">
-        <input type="text" id="addName" placeholder="Название" style="min-width:160px">
-        <input type="number" id="addX" placeholder="x" style="width:90px">
-        <input type="number" id="addY" placeholder="y" style="width:90px">
-        <select id="addGroup">
-          <option value="landmarks">landmarks</option>
-          <option value="tasks">tasks</option>
-          <option value="extracts">extracts</option>
-          <option value="spawns">spawns</option>
-          <option value="lootables">lootables</option>
-        </select>
-        <input type="text" id="addFloor" placeholder="floor" value="ground" style="width:100px">
-        <button type="button" class="btn" id="btnAdd">Добавить</button>
-      </div>
-      <table>
-        <thead><tr><th>Имя</th><th>Группа</th><th>x</th><th>y</th><th></th></tr></thead>
-        <tbody id="addBody"></tbody>
-      </table>
-    </div>
-
-    <div class="card">
-      <h3>JSON</h3>
-      <textarea id="jsonOut" readonly></textarea>
-    </div>
+  <div id="gate" class="gate">
+    <h1>Служебный доступ</h1>
+    <p class="meta">Редактор карты доступен только в состоянии администратора. После перезагрузки страницы доступ сбрасывается.</p>
+    <button type="button" class="btn" id="btnGate">Войти</button>
+    <p><a href="tarkovtool-map.html">Обычная карта</a> · <a href="../tarkovtool-hub.html">Хаб</a></p>
   </div>
 
+  <div id="app" class="shell" style="display:none">
+    <div class="bar">
+      <h1>Карта · админ</h1>
+      <select id="mapSelect"></select>
+      <select id="floorSelect" title="Этаж"></select>
+      <button type="button" class="btn" id="btnAddMode">+ Метка</button>
+      <button type="button" class="btn-ghost" id="btnSave">Сохранить</button>
+      <button type="button" class="btn-ghost" id="btnExport">Экспорт JSON</button>
+      <button type="button" class="btn-ghost" id="btnImport">Импорт</button>
+      <input type="file" id="fileImport" accept="application/json,.json" hidden>
+      <span class="meta" id="status"></span>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-session-gate.js"></script>
   <script src="../core/tarkov-map-overrides.js"></script>
   <script src="map-data-all.js"></script>
   <script src="../js/map-admin.js"></script>
-  <script src="../core/tarkov-tool-shell.js"></script>
 </body>
 </html>

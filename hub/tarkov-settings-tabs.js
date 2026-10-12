@@ -1,5 +1,37 @@
 /*! Settings — real tabs: General / Language / Sound / Appearance / Hidden */
 (function () {
+
+  function refreshElevStatus() {
+    var el = document.getElementById("tt-set-elev-status");
+    if (!el) return;
+    var on = window.TarkovSessionGate && TarkovSessionGate.isElevated();
+    el.textContent = on ? "Режим администратора: включён" : "Режим администратора: выключен";
+  }
+  function bindAdminElev() {
+    var up = document.getElementById("tt-set-elevate");
+    var down = document.getElementById("tt-set-drop-elev");
+    if (up && !up.__ttBound) {
+      up.__ttBound = true;
+      up.onclick = function () {
+        if (!window.TarkovSessionGate) return;
+        if (TarkovSessionGate.promptElevate()) {
+          refreshElevStatus();
+          try { window.renderCatalog && window.renderCatalog(); } catch (e) {}
+        } else {
+          refreshElevStatus();
+        }
+      };
+    }
+    if (down && !down.__ttBound) {
+      down.__ttBound = true;
+      down.onclick = function () {
+        if (window.TarkovSessionGate) TarkovSessionGate.dropElevation();
+        refreshElevStatus();
+        try { window.renderCatalog && window.renderCatalog(); } catch (e) {}
+      };
+    }
+    refreshElevStatus();
+  }
   "use strict";
   if (!window.TarkovTools || !TarkovTools.openSettings) return;
 
@@ -105,6 +137,7 @@
     bg.style.display = "flex";
     try {
       document.body.classList.add("tt-settings-open");
+    try { bindAdminElev(); } catch (eAdm) {}
     } catch (e) {}
   }
 
@@ -151,6 +184,7 @@
         '<button type="button" class="tt-set-tab" data-tab="sound">' + t("common.tabSound", "Звук") + "</button>" +
         '<button type="button" class="tt-set-tab" data-tab="look">' + t("common.tabLook", "Внешний вид") + "</button>" +
         '<button type="button" class="tt-set-tab" data-tab="hidden">' + t("common.tabHidden", "Скрытые") + "</button>" +
+        '<button type="button" class="tt-set-tab" data-tab="admin">' + t("common.tabAdmin", "Админ") + "</button>" +
         "</div>" +
         '<div class="tt-set-body">' +
         '<div class="tt-set-panel on" data-panel="general">' +
@@ -190,11 +224,17 @@
         '<div class="tt-set-panel" data-panel="hidden">' +
         '<p class="meta" style="margin:0 0 10px">' + t("common.hiddenHint", "Скрытые инструменты не показываются в хабе") + '</p>' +
         '<div class="tt-hidden-list" id="tt-set-hidden"></div></div>' +
+        '<div class="tt-set-panel" data-panel="admin">' +
+        '<p class="meta" style="margin:0 0 10px">' + t("common.adminHint", "Служебный режим только на эту сессию страницы. После перезагрузки сбрасывается.") + '</p>' +
+        '<button type="button" class="btn" id="tt-set-elevate">' + t("common.adminEnter", "Перейти в состояние администратора") + '</button>' +
+        '<button type="button" class="btn-ghost" id="tt-set-drop-elev" style="margin-left:8px">' + t("common.adminLeave", "Выйти") + '</button>' +
+        '<p class="meta" id="tt-set-elev-status" style="margin-top:10px"></p></div>' +
         "</div>" +
         '<div class="tt-modal-foot" style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">' +
         '<button type="button" class="btn-ghost" id="tt-set-cancel">' + t("common.cancel", "Отмена") + '</button>' +
         '<button type="button" class="btn" id="tt-set-save">' + t("common.save", "Сохранить") + '</button></div></div>';
       document.body.appendChild(bg);
+      try { bindAdminElev(); } catch (eAdm2) {}
       bg.addEventListener("click", function (e) {
         if (e.target === bg) closeSettingsModal(bg);
       });

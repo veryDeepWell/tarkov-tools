@@ -1,10 +1,17 @@
-/* Map admin UI */
+/* Interactive map admin editor */
 (function () {
   "use strict";
+
   var MAPS = window.TT_MAPS || {};
   var ORDER = window.TT_MAP_ORDER || Object.keys(MAPS);
   var current = ORDER[0] || "customs";
+  var currentFloor = "ground";
   var draft = null;
+  var map = null;
+  var layer = null;
+  var baseLayer = null;
+  var addMode = false;
+  var BOUNDS = null;
 
   function esc(s) {
     return String(s == null ? "" : s)
@@ -12,148 +19,302 @@
       .replace(/"/g, "&quot;");
   }
 
-  function fillMaps() {
-    var sel = document.getElementById("mapSelect");
-    sel.innerHTML = ORDER.filter(function (id) { return MAPS[id]; }).map(function (id) {
-      return '<option value="' + esc(id) + '"' + (id === current ? " selected" : "") + ">" +
-        esc((MAPS[id].title || id)) + "</option>";
-    }).join("");
+  function enterApp() {
+    document.getElementById("gate").style.display = "none";
+    document.getElementById("app").style.display = "flex";
+    init();
+  }
+
+  function gate() {
+    var btn = document.getElementById("btnGate");
+    function tryIn() {
+      if (window.TarkovSessionGate && TarkovSessionGate.isElevated()) {
+        enterApp();
+        return;
+      }
+      if (TarkovSessionGate.promptElevate()) enterApp();
+    }
+    btn.onclick = tryIn;
+    /* if opened from elevated hub same tab memory is lost — always prompt */
+    if (TarkovSessionGate && TarkovSessionGate.isElevated()) enterApp();
+  }
+
+  function status(msg) {
+    document.getElementById("status").textContent = msg || "";
   }
 
   function loadDraft() {
     draft = TarkovMapOverrides.get(current);
-    if (!draft.rename) draft.rename = {};
-    if (!draft.hide) draft.hide = [];
-    if (!draft.add) draft.add = [];
-    if (!draft.labels) draft.labels = [];
-    paint();
+    draft.rename = draft.rename || {};
+    draft.hide = draft.hide || [];
+    draft.add = draft.add || [];
+    draft.labels = draft.labels || [];
   }
 
-  function baseRows() {
+  function fillMaps() {
+    var sel = document.getElementById("mapSelect");
+    sel.innerHTML = ORDER.filter(function (id) { return MAPS[id]; }).map(function (id) {
+      return '<option value="' + esc(id) + '"' + (id === current ? " selected" : "") + ">" +
+        esc(MAPS[id].title || id) + "</option>";
+    }).join("");
+  }
+
+  function floorsFor(meta) {
+    var floors = (meta && meta.floors) || ["ground"];
+    if (!floors.length) floors = ["ground"];
+    return floors;
+  }
+
+  function setBackground(meta) {
+    if (baseLayer) { map.removeLayer(baseLayer); baseLayer = null; }
+    var floors = floorsFor(meta);
+    var floor = currentFloor;
+    if (floors.indexOf(floor) < 0) floor = floors[0];
+    currentFloor = floor;
+    var b = meta.bounds || { minX: 0, minY: 0, maxX: 1000, maxY: 1000 };
+    BOUNDS = L.latLngBounds(L.latLng(b.minY, b.minX), L.latLng(b.maxY, b.maxX));
+    map.setMaxBounds(BOUNDS.pad(0.05));
+    var url = null;
+    if (meta.floorImages && meta.floorImages[floor]) url = meta.floorImages[floor];
+    else if (meta.image) url = meta.image;
+    else if (meta.svg) url = meta.svg;
+    if (url) {
+      baseLayer = L.imageOverlay(url, BOUNDS);
+      baseLayer.addTo(map);
+    }
+    map.fitBounds(BOUNDS, { padding: [12, 12] });
+    var fs = document.getElementById("floorSelect");
+    fs.innerHTML = floors.map(function (f) {
+      return '<option value="' + esc(f) + '"' + (f === floor ? " selected" : "") + ">" + esc(f) + "</option>";
+    }).join("");
+  }
+
+  function appliedData() {
     var meta = MAPS[current];
-    if (!meta || !meta.data) return [];
-    var rows = [];
-    Object.keys(meta.data).forEach(function (group) {
-      (meta.data[group] || []).forEach(function (m) {
-        rows.push({
-          group: group,
-          name: m.name || "",
-          x: m.x,
-          y: m.y,
-          key: TarkovMapOverrides.markerKey(group, m)
+    var data = (meta && meta.data) || {};
+    return TarkovMapOverrides.apply(current, data);
+  }
+
+  function iconFor(m) {
+    var letter = (m.name || "?").charAt(0).toUpperCase();
+    return L.divIcon({
+      className: "tt-admin-icon",
+      html: "<span>" + esc(letter) + "</span>",
+      iconSize: [22, 22],
+      iconAnchor: [11, 11]
+    });
+  }
+
+  function openEditor(marker, payload, isNew) {
+    var m = payload;
+    var html =
+      '<div class="popup-form">' +
+      '<label>Название</label><input type="text" data-f="name" value="' + esc(m.name || "") + '">' +
+      '<label>Группа</label><select data-f="group">' +
+      ["landmarks","tasks","extracts","spawns","lootables","looseLoot","hazards","switches"].map(function (g) {
+        return '<option value="' + g + '"' + ((m.group || m._group) === g ? " selected" : "") + ">" + g + "</option>";
+      }).join("") +
+      "</select>" +
+      '<label>Фильтр / тип</label><input type="text" data-f="filter" value="' + esc(m.filter || "landmark") + '">' +
+      '<label>Этаж</label><input type="text" data-f="floor" value="' + esc(m.floor || currentFloor || "ground") + '">' +
+      '<div class="row"><div><label>X</label><input type="number" step="any" data-f="x" value="' + esc(m.x) + '"></div>' +
+      '<div><label>Y</label><input type="number" step="any" data-f="y" value="' + esc(m.y) + '"></div></div>' +
+      '<label>Заметка</label><textarea data-f="note" rows="2">' + esc(m.note || "") + "</textarea>" +
+      (m._key ? '<label><input type="checkbox" data-f="hide"' + (m._hidden ? " checked" : "") + "> Скрыть базовую метку</label>" : "") +
+      '<div class="row" style="margin-top:8px">' +
+      '<button type="button" class="btn" data-act="save">OK</button>' +
+      (isNew || m._added != null ? '<button type="button" class="btn-ghost" data-act="del">Удалить</button>' : "") +
+      "</div></div>";
+    marker.bindPopup(html, { maxWidth: 280 }).openPopup();
+    setTimeout(function () {
+      var root = marker.getPopup().getElement();
+      if (!root) return;
+      var form = root.querySelector(".popup-form");
+      form.querySelector('[data-act="save"]').onclick = function () {
+        var val = function (f) {
+          var el = form.querySelector('[data-f="' + f + '"]');
+          if (!el) return null;
+          if (el.type === "checkbox") return el.checked;
+          return el.value;
+        };
+        var name = val("name") || "Метка";
+        var x = Number(val("x"));
+        var y = Number(val("y"));
+        var group = val("group") || "landmarks";
+        var filter = val("filter") || "landmark";
+        var floor = val("floor") || "ground";
+        var note = val("note") || "";
+        if (m._key) {
+          var oldName = m._baseName || m.name;
+          if (name !== oldName) draft.rename[m._key] = name;
+          else delete draft.rename[m._key];
+          var hide = !!val("hide");
+          var ix = draft.hide.indexOf(m._key);
+          if (hide && ix < 0) draft.hide.push(m._key);
+          if (!hide && ix >= 0) draft.hide.splice(ix, 1);
+        } else if (m._added != null) {
+          draft.add[m._added] = {
+            name: name, x: x, y: y, group: group, filter: filter, floor: floor, note: note
+          };
+        } else if (isNew) {
+          draft.add.push({
+            name: name, x: x, y: y, group: group, filter: filter, floor: floor, note: note
+          });
+        }
+        marker.setLatLng([y, x]);
+        marker.closePopup();
+        redraw();
+        status("Черновик изменён (не забудь Сохранить / Экспорт)");
+      };
+      var del = form.querySelector('[data-act="del"]');
+      if (del) {
+        del.onclick = function () {
+          if (m._added != null) draft.add.splice(m._added, 1);
+          marker.closePopup();
+          redraw();
+        };
+      }
+    }, 0);
+  }
+
+  function redraw() {
+    if (layer) { map.removeLayer(layer); }
+    layer = L.layerGroup().addTo(map);
+    var meta = MAPS[current];
+    var raw = (meta && meta.data) || {};
+    Object.keys(raw).forEach(function (group) {
+      (raw[group] || []).forEach(function (m) {
+        var key = TarkovMapOverrides.markerKey(group, m);
+        var hidden = draft.hide.indexOf(key) >= 0;
+        var name = draft.rename[key] || m.name || "";
+        if (m.floor && currentFloor && m.floor !== currentFloor && m.floor !== "all") return;
+        var mk = L.marker([m.y, m.x], {
+          icon: iconFor({ name: name }),
+          opacity: hidden ? 0.35 : 1,
+          draggable: true
         });
+        mk.__payload = {
+          name: name, x: m.x, y: m.y, filter: m.filter, floor: m.floor || "ground",
+          group: group, _group: group, _key: key, _baseName: m.name, _hidden: hidden
+        };
+        mk.on("click", function () { openEditor(mk, mk.__payload, false); });
+        mk.on("dragend", function () {
+          var ll = mk.getLatLng();
+          /* base markers: store as rename-only isn't enough for move — convert to hide+add */
+          var payload = mk.__payload;
+          if (payload._key) {
+            if (draft.hide.indexOf(payload._key) < 0) draft.hide.push(payload._key);
+            draft.add.push({
+              name: payload.name,
+              x: ll.lng,
+              y: ll.lat,
+              group: payload.group,
+              filter: payload.filter || "landmark",
+              floor: payload.floor || currentFloor,
+              note: "moved from base"
+            });
+            status("Базовая метка скрыта, добавлена копия со сдвигом");
+            redraw();
+          }
+        });
+        mk.addTo(layer);
       });
     });
-    return rows;
-  }
-
-  function paint() {
-    var q = (document.getElementById("filterText").value || "").toLowerCase();
-    var rows = baseRows().filter(function (r) {
-      return !q || (r.name + " " + r.group).toLowerCase().indexOf(q) !== -1;
-    }).slice(0, 500);
-    document.getElementById("baseBody").innerHTML = rows.map(function (r) {
-      var ren = draft.rename[r.key] || "";
-      var hid = draft.hide.indexOf(r.key) !== -1;
-      return "<tr data-key=\"" + esc(r.key) + "\">" +
-        "<td>" + esc(r.group) + "</td>" +
-        "<td>" + esc(r.name) + "</td>" +
-        "<td>" + r.x + "</td><td>" + r.y + "</td>" +
-        "<td><input type=\"text\" class=\"ren\" value=\"" + esc(ren) + "\" style=\"width:100%\"></td>" +
-        "<td><input type=\"checkbox\" class=\"hid\"" + (hid ? " checked" : "") + "></td></tr>";
-    }).join("");
-
-    document.getElementById("addBody").innerHTML = (draft.add || []).map(function (m, i) {
-      return "<tr><td>" + esc(m.name) + "</td><td>" + esc(m.group || "") + "</td><td>" +
-        m.x + "</td><td>" + m.y + "</td><td><button type=\"button\" data-i=\"" + i + "\" class=\"btn-ghost del\">×</button></td></tr>";
-    }).join("");
-
-    document.querySelectorAll("#addBody .del").forEach(function (b) {
-      b.onclick = function () {
-        draft.add.splice(+b.getAttribute("data-i"), 1);
-        paint();
-      };
-    });
-
-    document.getElementById("jsonOut").value = JSON.stringify(draft, null, 2);
-  }
-
-  function collectFromTable() {
-    document.querySelectorAll("#baseBody tr").forEach(function (tr) {
-      var k = tr.getAttribute("data-key");
-      var ren = tr.querySelector(".ren").value.trim();
-      var hid = tr.querySelector(".hid").checked;
-      if (ren) draft.rename[k] = ren;
-      else delete draft.rename[k];
-      var ix = draft.hide.indexOf(k);
-      if (hid && ix === -1) draft.hide.push(k);
-      if (!hid && ix !== -1) draft.hide.splice(ix, 1);
+    (draft.add || []).forEach(function (m, i) {
+      if (m.floor && currentFloor && m.floor !== currentFloor && m.floor !== "all") return;
+      var mk = L.marker([m.y, m.x], { icon: iconFor(m), draggable: true });
+      mk.__payload = Object.assign({ _added: i, group: m.group }, m);
+      mk.on("click", function () { openEditor(mk, mk.__payload, false); });
+      mk.on("dragend", function () {
+        var ll = mk.getLatLng();
+        draft.add[i].x = ll.lng;
+        draft.add[i].y = ll.lat;
+        status("Позиция обновлена");
+      });
+      mk.addTo(layer);
     });
   }
 
-  document.getElementById("mapSelect").onchange = function () {
-    collectFromTable();
-    TarkovMapOverrides.set(current, draft);
-    current = this.value;
+  function loadMap(id) {
+    if (id) current = id;
     loadDraft();
-  };
-  document.getElementById("filterText").oninput = function () {
-    collectFromTable();
-    paint();
-  };
-  document.getElementById("btnReload").onclick = function () {
-    collectFromTable();
-    paint();
-  };
-  document.getElementById("btnSave").onclick = function () {
-    collectFromTable();
-    TarkovMapOverrides.set(current, draft);
-    paint();
-    alert("Сохранено для «" + current + "»");
-  };
-  document.getElementById("btnAdd").onclick = function () {
-    draft.add.push({
-      name: document.getElementById("addName").value || "Метка",
-      x: Number(document.getElementById("addX").value) || 0,
-      y: Number(document.getElementById("addY").value) || 0,
-      group: document.getElementById("addGroup").value,
-      floor: document.getElementById("addFloor").value || "ground",
-      filter: "landmark"
-    });
-    document.getElementById("addName").value = "";
-    paint();
-  };
-  document.getElementById("btnExport").onclick = function () {
-    collectFromTable();
-    TarkovMapOverrides.set(current, draft);
-    var data = TarkovMapOverrides.exportMap(current);
-    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "map-overrides-" + current + ".json";
-    a.click();
-  };
-  document.getElementById("btnImport").onclick = function () {
-    document.getElementById("fileImport").click();
-  };
-  document.getElementById("fileImport").onchange = function () {
-    var f = this.files && this.files[0];
-    if (!f) return;
-    var reader = new FileReader();
-    reader.onload = function () {
-      try {
-        TarkovMapOverrides.importMap(JSON.parse(reader.result));
-        current = document.getElementById("mapSelect").value;
-        loadDraft();
-        alert("Импорт OK");
-      } catch (e) {
-        alert("Ошибка: " + e.message);
-      }
-    };
-    reader.readAsText(f);
-    this.value = "";
-  };
+    var meta = MAPS[current];
+    if (!meta) return;
+    setBackground(meta);
+    redraw();
+    status(meta.title || current);
+  }
 
-  fillMaps();
-  loadDraft();
+  function init() {
+    fillMaps();
+    map = L.map("map", { crs: L.CRS.Simple, minZoom: -5, maxZoom: 4 });
+    document.getElementById("mapSelect").onchange = function () {
+      current = this.value;
+      loadMap(current);
+    };
+    document.getElementById("floorSelect").onchange = function () {
+      currentFloor = this.value;
+      setBackground(MAPS[current]);
+      redraw();
+    };
+    document.getElementById("btnAddMode").onclick = function () {
+      addMode = !addMode;
+      this.textContent = addMode ? "Клик по карте…" : "+ Метка";
+      status(addMode ? "Кликните по карте, чтобы поставить метку" : "");
+    };
+    map.on("click", function (e) {
+      if (!addMode) return;
+      addMode = false;
+      document.getElementById("btnAddMode").textContent = "+ Метка";
+      var m = {
+        name: "Новая метка",
+        x: e.latlng.lng,
+        y: e.latlng.lat,
+        group: "landmarks",
+        filter: "landmark",
+        floor: currentFloor || "ground"
+      };
+      draft.add.push(m);
+      redraw();
+      /* open last */
+      status("Метка добавлена — кликните её для правки");
+    });
+    document.getElementById("btnSave").onclick = function () {
+      TarkovMapOverrides.set(current, draft);
+      status("Сохранено в localStorage");
+    };
+    document.getElementById("btnExport").onclick = function () {
+      TarkovMapOverrides.set(current, draft);
+      var data = TarkovMapOverrides.exportMap(current);
+      var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "map-overrides-" + current + ".json";
+      a.click();
+      status("Экспорт JSON");
+    };
+    document.getElementById("btnImport").onclick = function () {
+      document.getElementById("fileImport").click();
+    };
+    document.getElementById("fileImport").onchange = function () {
+      var f = this.files && this.files[0];
+      if (!f) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          TarkovMapOverrides.importMap(JSON.parse(reader.result));
+          loadDraft();
+          redraw();
+          status("Импорт OK");
+        } catch (err) {
+          alert(err.message);
+        }
+      };
+      reader.readAsText(f);
+      this.value = "";
+    };
+    loadMap(current);
+  }
+
+  gate();
 })();
