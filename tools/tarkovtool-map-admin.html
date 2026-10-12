@@ -74,6 +74,8 @@
       <button type="button" class="btn-ghost" id="btnAll">Все</button>
       <button type="button" class="btn-ghost" id="btnNone">Нет</button>
       <button type="button" class="btn" id="btnAddMark">+ Метка</button>
+      <button type="button" class="btn-ghost" id="btnZoneDone" style="display:none">Готово (зона)</button>
+      <button type="button" class="btn-ghost" id="btnZoneCancel" style="display:none">Отмена зоны</button>
       <button type="button" class="btn-ghost" id="btnSaveOv">Сохранить</button>
       <button type="button" class="btn-ghost" id="btnExportOv">Экспорт JSON</button>
       <button type="button" class="btn-ghost" id="btnImportOv">Импорт</button>
@@ -455,13 +457,13 @@
       map.fitBounds(BOUNDS, { padding: [16, 16] });
     });
     document.getElementById("btnAll").addEventListener("click", function () { setAll(true); });
-    document.getElementById("btnNone").addEventListener("click", function () { setAll(false); });
-    document.getElementById("btnAll2").addEventListener("click", function () { setAll(true); });
-    document.getElementById("btnNone2").addEventListener("click", function () { setAll(false); });
-
-
+    document.getElementById("btnNone").addEventListener("click", function () { set
     /* ——— admin edit layer (same map engine) ——— */
     var addMode = false;
+    var pickPosMode = null; /* { item, opts, fields } after "указать на карте" */
+    var zoneMode = null;    /* { item, opts, points: [[x,y],...] } */
+    var zoneLayer = null;
+    var zoneVertexLayer = null;
     var draft = null;
 
     function adminStatus(msg) {
@@ -471,12 +473,13 @@
 
     function loadDraft() {
       if (!window.TarkovMapOverrides) {
-        draft = { rename: {}, hide: [], add: [], labels: [] };
+        draft = { rename: {}, hide: [], edit: {}, add: [], labels: [] };
         return;
       }
       draft = TarkovMapOverrides.get(currentMapId);
       draft.rename = draft.rename || {};
       draft.hide = draft.hide || [];
+      draft.edit = draft.edit || {};
       draft.add = draft.add || [];
       draft.labels = draft.labels || [];
     }
@@ -487,61 +490,183 @@
       adminStatus("Сохранено");
     }
 
+    function xyFromLatLng(ll) {
+      var H = BOUNDS[1][0];
+      return {
+        x: Math.round(ll.lng * 10) / 10,
+        y: Math.round((H - ll.lat) * 10) / 10
+      };
+    }
+
+    function clearZoneEditVisual() {
+      if (zoneLayer) { try { map.removeLayer(zoneLayer); } catch (e) {} zoneLayer = null; }
+      if (zoneVertexLayer) { try { map.removeLayer(zoneVertexLayer); } catch (e) {} zoneVertexLayer = null; }
+    }
+
+    function drawZoneEdit() {
+      clearZoneEditVisual();
+      if (!zoneMode || !zoneMode.points || zoneMode.points.length < 1) return;
+      var latlngs = zoneMode.points.map(function (p) { return toLatLng(p[0], p[1]); });
+      if (zoneMode.points.length >= 3) {
+        zoneLayer = L.polygon(latlngs, {
+          color: "#f0c040", weight: 2, fillColor: "#f0c040", fillOpacity: 0.2
+        }).addTo(map);
+      } else if (zoneMode.points.length === 2) {
+        zoneLayer = L.polyline(latlngs, { color: "#f0c040", weight: 2 }).addTo(map);
+      }
+      zoneVertexLayer = L.layerGroup().addTo(map);
+      zoneMode.points.forEach(function (p, i) {
+        var mk = L.circleMarker(toLatLng(p[0], p[1]), {
+          radius: 6, color: "#111", weight: 1, fillColor: "#f0c040", fillOpacity: 1
+        });
+        mk.bindTooltip(String(i + 1), { permanent: false });
+        mk.addTo(zoneVertexLayer);
+      });
+    }
+
+    function finishZoneEdit(save) {
+      if (!zoneMode) return;
+      if (save && zoneMode.points && zoneMode.points.length >= 3) {
+        applyItemChange(zoneMode.item, zoneMode.opts, {
+          outline: zoneMode.points.slice()
+        });
+        adminStatus("Зона сохранена (" + zoneMode.points.length + " точек)");
+      } else if (save) {
+        adminStatus("Нужно ≥ 3 точки для зоны");
+        return;
+      } else {
+        adminStatus("Редактирование зоны отменено");
+      }
+      zoneMode = null;
+      clearZoneEditVisual();
+      var zb = document.getElementById("btnZoneDone");
+      if (zb) zb.style.display = "none";
+      loadMap(currentMapId);
+    }
+
+    function applyItemChange(item, opts, patch) {
+      loadDraft();
+      opts = opts || {};
+      patch = patch || {};
+      var name = patch.name != null ? patch.name : item.name;
+      var filter = patch.filter != null ? patch.filter : item.filter;
+      var floor = patch.floor != null ? patch.floor : (item.floor || currentFloor || "ground");
+      var x = patch.x != null ? Number(patch.x) : Number(item.x);
+      var y = patch.y != null ? Number(patch.y) : Number(item.y);
+      var outline = patch.outline !== undefined ? patch.outline : item.outline;
+
+      if (opts.addedIndex != null) {
+        var row = draft.add[opts.addedIndex] || {};
+        row.name = name;
+        row.filter = filter;
+        row.floor = floor;
+        row.x = x;
+        row.y = y;
+        row.group = opts.group || row.group || "landmarks";
+        if (outline) row.outline = outline;
+        else delete row.outline;
+        draft.add[opts.addedIndex] = row;
+      } else if (opts.baseKey) {
+        if (name !== (opts.baseName || item.name)) draft.rename[opts.baseKey] = name;
+        else delete draft.rename[opts.baseKey];
+        if (patch.hide === true) {
+          if (draft.hide.indexOf(opts.baseKey) < 0) draft.hide.push(opts.baseKey);
+        } else if (patch.hide === false) {
+          var ix = draft.hide.indexOf(opts.baseKey);
+          if (ix >= 0) draft.hide.splice(ix, 1);
+        }
+        var ed = draft.edit[opts.baseKey] || {};
+        ed.name = name;
+        ed.filter = filter;
+        ed.floor = floor;
+        ed.x = x;
+        ed.y = y;
+        if (outline) ed.outline = outline;
+        draft.edit[opts.baseKey] = ed;
+      } else {
+        draft.add.push({
+          name: name, filter: filter, floor: floor, x: x, y: y,
+          group: opts.group || "landmarks",
+          outline: outline || undefined
+        });
+      }
+      if (window.TarkovMapOverrides) TarkovMapOverrides.set(currentMapId, draft);
+    }
+
     function openEditPopup(layer, item, opts) {
       opts = opts || {};
       var isAdded = opts.addedIndex != null;
       var baseKey = opts.baseKey || null;
-      var html = '<div style="min-width:200px">' +
-        '<div style="margin-bottom:6px"><label>Имя</label><br><input id="ae-name" style="width:100%" value="' + (item.name || "").replace(/"/g, "&quot;") + '"></div>' +
-        '<div style="margin-bottom:6px"><label>Фильтр</label><br><input id="ae-filter" style="width:100%" value="' + (item.filter || "").replace(/"/g, "&quot;") + '"></div>' +
-        '<div style="margin-bottom:6px"><label>Этаж</label><br><input id="ae-floor" style="width:100%" value="' + (item.floor || currentFloor || "ground").replace(/"/g, "&quot;") + '"></div>' +
+      var hasZone = item.outline && item.outline.length >= 3;
+      var html = '<div style="min-width:220px">' +
+        '<div style="margin-bottom:6px"><label>Имя</label><br><input id="ae-name" style="width:100%" value="' + String(item.name || "").replace(/"/g, "&quot;") + '"></div>' +
+        '<div style="margin-bottom:6px"><label>Фильтр</label><br><input id="ae-filter" style="width:100%" value="' + String(item.filter || "").replace(/"/g, "&quot;") + '"></div>' +
+        '<div style="margin-bottom:6px"><label>Этаж</label><br><input id="ae-floor" style="width:100%" value="' + String(item.floor || currentFloor || "ground").replace(/"/g, "&quot;") + '"></div>' +
         '<div style="display:flex;gap:6px;margin-bottom:6px">' +
         '<div style="flex:1"><label>X</label><br><input id="ae-x" type="number" step="any" style="width:100%" value="' + item.x + '"></div>' +
         '<div style="flex:1"><label>Y</label><br><input id="ae-y" type="number" step="any" style="width:100%" value="' + item.y + '"></div></div>' +
         (baseKey ? '<label style="display:flex;gap:6px;align-items:center;margin:6px 0"><input type="checkbox" id="ae-hide"' + (draft.hide.indexOf(baseKey) >= 0 ? " checked" : "") + '> Скрыть базовую</label>' : "") +
-        '<div style="display:flex;gap:6px;margin-top:8px">' +
+        (hasZone ? '<p style="margin:6px 0;font-size:.8rem;opacity:.75">Зона: ' + item.outline.length + ' точек</p>' : "") +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">' +
         '<button type="button" class="btn" id="ae-ok">OK</button>' +
+        '<button type="button" class="btn-ghost" id="ae-pick">Указать на карте</button>' +
+        '<button type="button" class="btn-ghost" id="ae-zone">' + (hasZone ? "Зона…" : "Нарисовать зону") + '</button>' +
         (isAdded ? '<button type="button" class="btn-ghost" id="ae-del">Удалить</button>' : "") +
         "</div></div>";
-      layer.bindPopup(html).openPopup();
+      layer.unbindPopup();
+      layer.bindPopup(html, { maxWidth: 300 }).openPopup();
       setTimeout(function () {
         var ok = document.getElementById("ae-ok");
         if (!ok) return;
+        function readFields() {
+          return {
+            name: (document.getElementById("ae-name").value || "").trim() || "Метка",
+            filter: (document.getElementById("ae-filter").value || "").trim() || item.filter || "landmark-name",
+            floor: (document.getElementById("ae-floor").value || "").trim() || "ground",
+            x: Number(document.getElementById("ae-x").value),
+            y: Number(document.getElementById("ae-y").value),
+            hide: document.getElementById("ae-hide") ? document.getElementById("ae-hide").checked : undefined
+          };
+        }
         ok.onclick = function () {
-          var name = document.getElementById("ae-name").value.trim() || "Метка";
-          var filter = document.getElementById("ae-filter").value.trim() || item.filter || "landmark-name";
-          var floor = document.getElementById("ae-floor").value.trim() || "ground";
-          var x = Number(document.getElementById("ae-x").value);
-          var y = Number(document.getElementById("ae-y").value);
-          if (isAdded) {
-            draft.add[opts.addedIndex] = {
-              name: name, x: x, y: y, filter: filter, floor: floor,
-              group: opts.group || "landmarks"
-            };
-          } else if (baseKey) {
-            if (name !== (opts.baseName || item.name)) draft.rename[baseKey] = name;
-            else delete draft.rename[baseKey];
-            var hid = document.getElementById("ae-hide") && document.getElementById("ae-hide").checked;
-            var ix = draft.hide.indexOf(baseKey);
-            if (hid && ix < 0) draft.hide.push(baseKey);
-            if (!hid && ix >= 0) draft.hide.splice(ix, 1);
-            /* position change on base → hide + add */
-            if (x !== item.x || y !== item.y) {
-              if (draft.hide.indexOf(baseKey) < 0) draft.hide.push(baseKey);
-              draft.add.push({
-                name: name, x: x, y: y, filter: filter, floor: floor,
-                group: opts.group || "landmarks"
-              });
-            }
-          }
+          var f = readFields();
+          applyItemChange(item, opts, f);
           layer.closePopup();
           loadMap(currentMapId);
-          adminStatus("Черновик изменён");
+          adminStatus("Сохранено в черновик");
+        };
+        document.getElementById("ae-pick").onclick = function () {
+          var f = readFields();
+          pickPosMode = { item: item, opts: opts, fields: f };
+          addMode = false;
+          zoneMode = null;
+          clearZoneEditVisual();
+          layer.closePopup();
+          adminStatus("Кликните по карте — новая позиция метки");
+        };
+        document.getElementById("ae-zone").onclick = function () {
+          var f = readFields();
+          /* stash name etc into opts for later apply */
+          opts._fields = f;
+          zoneMode = {
+            item: Object.assign({}, item, f),
+            opts: opts,
+            points: (item.outline && item.outline.length) ? item.outline.map(function (p) { return [p[0], p[1]]; }) : []
+          };
+          pickPosMode = null;
+          addMode = false;
+          layer.closePopup();
+          drawZoneEdit();
+          var zb = document.getElementById("btnZoneDone");
+          if (zb) zb.style.display = "";
+          adminStatus("Зона: клик — точка, «Готово» — сохранить (≥3), Esc — отмена");
         };
         var del = document.getElementById("ae-del");
         if (del) {
           del.onclick = function () {
+            loadDraft();
             draft.add.splice(opts.addedIndex, 1);
+            if (window.TarkovMapOverrides) TarkovMapOverrides.set(currentMapId, draft);
             layer.closePopup();
             loadMap(currentMapId);
           };
@@ -549,39 +674,29 @@
       }, 0);
     }
 
-    // wrap original loadMap
     var _loadMapOrig = loadMap;
     loadMap = function (mapId) {
       if (mapId) currentMapId = mapId;
       loadDraft();
       _loadMapOrig(mapId);
-      // re-bind markers for edit after orig adds them
       allMarkers.forEach(function (rec) {
         var item = rec.item;
         var layer = rec.layer;
         if (!layer || !layer.on) return;
         layer.off("click");
-        var group = null;
-        var baseKey = null;
-        try {
-          if (window.TarkovMapOverrides && item && item.filter) {
-            // reconstruct group from GROUPS
-            GROUPS.forEach(function (g) {
-              if ((DATA_REF && DATA_REF[g.id] || []).indexOf) { /* skip */ }
-            });
-          }
-        } catch (e) {}
         layer.on("click", function (ev) {
+          if (pickPosMode || zoneMode || addMode) return;
           if (ev && ev.originalEvent) L.DomEvent.stopPropagation(ev.originalEvent);
           var key = null;
+          var group = null;
           try {
             if (window.TarkovMapOverrides) {
-              // try match base marker key by coords
               var meta = MAPS[currentMapId];
               var raw = (meta && meta.data) || {};
               Object.keys(raw).forEach(function (g) {
                 (raw[g] || []).forEach(function (m) {
-                  if (Math.abs(m.x - item.x) < 0.01 && Math.abs(m.y - item.y) < 0.01 && m.filter === item.filter) {
+                  if (Math.abs(m.x - item.x) < 0.15 && Math.abs(m.y - item.y) < 0.15 &&
+                      (m.filter || "") === (item.filter || "")) {
                     key = TarkovMapOverrides.markerKey(g, m);
                     group = g;
                   }
@@ -591,7 +706,7 @@
           } catch (e2) {}
           var addedIndex = null;
           (draft.add || []).forEach(function (m, i) {
-            if (Math.abs(m.x - item.x) < 0.01 && Math.abs(m.y - item.y) < 0.01) addedIndex = i;
+            if (Math.abs(m.x - item.x) < 0.15 && Math.abs(m.y - item.y) < 0.15) addedIndex = i;
           });
           openEditPopup(layer, item, {
             baseKey: key,
@@ -603,35 +718,42 @@
       });
     };
 
-    var DATA_REF = null;
-    // capture DATA after apply inside loadMapOrig - monkey-patch apply path
-    var _apply = window.TarkovMapOverrides && TarkovMapOverrides.apply;
-    if (_apply) {
-      TarkovMapOverrides.apply = function (id, data) {
-        var out = _apply.call(TarkovMapOverrides, id, data);
-        DATA_REF = out;
-        return out;
-      };
-    }
-
     document.getElementById("btnAddMark").addEventListener("click", function () {
       addMode = !addMode;
+      pickPosMode = null;
+      if (zoneMode) finishZoneEdit(false);
       this.textContent = addMode ? "Клик по карте…" : "+ Метка";
       adminStatus(addMode ? "Кликните по карте" : "");
     });
+
     map.on("click", function (e) {
+      if (zoneMode) {
+        var pt = xyFromLatLng(e.latlng);
+        zoneMode.points.push([pt.x, pt.y]);
+        drawZoneEdit();
+        adminStatus("Точек: " + zoneMode.points.length + " (нужно ≥ 3)");
+        return;
+      }
+      if (pickPosMode) {
+        var xy = xyFromLatLng(e.latlng);
+        var f = pickPosMode.fields || {};
+        f.x = xy.x;
+        f.y = xy.y;
+        applyItemChange(pickPosMode.item, pickPosMode.opts, f);
+        pickPosMode = null;
+        loadMap(currentMapId);
+        adminStatus("Позиция обновлена: " + xy.x + ", " + xy.y);
+        return;
+      }
       if (!addMode) return;
       addMode = false;
       document.getElementById("btnAddMark").textContent = "+ Метка";
-      // invert toLatLng: lat = H - y, lng = x  →  x = lng, y = H - lat
-      var H = BOUNDS[1][0];
-      var x = e.latlng.lng;
-      var y = H - e.latlng.lat;
+      var p = xyFromLatLng(e.latlng);
       loadDraft();
       draft.add.push({
         name: "Новая метка",
-        x: Math.round(x * 10) / 10,
-        y: Math.round(y * 10) / 10,
+        x: p.x,
+        y: p.y,
         filter: "landmark-name",
         floor: currentFloor || "ground",
         group: "landmarks"
@@ -639,6 +761,12 @@
       if (window.TarkovMapOverrides) TarkovMapOverrides.set(currentMapId, draft);
       loadMap(currentMapId);
       adminStatus("Метка добавлена");
+    });
+
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape" && zoneMode) {
+        finishZoneEdit(false);
+      }
     });
 
     document.getElementById("btnSaveOv").addEventListener("click", function () {
@@ -666,6 +794,47 @@
       reader.onload = function () {
         try {
           TarkovMapOverrides.importMap(JSON.parse(reader.result));
+          loadMap(currentMapId);
+          adminStatus("Импорт OK");
+        } catch (err) { alert(err.message); }
+      };
+      reader.readAsText(f);
+      this.value = "";
+    });
+
+
+    var btnZoneDone = document.getElementById("btnZoneDone");
+    var btnZoneCancel = document.getElementById("btnZoneCancel");
+    if (btnZoneDone) {
+      btnZoneDone.addEventListener("click", function () { finishZoneEdit(true); });
+    }
+    if (btnZoneCancel) {
+      btnZoneCancel.addEventListener("click", function () { finishZoneEdit(false); });
+    }
+    // show cancel when zone mode - patch finishZoneEdit display
+    var _finishZoneEdit = finishZoneEdit;
+    finishZoneEdit = function (save) {
+      _finishZoneEdit(save);
+      if (btnZoneDone) btnZoneDone.style.display = "none";
+      if (btnZoneCancel) btnZoneCancel.style.display = "none";
+    };
+    // when starting zone, show both
+    var _openEditPopup = openEditPopup;
+    openEditPopup = function (layer, item, opts) {
+      _openEditPopup(layer, item, opts);
+      setTimeout(function () {
+        var z = document.getElementById("ae-zone");
+        if (!z) return;
+        var prev = z.onclick;
+        z.onclick = function (ev) {
+          if (prev) prev.call(z, ev);
+          if (btnZoneDone) btnZoneDone.style.display = "";
+          if (btnZoneCancel) btnZoneCancel.style.display = "";
+        };
+      }, 30);
+    };
+
+JSON.parse(reader.result));
           loadMap(currentMapId);
           adminStatus("Импорт OK");
         } catch (err) { alert(err.message); }
