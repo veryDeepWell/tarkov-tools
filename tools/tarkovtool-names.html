@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Имена</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <link rel="stylesheet" href="../core/tarkov-ui.css">
+  <style>
+    .wrap{max-width:900px;margin:0 auto;padding:12px}
+    .card{background:var(--panel,#1a1d23);border:1px solid var(--border,#2a3038);border-radius:8px;padding:12px;margin-bottom:12px}
+    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0}
+    .meta{opacity:.75;font-size:.85rem}
+    label.chk{margin-right:12px}
+    #out{width:100%;min-height:180px;box-sizing:border-box;font-family:ui-monospace,monospace;font-size:.85rem}
+    ul{margin:0;padding-left:1.2em}
+  </style>
+  <script type="application/json" id="tarkovtool-meta">
+  {"id":"tarkovtool-names.html","title":"Имена","description":"Имена Диких, боссов, рейдеров и генератор списков.","kind":"static","cat":"util","icon":"util"}
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Имена</h1>
+    <p class="meta">Справочник и генератор. Боссы — фиксированные имена; Дикие — «Часть 1 + Часть 2»; рейдеры/BD — односоставные.</p>
+
+    <div class="card">
+      <h3>Генератор</h3>
+      <div class="row">
+        <label class="chk"><input type="checkbox" name="fac" value="scav" checked> Дикие</label>
+        <label class="chk"><input type="checkbox" name="fac" value="raider"> Рейдеры</label>
+        <label class="chk"><input type="checkbox" name="fac" value="bd"> Black Division</label>
+        <label class="chk"><input type="checkbox" name="fac" value="boss"> Боссы (+свита)</label>
+      </div>
+      <div class="row">
+        <label>Количество <input type="number" id="count" value="12" min="1" max="200" style="width:72px"></label>
+        <label>Порядок
+          <select id="order">
+            <option value="grouped">по фракциям</option>
+            <option value="mixed">вперемешку</option>
+          </select>
+        </label>
+        <button type="button" class="btn" id="btnGen">Сгенерировать</button>
+        <button type="button" class="btn-ghost" id="btnCopy">Копировать</button>
+      </div>
+      <textarea id="out" readonly></textarea>
+    </div>
+
+    <div class="card">
+      <h3>Боссы</h3>
+      <ul id="refBosses"></ul>
+    </div>
+    <div class="card">
+      <h3>Дикие</h3>
+      <p id="refScav" class="meta"></p>
+    </div>
+  </div>
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="../js/names.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>

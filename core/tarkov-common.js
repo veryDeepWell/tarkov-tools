@@ -263,10 +263,16 @@
     TarkovStorage.migrateLegacyKeys();
     var data = {
       _schema: "tarkov-tools-export",
-      _version: 1,
+      _version: 2,
       _exportedAt: new Date().toISOString(),
-      keys: {}
+      keys: {},
+      profiles: null
     };
+    try {
+      if (global.TarkovProfile && TarkovProfile.exportAllProfiles) {
+        data.profiles = TarkovProfile.exportAllProfiles();
+      }
+    } catch (eProf) {}
     var ks = TarkovStorage.keys("tt:");
     ks.forEach(function (k) {
       data.keys[k] = TarkovStorage.get(k, null);

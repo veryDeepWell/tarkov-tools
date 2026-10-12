@@ -1,63 +1,100 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="dark">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Tarkov — dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Мой Тарков</title>
   <link rel="stylesheet" href="../core/tarkov-common.css">
-  <script type="application/json" id="tarkovtool-meta">
-  {"title": "My Tarkov", "description": "Дашборд над общим локальным состоянием: убежище, квесты, алерты."}
-  </script>
+  <link rel="stylesheet" href="../core/tarkov-ui.css">
   <style>
-    .container{max-width:min(1600px,92vw)!important;margin:0 auto;padding:12px 14px 64px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-    .stat-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:12px}
-    .stat{background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:12px}
-    .stat .v{font-size:1.3rem;font-weight:800;color:var(--accent)}
-    .stat .l{font-size:.75rem;color:var(--muted)}
-    .card h3{margin:0 0 10px;font-size:1rem;color:var(--accent)}
-    .link{color:var(--accent);text-decoration:none}
-    .link:hover{text-decoration:underline}
-    .field{margin-bottom:8px}
-    .field label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px}
-    textarea{width:100%;min-height:80px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px}
+    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+    .card { background: var(--panel, #1a1d23); border: 1px solid var(--border, #2a3038); border-radius: 8px; padding: 12px 14px; }
+    .card h3 { margin: 0 0 10px; font-size: 1rem; }
+    .stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .stat { flex: 1; min-width: 72px; text-align: center; background: var(--bg, #12151a); border-radius: 6px; padding: 8px 6px; }
+    .stat .v { font-weight: 700; font-size: 1.1rem; word-break: break-word; }
+    .stat .l { font-size: 0.7rem; opacity: 0.7; margin-top: 2px; }
+    .field { margin-bottom: 8px; }
+    .field label { display: block; font-size: 0.8rem; opacity: 0.8; margin-bottom: 4px; }
+    .field input, .field select, .field textarea { width: 100%; box-sizing: border-box; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .meta { font-size: 0.85rem; opacity: 0.75; }
+    .link { color: var(--accent, #6af); }
+    .trader-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 4px 0; font-size: 0.9rem; }
+    .trader-row select { width: 88px; }
+    #canDo { margin: 0; padding-left: 1.2em; }
+    #canDo li { margin: 4px 0; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
   </style>
+  <script type="application/json" id="tarkovtool-meta">
+  {"id":"tarkovtool-my-tarkov.html","title":"Мой Тарков","description":"Профиль ЧВК: уровень, УЛ торговцев, квесты, престиж.","kind":"static","cat":"other","icon":"util"}
+  </script>
 </head>
 <body>
-  <div class="container">
-    <h1>My Tarkov</h1>
-    <p class="sub" style="color:var(--muted);margin-bottom:14px">Локальный дашборд. Не заменяет инструменты — только сводка состояния.</p>
+  <div class="wrap" style="max-width:1100px;margin:0 auto;padding:12px">
+    <h1 style="margin-top:0">Мой Тарков</h1>
+    <p class="meta">Единый профиль ЧВК для сайта. Глобальные вещи (история цен) остаются общими.</p>
 
-    <div class="stat-row" id="stats"></div>
+    <div class="toolbar">
+      <select id="profileSelect" style="min-width:180px"></select>
+      <button type="button" class="btn" id="newProfile">Новый</button>
+      <button type="button" class="btn-ghost" id="deleteProfile">Удалить</button>
+      <button type="button" class="btn-ghost" id="exportProfile">Экспорт</button>
+      <button type="button" class="btn-ghost" id="exportAllProfiles">Экспорт все</button>
+      <button type="button" class="btn-ghost" id="importProfile">Импорт</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </div>
+
+    <div class="stats" id="stats"></div>
 
     <div class="grid">
       <div class="card">
         <h3>Профиль</h3>
-        <div class="field"><label>Уровень PMC</label>
-          <input type="number" id="level" min="1" max="79" value="1">
-        </div>
+        <div class="field"><label>Имя</label><input type="text" id="pmcName" maxlength="48"></div>
+        <div class="field"><label>Уровень</label><input type="number" id="level" min="1" max="79"></div>
         <div class="field"><label>Режим</label>
-          <select id="gameMode">
-            <option value="pve">pve</option>
-            <option value="regular">regular</option>
-            <option value="pvp-season">pvp-season</option>
-          </select>
+          <select id="gameMode"><option value="pve">PVE</option><option value="pvp">PVP</option></select>
         </div>
+        <div class="field"><label>Престиж</label><input type="number" id="prestigeLevel" min="0" max="20"></div>
         <button type="button" class="btn" id="saveProfile">Сохранить</button>
       </div>
 
       <div class="card">
+        <h3>УЛ торговцев</h3>
+        <div id="traders"></div>
+        <p class="meta" style="margin-top:8px">Сохраняется кнопкой «Сохранить» в блоке профиля.</p>
+      </div>
+
+      <div class="card">
+        <h3>Квесты</h3>
+        <div class="stats" id="questStats"></div>
+        <div class="field"><label>Сданные (по одному id/имени в строке)</label>
+          <textarea id="questCompleted" rows="4" placeholder="quest-id-or-name"></textarea>
+        </div>
+        <div class="field"><label>Активные</label>
+          <textarea id="questActive" rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Что можно делать</h3>
+        <ul id="canDo"></ul>
+        <p class="meta">Черновой список по уровню и УЛ. Полная матрица контента — в следующих патчах.</p>
+      </div>
+
+      <div class="card">
         <h3>Убежище</h3>
-        <p class="meta" id="hideoutSum">Данные из трекера убежища (если пользовался).</p>
-        <a class="link" href="tarkovtool-hideout.html">Открыть трекер →</a>
-        <div class="field" style="margin-top:10px"><label>Заметки</label>
+        <p class="meta">Заметки профиля (не путать с глобальным трекером станций).</p>
+        <div class="field"><label>Заметки</label>
           <textarea id="hideoutNotes" placeholder="Что качать дальше…"></textarea>
         </div>
         <button type="button" class="btn-ghost" id="saveNotes">Сохранить заметки</button>
+        <p style="margin-top:8px"><a class="link" href="tarkovtool-hideout.html">Трекер убежища →</a></p>
       </div>
 
       <div class="card">
         <h3>Алерты цен</h3>
+        <p class="meta">Общие для сайта, не привязаны к ЧВК.</p>
         <div class="row">
           <input type="text" id="alertSlug" placeholder="normalized-name или id" style="flex:2">
           <input type="number" id="alertTarget" placeholder="цель ₽" style="flex:1;min-width:100px">
@@ -67,16 +104,14 @@
           <button type="button" class="btn" id="addAlert">Добавить</button>
         </div>
         <div id="alertList" style="margin-top:10px"></div>
-        <p class="meta" style="margin-top:8px">Проверка при снимках в <a class="link" href="tarkovtool-price-track.html">Динамике цен</a> (пока вкладка открыта).</p>
       </div>
 
       <div class="card">
         <h3>Быстрые ссылки</h3>
-        <p><a class="link" href="tarkovtool-desk.html">🖥 Desk (мини-вкладки)</a></p>
-        <p><a class="link" href="tarkovtool-raid-checklist.html">✅ Чек-лист рейда</a></p>
-        <p><a class="link" href="tarkovtool-restock.html">⏰ Ресток</a></p>
-        <p><a class="link" href="tarkovtool-cultist.html">⛧ Культисты</a></p>
-        <p><a class="link" href="tarkovtool-quests.html">📜 Квесты</a></p>
+        <p><a class="link" href="tarkovtool-quests.html">Квесты</a></p>
+        <p><a class="link" href="tarkovtool-prestige.html">Престиж</a></p>
+        <p><a class="link" href="tarkovtool-raid-checklist.html">Чек-лист рейда</a></p>
+        <p><a class="link" href="tarkovtool-restock.html">Ресток</a></p>
       </div>
 
       <div class="card">
@@ -93,6 +128,7 @@
   <script src="../core/tarkov-api.js"></script>
   <script src="../core/tarkov-ui.js"></script>
   <script src="../core/tarkov-state.js"></script>
+  <script src="../core/tarkov-profile.js"></script>
   <script src="../core/tarkov-common.js"></script>
   <script src="../js/my-tarkov.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>

@@ -65,6 +65,7 @@
       <button type="button" class="btn-ghost" id="btnFit">⤢</button>
       <button type="button" class="btn-ghost" id="btnAll">Все</button>
       <button type="button" class="btn-ghost" id="btnNone">Нет</button>
+      <a class="btn-ghost" id="btnAdmin" href="tarkovtool-map-admin.html" style="text-decoration:none;display:inline-flex;align-items:center">Админ</a>
     </div>
     <div class="map-body">
       <div id="map"></div>
@@ -92,6 +93,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-map-overrides.js"></script>
   <script src="map-data-all.js"></script>
   <script>
   (function () {
@@ -324,6 +326,9 @@
       var meta = MAPS[currentMapId];
       if (!meta) return;
       var DATA = meta.data || {};
+      try {
+        if (window.TarkovMapOverrides) DATA = TarkovMapOverrides.apply(currentMapId, DATA);
+      } catch (eOv) {}
       BOUNDS = [[0, 0], [meta.H, meta.W]];
       fillFloorSelect();
 
@@ -448,6 +453,6 @@
       if (window.parent !== window) window.parent.postMessage({ type: "tt-tool-ready", tool: "map" }, "*");
     } catch (e) {}
   })();
-  </script></script>
+  </script>
 </body>
 </html>

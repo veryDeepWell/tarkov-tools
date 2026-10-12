@@ -285,6 +285,14 @@ window.__TT_CATALOG_DATA = {
       "kind": "static"
     },
     {
+      "file": "tools/tarkovtool-map-admin.html",
+      "title": "Карта · админ",
+      "description": "Ручные метки, переименования и скрытие точек на карте.",
+      "icon": "util",
+      "cat": "util",
+      "kind": "static"
+    },
+    {
       "file": "tools/tarkovtool-map.html",
       "title": "Карта",
       "description": "Интерактивные карты EFT: extracts, spawns, loot, quests",
@@ -318,10 +326,18 @@ window.__TT_CATALOG_DATA = {
     },
     {
       "file": "tools/tarkovtool-my-tarkov.html",
-      "title": "My Tarkov",
-      "description": "Дашборд над общим локальным состоянием: убежище, квесты, алерты.",
-      "icon": "other",
+      "title": "Мой Тарков",
+      "description": "Профиль ЧВК: уровень, УЛ торговцев, квесты, престиж.",
+      "icon": "util",
       "cat": "other",
+      "kind": "static"
+    },
+    {
+      "file": "tools/tarkovtool-names.html",
+      "title": "Имена",
+      "description": "Имена Диких, боссов, рейдеров и генератор списков.",
+      "icon": "util",
+      "cat": "util",
       "kind": "static"
     },
     {

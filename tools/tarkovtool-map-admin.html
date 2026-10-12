@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Карта — админ</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <link rel="stylesheet" href="../core/tarkov-ui.css">
+  <style>
+    .wrap{max-width:1000px;margin:0 auto;padding:12px}
+    .card{background:var(--panel,#1a1d23);border:1px solid var(--border,#2a3038);border-radius:8px;padding:12px;margin-bottom:12px}
+    .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
+    table{width:100%;border-collapse:collapse;font-size:.85rem}
+    th,td{border-bottom:1px solid var(--border,#2a3038);padding:4px 6px;text-align:left}
+    input[type=text],input[type=number],select,textarea{box-sizing:border-box}
+    .meta{opacity:.75;font-size:.85rem}
+    #jsonOut{width:100%;min-height:120px;font-family:monospace;font-size:.8rem}
+  </style>
+  <script type="application/json" id="tarkovtool-meta">
+  {"id":"tarkovtool-map-admin.html","title":"Карта · админ","description":"Ручные метки, переименования и скрытие точек на карте.","kind":"static","cat":"util","icon":"util"}
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Карта — админ</h1>
+    <p class="meta">Оверрайды хранятся локально (<code>tt:map:overrides:*</code>) и накладываются на данные карты. Базовый дамп не перезаписывается.</p>
+    <p><a href="tarkovtool-map.html">← Открыть карту</a></p>
+
+    <div class="card">
+      <div class="row">
+        <label>Карта <select id="mapSelect"></select></label>
+        <button type="button" class="btn" id="btnReload">Обновить список</button>
+        <button type="button" class="btn-ghost" id="btnSave">Сохранить оверрайды</button>
+        <button type="button" class="btn-ghost" id="btnExport">Экспорт JSON</button>
+        <button type="button" class="btn-ghost" id="btnImport">Импорт JSON</button>
+        <input type="file" id="fileImport" accept="application/json,.json" hidden>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Переименовать / скрыть базовые метки</h3>
+      <p class="meta">Фильтр: <input type="text" id="filterText" placeholder="поиск по имени" style="width:200px"></p>
+      <div style="max-height:320px;overflow:auto">
+        <table>
+          <thead><tr><th>Группа</th><th>Имя</th><th>x</th><th>y</th><th>Новое имя</th><th>Скрыть</th></tr></thead>
+          <tbody id="baseBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Добавить метку / название локации</h3>
+      <div class="row">
+        <input type="text" id="addName" placeholder="Название" style="min-width:160px">
+        <input type="number" id="addX" placeholder="x" style="width:90px">
+        <input type="number" id="addY" placeholder="y" style="width:90px">
+        <select id="addGroup">
+          <option value="landmarks">landmarks</option>
+          <option value="tasks">tasks</option>
+          <option value="extracts">extracts</option>
+          <option value="spawns">spawns</option>
+          <option value="lootables">lootables</option>
+        </select>
+        <input type="text" id="addFloor" placeholder="floor" value="ground" style="width:100px">
+        <button type="button" class="btn" id="btnAdd">Добавить</button>
+      </div>
+      <table>
+        <thead><tr><th>Имя</th><th>Группа</th><th>x</th><th>y</th><th></th></tr></thead>
+        <tbody id="addBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>JSON</h3>
+      <textarea id="jsonOut" readonly></textarea>
+    </div>
+  </div>
+
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-map-overrides.js"></script>
+  <script src="map-data-all.js"></script>
+  <script src="../js/map-admin.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>
