@@ -118,6 +118,8 @@ def collect() -> list[dict]:
         kind = infer_kind(slug, meta.get("kind"))
         requested_icon = (meta.get("icon") or "").strip()
         icon = requested_icon if (ICON_DIR / f"{requested_icon}.svg").is_file() else cat
+        if not (ICON_DIR / f"{icon}.svg").is_file():
+            icon = "util" if (ICON_DIR / "util.svg").is_file() else "other"
 
         if not meta:
             warnings.append(f"{path.name}: no valid #tarkovtool-meta — used filename defaults")

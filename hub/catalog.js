@@ -289,7 +289,7 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-map-admin.html",
       "title": "Карта · админ",
       "description": "Редактор меток и оверрайдов карты.",
-      "icon": "admin",
+      "icon": "util",
       "cat": "admin",
       "kind": "static"
     },
