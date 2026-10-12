@@ -9,8 +9,7 @@ window.__TT_CATALOG_DATA = {
     "quests": "Квесты",
     "med": "Мед / еда",
     "util": "Утилиты",
-    "other": "Прочее",
-    "admin": "Админ"
+    "other": "Прочее"
   },
   "tools": [
     {
@@ -286,6 +285,14 @@ window.__TT_CATALOG_DATA = {
       "kind": "static"
     },
     {
+      "file": "tools/tarkovtool-map-admin.html",
+      "title": "Карта · админ",
+      "description": "Редактор меток карты (только админ).",
+      "icon": "util",
+      "cat": "other",
+      "kind": "static"
+    },
+    {
       "file": "tools/tarkovtool-map.html",
       "title": "Карта",
       "description": "Интерактивные карты EFT: extracts, spawns, loot, quests",
@@ -319,10 +326,18 @@ window.__TT_CATALOG_DATA = {
     },
     {
       "file": "tools/tarkovtool-my-tarkov.html",
-      "title": "My Tarkov",
-      "description": "Дашборд над общим локальным состоянием: убежище, квесты, алерты.",
-      "icon": "other",
+      "title": "Мой Тарков",
+      "description": "Профиль ЧВК: уровень, УЛ торговцев, квесты, престиж.",
+      "icon": "util",
       "cat": "other",
+      "kind": "static"
+    },
+    {
+      "file": "tools/tarkovtool-names.html",
+      "title": "Имена",
+      "description": "Имена Диких, боссов, рейдеров и генератор списков.",
+      "icon": "util",
+      "cat": "util",
       "kind": "static"
     },
     {
@@ -497,22 +512,6 @@ window.__TT_CATALOG_DATA = {
       "file": "tools/tarkovtool-xp.html",
       "title": "Опыт",
       "description": "Источники XP, множители выхода, калькулятор киллов и таблица уровней.",
-      "icon": "util",
-      "cat": "util",
-      "kind": "static"
-    },
-    {
-      "file": "tools/tarkovtool-map-admin.html",
-      "title": "Карта · админ",
-      "description": "Редактор меток (только админ-режим).",
-      "icon": "util",
-      "cat": "admin",
-      "kind": "static"
-    },
-    {
-      "file": "tools/tarkovtool-names.html",
-      "title": "Имена",
-      "description": "Имена Диких, боссов, рейдеров и генератор.",
       "icon": "util",
       "cat": "util",
       "kind": "static"
