@@ -342,6 +342,162 @@
   }
 
 
+
+  function ensureProfileChrome() {
+    if (!window.TarkovProfile) return;
+    try { if (TarkovProfile.ensureMigrated) TarkovProfile.ensureMigrated(); } catch (e) {}
+
+    function iconUrl(id) {
+      var base = (location.pathname || "").indexOf("/tools/") >= 0 ? "../assets/icons/" : "assets/icons/";
+      return base + (id || "util") + ".svg";
+    }
+
+    function closePop() {
+      var p = document.getElementById("tt-profile-pop");
+      if (p) p.hidden = true;
+    }
+
+    function paintChip() {
+      var chip = document.getElementById("tt-profile-chip");
+      if (!chip) return;
+      var p = TarkovProfile.getActive();
+      var name = (p && p.name) || "ЧВК";
+      var lvl = (p && p.level) || 1;
+      var ico = (p && p.icon) || "util";
+      chip.innerHTML =
+        '<img src="' + iconUrl(ico) + '" alt="" style="width:18px;height:18px">' +
+        '<span class="tt-profile-chip-text">' + name + " · L" + lvl + "</span>";
+      try {
+        document.documentElement.setAttribute("data-tt-filter-mode", TarkovProfile.getFilterMode ? TarkovProfile.getFilterMode() : "off");
+      } catch (e) {}
+    }
+
+    function paintPop() {
+      var body = document.getElementById("tt-profile-pop-body");
+      if (!body) return;
+      var list = TarkovProfile.list();
+      var active = TarkovProfile.getActiveId();
+      var mode = TarkovProfile.getFilterMode ? TarkovProfile.getFilterMode() : "off";
+      var html = '<div class="tt-profile-pop-title">Профиль</div>';
+      html += list.map(function (m) {
+        return (
+          '<button type="button" class="tt-profile-pick' + (m.id === active ? " is-on" : "") + '" data-id="' + m.id + '">' +
+          '<img src="' + iconUrl(m.icon || "util") + '" alt="">' +
+          "<span>" + (m.name || "ЧВК") + " · L" + (m.level || 1) + "</span></button>"
+        );
+      }).join("");
+      html +=
+        '<div class="tt-profile-pop-title" style="margin-top:10px">Фильтр по профилю</div>' +
+        '<div class="tt-profile-filter-row">' +
+        ['off','dim','hide'].map(function (m) {
+          var label = m === "off" ? "Выкл" : m === "dim" ? "Серым" : "Скрыть";
+          return '<button type="button" class="tt-filter-mode' + (mode === m ? " is-on" : "") + '" data-mode="' + m + '">' + label + "</button>";
+        }).join("") +
+        "</div>" +
+        '<p class="meta" style="margin:8px 0 0;font-size:.75rem">Недоступное по уровню / УЛ / квестам</p>' +
+        '<a class="link" href="tarkovtool-my-tarkov.html" style="display:inline-block;margin-top:8px">Мой Тарков →</a>';
+      body.innerHTML = html;
+      body.querySelectorAll(".tt-profile-pick").forEach(function (btn) {
+        btn.onclick = function () {
+          var id = btn.getAttribute("data-id");
+          try {
+            TarkovProfile.setActive(id);
+            paintChip();
+            paintPop();
+            if (window.wireProfileGameMode) wireProfileGameMode();
+            else if (TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+            try {
+              window.dispatchEvent(new CustomEvent("tt-profile-changed", { detail: { id: id } }));
+              if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: "tt-profile-changed", id: id }, "*");
+              }
+            } catch (e) {}
+            // soft rebuild: re-run tool render if exposed
+            try {
+              if (typeof window.render === "function") window.render();
+              if (typeof window.paint === "function") window.paint();
+            } catch (e2) {}
+            closePop();
+          } catch (err) {
+            alert(err.message || String(err));
+          }
+        };
+      });
+      body.querySelectorAll(".tt-filter-mode").forEach(function (btn) {
+        btn.onclick = function () {
+          TarkovProfile.setFilterMode(btn.getAttribute("data-mode"));
+          paintPop();
+          try {
+            if (typeof window.render === "function") window.render();
+          } catch (e) {}
+        };
+      });
+    }
+
+    var actions = document.querySelector(".tt-tool-header-actions");
+    if (!actions) {
+      // create minimal bar at top of body
+      var bar = document.getElementById("tt-profile-bar");
+      if (!bar) {
+        bar = document.createElement("div");
+        bar.id = "tt-profile-bar";
+        bar.style.cssText = "display:flex;justify-content:flex-end;gap:8px;padding:6px 0;margin-bottom:4px";
+        var box = document.querySelector(".container") || document.body;
+        box.insertBefore(bar, box.firstChild);
+        actions = bar;
+      } else {
+        actions = bar;
+      }
+    }
+
+    if (!document.getElementById("tt-profile-chip")) {
+      var chip = document.createElement("button");
+      chip.type = "button";
+      chip.id = "tt-profile-chip";
+      chip.className = "btn-ghost tt-profile-chip";
+      chip.style.cssText = "display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 10px;font-size:.85rem";
+      actions.insertBefore(chip, actions.firstChild);
+
+      var pop = document.createElement("div");
+      pop.id = "tt-profile-pop";
+      pop.hidden = true;
+      pop.className = "tt-profile-pop card";
+      pop.innerHTML = '<div id="tt-profile-pop-body"></div>';
+      pop.style.cssText =
+        "position:absolute;right:0;top:100%;margin-top:6px;z-index:50;min-width:220px;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.35)";
+      var wrap = actions.closest(".tt-tool-header") || actions;
+      if (getComputedStyle(wrap).position === "static") wrap.style.position = "relative";
+      wrap.appendChild(pop);
+
+      chip.onclick = function (ev) {
+        ev.stopPropagation();
+        var p = document.getElementById("tt-profile-pop");
+        if (!p) return;
+        p.hidden = !p.hidden;
+        if (!p.hidden) paintPop();
+      };
+      document.addEventListener("click", function (ev) {
+        var p = document.getElementById("tt-profile-pop");
+        var c = document.getElementById("tt-profile-chip");
+        if (!p || p.hidden) return;
+        if (p.contains(ev.target) || (c && c.contains(ev.target))) return;
+        p.hidden = true;
+      });
+    }
+
+    paintChip();
+    try {
+      if (TarkovProfile.subscribe && !window.__ttProfileChromeBound) {
+        window.__ttProfileChromeBound = true;
+        TarkovProfile.subscribe(function () {
+          paintChip();
+          wireProfileGameMode();
+        });
+      }
+    } catch (e) {}
+  }
+
+
   function boot() {
     ensureCss();
     ensureUiJs();
@@ -386,6 +542,20 @@
     if (window.TarkovDicts && TarkovDicts.syncGameMode) TarkovDicts.syncGameMode();
   } catch (ePre) {}
 
+  window.addEventListener("tt-profile-changed", function () {
+    try { wireProfileGameMode(); } catch (e) {}
+    try { if (typeof window.render === "function") window.render(); } catch (e) {}
+    try { if (typeof window.paint === "function") window.paint(); } catch (e) {}
+  });
+  window.addEventListener("message", function (ev) {
+    if (!ev.data || !ev.data.type) return;
+    if (ev.data.type === "tt-profile-changed" || ev.data.type === "tt-profile-filter") {
+      try { wireProfileGameMode(); } catch (e) {}
+      try { if (typeof window.render === "function") window.render(); } catch (e) {}
+      try { if (typeof window.paint === "function") window.paint(); } catch (e) {}
+    }
+  });
+  /* tt-profile-changed-listener */
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 

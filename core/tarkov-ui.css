@@ -131,3 +131,17 @@ body.tt-expand-open .hub-shell > .hub-work {
   flex: 1;
   min-width: 0;
 }
+
+
+/* R-2 profile chrome + filter */
+.tt-profile-chip img { display:block; }
+.tt-profile-pop { background: var(--card, #1a1f26); border: 1px solid var(--border, #2a3038); border-radius: 10px; }
+.tt-profile-pop-title { font-size: .75rem; font-weight: 600; color: var(--muted, #8b939e); margin-bottom: 6px; }
+.tt-profile-pick { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 6px 8px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: inherit; cursor: pointer; font-size: .85rem; }
+.tt-profile-pick img { width: 20px; height: 20px; }
+.tt-profile-pick:hover, .tt-profile-pick.is-on { border-color: var(--accent, #c9a227); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.tt-profile-filter-row { display: flex; gap: 4px; }
+.tt-filter-mode { flex: 1; padding: 6px 4px; font-size: .75rem; border-radius: 6px; border: 1px solid var(--border); background: var(--input-bg, #12151a); color: inherit; cursor: pointer; }
+.tt-filter-mode.is-on { border-color: var(--accent); color: var(--accent); }
+.tt-profile-dim { opacity: 0.45 !important; filter: grayscale(0.35); }
+.tt-profile-hide { display: none !important; }

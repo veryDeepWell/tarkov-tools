@@ -173,7 +173,17 @@
         )) {
           lock += '<span class="tag opt">сдано в профиле</span> ';
         }
-        return `<div class="qcard">
+        const lockedLvl = !!(window.TarkovProfile && TarkovProfile.meetsLevel && !TarkovProfile.meetsLevel(t.minPlayerLevel));
+        const doneProf = !!(window.TarkovProfile && TarkovProfile.isQuestCompleted && (
+          TarkovProfile.isQuestCompleted(t.id) || TarkovProfile.isQuestCompleted(t.normalizedName)
+        ));
+        const locked = lockedLvl; // level gate is the main lock for filter mode
+        if (window.TarkovProfile && TarkovProfile.lockVisibility && TarkovProfile.lockVisibility(locked) === 'hide') {
+          return '';
+        }
+        const dimStyle = (window.TarkovProfile && TarkovProfile.lockVisibility && TarkovProfile.lockVisibility(locked) === 'dim')
+          ? ' style="opacity:.45;filter:grayscale(.35)"' : '';
+        return `<div class="qcard"${dimStyle}${locked ? ' data-tt-locked="1"' : ''}>
           <h2>${esc(en)}</h2>
           ${ru ? `<div class="meta">${esc(ru)}</div>` : ''}
           <div class="meta">${esc(t.normalizedName || '')} · lvl ${t.minPlayerLevel ?? '?'} · ${esc(traderName[t.trader] || '')} ${lock}</div>
@@ -185,6 +195,7 @@
       }).join('');
     }
 
+    window.render = render;
     document.getElementById('q').oninput = render;
     document.getElementById('mapFilter').onchange = render;
     document.getElementById('traderFilter').onchange = render;
@@ -238,3 +249,12 @@
     __ttBindMode();
   }
 })();
+
+window.addEventListener("tt-profile-changed", function () { try { render(); } catch (e) {} });
+window.addEventListener("tt-profile-filter", function () { try { render(); } catch (e) {} });
+window.addEventListener("message", function (ev) {
+  if (!ev.data) return;
+  if (ev.data.type === "tt-profile-changed" || ev.data.type === "tt-profile-filter") {
+    try { if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage(); render(); } catch (e) {}
+  }
+});

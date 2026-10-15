@@ -130,6 +130,8 @@
           TarkovProfile.isQuestCompleted(r.taskId)||TarkovProfile.isQuestCompleted(r.questName)
         )) return false;
         if(hideLocked&&r.minLvl>myLvl) return false;
+        var lockedRow = r.minLvl>myLvl;
+        if(window.TarkovProfile&&TarkovProfile.lockVisibility&&TarkovProfile.lockVisibility(lockedRow)==='hide') return false;
         if(q){
           const hay=(r.itemName+' '+r.slugs.join(' ')+' '+r.questName+' '+r.trader).toLowerCase();
           if(!hay.includes(q)) return false;
@@ -187,6 +189,7 @@
     document.querySelectorAll('th[data-k]').forEach(th=>{
       th.onclick=()=>{const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else{sortKey=k;sortDir=k==='itemName'||k==='questName'||k==='trader'||k==='type'?1:-1} render()};
     });
+    window.render = render;
     ['search','onlyFir','hideDone','hideLocked','playerLevel'].forEach(id=>{
       const el=document.getElementById(id);
       el.addEventListener('input',render);

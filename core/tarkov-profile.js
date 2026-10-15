@@ -6,6 +6,7 @@
   var LIST_KEY = "tt:profile:list";
   var ACTIVE_KEY = "tt:profile:active";
   var DATA_PREFIX = "tt:profile:data:";
+  var FILTER_MODE_KEY = "tt:profile:filterMode"; // off | dim | hide
   var CHANNEL = "tarkov-tools-profile";
   var TRADER_KEYS = [
     "prapor", "therapist", "fence", "skier", "peacekeeper",
@@ -145,6 +146,12 @@
     var p = readData(id);
     syncLegacyState(p);
     emit("active", { id: id, profile: p });
+    emit("change", { profile: p, fields: ["*"], reason: "active" });
+    try {
+      document.documentElement.setAttribute("data-tt-profile-id", id);
+      document.documentElement.setAttribute("data-tt-level", String((p && p.level) || 1));
+      document.documentElement.setAttribute("data-tt-mode", (p && p.gameMode) || "pve");
+    } catch (e) {}
     return p;
   }
 
@@ -605,6 +612,55 @@
     return out;
   }
 
+
+  function getFilterMode() {
+    try {
+      var m = storage().get(FILTER_MODE_KEY, "off");
+      if (m === "dim" || m === "hide" || m === "off") return m;
+    } catch (e) {}
+    return "off";
+  }
+
+  function setFilterMode(mode) {
+    if (mode !== "dim" && mode !== "hide") mode = "off";
+    try { storage().set(FILTER_MODE_KEY, mode); } catch (e) {}
+    emit("filterMode", { mode: mode });
+    try {
+      document.documentElement.setAttribute("data-tt-filter-mode", mode);
+      window.dispatchEvent(new CustomEvent("tt-profile-filter", { detail: { mode: mode } }));
+    } catch (e2) {}
+    return mode;
+  }
+
+  /** locked=true means content not available for current PMC. */
+  function lockVisibility(locked) {
+    if (!locked) return "show";
+    var m = getFilterMode();
+    if (m === "hide") return "hide";
+    if (m === "dim") return "dim";
+    return "show";
+  }
+
+  function applyLockToElement(el, locked) {
+    if (!el) return;
+    var vis = lockVisibility(!!locked);
+    el.classList.remove("tt-profile-dim", "tt-profile-hide");
+    el.removeAttribute("data-tt-locked");
+    if (!locked) return;
+    el.setAttribute("data-tt-locked", "1");
+    if (vis === "hide") {
+      el.classList.add("tt-profile-hide");
+      el.style.display = "none";
+    } else if (vis === "dim") {
+      el.classList.add("tt-profile-dim");
+      el.style.display = "";
+      el.style.opacity = "0.45";
+    } else {
+      el.style.display = "";
+      el.style.opacity = "";
+    }
+  }
+
   global.TarkovProfile = {
     __v: 1,
     TRADER_KEYS: TRADER_KEYS.slice(),
@@ -635,6 +691,10 @@
     isQuestActive: isQuestActive,
     meetsLevel: meetsLevel,
     meetsTraderLL: meetsTraderLL,
-    suggestActions: suggestActions
+    suggestActions: suggestActions,
+    getFilterMode: getFilterMode,
+    setFilterMode: setFilterMode,
+    lockVisibility: lockVisibility,
+    applyLockToElement: applyLockToElement
   };
 })(typeof window !== "undefined" ? window : globalThis);
