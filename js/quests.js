@@ -112,10 +112,19 @@
       const q = (document.getElementById('q').value || '').toLowerCase().trim();
       const mapF = document.getElementById('mapFilter').value;
       const trF = document.getElementById('traderFilter').value;
+      const onlyAvail = !!(document.getElementById('onlyAvailable') && document.getElementById('onlyAvailable').checked);
+      const hideDone = !!(document.getElementById('hideProfileDone') && document.getElementById('hideProfileDone').checked);
       let list = tasks.filter(t => {
         if (trF && t.trader !== trF) return false;
         const maps = mapsOfTask(t);
         if (mapF && !maps.some(m => m === mapF)) return false;
+        if (window.TarkovProfile) {
+          if (hideDone && TarkovProfile.isQuestCompleted && (
+            TarkovProfile.isQuestCompleted(t.id) || TarkovProfile.isQuestCompleted(t.normalizedName) ||
+            TarkovProfile.isQuestCompleted(tName(t.id, t.normalizedName))
+          )) return false;
+          if (onlyAvail && TarkovProfile.meetsLevel && !TarkovProfile.meetsLevel(t.minPlayerLevel)) return false;
+        }
         if (!q) return true;
         const en = tName(t.id, t.normalizedName).toLowerCase();
         const ru = tNameRu(t.id, t.normalizedName).toLowerCase();
@@ -155,10 +164,19 @@
             ${extra}
           </div>`;
         }).join('');
+        let lock = '';
+        if (window.TarkovProfile && TarkovProfile.meetsLevel && !TarkovProfile.meetsLevel(t.minPlayerLevel)) {
+          lock = '<span class="tag lock">нужен ур. ' + (t.minPlayerLevel || '?') + ' (у тебя ' + TarkovProfile.playerLevel() + ')</span> ';
+        }
+        if (window.TarkovProfile && TarkovProfile.isQuestCompleted && (
+          TarkovProfile.isQuestCompleted(t.id) || TarkovProfile.isQuestCompleted(t.normalizedName)
+        )) {
+          lock += '<span class="tag opt">сдано в профиле</span> ';
+        }
         return `<div class="qcard">
           <h2>${esc(en)}</h2>
           ${ru ? `<div class="meta">${esc(ru)}</div>` : ''}
-          <div class="meta">${esc(t.normalizedName || '')} · lvl ${t.minPlayerLevel ?? '?'} · ${esc(traderName[t.trader] || '')}</div>
+          <div class="meta">${esc(t.normalizedName || '')} · lvl ${t.minPlayerLevel ?? '?'} · ${esc(traderName[t.trader] || '')} ${lock}</div>
           <div style="margin:6px 0">${mapTags}</div>
           <div>${reqs}</div>
           ${t.wikiLink ? `<div class="meta"><a href="${esc(t.wikiLink)}" target="_blank" rel="noopener">wiki</a></div>` : ''}
@@ -170,6 +188,20 @@
     document.getElementById('q').oninput = render;
     document.getElementById('mapFilter').onchange = render;
     document.getElementById('traderFilter').onchange = render;
+    ['onlyAvailable','hideProfileDone'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.onchange = render;
+    });
+    // nav context: highlight search
+    try {
+      if (window.TarkovNav) {
+        var ctx = TarkovNav.get();
+        if (ctx && ctx.type === 'quest' && ctx.id) {
+          var qel = document.getElementById('q');
+          if (qel && !qel.value) { qel.value = ctx.name || ctx.id; }
+        }
+      }
+    } catch (eNav) {}
 
     (function () {
   function itemName(it){
@@ -186,4 +218,23 @@
     return s||it.id||'';
   }
     })();
-  
+
+/* R-2: gameMode from profile on load; changes write to profile */
+(function () {
+  function __ttBindMode() {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
+        TarkovProfile.wireToolPage();
+      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
+        var el = document.getElementById("gameMode");
+        if (el) el.__ttProfileBound = false;
+        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+      }
+    } catch (e) {}
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", __ttBindMode);
+  } else {
+    __ttBindMode();
+  }
+})();

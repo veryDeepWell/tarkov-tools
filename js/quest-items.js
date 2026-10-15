@@ -115,12 +115,20 @@
       const onlyFir=document.getElementById('onlyFir').checked;
       const hideDone=document.getElementById('hideDone').checked;
       const hideLocked=document.getElementById('hideLocked').checked;
-      const myLvl=Number(document.getElementById('playerLevel').value)||1;
+      let myLvl=Number(document.getElementById('playerLevel').value)||1;
+      if(window.TarkovProfile&&TarkovProfile.playerLevel){
+        myLvl=TarkovProfile.playerLevel();
+        var pl=document.getElementById('playerLevel');
+        if(pl) pl.value=myLvl;
+      }
 
       let list=rows.filter(r=>{
         if(!activeTypes.has(r.type)) return false;
         if(onlyFir&&!r.fir) return false;
         if(hideDone&&done[r.key]) return false;
+        if(hideDone&&window.TarkovProfile&&TarkovProfile.isQuestCompleted&&(
+          TarkovProfile.isQuestCompleted(r.taskId)||TarkovProfile.isQuestCompleted(r.questName)
+        )) return false;
         if(hideLocked&&r.minLvl>myLvl) return false;
         if(q){
           const hay=(r.itemName+' '+r.slugs.join(' ')+' '+r.questName+' '+r.trader).toLowerCase();
@@ -214,10 +222,35 @@
   }
 
       const s=loadSettings('tarkovQuestItemsSettings',{playerLevel:31});
-      if(s.gameMode) document.getElementById('gameMode').value=s.gameMode;
-      if(s.playerLevel) document.getElementById('playerLevel').value=s.playerLevel;
+      if (document.getElementById("gameMode")) {
+      var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
+        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
+        : ((s.gameMode) || "pve");
+      document.getElementById("gameMode").value = __ttMode;
+    }
+      if (window.TarkovProfile && TarkovProfile.bindLevel) { TarkovProfile.bindLevel("playerLevel"); }
+      else if (s.playerLevel) document.getElementById("playerLevel").value = s.playerLevel;
       if(s.onlyFir) document.getElementById('onlyFir').checked=true;
       if(s.hideDone===false) document.getElementById('hideDone').checked=false;
       if(s.hideLocked===false) document.getElementById('hideLocked').checked=false;
     })();
-  
+
+/* R-2: gameMode from profile on load; changes write to profile */
+(function () {
+  function __ttBindMode() {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
+        TarkovProfile.wireToolPage();
+      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
+        var el = document.getElementById("gameMode");
+        if (el) el.__ttProfileBound = false;
+        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+      }
+    } catch (e) {}
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", __ttBindMode);
+  } else {
+    __ttBindMode();
+  }
+})();

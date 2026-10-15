@@ -31,6 +31,16 @@
     (document.head || document.documentElement).appendChild(s);
   }
 
+  function ensureProfileJs() {
+    if (window.TarkovProfile || document.getElementById("tt-profile-js")) return;
+    var path = location.pathname || "";
+    var s = document.createElement("script");
+    s.id = "tt-profile-js";
+    s.src = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-profile.js";
+    s.async = false;
+    (document.head || document.documentElement).appendChild(s);
+  }
+
   function ensureStorageJs() {
     if (window.TarkovStorage || document.getElementById("tt-storage-js")) return;
     var path = location.pathname || "";
@@ -303,10 +313,40 @@
     });
   }
 
+
+
+  /**
+   * R-2: load gameMode from profile (else default); on change save to profile.
+   * Synchronous bind — no delayed overwrites.
+   */
+  function wireProfileGameMode() {
+    try {
+      if (!window.TarkovProfile) return;
+      if (TarkovProfile.ensureMigrated) TarkovProfile.ensureMigrated();
+      // clear bind flags so profile switch re-applies
+      ["gameMode", "playerLevel", "level", "prestige"].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.__ttProfileBound = false;
+        el.__ttProfileBoundNum = null;
+        el.__ttProfileBoundPrestige = false;
+      });
+      if (TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+      else if (TarkovProfile.bindGameMode) TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+      if (TarkovProfile.context) window.__ttProfileContext = TarkovProfile.context();
+      if (TarkovProfile.subscribe && !window.__ttProfileWireBound) {
+        window.__ttProfileWireBound = true;
+        TarkovProfile.subscribe(function () { wireProfileGameMode(); });
+      }
+    } catch (e) {}
+  }
+
+
   function boot() {
     ensureCss();
     ensureUiJs();
     ensureStorageJs();
+    ensureProfileJs();
     ensureItemsJs();
     ensureItemDomainJs();
     ensureItemViewModelsJs();

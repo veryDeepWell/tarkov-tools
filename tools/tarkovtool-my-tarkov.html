@@ -25,6 +25,12 @@
     #canDo { margin: 0; padding-left: 1.2em; }
     #canDo li { margin: 4px 0; }
     .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+    .icon-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .icon-pick { width: 40px; height: 40px; border-radius: 8px; border: 2px solid var(--border, #2a3038);
+      background: var(--bg, #12151a); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+    .icon-pick.is-on { border-color: var(--accent, #c9a227); box-shadow: 0 0 0 1px var(--accent, #c9a227); }
+    .icon-pick img { width: 24px; height: 24px; object-fit: contain; }
+    .stat-ico { width: 28px; height: 28px; vertical-align: middle; margin-right: 4px; }
   </style>
   <script type="application/json" id="tarkovtool-meta">
   {"id":"tarkovtool-my-tarkov.html","title":"Мой Тарков","description":"Профиль ЧВК: уровень, УЛ торговцев, квесты, престиж.","kind":"static","cat":"other","icon":"util"}
@@ -51,6 +57,10 @@
       <div class="card">
         <h3>Профиль</h3>
         <div class="field"><label>Имя</label><input type="text" id="pmcName" maxlength="48"></div>
+        <div class="field"><label>Иконка профиля</label>
+          <div id="iconGrid" class="icon-grid"></div>
+          <input type="hidden" id="pmcIcon" value="util">
+        </div>
         <div class="field"><label>Уровень</label><input type="number" id="level" min="1" max="79"></div>
         <div class="field"><label>Режим</label>
           <select id="gameMode"><option value="pve">PVE</option><option value="pvp">PVP</option></select>
@@ -129,6 +139,7 @@
   <script src="../core/tarkov-ui.js"></script>
   <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-profile.js"></script>
+  <script src="../core/tarkov-nav.js"></script>
   <script src="../core/tarkov-common.js"></script>
   <script src="../js/my-tarkov.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>

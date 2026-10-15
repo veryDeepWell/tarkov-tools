@@ -313,7 +313,12 @@
   }
 
       const s = loadSettings('tarkovContainersSettings', {});
-      if (s.gameMode) document.getElementById('gameMode').value = s.gameMode;
+      if (document.getElementById("gameMode")) {
+      var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
+        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
+        : ((s.gameMode) || "pve");
+      document.getElementById("gameMode").value = __ttMode;
+    }
       if (s.tab) tab = s.tab;
       if (s.hideQuest) document.getElementById('hideQuest').checked = true;
       if (s.onlyArmorRig) document.getElementById('onlyArmorRig').checked = true;
@@ -322,4 +327,23 @@
         t.classList.toggle('active', t.dataset.tab === tab);
       });
     })();
-  
+
+/* R-2: gameMode from profile on load; changes write to profile */
+(function () {
+  function __ttBindMode() {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
+        TarkovProfile.wireToolPage();
+      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
+        var el = document.getElementById("gameMode");
+        if (el) el.__ttProfileBound = false;
+        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+      }
+    } catch (e) {}
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", __ttBindMode);
+  } else {
+    __ttBindMode();
+  }
+})();

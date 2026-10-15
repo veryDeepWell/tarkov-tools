@@ -477,7 +477,8 @@
         if (isCheck) el.checked = !!val;
         else el.value = val;
       };
-      set('playerLevel', s.playerLevel);
+      if (window.TarkovProfile && TarkovProfile.bindLevel) TarkovProfile.bindLevel('playerLevel');
+      else set('playerLevel', s.playerLevel);
       set('intel3', s.intel3);
       set('hmLvl', s.hmLvl);
       set('minProfit', s.minProfit);
@@ -507,4 +508,22 @@
       });
     })();
 
-  
+/* R-2: gameMode from profile on load; changes write to profile */
+(function () {
+  function __ttBindMode() {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
+        TarkovProfile.wireToolPage();
+      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
+        var el = document.getElementById("gameMode");
+        if (el) el.__ttProfileBound = false;
+        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+      }
+    } catch (e) {}
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", __ttBindMode);
+  } else {
+    __ttBindMode();
+  }
+})();

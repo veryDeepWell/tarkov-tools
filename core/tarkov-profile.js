@@ -42,6 +42,7 @@
       quests: { completed: [], active: [] },
       prestige: { level: 0, carried: [] },
       notes: { hideout: "" },
+      icon: "util",
       meta: { createdAt: now, updatedAt: now }
     };
   }
@@ -67,6 +68,7 @@
       carried: Array.isArray(p.prestige && p.prestige.carried) ? p.prestige.carried.slice() : []
     };
     out.notes = Object.assign({ hideout: "" }, p.notes || {});
+    out.icon = (p.icon && String(p.icon).trim()) || "util";
     out.level = Math.max(1, Math.min(79, Number(out.level) || 1)) | 0;
     out.gameMode = out.gameMode === "pvp" || out.gameMode === "pve" ? out.gameMode : "pve";
     out.meta = Object.assign({ createdAt: Date.now(), updatedAt: Date.now() }, p.meta || {});
@@ -121,13 +123,13 @@
     var found = false;
     for (var i = 0; i < list.length; i++) {
       if (list[i].id === p.id) {
-        list[i] = { id: p.id, name: p.name, updatedAt: p.meta.updatedAt, level: p.level };
+        list[i] = { id: p.id, name: p.name, updatedAt: p.meta.updatedAt, level: p.level, icon: p.icon || "util" };
         found = true;
         break;
       }
     }
     if (!found) {
-      list.push({ id: p.id, name: p.name, updatedAt: p.meta.updatedAt, level: p.level });
+      list.push({ id: p.id, name: p.name, updatedAt: p.meta.updatedAt, level: p.level, icon: p.icon || "util" });
     }
     saveList(list);
     return p;
@@ -287,20 +289,66 @@
 
   /** Mirror active profile into TarkovState for older tools */
   function syncLegacyState(p) {
-    if (!p || !global.TarkovState || !TarkovState.set) return;
+    if (!p) return;
     try {
-      TarkovState.set({
-        player: { level: p.level, gameMode: p.gameMode, name: p.name },
-        quests: {
-          completed: (p.quests && p.quests.completed) || [],
-          active: (p.quests && p.quests.active) || []
-        },
-        hideout: { notes: (p.notes && p.notes.hideout) || "" }
-      });
+      if (global.TarkovState && TarkovState.set) {
+        TarkovState.set({
+          player: {
+            level: p.level,
+            gameMode: p.gameMode,
+            name: p.name,
+            icon: p.icon || "util",
+            traders: p.traders || {},
+            prestige: (p.prestige && p.prestige.level) || 0
+          },
+          quests: {
+            completed: (p.quests && p.quests.completed) || [],
+            active: (p.quests && p.quests.active) || []
+          },
+          hideout: { notes: (p.notes && p.notes.hideout) || "" }
+        });
+      }
     } catch (e) {}
     try {
-      if (global.TarkovStorage) TarkovStorage.set("tarkovPreferredGameMode", p.gameMode);
+      if (global.TarkovStorage) {
+        TarkovStorage.set("tarkovPreferredGameMode", p.gameMode);
+        // namespaced settings key used by hub/common
+        if (TarkovStorage.setJson) {
+          try {
+            var sk = "tt:settings:game-mode";
+            TarkovStorage.set(sk, p.gameMode);
+          } catch (e2) {}
+        }
+      }
     } catch (e) {}
+  }
+
+  /** Preferred game mode: active profile wins over defaults. */
+  function preferredGameMode(fallback) {
+    try {
+      var p = getActive();
+      if (p && p.gameMode) return p.gameMode;
+    } catch (e) {}
+    return fallback || "pve";
+  }
+
+  /** Context bag for tools (read-only snapshot). */
+  function context() {
+    var p = getActive();
+    return {
+      id: p.id,
+      name: p.name,
+      level: p.level,
+      gameMode: p.gameMode,
+      icon: p.icon || "util",
+      traders: Object.assign({}, p.traders || {}),
+      quests: {
+        completed: (p.quests.completed || []).slice(),
+        active: (p.quests.active || []).slice()
+      },
+      prestige: Object.assign({}, p.prestige || { level: 0, carried: [] }),
+      skills: Object.assign({}, p.skills || {})
+    };
   }
 
   var migrated = false;
@@ -383,6 +431,180 @@
     return list();
   }
 
+
+  function bindGameMode(elOrId, opts) {
+    opts = opts || {};
+    var el = typeof elOrId === "string" ? document.getElementById(elOrId) : elOrId;
+    if (!el) el = document.getElementById(opts.id || "gameMode");
+    if (!el) return null;
+    var fallback = opts.fallback || "pve";
+    var mode = preferredGameMode(fallback);
+    var values = [];
+    if (el.options && el.options.length) {
+      for (var i = 0; i < el.options.length; i++) values.push(el.options[i].value);
+    }
+    if (values.length && values.indexOf(mode) < 0) {
+      if (mode === "pve" && values.indexOf("regular") >= 0) mode = "regular";
+      else if ((mode === "regular" || mode === "pve") && values.indexOf("pve") >= 0) mode = "pve";
+      else if (values.indexOf(fallback) >= 0) mode = fallback;
+      else mode = values[0];
+    }
+    el.value = mode;
+    if (el.__ttProfileBound) return el;
+    el.__ttProfileBound = true;
+    el.addEventListener("change", function () {
+      var v = el.value;
+      if (v === "regular") v = "pve";
+      try { update({ gameMode: v === "pvp" ? "pvp" : "pve" }); } catch (err) {}
+    });
+    return el;
+  }
+
+
+  function bindNumberInput(elOrId, readVal, writeVal, opts) {
+    opts = opts || {};
+    var el = typeof elOrId === "string" ? document.getElementById(elOrId) : elOrId;
+    if (!el) return null;
+    var key = opts.bindKey || el.id || "num";
+    var v = readVal();
+    if (v != null && isFinite(Number(v))) el.value = Number(v);
+    if (el.__ttProfileBoundNum && el.__ttProfileBoundNum === key) return el;
+    el.__ttProfileBoundNum = key;
+    el.addEventListener("change", function () {
+      var n = Number(el.value);
+      if (!isFinite(n)) return;
+      try { writeVal(n); } catch (e) {}
+    });
+    return el;
+  }
+
+  function bindLevel(elOrId) {
+    return bindNumberInput(elOrId || "playerLevel", function () {
+      var p = getActive();
+      return p && p.level != null ? p.level : 1;
+    }, function (n) {
+      n = Math.max(1, Math.min(79, n | 0));
+      update({ level: n });
+    }, { bindKey: "level" });
+  }
+
+  function bindPrestige(elOrId) {
+    var el = typeof elOrId === "string" ? document.getElementById(elOrId) : (elOrId || document.getElementById("prestige"));
+    if (!el) return null;
+    var p = getActive();
+    var lvl = (p && p.prestige && p.prestige.level) || 0;
+    if (lvl < 1) lvl = Number(el.value) || 1;
+    // select may only have 1..6
+    var values = [];
+    if (el.options) {
+      for (var i = 0; i < el.options.length; i++) values.push(el.options[i].value);
+    }
+    if (values.length && values.indexOf(String(lvl)) < 0) {
+      if (lvl < 1 && values.indexOf("1") >= 0) lvl = 1;
+      else if (values.indexOf("6") >= 0) lvl = 6;
+      else lvl = values[values.length - 1];
+    }
+    el.value = String(lvl);
+    if (el.__ttProfileBoundPrestige) return el;
+    el.__ttProfileBoundPrestige = true;
+    el.addEventListener("change", function () {
+      var n = Math.max(0, Number(el.value) || 0) | 0;
+      try {
+        var cur = getActive();
+        var carried = (cur.prestige && cur.prestige.carried) || [];
+        update({ prestige: { level: n, carried: carried } });
+      } catch (e) {}
+    });
+    return el;
+  }
+
+  /** Wire common profile fields present on the tool page. */
+  function wireToolPage() {
+    try {
+      ensureMigrated();
+      bindGameMode("gameMode", { fallback: "pve" });
+      if (document.getElementById("playerLevel")) bindLevel("playerLevel");
+      // #level only when not My Tarkov full form — still OK to bind
+      if (document.getElementById("level") && !document.getElementById("pmcName")) bindLevel("level");
+      if (document.getElementById("prestige")) bindPrestige("prestige");
+      if (typeof context === "function") {
+        try { window.__ttProfileContext = context(); } catch (e) {}
+      }
+    } catch (e) {}
+  }
+
+
+  function playerLevel() {
+    var p = getActive();
+    return (p && p.level) || 1;
+  }
+
+  function traderLL(key) {
+    var p = getActive();
+    if (!p || !p.traders) return 1;
+    var n = Number(p.traders[key]);
+    return isFinite(n) && n >= 1 ? (n | 0) : 1;
+  }
+
+  function isQuestCompleted(idOrName) {
+    if (!idOrName) return false;
+    var p = getActive();
+    var list = (p && p.quests && p.quests.completed) || [];
+    var s = String(idOrName).toLowerCase().trim();
+    for (var i = 0; i < list.length; i++) {
+      if (String(list[i]).toLowerCase().trim() === s) return true;
+    }
+    return false;
+  }
+
+  function isQuestActive(idOrName) {
+    if (!idOrName) return false;
+    var p = getActive();
+    var list = (p && p.quests && p.quests.active) || [];
+    var s = String(idOrName).toLowerCase().trim();
+    for (var i = 0; i < list.length; i++) {
+      if (String(list[i]).toLowerCase().trim() === s) return true;
+    }
+    return false;
+  }
+
+  /** Task/object with minPlayerLevel — unlocked for current PMC? */
+  function meetsLevel(minLevel) {
+    var need = Number(minLevel);
+    if (!isFinite(need) || need <= 1) return true;
+    return playerLevel() >= need;
+  }
+
+  /** Trader offer with minTraderLevel for known trader key/id. */
+  function meetsTraderLL(traderKey, minLL) {
+    var need = Number(minLL);
+    if (!isFinite(need) || need <= 1) return true;
+    return traderLL(traderKey) >= need;
+  }
+
+  /** Suggestions for «Что я могу» based on profile only (no API). */
+  function suggestActions() {
+    var p = getActive();
+    var out = [];
+    var lvl = p.level || 1;
+    TRADER_KEYS.forEach(function (k) {
+      var ll = traderLL(k);
+      if (ll < 4) out.push({ kind: "trader", text: "УЛ " + k + " → " + (ll + 1), trader: k, next: ll + 1 });
+    });
+    if (lvl < 15) out.push({ kind: "level", text: "До 15 ур. — новые квесты и торговцы", level: 15 });
+    else if (lvl < 20) out.push({ kind: "level", text: "До 20 ур. — flea / расширенный контент", level: 20 });
+    else if (lvl < 40) out.push({ kind: "level", text: "Кач до 40 — mid-game прогресс", level: 40 });
+    else if (lvl < 55) out.push({ kind: "level", text: "Кач до 55 — поздние квесты", level: 55 });
+    var active = (p.quests && p.quests.active) || [];
+    active.slice(0, 8).forEach(function (q) {
+      out.push({ kind: "quest", text: "Активно: " + q, quest: q });
+    });
+    if (!active.length) out.push({ kind: "quest", text: "Нет активных квестов в профиле — добавь в «Мой Тарков» или отметь в трекере", quest: null });
+    var prest = (p.prestige && p.prestige.level) || 0;
+    if (prest > 0) out.push({ kind: "prestige", text: "Престиж P" + prest + " — проверь набор в Престижинаторе", prestige: prest });
+    return out;
+  }
+
   global.TarkovProfile = {
     __v: 1,
     TRADER_KEYS: TRADER_KEYS.slice(),
@@ -400,6 +622,19 @@
     importAllProfiles: importAllProfiles,
     subscribe: subscribe,
     ensureMigrated: ensureMigrated,
-    syncLegacyState: syncLegacyState
+    syncLegacyState: syncLegacyState,
+    preferredGameMode: preferredGameMode,
+    context: context,
+    bindGameMode: bindGameMode,
+    bindLevel: bindLevel,
+    bindPrestige: bindPrestige,
+    wireToolPage: wireToolPage,
+    playerLevel: playerLevel,
+    traderLL: traderLL,
+    isQuestCompleted: isQuestCompleted,
+    isQuestActive: isQuestActive,
+    meetsLevel: meetsLevel,
+    meetsTraderLL: meetsTraderLL,
+    suggestActions: suggestActions
   };
 })(typeof window !== "undefined" ? window : globalThis);

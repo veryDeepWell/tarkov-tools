@@ -150,8 +150,33 @@
   });
   try {
     var saved = TarkovStorage.getJson(settingKey, {}) || {};
-    if (saved.mode) document.getElementById("gameMode").value = saved.mode;
+    if (document.getElementById("gameMode")) {
+      var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
+        ? TarkovProfile.preferredGameMode(saved.mode || "pve")
+        : (saved.mode || "pve");
+      document.getElementById("gameMode").value = __ttMode;
+    }
   } catch (error) {
     console.error(error);
+  }
+})();
+
+/* R-2: gameMode from profile on load; changes write to profile */
+(function () {
+  function __ttBindMode() {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
+        TarkovProfile.wireToolPage();
+      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
+        var el = document.getElementById("gameMode");
+        if (el) el.__ttProfileBound = false;
+        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+      }
+    } catch (e) {}
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", __ttBindMode);
+  } else {
+    __ttBindMode();
   }
 })();

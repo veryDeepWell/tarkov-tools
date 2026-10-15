@@ -70,8 +70,8 @@
           <select id="traderFilter"><option value="">Все</option></select>
         </div>
       </div>
-      <p class="meta" id="count" style="margin-top:8px"></p>
-      <div id="list" style="margin-top:12px"></div>
+      <p class="meta" id="tt-count-placeholder" style="margin-top:8px"></p>
+      <div ><!-- profile filters --><div class="row" style="gap:12px;flex-wrap:wrap;margin:8px 0"><label class="meta"><input type="checkbox" id="onlyAvailable"> доступные по уровню</label> <label class="meta"><input type="checkbox" id="hideProfileDone"> скрыть сданные в профиле</label></div><div id="list" style="margin-top:12px"></div>
       <p class="hint">Шаги внутри квеста — в порядке API (как в цепочке целей). «После квеста X» — taskRequirements. Цели с type taskStatus — явный лок на другой таск.</p>
     </div>
   </div>
@@ -79,6 +79,8 @@
   <script src="../core/tarkov-dicts.js"></script>
   <script src="../core/tarkov-names.js"></script>
   <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-profile.js"></script>
+  <script src="../core/tarkov-nav.js"></script>
   <script src="../core/tarkov-api.js"></script>
   <script src="../core/tarkov-ui.js"></script>
   <script src="../core/tarkov-state.js"></script>

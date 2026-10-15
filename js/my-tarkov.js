@@ -9,6 +9,11 @@
       .replace(/"/g, "&quot;");
   }
 
+  var PROFILE_ICONS = ["util", "loadout", "flea", "hideout", "quests", "med", "other"];
+  function iconUrl(id) {
+    return "../assets/icons/" + id + ".svg";
+  }
+
   function traderLabel(key) {
     try {
       if (window.TarkovDicts && TarkovDicts.trader) {
@@ -33,7 +38,7 @@
       sel.innerHTML = list.map(function (m) {
         return '<option value="' + esc(m.id) + '"' +
           (m.id === p.id ? " selected" : "") + ">" +
-          esc(m.name) + " · L" + (m.level || 1) + "</option>";
+          esc(m.name) + " · L" + (m.level || 1) + (m.icon ? " · " + m.icon : "") + "</option>";
       }).join("");
     }
 
@@ -43,8 +48,30 @@
     document.getElementById("prestigeLevel").value = (p.prestige && p.prestige.level) || 0;
     document.getElementById("hideoutNotes").value = (p.notes && p.notes.hideout) || "";
 
+    var ico = p.icon || "util";
+    var iconHidden = document.getElementById("pmcIcon");
+    if (iconHidden) iconHidden.value = ico;
+    var grid = document.getElementById("iconGrid");
+    if (grid) {
+      grid.innerHTML = PROFILE_ICONS.map(function (id) {
+        return '<button type="button" class="icon-pick' + (id === ico ? ' is-on' : '') +
+          '" data-icon="' + esc(id) + '" title="' + esc(id) + '">' +
+          '<img src="' + iconUrl(id) + '" alt="">' +
+          '</button>';
+      }).join("");
+      grid.querySelectorAll(".icon-pick").forEach(function (btn) {
+        btn.onclick = function () {
+          var id = btn.getAttribute("data-icon");
+          if (iconHidden) iconHidden.value = id;
+          grid.querySelectorAll(".icon-pick").forEach(function (b) {
+            b.classList.toggle("is-on", b.getAttribute("data-icon") === id);
+          });
+        };
+      });
+    }
+
     document.getElementById("stats").innerHTML =
-      '<div class="stat"><div class="v">' + esc(p.name || "ЧВК") + '</div><div class="l">имя</div></div>' +
+      '<div class="stat"><div class="v"><img class="stat-ico" src="' + iconUrl(ico) + '" alt="">' + esc(p.name || "ЧВК") + '</div><div class="l">имя</div></div>' +
       '<div class="stat"><div class="v">' + (p.level || 1) + '</div><div class="l">уровень</div></div>' +
       '<div class="stat"><div class="v">' + esc(p.gameMode || "pve") + '</div><div class="l">режим</div></div>' +
       '<div class="stat"><div class="v">' + ((p.prestige && p.prestige.level) || 0) + '</div><div class="l">престиж</div></div>';
@@ -68,18 +95,41 @@
     document.getElementById("questCompleted").value = completed.join("\n");
     document.getElementById("questActive").value = active.join("\n");
 
-    var canDo = [];
-    TarkovProfile.TRADER_KEYS.forEach(function (k) {
-      var ll = (p.traders && p.traders[k]) || 1;
-      if (ll < 4) canDo.push("Поднятие УЛ " + traderLabel(k) + " → " + (ll + 1));
+    var canDoItems = [];
+    try {
+      if (TarkovProfile.suggestActions) canDoItems = TarkovProfile.suggestActions();
+    } catch (eSug) { canDoItems = []; }
+    if (!canDoItems.length) {
+      canDoItems = [{ kind: "hint", text: "Заполни уровень, УЛ и квесты — здесь появятся подсказки" }];
+    }
+    canDoItems.push({ kind: "hideout", text: "Сверить прогресс убежища в трекере" });
+    document.getElementById("canDo").innerHTML = canDoItems.map(function (a) {
+      var line = typeof a === "string" ? a : (a.text || "");
+      var extra = "";
+      if (a && a.kind === "quest" && a.quest) {
+        extra = ' <a class="link" data-nav-type="quest" data-nav-id="' + esc(a.quest) + '" href="tarkovtool-quests.html">→ квесты</a>';
+      } else if (a && a.kind === "prestige") {
+        extra = ' <a class="link" href="tarkovtool-prestige.html">→ престиж</a>';
+      } else if (a && a.kind === "trader") {
+        extra = ' <a class="link" href="tarkovtool-trader-flip.html">→ trader flip</a>';
+      } else if (a && a.kind === "hideout") {
+        extra = ' <a class="link" href="tarkovtool-hideout.html">→ убежище</a>';
+      } else if (a && a.kind === "level") {
+        extra = ' <a class="link" href="tarkovtool-quests.html">→ квесты</a>';
+      }
+      return "<li>" + esc(line) + extra + "</li>";
+    }).join("") || "<li class=\"meta\">Пока пусто</li>";
+    document.querySelectorAll("#canDo [data-nav-type]").forEach(function (a) {
+      a.addEventListener("click", function () {
+        if (!window.TarkovNav) return;
+        TarkovNav.set({
+          type: a.getAttribute("data-nav-type"),
+          id: a.getAttribute("data-nav-id") || "",
+          name: a.getAttribute("data-nav-id") || "",
+          from: "my-tarkov"
+        });
+      });
     });
-    if (p.level < 15) canDo.push("Дойти до 15 ур. (барахолка / ранние квесты)");
-    if (p.level >= 15 && p.level < 20) canDo.push("Уровень 20+ для части контента");
-    if (!completed.length) canDo.push("Отметить сданные квесты (id или имена, по одному в строке)");
-    canDo.push("Сверить прогресс убежища в трекере");
-    document.getElementById("canDo").innerHTML = canDo.map(function (x) {
-      return "<li>" + esc(x) + "</li>";
-    }).join("");
 
     var st = null;
     try { st = TarkovState.get(); } catch (e) {}
@@ -123,6 +173,7 @@
       name: (document.getElementById("pmcName").value || "ЧВК").trim(),
       level: Number(document.getElementById("level").value) || 1,
       gameMode: document.getElementById("gameMode").value,
+      icon: (document.getElementById("pmcIcon") && document.getElementById("pmcIcon").value) || "util",
       traders: traderPatch,
       prestige: { level: Number(document.getElementById("prestigeLevel").value) || 0 },
       quests: { completed: lines("questCompleted"), active: lines("questActive") },

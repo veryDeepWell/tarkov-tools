@@ -386,7 +386,7 @@
       const SKEY = 'tarkovCraftsSettings';
       const s = loadSettings(SKEY, { gameMode: 'regular', priceIn: 'avg24h', priceOut: 'avg24h', intel3: '0', hmLvl: 0, hideQuest: true, onlyProfit: false });
       const set = (id, v, chk) => { const el = document.getElementById(id); if (!el) return; if (chk) el.checked = !!v; else el.value = v; };
-      set('gameMode', s.gameMode);
+      set('gameMode', (window.TarkovProfile && TarkovProfile.preferredGameMode) ? TarkovProfile.preferredGameMode(s.gameMode || 'pve') : (s.gameMode || 'regular'));
       set('priceIn', s.priceIn);
       set('priceOut', s.priceOut);
       set('intel3', s.intel3);
@@ -409,4 +409,23 @@
         if (el) el.addEventListener('change', persist);
       });
     })();
-  
+
+/* R-2: gameMode from profile on load; changes write to profile */
+(function () {
+  function __ttBindMode() {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
+        TarkovProfile.wireToolPage();
+      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
+        var el = document.getElementById("gameMode");
+        if (el) el.__ttProfileBound = false;
+        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+      }
+    } catch (e) {}
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", __ttBindMode);
+  } else {
+    __ttBindMode();
+  }
+})();

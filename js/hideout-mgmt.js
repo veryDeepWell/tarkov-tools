@@ -205,7 +205,12 @@
     // restore prefs
     try {
       const s = TarkovStorage.getJson('tarkovHideoutMgmt', {});
-      if (s.mode) document.getElementById('gameMode').value = s.mode;
+      if (document.getElementById("gameMode")) {
+      var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
+        ? TarkovProfile.preferredGameMode(s.mode || "pve")
+        : (s.mode || "pve");
+      document.getElementById("gameMode").value = __ttMode;
+    }
       if (s.maxLv) document.getElementById('maxLv').value = s.maxLv;
     } catch (e) {}
 
@@ -220,4 +225,23 @@
     return s||it.id||'';
   }
     })();
-  
+
+/* R-2: gameMode from profile on load; changes write to profile */
+(function () {
+  function __ttBindMode() {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
+        TarkovProfile.wireToolPage();
+      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
+        var el = document.getElementById("gameMode");
+        if (el) el.__ttProfileBound = false;
+        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+      }
+    } catch (e) {}
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", __ttBindMode);
+  } else {
+    __ttBindMode();
+  }
+})();

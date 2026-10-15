@@ -583,7 +583,7 @@
       const SKEY = 'tarkovBarterLiveSettings';
       const s = loadSettings(SKEY, { gameMode: 'regular', priceMode: 'buyN', commission: 0, intel3: '0', hmLvl: 0 });
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-      set('gameMode', s.gameMode);
+      set('gameMode', (window.TarkovProfile && TarkovProfile.preferredGameMode) ? TarkovProfile.preferredGameMode(s.gameMode || 'pve') : (s.gameMode || 'regular'));
       set('priceMode', s.priceMode);
       set('commission', s.commission);
       set('intel3', s.intel3);
@@ -621,4 +621,24 @@
       };
     } catch (e) {}
 
+})();
+
+/* R-2: gameMode from profile on load; changes write to profile */
+(function () {
+  function __ttBindMode() {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
+        TarkovProfile.wireToolPage();
+      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
+        var el = document.getElementById("gameMode");
+        if (el) el.__ttProfileBound = false;
+        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+      }
+    } catch (e) {}
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", __ttBindMode);
+  } else {
+    __ttBindMode();
+  }
 })();
