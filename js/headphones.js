@@ -32,6 +32,10 @@
   }
 
   function ttOfferMeta(o) {
+    if (window.TarkovProfile && typeof TarkovProfile.offerMeta === "function") {
+      var m = TarkovProfile.offerMeta(o);
+      return { traderKey: m.traderKey || "", questName: m.questName || "" };
+    }
     var tKey = o && (o.trader || o.vendor);
     if (tKey && typeof tKey === "object") tKey = tKey.id || tKey.key || "";
     try {

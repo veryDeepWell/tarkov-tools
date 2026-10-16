@@ -228,7 +228,8 @@
     set: progressSet,
     done: progressDone,
     fail: progressFail,
-    ensure: progressEnsure
+    ensure: progressEnsure,
+    run: runLoad
   };
 
   function helpModal(opts) {
@@ -327,6 +328,71 @@
     } catch (_e) { try { console.debug && console.debug("[tt:ui]", _e); } catch (_tt) { /* ignore */ } }
   }
 
+
+  function runLoad(opts, work) {
+    opts = opts || {};
+    if (typeof opts === "function") { work = opts; opts = {}; }
+    var btn = opts.btn; if (typeof btn === "string") btn = document.getElementById(btn);
+    var label = opts.label || "Loading…";
+    var P = progressAPI;
+    if (btn) btn.disabled = true;
+    try { P.start({ label: label, indeterminate: opts.indeterminate !== false }); } catch (e0) {}
+    return Promise.resolve().then(function () { return work(P); })
+      .then(function (result) {
+        var doneMsg = typeof opts.doneLabel === "function" ? opts.doneLabel(result) : opts.doneLabel;
+        try { P.done(doneMsg != null ? doneMsg : label); } catch (e1) {}
+        return result;
+      })
+      .catch(function (err) {
+        try { P.fail((opts.errorLabel || "Error") + (err && err.message ? (": " + err.message) : "")); } catch (e2) {}
+        throw err;
+      })
+      .then(function (r) { if (btn) btn.disabled = false; return r; },
+            function (e) { if (btn) btn.disabled = false; return Promise.reject(e); });
+  }
+
+  function processChunked(list, fn, opts) {
+    opts = opts || {};
+    var arr = Array.isArray(list) ? list : [];
+    var n = arr.length, i = 0;
+    var progress = opts.progress || progressAPI;
+    var fromPct = opts.fromPct != null ? Number(opts.fromPct) : 5;
+    var toPct = opts.toPct != null ? Number(opts.toPct) : 95;
+    var chunkSize = Math.max(1, Number(opts.chunkSize) || 80);
+    return new Promise(function (resolve, reject) {
+      function tick() {
+        try {
+          var end = Math.min(i + chunkSize, n);
+          for (; i < end; i++) fn(arr[i], i);
+          if (progress && progress.set && n) progress.set(fromPct + (toPct - fromPct) * (i / n), opts.label);
+          if (i >= n) resolve(arr); else setTimeout(tick, 0);
+        } catch (err) { reject(err); }
+      }
+      if (!n) { if (progress && progress.set) progress.set(toPct, opts.label); resolve(arr); return; }
+      tick();
+    });
+  }
+
+  function softAlert(message, opts) {
+    opts = opts || {};
+    var tone = opts.tone || "err";
+    var text = message;
+    try {
+      if (opts.key && global.TarkovI18n && TarkovI18n.t) text = TarkovI18n.t(opts.key, opts.params || {});
+    } catch (e0) {}
+    if (text == null || text === "") text = opts.key || String(message || "");
+    text = String(text);
+    var el = opts.el || document.getElementById("status") || document.querySelector(".status");
+    if (el) {
+      el.textContent = text;
+      el.className = ((el.className || "").replace(/\b(ok|err|warn)\b/g, "").trim() + " status " + tone).trim();
+    }
+    try {
+      if (!opts.silent && global.TarkovTools && TarkovTools.beep) TarkovTools.beep(tone === "ok" ? "ok" : "err");
+    } catch (e1) {}
+    return text;
+  }
+
   global.TarkovUI = {
     __v: 3,
     esc: esc,
@@ -344,6 +410,10 @@
     enhanceTable: enhanceTable,
     table: enhanceTable,
     progress: progressAPI,
+    runLoad: runLoad,
+    processChunked: processChunked,
+    softAlert: softAlert,
+    alert: softAlert,
     softCatch: softCatch,
     helpModal: helpModal,
     attachHelpButton: attachHelpButton,

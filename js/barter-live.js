@@ -576,21 +576,19 @@
     if(!it)return '';
     if(typeof it==='string')return it;
     var s=(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
+    if(/^[a-f0-9]{20}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20}$/i.test(it.name)?it.name:it.normalizedName)||s;
     return s||it.id||'';
   }
 
       const SKEY = 'tarkovBarterLiveSettings';
-      const s = loadSettings(SKEY, { gameMode: 'regular', priceMode: 'buyN', commission: 0, intel3: '0', hmLvl: 0 });
+      const s = loadSettings(SKEY, {  priceMode: 'buyN', commission: 0, intel3: '0', hmLvl: 0 });
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-      set('gameMode', (window.TarkovProfile && TarkovProfile.preferredGameMode) ? TarkovProfile.preferredGameMode(s.gameMode || 'pve') : (s.gameMode || 'regular'));
-      set('priceMode', s.priceMode);
+            set('priceMode', s.priceMode);
       set('commission', s.commission);
       set('intel3', s.intel3);
       set('hmLvl', s.hmLvl);
       function persist() {
         saveSettings(SKEY, {
-          gameMode: document.getElementById('gameMode')?.value,
           priceMode: document.getElementById('priceMode')?.value,
           commission: Number(document.getElementById('commission')?.value) || 0,
           intel3: document.getElementById('intel3')?.value || '0',
@@ -598,7 +596,7 @@
         });
         recalculate();
       }
-      ['gameMode','priceMode','commission','intel3','hmLvl'].forEach(id => {
+      ['priceMode','commission','intel3','hmLvl'].forEach(id => {
         const el = document.getElementById(id);
         if (el) { el.addEventListener('change', persist); el.addEventListener('input', persist); }
       });

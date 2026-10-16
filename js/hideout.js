@@ -132,7 +132,7 @@
       btn.disabled = true;
       status.className = 'status';
       const mode = document.getElementById('gameMode').value || 'regular';
-      status.textContent = 'Гружу hideout + items…';
+      status.textContent = (window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t("common.loading") : "Loading…");
       try {
         const [stationList, items] = await Promise.all([
           TarkovAPI.hideout(mode),
@@ -233,7 +233,7 @@
           const desired = Number(sel.value);
           const clamped = clampLevel(id, desired);
           if (clamped !== desired) {
-            alert('Нельзя: не выполнены требования предыдущих станций/уровней. Установлен уровень ' + clamped);
+            (window.TarkovUI && TarkovUI.softAlert ? TarkovUI.softAlert.bind(TarkovUI) : function(m){ var el=document.getElementById("status"); if(el){el.textContent=m;el.className="status err";}})('Нельзя: не выполнены требования предыдущих станций/уровней. Установлен уровень ' + clamped, { tone: "err" });
           }
           getProg(id).level = clamped;
           // cascade: if we lower a station, clamp all that depend on it
@@ -500,7 +500,7 @@
     });
     document.getElementById('gameMode').addEventListener('change', () => {
       saveSettings('tarkovHideoutSettings', {
-        gameMode: document.getElementById('gameMode').value,
+        
         shopOnlyMissing: document.getElementById('shopOnlyMissing').checked
       });
     });
@@ -513,13 +513,12 @@
     if(!it)return '';
     if(typeof it==='string')return it;
     var s=(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
+    if(/^[a-f0-9]{20}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20}$/i.test(it.name)?it.name:it.normalizedName)||s;
     return s||it.id||'';
   }
 
-      const s = loadSettings('tarkovHideoutSettings', { gameMode: 'regular', shopOnlyMissing: true });
-      document.getElementById('gameMode').value = s.gameMode || 'regular';
-      document.getElementById('shopOnlyMissing').checked = s.shopOnlyMissing !== false;
+      const s = loadSettings('tarkovHideoutSettings', {  shopOnlyMissing: true });
+            document.getElementById('shopOnlyMissing').checked = s.shopOnlyMissing !== false;
     })();
 
 window.render = function () {

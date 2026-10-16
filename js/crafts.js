@@ -70,6 +70,8 @@
     document.getElementById('loadBtn').addEventListener('click', async () => {
       const btn = document.getElementById('loadBtn');
       btn.disabled = true;
+      var __ttProgress = window.TarkovUI && TarkovUI.progress;
+      if (__ttProgress) __ttProgress.start({ label: (window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t("common.loading") : "Loading…"), indeterminate: true });
       const mode = document.getElementById('gameMode').value || 'regular';
       setStatus('tool.crafts.ui.loading');
 
@@ -170,10 +172,12 @@
         renderTable();
         setStatus('tool.crafts.ui.loaded', { crafts: rows.length, items: items.length }, 'ok');
       } catch (e) {
+        try { if (__ttProgress) __ttProgress.fail(e && e.message ? e.message : "Error"); } catch (ePF) {}
         console.error(e);
         setStatus('tool.crafts.ui.loadError', { message: e.message }, 'err');
       } finally {
-        btn.disabled = false;
+        try { if (__ttProgress) __ttProgress.done("OK"); } catch (eD) {}
+      btn.disabled = false;
       }
     });
 

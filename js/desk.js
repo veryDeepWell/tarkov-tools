@@ -48,7 +48,7 @@
       return c ? c.title : file.replace(/^tarkovtool-/,'').replace(/\.html$/,'');
     }
     function addTab(file) {
-      if (tabs.length >= 8) { alert('Макс 8 вкладок'); return; }
+      if (tabs.length >= 8) { (window.TarkovUI && TarkovUI.softAlert ? TarkovUI.softAlert.bind(TarkovUI) : function(m){ var el=document.getElementById("status"); if(el){el.textContent=m;el.className="status err";}})(null, { key: "common.maxTabs", tone: "err" }); return; }
       const id = 't' + Date.now();
       tabs.push({id, file, title: titleOf(file)});
       active = id;

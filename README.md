@@ -1,1 +1,1 @@
-S8: copy js/ and core/ over repo (empty catch → console.debug).
+P4: copy core/, js/, locales/ into repo. Add script tag for tarkov-const.js before api.

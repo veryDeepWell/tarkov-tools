@@ -396,28 +396,26 @@
     if(!it)return '';
     if(typeof it==='string')return it;
     var s=String(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s)) {
+    if(/^[a-f0-9]{20}$/i.test(s)) {
       var n=String(it.name||'').trim();
       var sl=String(it.normalizedName||'').trim();
-      if(n && !/^[a-f0-9]{20,}$/i.test(n)) s=n;
+      if(n && !/^[a-f0-9]{20}$/i.test(n)) s=n;
       else if(sl) s=sl;
     }
     return s||it.id||'';
   }
 
-      const s = loadSettings('tarkovShortSettings', { gameMode: 'regular', intel3: '0', hmLvl: 0 });
+      const s = loadSettings('tarkovShortSettings', {  intel3: '0', hmLvl: 0 });
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-      set('gameMode', (window.TarkovProfile && TarkovProfile.preferredGameMode) ? TarkovProfile.preferredGameMode(s.gameMode || 'pve') : (s.gameMode || 'regular'));
-      set('intel3', s.intel3);
+            set('intel3', s.intel3);
       set('hmLvl', s.hmLvl);
       function persist() {
         saveSettings('tarkovShortSettings', {
-          gameMode: document.getElementById('gameMode')?.value,
           intel3: document.getElementById('intel3')?.value || '0',
           hmLvl: Number(document.getElementById('hmLvl')?.value) || 0
         });
       }
-      ['gameMode','intel3','hmLvl'].forEach(id => {
+      ['intel3','hmLvl'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', persist);
       });
@@ -440,5 +438,17 @@
     document.addEventListener("DOMContentLoaded", __ttBindMode);
   } else {
     __ttBindMode();
+  }
+
+  window.render = function () {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+    } catch (e0) {}
+    try {
+      if (typeof render === 'function') render();
+    } catch (e1) {}
+  };
+  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+    TarkovProfile.bindRefresh(function () { window.render(); });
   }
 })();

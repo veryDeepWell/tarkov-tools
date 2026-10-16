@@ -246,7 +246,7 @@
           else TarkovProfile.importProfile(parsed, { activate: true });
           paint();
         } catch (err) {
-          alert("Не удалось импортировать: " + err.message);
+          (window.TarkovUI && TarkovUI.softAlert ? TarkovUI.softAlert.bind(TarkovUI) : function(m){ var el=document.getElementById("status"); if(el){el.textContent=m;el.className="status err";}})("Не удалось импортировать: " + err.message, { tone: "err" });
         }
       };
       reader.readAsText(f);

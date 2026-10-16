@@ -58,7 +58,7 @@
 
     document.getElementById('loadBtn').onclick = async () => {
       const st = document.getElementById('status');
-      st.className = 'status'; st.textContent = 'Гружу…';
+      st.className = 'status'; st.textContent = (window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t("common.loading") : "Loading…");
       try {
         const mode = document.getElementById('gameMode').value || 'pve';
         const [jt, jm, en, ru] = await Promise.all([

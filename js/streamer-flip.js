@@ -278,7 +278,7 @@
 
     function persist() {
       saveSettings('tarkovStreamerFlip', {
-        gameMode: document.getElementById('gameMode').value,
+        
         buyPrice: document.getElementById('buyPrice').value,
         onlyProfit: document.getElementById('onlyProfit').checked
       });
@@ -289,23 +289,17 @@
     if(!it)return '';
     if(typeof it==='string')return it;
     var s=String(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s)) {
+    if(/^[a-f0-9]{20}$/i.test(s)) {
       var n=String(it.name||'').trim();
       var sl=String(it.normalizedName||'').trim();
-      if(n && !/^[a-f0-9]{20,}$/i.test(n)) s=n;
+      if(n && !/^[a-f0-9]{20}$/i.test(n)) s=n;
       else if(sl) s=sl;
     }
     return s||it.id||'';
   }
 
       const s = loadSettings('tarkovStreamerFlip', {});
-      if (document.getElementById("gameMode")) {
-      var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
-        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
-        : ((s.gameMode) || "pve");
-      document.getElementById("gameMode").value = __ttMode;
-    }
-      if (s.buyPrice) document.getElementById('buyPrice').value = s.buyPrice;
+            if (s.buyPrice) document.getElementById('buyPrice').value = s.buyPrice;
       if (s.onlyProfit === false) document.getElementById('onlyProfit').checked = false;
     })();
 

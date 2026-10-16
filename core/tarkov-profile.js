@@ -1,7 +1,7 @@
 /*! TarkovProfile — PMC profiles as single source of personal progress (1.1) */
 (function (global) {
   "use strict";
-  if (global.TarkovProfile && global.TarkovProfile.__v >= 3) return;
+  if (global.TarkovProfile && global.TarkovProfile.__v >= 4) return;
 
   var LIST_KEY = "tt:profile:list";
   var ACTIVE_KEY = "tt:profile:active";
@@ -614,6 +614,73 @@
    * @param {number} [req.fleaLevel] flea unlock level
    * @returns {{ locked: boolean, reasons: string[], reason: string }}
    */
+
+  /**
+   * Normalize trader offer for gate (P0 / R2.7).
+   * @returns {{ traderKey: string, minLL: number, questLocked: boolean, questName: string }}
+   */
+  function offerMeta(offer) {
+    offer = offer || {};
+    var traderRaw = offer.trader != null ? offer.trader : offer.vendor;
+    if (traderRaw && typeof traderRaw === "object") {
+      traderRaw = traderRaw.id || traderRaw.key || traderRaw.normalizedName || "";
+    }
+    var traderKey = traderRaw != null ? String(traderRaw) : "";
+    try {
+      if (global.TarkovDicts) {
+        if (typeof TarkovDicts.traderKey === "function" && traderKey) {
+          traderKey = TarkovDicts.traderKey(traderKey) || traderKey;
+        } else if (TarkovDicts.traders && traderKey && traderKey.length > 20) {
+          var hit = null;
+          for (var i = 0; i < TarkovDicts.traders.length; i++) {
+            if (TarkovDicts.traders[i].id === traderKey) {
+              hit = TarkovDicts.traders[i];
+              break;
+            }
+          }
+          if (hit && hit.key) traderKey = hit.key;
+        }
+      }
+    } catch (eMeta) {}
+
+    var minLL = Number(
+      offer.minTraderLevel != null
+        ? offer.minTraderLevel
+        : offer.loyaltyLevel != null
+          ? offer.loyaltyLevel
+          : offer.ll
+    );
+    if (!isFinite(minLL)) minLL = 0;
+
+    var questLocked = !!(offer.taskUnlock || offer.quest || offer.questLocked);
+    var questName = "";
+    var tu = offer.taskUnlock;
+    if (tu && typeof tu === "object") {
+      questName = String(tu.name || tu.normalizedName || tu.id || "");
+    } else if (tu != null && tu !== false) {
+      questName = String(tu);
+    }
+    if (!questName && offer.questName) questName = String(offer.questName);
+
+    return {
+      traderKey: traderKey,
+      minLL: minLL,
+      questLocked: questLocked,
+      questName: questName
+    };
+  }
+
+  /** gate() for a raw buy offer */
+  function offerGate(offer) {
+    var m = offerMeta(offer);
+    return gate({
+      trader: m.traderKey,
+      minLL: m.minLL,
+      questLocked: m.questLocked,
+      questName: m.questName
+    });
+  }
+
   function gate(req) {
     req = req || {};
     var reasons = [];
@@ -902,7 +969,7 @@
   }
 
   global.TarkovProfile = {
-    __v: 3,
+    __v: 4,
     TRADER_KEYS: TRADER_KEYS.slice(),
     list: list,
     getActive: getActive,
@@ -933,6 +1000,8 @@
     meetsLevel: meetsLevel,
     meetsTraderLL: meetsTraderLL,
     gate: gate,
+    offerMeta: offerMeta,
+    offerGate: offerGate,
     suggestActions: suggestActions,
     getFilterMode: getFilterMode,
     setFilterMode: setFilterMode,

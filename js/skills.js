@@ -166,7 +166,7 @@
           st[inp.dataset.id] = Number(inp.value) || 0;
         });
         if (window.TarkovStorage) TarkovStorage.setJson("tarkovSkillLevels", st);
-        alert("Сохранено");
+        (window.TarkovUI && TarkovUI.softAlert ? TarkovUI.softAlert.bind(TarkovUI) : function(m){ var el=document.getElementById("status"); if(el){el.textContent=m;el.className="status err";}})(null, { key: "common.saved", tone: "ok" });
       };
 
     var resetBtn = document.getElementById("resetSkills");

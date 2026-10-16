@@ -4,8 +4,8 @@
 (function (global) {
   const BASE = "https://json.tarkov.dev";
   const mem = new Map();
-  const DEFAULT_TTL = 90 * 1000;
-  const LS_TTL = 5 * 60 * 1000;
+  const DEFAULT_TTL = (global.TarkovConst && TarkovConst.API_MEMORY_TTL_MS) || (90 * 1000);
+  const LS_TTL = (global.TarkovConst && TarkovConst.API_LS_TTL_MS) || (5 * 60 * 1000);
   const LS_PREFIX = "tt:api:";
 
   function storage() {

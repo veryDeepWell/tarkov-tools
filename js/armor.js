@@ -164,7 +164,19 @@
         tbody.innerHTML = `<tr><td colspan="11" class="meta empty-cell">${esc(t("common.empty"))}</td></tr>`;
         return;
       }
-      list.forEach(r => {
+            list.forEach(r => {
+        if (window.TarkovProfile && TarkovProfile.gate && (r.traderLL || r.quest || r.questLocked)) {
+          r._gate = TarkovProfile.gate({
+            trader: r.traderKey || '',
+            minLL: r.traderLL || 0,
+            questLocked: !!(r.quest || r.questLocked),
+            questName: r.questName || ''
+          });
+          if (TarkovProfile.lockVisibility(r._gate) === 'hide') return;
+        } else {
+          r._gate = { locked: false, reason: '' };
+        }
+
         const tr = document.createElement('tr');
         const zones = r.zones.map(z => `<span class="zone-tag">${esc(t("tool.itemScore.zone." + z))}</span>`).join('') || '—';
         const flea = r.onFlea ? formatNum(r.avg || r.low) : `<span class="bad">${esc(t("tool.itemScore.no"))}</span>`;
@@ -196,6 +208,7 @@
           </td>
         `;
         tbody.appendChild(tr);
+        if (window.TarkovProfile && TarkovProfile.applyLockToElement && r._gate) TarkovProfile.applyLockToElement(tr, r._gate);
       });
       tbody.querySelectorAll('.plate-show').forEach(btn => {
         btn.addEventListener('click', () => {

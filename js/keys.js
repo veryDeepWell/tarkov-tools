@@ -68,9 +68,11 @@
       const btn = document.getElementById('loadBtn');
       const status = document.getElementById('status');
       btn.disabled = true;
+      var __ttProgress = window.TarkovUI && TarkovUI.progress;
+      if (__ttProgress) __ttProgress.start({ label: (window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t("common.loading") : "Loading…"), indeterminate: true });
       status.className = 'status';
       const modeGame = document.getElementById('gameMode').value || 'regular';
-      status.textContent = 'Гружу items + tasks…';
+      status.textContent = (window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t("common.loading") : "Loading…");
 
       try {
         const [items, tasks] = await Promise.all([
@@ -170,11 +172,13 @@
         }
         render();
       } catch (e) {
+        try { if (__ttProgress) __ttProgress.fail(e && e.message ? e.message : "Error"); } catch (ePF) {}
         console.error(e);
         status.className = 'status err';
         status.textContent = 'Ошибка: ' + e.message;
       } finally {
-        btn.disabled = false;
+        try { if (__ttProgress) __ttProgress.done("OK"); } catch (eD) {}
+      btn.disabled = false;
       }
     });
 
@@ -249,7 +253,7 @@
 
     function persist() {
       saveSettings('tarkovKeysSettings', {
-        gameMode: document.getElementById('gameMode').value,
+        
         activeMap,
         mode,
         hideQuest: document.getElementById('hideQuest').checked
@@ -290,13 +294,12 @@
     if(!it)return '';
     if(typeof it==='string')return it;
     var s=(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
+    if(/^[a-f0-9]{20}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20}$/i.test(it.name)?it.name:it.normalizedName)||s;
     return s||it.id||'';
   }
 
-      const s = loadSettings('tarkovKeysSettings', { gameMode: 'regular', mode: 'price' });
-      document.getElementById('gameMode').value = s.gameMode || 'regular';
-      mode = s.mode || 'price';
+      const s = loadSettings('tarkovKeysSettings', {  mode: 'price' });
+            mode = s.mode || 'price';
       document.querySelectorAll('.mode-toggle button').forEach(b => {
         b.classList.toggle('active', b.dataset.mode === mode);
       });

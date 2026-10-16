@@ -45,14 +45,13 @@
       statusState = { key, params, tone: tone || '' };
       renderStatus();
     }
-    function bestBuy(it){
-      let best=null;
-      (it.buyFromTrader||[]).forEach(o=>{
-        const price=Number(o.priceRUB!=null?o.priceRUB:o.price)||0;
-        if(!price) return;
-        if(!best||price<best.price) best={price,name:TarkovDicts.traderName(o.trader)||t('tool.compare.ui.trader'),ll:Number(o.minTraderLevel)||0,quest:!!o.taskUnlock};
-      });
-      return best;
+    function bestBuy(it, opts) {
+      if (window.TarkovItemDomain && TarkovItemDomain.bestBuy) {
+        var b = TarkovItemDomain.bestBuy(it, opts);
+        if (!b) return null;
+        return { price: b.price, name: b.traderName || b.name || "", traderName: b.traderName || "", traderKey: b.traderKey || "", ll: b.ll || 0, quest: !!b.quest, questName: b.questName || "" };
+      }
+      return null;
     }
 
     function buildCompatIndex(){
@@ -136,7 +135,9 @@
 
     document.getElementById('loadBtn').onclick=async()=>{
       const btn=document.getElementById('loadBtn');
-      btn.disabled=true; setStatus('tool.compare.ui.loading');
+      btn.disabled=true;
+      var __ttProgress = window.TarkovUI && TarkovUI.progress;
+      if (__ttProgress) __ttProgress.start({ label: (window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t("common.loading") : "Loading…"), indeterminate: true }); setStatus('tool.compare.ui.loading');
       try{
         const mode=document.getElementById('gameMode').value||'regular';
         allItems=await TarkovAPI.items(mode); itemsById={}; allItems.forEach(i=>itemsById[i.id]=i);
@@ -146,8 +147,10 @@
         document.getElementById('main').style.display='grid';
         setStatus('tool.compare.ui.loaded', { count: allItems.length }, 'ok');
         renderCats(); renderSubs(); renderPick(); renderCompare();
-      }catch(e){ setStatus('tool.compare.ui.loadError', { message: e.message }, 'err'); }
-      finally{ btn.disabled=false; }
+      }catch(e){
+        try { if (__ttProgress) __ttProgress.fail(e && e.message ? e.message : "Error"); } catch (ePF) {} setStatus('tool.compare.ui.loadError', { message: e.message }, 'err'); }
+      finally{ try { if (__ttProgress) __ttProgress.done("OK"); } catch (eD) {}
+      btn.disabled=false; }
     };
 
     function renderCats(){
@@ -317,5 +320,17 @@
     document.addEventListener("DOMContentLoaded", __ttBindMode);
   } else {
     __ttBindMode();
+  }
+
+  window.render = function () {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+    } catch (e0) {}
+    try {
+      if (typeof renderCompare === 'function') renderCompare(); if (typeof renderPick === 'function') renderPick();
+    } catch (e1) {}
+  };
+  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+    TarkovProfile.bindRefresh(function () { window.render(); });
   }
 })();

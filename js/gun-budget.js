@@ -210,26 +210,31 @@
       return 40;
     }
 
-    document.getElementById('buildBtn').onclick = () => {
-      if (!selectedGun) { alert('Выбери оружие'); return; }
-      const budget = Number(document.getElementById('budget').value) || 500000;
-      let ll = Number(document.getElementById('ll').value) || 3;
+
+    function syncLlFromProfile() {
+      var el = document.getElementById("ll");
+      if (!el || !window.TarkovProfile || !TarkovProfile.traderLL) return;
       try {
-        if (window.TarkovProfile && TarkovProfile.TRADER_KEYS && TarkovProfile.traderLL) {
-          var maxLL = 1;
-          TarkovProfile.TRADER_KEYS.forEach(function (k) {
-            var n = TarkovProfile.traderLL(k);
-            if (n > maxLL) maxLL = n;
-          });
-          // if UI still at default 3 and profile higher — use profile max
-          if (maxLL > ll) ll = maxLL;
-        }
-      } catch (eLL) { try { console.debug && console.debug("[tt:gun-budget]", eLL); } catch (_tt) { /* ignore */ } }
+        var maxLL = 1;
+        var keys = TarkovProfile.TRADER_KEYS || [];
+        keys.forEach(function (k) {
+          var n = TarkovProfile.traderLL(k);
+          if (n > maxLL) maxLL = n;
+        });
+        el.value = String(maxLL);
+      } catch (e) {}
+    }
+
+    document.getElementById('buildBtn').onclick = () => {
+      if (!selectedGun) { (window.TarkovUI && TarkovUI.softAlert ? TarkovUI.softAlert.bind(TarkovUI) : function(m){ var el=document.getElementById("status"); if(el){el.textContent=m;el.className="status err";}})(null, { key: "common.pickWeapon", tone: "err" }); return; }
+      const budget = Number(document.getElementById('budget').value) || 500000;
+      syncLlFromProfile();
+      let ll = Number(document.getElementById('ll').value) || 3;
       const w = selectedGun;
       const basePrice = getPrice(w.raw, ll);
-      if (basePrice == null) { alert('Нет цены на базу'); return; }
+      if (basePrice == null) { (window.TarkovUI && TarkovUI.softAlert ? TarkovUI.softAlert.bind(TarkovUI) : function(m){ var el=document.getElementById("status"); if(el){el.textContent=m;el.className="status err";}})(null, { key: "common.noBasePrice", tone: "err" }); return; }
       if (basePrice >= budget) {
-        alert('База ≥ бюджета (' + formatNum(basePrice) + ')');
+        (window.TarkovUI && TarkovUI.softAlert ? TarkovUI.softAlert.bind(TarkovUI) : function(m){ var el=document.getElementById("status"); if(el){el.textContent=m;el.className="status err";}})(null, { key: "common.budgetTooLow", params: { price: formatNum(basePrice) }, tone: "err" });
         return;
       }
 
@@ -593,6 +598,7 @@
 })();
 
 window.render = function () {
+  try { syncLlFromProfile(); } catch (eS) {}
   try {
     if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
   } catch (e0) { try { console.debug && console.debug("[tt:gun-budget]", e0); } catch (_tt) { /* ignore */ } }

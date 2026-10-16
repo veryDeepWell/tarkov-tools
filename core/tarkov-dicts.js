@@ -87,6 +87,11 @@
     return (l === "en" ? t.name : t.ru) || t.name;
   }
 
+  function traderKey(idOrKey) {
+    var t = trader(idOrKey);
+    return t ? t.key : (idOrKey ? String(idOrKey) : "");
+  }
+
   function traderCultistMult(idOrKey) {
     var t = trader(idOrKey);
     return t && t.cultistMult != null ? t.cultistMult : 0.50;
@@ -201,6 +206,7 @@
     traders: TRADERS.slice(),
     trader: trader,
     traderName: traderName,
+    traderKey: traderKey,
     traderCultistMult: traderCultistMult,
     calibers: CALIBERS,
     caliberLabel: caliberLabel,

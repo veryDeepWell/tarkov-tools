@@ -303,7 +303,7 @@
     document.getElementById('addMapBtn').onclick = () => {
       const n = document.getElementById('newMap').value.trim();
       if (!n) return;
-      if (state.maps[n]) { alert('Уже есть'); return; }
+      if (state.maps[n]) { (window.TarkovUI && TarkovUI.softAlert ? TarkovUI.softAlert.bind(TarkovUI) : function(m){ var el=document.getElementById("status"); if(el){el.textContent=m;el.className="status err";}})('Уже есть', { tone: "err" }); return; }
       state.maps[n] = [];
       state.current = n;
       document.getElementById('newMap').value = '';
@@ -313,7 +313,7 @@
     };
 
     document.getElementById('delMapBtn').onclick = () => {
-      if (Object.keys(state.maps).length <= 1) { alert('Нужна хотя бы одна карта'); return; }
+      if (Object.keys(state.maps).length <= 1) { (window.TarkovUI && TarkovUI.softAlert ? TarkovUI.softAlert.bind(TarkovUI) : function(m){ var el=document.getElementById("status"); if(el){el.textContent=m;el.className="status err";}})('Нужна хотя бы одна карта', { tone: "err" }); return; }
       if (!confirm('Удалить сборку «' + state.current + '»?')) return;
       delete state.maps[state.current];
       state.current = Object.keys(state.maps)[0];
