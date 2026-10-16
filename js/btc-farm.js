@@ -174,7 +174,7 @@
           jaegerFuel: document.getElementById('jaegerFuel').checked,
           mode: document.getElementById('gameMode').value
         });
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:btc-farm]", e); } catch (_tt) { /* ignore */ } }
     }
     function load() {
       try {
@@ -185,7 +185,7 @@
         if (s.solar != null) document.getElementById('solar').checked = !!s.solar;
         if (s.jaegerFuel != null) document.getElementById('jaegerFuel').checked = !!s.jaegerFuel;
         if (s.mode) document.getElementById('gameMode').value = s.mode;
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:btc-farm]", e); } catch (_tt) { /* ignore */ } }
     }
 
     document.getElementById('priceBtn').onclick = async () => {
@@ -259,20 +259,7 @@
     if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
     return s||it.id||'';
   }
-    
-  window.render = function () {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try {
-      if (typeof render === 'function') render();
-    } catch (e1) {}
-  };
-  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-    TarkovProfile.bindRefresh(function () { window.render(); });
-  }
-
-})();
+    })();
 
     load();
     render();
@@ -288,7 +275,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:btc-farm]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

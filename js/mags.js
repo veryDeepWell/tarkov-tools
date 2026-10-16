@@ -34,7 +34,7 @@
           var hit = TarkovDicts.traders.find(function (x) { return x.id === tKey; });
           if (hit && hit.key) tKey = hit.key;
         }
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:mags]", e); } catch (_tt) { /* ignore */ } }
       var qn = o && o.taskUnlock;
       if (qn && typeof qn === "object") qn = qn.name || qn.id || "";
       return { traderKey: tKey ? String(tKey) : "", questName: qn ? String(qn) : "" };
@@ -163,7 +163,7 @@
       document.getElementById(id).addEventListener('input',render);
       document.getElementById(id).addEventListener('change',()=>{render();persist()});
     });
-    function persist(){saveSettings('tarkovMagsSettings',{hideQuest:document.getElementById('hideQuest').checked,activeCal})}
+    function persist(){saveSettings('tarkovMagsSettings',{gameMode:document.getElementById('gameMode').value,hideQuest:document.getElementById('hideQuest').checked,activeCal})}
     (function(){
   function itemName(it){
     if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
@@ -176,16 +176,16 @@
   }
 const s=loadSettings('tarkovMagsSettings',{});if (document.getElementById("gameMode")) {
       var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
-        ? TarkovProfile.preferredGameMode("pve")
-        : "pve";
+        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
+        : ((s.gameMode) || "pve");
       document.getElementById("gameMode").value = __ttMode;
     }if(s.hideQuest)document.getElementById('hideQuest').checked=true;if(s.activeCal)activeCal=s.activeCal})();
 
 window.render = function () {
   try {
     if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) {}
-  try { if (typeof render === "function") render(); } catch (e1) {}
+  } catch (e0) { try { console.debug && console.debug("[tt:mags]", e0); } catch (_tt) { /* ignore */ } }
+  try { if (typeof render === "function") render(); } catch (e1) { try { console.debug && console.debug("[tt:mags]", e1); } catch (_tt) { /* ignore */ } }
 };
 if (window.TarkovProfile && TarkovProfile.bindRefresh) {
   TarkovProfile.bindRefresh(function () { window.render(); });
@@ -202,7 +202,7 @@ if (window.TarkovProfile && TarkovProfile.bindRefresh) {
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:mags]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

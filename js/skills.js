@@ -125,7 +125,7 @@
     try {
       if (window.TarkovStorage && TarkovStorage.getJson)
         return TarkovStorage.getJson("tarkovSkillLevels", {}) || {};
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:skills]", e); } catch (_tt) { /* ignore */ } }
     return {};
   }
 

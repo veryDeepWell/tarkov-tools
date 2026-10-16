@@ -18,7 +18,7 @@
   function mode() {
     try {
       if (global.TarkovTools && TarkovTools.preferredMode) return TarkovTools.preferredMode();
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:api]", e); } catch (_tt) { /* ignore */ } }
     return storage().get("tarkovPreferredGameMode", "pve") || "pve";
   }
 
@@ -40,7 +40,7 @@
         keys.sort();
         for (var j = 0; j < Math.min(3, keys.length); j++) storage().remove(keys[j]);
         storage().set(LS_PREFIX + key, JSON.stringify({ ts: clock().now(), data: data }));
-      } catch (e2) {}
+      } catch (e2) { try { console.debug && console.debug("[tt:api]", e2); } catch (_tt) { /* ignore */ } }
     }
   }
 
@@ -170,7 +170,7 @@
     try {
       var kill = [];
       storage().keys(LS_PREFIX).forEach(function (k) { storage().remove(k); });
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:api]", e); } catch (_tt) { /* ignore */ } }
   }
 
   global.TarkovAPI = {

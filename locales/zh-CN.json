@@ -62,7 +62,21 @@
     "notLoaded": "未加载",
     "closeTabHint": "右键关闭标签",
     "unreadNone": "无通知",
-    "help": "帮助"
+    "help": "帮助",
+    "loadError": "错误：{message}",
+    "loadedCount": "已加载：{count}",
+    "loadedOk": "已加载",
+    "loadingData": "正在加载数据…",
+    "pickWeapon": "请选择武器",
+    "noBasePrice": "基础武器无价格",
+    "budgetTooLow": "基础价格 ≥ 预算（{price}）",
+    "slotsFull": "槽位已满",
+    "maxTabs": "最多 8 个标签",
+    "alreadyExists": "已存在",
+    "needOneMap": "至少需要一张地图",
+    "saved": "已保存",
+    "goonsUpdated": "Goons 已更新",
+    "prereqFail": "未满足条件。等级：{level}"
   },
   "hub": {
     "title": "Tarkov Tools",

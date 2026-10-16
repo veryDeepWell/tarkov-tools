@@ -307,7 +307,7 @@
           redraw();
           status("Импорт OK");
         } catch (err) {
-          alert(err.message);
+          (window.TarkovUI && TarkovUI.softAlert ? TarkovUI.softAlert.bind(TarkovUI) : function(m,o){ var el=document.getElementById("status"); if(el){ el.textContent=m; el.className="status err"; } })(err.message, { tone: "err" });
         }
       };
       reader.readAsText(f);

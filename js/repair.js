@@ -37,7 +37,7 @@
   function itemName(it) {
     try {
       if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:repair]", e); } catch (_tt) { /* ignore */ } }
     return (it && (it.shortName || it.name || it.normalizedName)) || "?";
   }
 
@@ -288,19 +288,6 @@
   bindItemPick();
   armorCalc();
   gunCalc();
-
-  window.render = function () {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try {
-      if (typeof paintMatTable === 'function') paintMatTable();
-    } catch (e1) {}
-  };
-  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-    TarkovProfile.bindRefresh(function () { window.render(); });
-  }
-
 })();
 
 /* R-2: gameMode from profile on load; changes write to profile */
@@ -314,7 +301,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:repair]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

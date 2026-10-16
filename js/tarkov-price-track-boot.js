@@ -3,7 +3,7 @@
   function applyI18n() {
     try {
       if (window.TarkovI18n && TarkovI18n.applyDom) TarkovI18n.applyDom(document);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:price-track-boot]", e); } catch (_tt) { /* ignore */ } }
   }
 
   function bootI18n() {

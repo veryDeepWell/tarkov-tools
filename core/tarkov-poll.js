@@ -60,7 +60,7 @@
         var v = TarkovI18n.t("poll." + key, params);
         if (v && String(v).indexOf("poll.") !== 0) return v;
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:poll]", e); } catch (_tt) { /* ignore */ } }
     if (params && typeof fb === "string") {
       return String(fb).replace(/\{(\w+)\}/g, function (_, k) {
         return params[k] != null ? String(params[k]) : "{" + k + "}";
@@ -140,7 +140,7 @@
           location.origin
         );
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:poll]", e); } catch (_tt) { /* ignore */ } }
   }
 
   function postParent(msg) {
@@ -148,7 +148,7 @@
       if (global.parent && global.parent !== global) {
         global.parent.postMessage(msg, location.origin);
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:poll]", e); } catch (_tt) { /* ignore */ } }
   }
 
   function runFire(id) {
@@ -284,7 +284,7 @@
     for (var i = 0; i < boundEls.length; i++) {
       try {
         paintEl(boundEls[i].el, boundEls[i].id);
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:poll]", e); } catch (_tt) { /* ignore */ } }
     }
   }
 
@@ -321,13 +321,13 @@
           runFire(id);
         }
       });
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:poll]", e); } catch (_tt) { /* ignore */ } }
   }
 
   // If page loads under hub with existing on schedule, wire listener early
   try {
     if (underHub()) wireHubMessages();
-  } catch (e0) {}
+  } catch (e0) { try { console.debug && console.debug("[tt:poll]", e0); } catch (_tt) { /* ignore */ } }
 
   global.TarkovPoll = {
     start: start,

@@ -221,12 +221,10 @@
             var n = TarkovProfile.traderLL(k);
             if (n > maxLL) maxLL = n;
           });
-          // UI may simulate lower LL; never above real profile max
-          if (maxLL >= 1) ll = Math.min(ll, maxLL);
-          var llEl = document.getElementById('ll');
-          if (llEl && Number(llEl.value) !== ll) llEl.value = String(ll);
+          // if UI still at default 3 and profile higher — use profile max
+          if (maxLL > ll) ll = maxLL;
         }
-      } catch (eLL) {}
+      } catch (eLL) { try { console.debug && console.debug("[tt:gun-budget]", eLL); } catch (_tt) { /* ignore */ } }
       const w = selectedGun;
       const basePrice = getPrice(w.raw, ll);
       if (basePrice == null) { alert('Нет цены на базу'); return; }
@@ -597,8 +595,8 @@
 window.render = function () {
   try {
     if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) {}
-  try { if (typeof renderGuns === "function") renderGuns(); } catch (e1) {}
+  } catch (e0) { try { console.debug && console.debug("[tt:gun-budget]", e0); } catch (_tt) { /* ignore */ } }
+  try { if (typeof renderGuns === "function") renderGuns(); } catch (e1) { try { console.debug && console.debug("[tt:gun-budget]", e1); } catch (_tt) { /* ignore */ } }
 };
 if (window.TarkovProfile && TarkovProfile.bindRefresh) {
   TarkovProfile.bindRefresh(function () { window.render(); });
@@ -615,7 +613,7 @@ if (window.TarkovProfile && TarkovProfile.bindRefresh) {
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:gun-budget]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

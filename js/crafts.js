@@ -430,7 +430,7 @@ window.render = function () {
   try {
     if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
     if (typeof renderTable === "function") renderTable();
-  } catch (e) {}
+  } catch (e) { try { console.debug && console.debug("[tt:crafts]", e); } catch (_tt) { /* ignore */ } }
 };
 if (window.TarkovProfile && TarkovProfile.bindRefresh) {
   TarkovProfile.bindRefresh(function () { window.render(); });
@@ -447,7 +447,7 @@ if (window.TarkovProfile && TarkovProfile.bindRefresh) {
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:crafts]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

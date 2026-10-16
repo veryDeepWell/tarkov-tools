@@ -16,7 +16,7 @@
   function __unb64(s) {
     try {
       if (typeof atob === "function") return atob(s);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:session-gate]", e); } catch (_tt) { /* ignore */ } }
     /* minimal fallback */
     var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     var str = String(s).replace(/=+$/, "");
@@ -73,11 +73,11 @@
 
   function __emit(v) {
     __listeners.slice().forEach(function (fn) {
-      try { fn(v); } catch (e) {}
+      try { fn(v); } catch (e) { try { console.debug && console.debug("[tt:session-gate]", e); } catch (_tt) { /* ignore */ } }
     });
     try {
       global.dispatchEvent(new CustomEvent("tt-elevation", { detail: { elevated: v } }));
-    } catch (e2) {}
+    } catch (e2) { try { console.debug && console.debug("[tt:session-gate]", e2); } catch (_tt) { /* ignore */ } }
   }
 
   function subscribe(fn) {
@@ -108,7 +108,7 @@
     var v = global.prompt ? global.prompt(msg, "") : null;
     if (v == null) return false;
     if (!tryElevate(v)) {
-      try { alert("Нет"); } catch (e) {}
+      try { alert("Нет"); } catch (e) { try { console.debug && console.debug("[tt:session-gate]", e); } catch (_tt) { /* ignore */ } }
       return false;
     }
     return true;
@@ -117,7 +117,7 @@
   /* Never persist: reload clears in-memory flag. */
   try {
     global.addEventListener("beforeunload", function () { __elevated = false; });
-  } catch (e) {}
+  } catch (e) { try { console.debug && console.debug("[tt:session-gate]", e); } catch (_tt) { /* ignore */ } }
 
   global.TarkovSessionGate = {
     __v: 1,

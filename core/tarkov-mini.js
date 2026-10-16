@@ -19,7 +19,7 @@
         var j = JSON.parse(meta.textContent || '{}');
         if (j.title) return j.title;
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:mini]", e); } catch (_tt) { /* ignore */ } }
     return document.title || currentFile();
   }
   function isInMiniFrame() {
@@ -28,7 +28,7 @@
       if (window.parent.TarkovHubMini === true) return true;
       try {
         if (window.parent.document && window.parent.document.getElementById('framePool')) return true;
-      } catch (e2) {}
+      } catch (e2) { try { console.debug && console.debug("[tt:mini]", e2); } catch (_tt) { /* ignore */ } }
       return false;
     } catch (e) { return false; }
   }
@@ -59,7 +59,7 @@
             : kind === 'price' ? 'price' : 'ok';
           TarkovTools.beep(k);
         }
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:mini]", e); } catch (_tt) { /* ignore */ } }
     }
 
     function pushNotif() {
@@ -68,7 +68,7 @@
           TarkovState.notify({ title: title, body: msg, tool: tool, kind: kind });
           return true;
         }
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:mini]", e); } catch (_tt) { /* ignore */ } }
       return false;
     }
     if (!pushNotif()) {
@@ -94,17 +94,17 @@
     };
     try {
       global.__ttLastStatus = { running: payload.running, label: payload.label, tool: tool };
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:mini]", e); } catch (_tt) { /* ignore */ } }
     try {
       if (window.parent && window.parent !== window) window.parent.postMessage(payload, location.origin);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:mini]", e); } catch (_tt) { /* ignore */ } }
     try {
       if (window.BroadcastChannel) {
         var bc = new BroadcastChannel('tarkov-tools');
         bc.postMessage(payload);
         bc.close();
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:mini]", e); } catch (_tt) { /* ignore */ } }
   }
 
   try {
@@ -114,7 +114,7 @@
         reportStatus(global.__ttLastStatus);
       }
     });
-  } catch (e) {}
+  } catch (e) { try { console.debug && console.debug("[tt:mini]", e); } catch (_tt) { /* ignore */ } }
 
   function addToMiniAndGoHub() {
     var file = currentFile();
@@ -123,7 +123,7 @@
       if (global.TarkovState && TarkovState.addMiniTab) {
         TarkovState.addMiniTab({ file: file, title: title });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:mini]", e); } catch (_tt) { /* ignore */ } }
     try {
       location.href = (location.pathname.indexOf('/tools/') >= 0 ? '../' : '') + 'tarkovtool-hub.html#mini=' + encodeURIComponent(file);
     } catch (e) {
@@ -152,7 +152,7 @@
       try {
         document.documentElement.classList.add('tt-mini-frame');
         document.body.classList.add('tt-mini-frame');
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:mini]", e); } catch (_tt) { /* ignore */ } }
     }
     if (!document.getElementById('tt-global-bar') && !isInMiniFrame()) {
       setTimeout(boot, 50);

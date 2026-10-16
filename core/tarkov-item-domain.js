@@ -1,7 +1,7 @@
 /*! TarkovItemDomain - pure item classification, projections and relations */
 (function (global) {
   "use strict";
-  if (global.TarkovItemDomain) return;
+  if (global.TarkovItemDomain && global.TarkovItemDomain.__v >= 2) return;
 
   var ARMOR_TYPES = {
     ItemPropertiesArmor: "armor",
@@ -47,21 +47,104 @@
     return "other";
   }
 
-  function bestTraderOffer(item) {
-    var offers = Array.isArray(item && item.buyFromTrader) ? item.buyFromTrader : [];
+  /**
+   * Unified cheapest trader offer (S2 system helper).
+   * opts.maxLL, opts.allowQuest (default true), opts.sources: buyFromTrader|buyFor|both
+   */
+  function bestBuy(item, opts) {
+    opts = opts || {};
+    var allowQuest = opts.allowQuest !== false;
+    var maxLL = opts.maxLL != null ? number(opts.maxLL) : 0;
+    var sources = opts.sources || "both";
+    var list = [];
+    if (sources === "buyFromTrader" || sources === "both") {
+      if (Array.isArray(item && item.buyFromTrader)) list = list.concat(item.buyFromTrader);
+    }
+    if (sources === "buyFor" || sources === "both") {
+      if (Array.isArray(item && item.buyFor)) list = list.concat(item.buyFor);
+    }
     var best = null;
-    offers.forEach(function (offer) {
-      var price = number(offer && (offer.priceRUB != null ? offer.priceRUB : offer.price));
+    list.forEach(function (offer) {
+      if (!offer) return;
+      var questLocked = !!(offer.taskUnlock || offer.quest || offer.questLocked);
+      if (!allowQuest && questLocked) return;
+      var minLL = number(
+        offer.minTraderLevel != null ? offer.minTraderLevel :
+        (offer.loyaltyLevel != null ? offer.loyaltyLevel : offer.ll)
+      );
+      if (maxLL > 0 && minLL > maxLL) return;
+      var price = number(offer.priceRUB != null ? offer.priceRUB : offer.price);
       if (!price || (best && price >= best.price)) return;
+
+      var traderRaw = offer.trader || offer.vendor || "";
+      if (traderRaw && typeof traderRaw === "object") {
+        traderRaw = traderRaw.id || traderRaw.key || traderRaw.normalizedName || "";
+      }
+      traderRaw = traderRaw ? String(traderRaw) : "";
+      var traderKey = traderRaw;
+      var questName = "";
+      try {
+        if (global.TarkovProfile && TarkovProfile.offerMeta) {
+          var meta = TarkovProfile.offerMeta(offer);
+          if (meta.traderKey) traderKey = meta.traderKey;
+          if (meta.questName) questName = meta.questName;
+        }
+      } catch (eM) {}
+      if (!questName && offer.taskUnlock) {
+        var tu = offer.taskUnlock;
+        questName = typeof tu === "object"
+          ? String(tu.name || tu.normalizedName || tu.id || "")
+          : String(tu);
+      }
+      var traderName = "";
+      try {
+        if (global.TarkovDicts && TarkovDicts.traderName) {
+          traderName = TarkovDicts.traderName(traderRaw) || TarkovDicts.traderName(traderKey) || "";
+        }
+      } catch (eN) {}
+
       best = {
         price: price,
-        trader: String(offer.trader || ""),
-        traderLevel: number(offer.minTraderLevel),
-        quest: !!offer.taskUnlock
+        trader: traderRaw,
+        traderKey: traderKey,
+        traderName: traderName,
+        name: traderName,
+        ll: minLL,
+        minLL: minLL,
+        traderLevel: minLL,
+        quest: questLocked,
+        questName: questName,
+        raw: offer
       };
     });
     return best;
   }
+
+  function bestTraderOffer(item) {
+    var b = bestBuy(item, { sources: "buyFromTrader" });
+    if (!b) return null;
+    return {
+      price: b.price,
+      trader: b.trader,
+      traderLevel: b.traderLevel,
+      quest: b.quest
+    };
+  }
+
+  function fleaPrice(item) {
+    return number(item && item.lastLowPrice) || number(item && item.avg24hPrice) || 0;
+  }
+
+  function itemPrice(item, opts) {
+    opts = opts || {};
+    var trader = bestBuy(item, opts);
+    var flea = fleaPrice(item);
+    if (opts.traderOnly) return trader ? trader.price : 0;
+    if (opts.fleaOnly) return flea;
+    if (trader && flea) return Math.min(trader.price, flea);
+    return trader ? trader.price : flea;
+  }
+
 
   function baseModel(item) {
     var p = props(item);
@@ -130,8 +213,9 @@
     var offer = number(offerPrice);
     var quantity = Math.max(1, number(count, 1));
     if (base <= 0 || offer <= 0) return 0;
-    var purchase = 0.05;
-    var revenue = 0.05;
+    var voucher = (global.TarkovConst && TarkovConst.FLEA_TAX_VOUCHER) || 0.05;
+    var purchase = voucher;
+    var revenue = voucher;
     var purchaseExponent = Math.log10(base / offer);
     var revenueExponent = Math.log10(offer / base);
     if (offer < base) purchaseExponent = Math.pow(purchaseExponent, 1.08);
@@ -213,10 +297,7 @@
   }
 
   function effectivePrice(item) {
-    var trader = bestTraderOffer(item);
-    var flea = number(item && item.lastLowPrice) || number(item && item.avg24hPrice);
-    if (trader && flea) return Math.min(trader.price, flea);
-    return trader ? trader.price : flea;
+    return itemPrice(item);
   }
 
   function percentile(values, higherIsBetter) {
@@ -354,6 +435,7 @@
   }
 
   global.TarkovItemDomain = {
+    __v: 2,
     armorTypes: ARMOR_TYPES,
     classifyItem: classifyItem,
     baseModel: baseModel,
@@ -367,6 +449,11 @@
     scoreItems: scoreItems,
     itemScore: itemScore,
     buildCompatibility: buildCompatibility,
-    filter: filter
+    filter: filter,
+    bestBuy: bestBuy,
+    bestTraderOffer: bestTraderOffer,
+    fleaPrice: fleaPrice,
+    itemPrice: itemPrice,
+    effectivePrice: effectivePrice
   };
 })(window);

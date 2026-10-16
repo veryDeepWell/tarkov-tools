@@ -58,7 +58,7 @@
     function emit() {
       paintToolbar();
       if (state.onChange) {
-        try { state.onChange(getItems()); } catch (e) {}
+        try { state.onChange(getItems()); } catch (e) { try { console.debug && console.debug("[tt:item-grid]", e); } catch (_tt) { /* ignore */ } }
       }
     }
 
@@ -163,7 +163,7 @@
     function select(uid) {
       state.selected = uid;
       state.items.forEach(positionEl);
-      try { board.focus(); } catch (e) {}
+      try { board.focus(); } catch (e) { try { console.debug && console.debug("[tt:item-grid]", e); } catch (_tt) { /* ignore */ } }
     }
 
     function rotateItem(it) {
@@ -239,7 +239,7 @@
           grabX: cell.x - it.x, grabY: cell.y - it.y
         };
         el.classList.add("is-dragging");
-        try { el.setPointerCapture(ev.pointerId); } catch (e) {}
+        try { el.setPointerCapture(ev.pointerId); } catch (e) { try { console.debug && console.debug("[tt:item-grid]", e); } catch (_tt) { /* ignore */ } }
       }
       function onMove(ev) {
         if (!state.drag || state.drag.uid !== it.uid) return;
@@ -260,7 +260,7 @@
         }
         state.drag = null;
         emit();
-        try { el.releasePointerCapture(ev.pointerId); } catch (e) {}
+        try { el.releasePointerCapture(ev.pointerId); } catch (e) { try { console.debug && console.debug("[tt:item-grid]", e); } catch (_tt) { /* ignore */ } }
       }
       el.addEventListener("pointerdown", onDown);
       el.addEventListener("pointermove", onMove);

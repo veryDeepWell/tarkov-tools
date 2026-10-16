@@ -79,7 +79,7 @@
           var hit = TarkovDicts.traders.find(function (x) { return x.id === tKey; });
           if (hit && hit.key) tKey = hit.key;
         }
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:mods]", e); } catch (_tt) { /* ignore */ } }
       var qn = o && o.taskUnlock;
       if (qn && typeof qn === "object") qn = qn.name || qn.id || "";
       return { traderKey: tKey ? String(tKey) : "", questName: qn ? String(qn) : "" };
@@ -350,6 +350,7 @@
 
     function persist() {
       saveSettings('tarkovModsSettings', {
+        gameMode: document.getElementById('gameMode').value,
         hideQuest: document.getElementById('hideQuest').checked,
         onlyFlea: document.getElementById('onlyFlea').checked,
         minFits: Number(document.getElementById('minFits').value) || 0,
@@ -374,8 +375,8 @@
       const s = loadSettings('tarkovModsSettings', {});
       if (document.getElementById("gameMode")) {
       var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
-        ? TarkovProfile.preferredGameMode("pve")
-        : "pve";
+        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
+        : ((s.gameMode) || "pve");
       document.getElementById("gameMode").value = __ttMode;
     }
       if (s.hideQuest) document.getElementById('hideQuest').checked = true;
@@ -388,8 +389,8 @@
 window.render = function () {
   try {
     if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) {}
-  try { if (typeof renderTable === "function") renderTable(); } catch (e1) {}
+  } catch (e0) { try { console.debug && console.debug("[tt:mods]", e0); } catch (_tt) { /* ignore */ } }
+  try { if (typeof renderTable === "function") renderTable(); } catch (e1) { try { console.debug && console.debug("[tt:mods]", e1); } catch (_tt) { /* ignore */ } }
 };
 if (window.TarkovProfile && TarkovProfile.bindRefresh) {
   TarkovProfile.bindRefresh(function () { window.render(); });
@@ -406,7 +407,7 @@ if (window.TarkovProfile && TarkovProfile.bindRefresh) {
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:mods]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

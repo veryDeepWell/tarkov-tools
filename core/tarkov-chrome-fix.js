@@ -17,7 +17,7 @@
         TarkovTools.openSettings();
         return;
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:chrome-fix]", e); } catch (_tt) { /* ignore */ } }
   }
 
   function openFaq() {
@@ -56,7 +56,7 @@
           var b = TarkovI18n.t("hub.faqBody");
           if (b && b.indexOf("hub.") !== 0) html = b;
         }
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:chrome-fix]", e); } catch (_tt) { /* ignore */ } }
       if (!html) {
         html =
           "<p><b style=\"color:var(--text)\">Что это?</b><br>" +
@@ -79,7 +79,7 @@
           var ti = TarkovI18n.t("hub.faqTitle");
           if (ti && ti.indexOf("hub.") !== 0) titleEl.textContent = ti;
         }
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:chrome-fix]", e); } catch (_tt) { /* ignore */ } }
     }
     bg.hidden = false;
     bg.classList.add("show");
@@ -90,7 +90,7 @@
     try {
       var float = document.getElementById("tt-tools-bar");
       if (float) float.remove();
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:chrome-fix]", e); } catch (_tt) { /* ignore */ } }
 
     if (!isHub()) return;
 
@@ -100,12 +100,12 @@
     try {
       var oldT = document.getElementById("tt-bar-theme");
       if (oldT) oldT.remove();
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:chrome-fix]", e); } catch (_tt) { /* ignore */ } }
 
     try {
       var dup = document.getElementById("tt-bar-faq");
       if (dup) dup.remove();
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:chrome-fix]", e); } catch (_tt) { /* ignore */ } }
 
     if (!document.getElementById("tt-open-settings")) {
       var b = document.createElement("button");
@@ -158,7 +158,7 @@
           if (window.TarkovStorage) TarkovStorage.set("tarkovLang", next);
           if (window.TarkovI18n && TarkovI18n.setLang) TarkovI18n.setLang(next);
           else location.reload();
-        } catch (err) {}
+        } catch (err) { try { console.debug && console.debug("[tt:chrome-fix]", err); } catch (_tt) { /* ignore */ } }
       };
   }
 

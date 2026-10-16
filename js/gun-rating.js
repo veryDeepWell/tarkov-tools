@@ -35,7 +35,7 @@
   function esc(s) {
     try {
       if (window.TarkovDicts && TarkovDicts.esc) return TarkovDicts.esc(s);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:gun-rating]", e); } catch (_tt) { /* ignore */ } }
     return String(s == null ? "" : s)
       .replace(/&/g, "&" + "amp;")
       .replace(/</g, "&" + "lt;")
@@ -46,7 +46,7 @@
     if (!it) return "?";
     try {
       if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:gun-rating]", e); } catch (_tt) { /* ignore */ } }
     return it.shortName || it.name || it.normalizedName || it.id || "?";
   }
 
@@ -88,7 +88,7 @@
     try {
       if (window.TarkovDicts && TarkovDicts.calibers && TarkovDicts.calibers[c])
         return TarkovDicts.calibers[c].label || c;
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:gun-rating]", e); } catch (_tt) { /* ignore */ } }
     return String(c).replace(/^Caliber/, "");
   }
 
@@ -315,7 +315,7 @@
       buildRows();
       try {
         if (window.TarkovTools && TarkovTools.beep) TarkovTools.beep("ok");
-      } catch (eB) {}
+      } catch (eB) { try { console.debug && console.debug("[tt:gun-rating]", eB); } catch (_tt) { /* ignore */ } }
     } catch (e) {
       setStatus(e.message || String(e), false);
       if (P) P.fail(e.message);
@@ -344,19 +344,6 @@
       buildRows();
     };
   });
-
-  window.render = function () {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try {
-      if (typeof paint === 'function') paint(); else if (typeof buildRows === 'function') buildRows();
-    } catch (e1) {}
-  };
-  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-    TarkovProfile.bindRefresh(function () { window.render(); });
-  }
-
 })();
 
 /* R-2: gameMode from profile on load; changes write to profile */
@@ -370,7 +357,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:gun-rating]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

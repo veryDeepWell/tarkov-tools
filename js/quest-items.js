@@ -28,7 +28,7 @@
         if (window.TarkovProfile && TarkovProfile.migrateQuestItemDoneFromStorage) {
           TarkovProfile.migrateQuestItemDoneFromStorage();
         }
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:quest-items]", e); } catch (_tt) { /* ignore */ } }
       done = {};
       try {
         if (window.TarkovProfile && TarkovProfile.getActive) {
@@ -50,8 +50,8 @@
           TarkovProfile.setQuestItemDone(key, !!isDone);
           return;
         }
-      } catch (e) {}
-      try { TarkovStorage.setJson('tarkovQuestItemsDone', done); } catch (e2) {}
+      } catch (e) { try { console.debug && console.debug("[tt:quest-items]", e); } catch (_tt) { /* ignore */ } }
+      try { TarkovStorage.setJson('tarkovQuestItemsDone', done); } catch (e2) { try { console.debug && console.debug("[tt:quest-items]", e2); } catch (_tt) { /* ignore */ } }
     }
     function clearAllDone(){
       done = {};
@@ -60,8 +60,8 @@
           TarkovProfile.clearQuestItemDone();
           return;
         }
-      } catch (e) {}
-      try { TarkovStorage.setJson('tarkovQuestItemsDone', {}); } catch (e2) {}
+      } catch (e) { try { console.debug && console.debug("[tt:quest-items]", e); } catch (_tt) { /* ignore */ } }
+      try { TarkovStorage.setJson('tarkovQuestItemsDone', {}); } catch (e2) { try { console.debug && console.debug("[tt:quest-items]", e2); } catch (_tt) { /* ignore */ } }
     }
     function humanize(slug) { return TarkovDicts.humanize(slug); }
     function formatNum(n) { return TarkovDicts.fmtNum(n); }
@@ -289,7 +289,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:quest-items]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

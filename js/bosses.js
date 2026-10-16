@@ -64,7 +64,7 @@ const BOSS_RU = {
           let ts=Number(g.timestamp);
           if(ts>1e12) ts=ts/1000;
           when=new Date(ts*1000).toLocaleString('ru-RU');
-        }catch(e){}
+        }catch (e) { try { console.debug && console.debug("[tt:bosses]", e); } catch (_tt) { /* ignore */ } }
         goonInfo.push({
           mapName:m?humanize(m.normalizedName):(mid||'?'),
           mapId:mid, when
@@ -163,19 +163,6 @@ const BOSS_RU = {
     };
     document.getElementById('search').oninput=render;
 
-
-  window.render = function () {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try {
-      if (typeof render === 'function') render();
-    } catch (e1) {}
-  };
-  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-    TarkovProfile.bindRefresh(function () { window.render(); });
-  }
-
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {
   function __ttBindMode() {
@@ -187,7 +174,7 @@ const BOSS_RU = {
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:bosses]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

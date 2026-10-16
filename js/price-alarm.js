@@ -14,7 +14,7 @@
   function itemName(it) {
     try {
       if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:price-alarm]", e); } catch (_tt) { /* ignore */ } }
     if (!it) return '';
     if (typeof it === 'string') return it;
     return it.shortName || it.name || it.normalizedName || it.id || '';
@@ -54,7 +54,7 @@
           location.origin
         );
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:price-alarm]", e); } catch (_tt) { /* ignore */ } }
   }
 
   function ensureCatalog() {
@@ -164,7 +164,7 @@
         var t = TarkovI18n.t('priceAlarm.notifTitle');
         if (t && t !== 'priceAlarm.notifTitle') title = t;
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:price-alarm]", e); } catch (_tt) { /* ignore */ } }
     var p = h.p || priceOf(h.it);
     var val =
       h.rule.metric === 'low'
@@ -189,7 +189,7 @@
       if (window.TarkovTools && TarkovTools.Notify) {
         TarkovTools.Notify({ title: title, body: body, tool: TOOL, kind: 'alarm', i18nTitle: 'priceAlarm.notifTitle', i18nBody: 'priceAlarm.notifBody', i18nParams: i18nParams });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:price-alarm]", e); } catch (_tt) { /* ignore */ } }
   }
 
   async function checkOnce() {
@@ -229,7 +229,7 @@
       else reportMini(false, 'idle');
       try {
         renderRules();
-      } catch (eR) {}
+      } catch (eR) { try { console.debug && console.debug("[tt:price-alarm]", eR); } catch (_tt) { /* ignore */ } }
       return hits;
     } catch (e) {
       if (P && P.fail) P.fail(String(e.message || e));
@@ -467,7 +467,7 @@
           if (k === 'metric' || k === 'op' || k === 'threshold') {
             try {
               renderRules();
-            } catch (e) {}
+            } catch (e) { try { console.debug && console.debug("[tt:price-alarm]", e); } catch (_tt) { /* ignore */ } }
           }
         };
       }
@@ -585,19 +585,6 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
-
-  window.render = function () {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try {
-      if (typeof renderRules === 'function') renderRules();
-    } catch (e1) {}
-  };
-  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-    TarkovProfile.bindRefresh(function () { window.render(); });
-  }
-
 })();
 
 /* R-2: gameMode from profile on load; changes write to profile */
@@ -611,7 +598,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:price-alarm]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

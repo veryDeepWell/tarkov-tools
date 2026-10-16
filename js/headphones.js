@@ -10,7 +10,7 @@
   function esc(s) {
     try {
       if (window.TarkovDicts && TarkovDicts.esc) return TarkovDicts.esc(s);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:headphones]", e); } catch (_tt) { /* ignore */ } }
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -26,7 +26,7 @@
   function itemName(it) {
     try {
       if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:headphones]", e); } catch (_tt) { /* ignore */ } }
     if (!it) return "";
     return it.shortName || it.name || it.normalizedName || it.id || "";
   }
@@ -39,7 +39,7 @@
         var hit = TarkovDicts.traders.find(function (x) { return x.id === tKey; });
         if (hit && hit.key) tKey = hit.key;
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:headphones]", e); } catch (_tt) { /* ignore */ } }
     var qn = o && o.taskUnlock;
     if (qn && typeof qn === "object") qn = qn.name || qn.id || "";
     return { traderKey: tKey ? String(tKey) : "", questName: qn ? String(qn) : "" };
@@ -297,7 +297,7 @@
       btn.onclick = function () {
         try {
           navigator.clipboard.writeText(btn.getAttribute("data-n") || "");
-        } catch (e) {}
+        } catch (e) { try { console.debug && console.debug("[tt:headphones]", e); } catch (_tt) { /* ignore */ } }
       };
     });
   }
@@ -338,7 +338,7 @@
       if (P) P.done();
       try {
         if (window.TarkovTools && TarkovTools.beep) TarkovTools.beep("ok");
-      } catch (eB) {}
+      } catch (eB) { try { console.debug && console.debug("[tt:headphones]", eB); } catch (_tt) { /* ignore */ } }
     } catch (e) {
       setStatus(e.message || String(e), false);
       if (P) P.fail(e.message);
@@ -374,8 +374,8 @@
 window.render = function () {
   try {
     if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) {}
-  try { if (typeof render === "function") render(); } catch (e1) {}
+  } catch (e0) { try { console.debug && console.debug("[tt:headphones]", e0); } catch (_tt) { /* ignore */ } }
+  try { if (typeof render === "function") render(); } catch (e1) { try { console.debug && console.debug("[tt:headphones]", e1); } catch (_tt) { /* ignore */ } }
 };
 if (window.TarkovProfile && TarkovProfile.bindRefresh) {
   TarkovProfile.bindRefresh(function () { window.render(); });
@@ -392,7 +392,7 @@ if (window.TarkovProfile && TarkovProfile.bindRefresh) {
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:headphones]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

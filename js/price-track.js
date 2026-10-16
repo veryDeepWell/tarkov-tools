@@ -23,7 +23,7 @@
   var snapInFlight = null;
   function $(id) { return document.getElementById(id); }
   function itemName(it) {
-    try { if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it); } catch (e) {}
+    try { if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it); } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } }
     if (!it) return "";
     if (typeof it === "string") return it;
     var id = it.id || it.itemId || "";
@@ -81,13 +81,13 @@
           mode: o.mode || cur.mode || "pve", label: "price-track", tool: "tarkovtool-price-track.html"
         });
       }
-    } catch (e) {}
-    try { TarkovStorage.setJson(RUN_KEY, o); } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } }
+    try { TarkovStorage.setJson(RUN_KEY, o); } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } }
   }
   function readMeta() { return TarkovStorage.getJson(META_KEY, {}) || {}; }
   function writeMeta(patch) {
     var next = Object.assign({}, readMeta(), patch || {});
-    try { TarkovStorage.setJson(META_KEY, next); } catch (e) {}
+    try { TarkovStorage.setJson(META_KEY, next); } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } }
     return next;
   }
   async function fetchItems(mode) { return await TarkovAPI.items(mode || "pve"); }
@@ -98,13 +98,13 @@
       try { req = indexedDB.open(DB_NAME, DB_VER); } catch (e) { reject(e); return; }
       req.onupgradeneeded = function () {
         var d = req.result;
-        try { if (d.objectStoreNames.contains("snapshots")) d.deleteObjectStore("snapshots"); } catch (e) {}
+        try { if (d.objectStoreNames.contains("snapshots")) d.deleteObjectStore("snapshots"); } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } }
         if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE, { keyPath: "itemId" });
       };
       req.onsuccess = function () {
         db = req.result;
         if (!db.objectStoreNames.contains(STORE)) { db.close(); db = null; reject(new Error("series store missing")); return; }
-        db.onversionchange = function () { try { db.close(); } catch (e) {} db = null; };
+        db.onversionchange = function () { try { db.close(); } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } } db = null; };
         resolve(db);
       };
       req.onerror = function () { reject(req.error || new Error("IDB open failed")); };
@@ -198,7 +198,7 @@
       if (window.TarkovPoll && TarkovPoll.reportMini) {
         TarkovPoll.reportMini("tarkovtool-price-track.html", !!run.on, run.on ? (flying ? "fetching" : ("Next: " + fmtRemain(remainMs))) : "idle");
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } }
   }
   function startCountdownLoop() { if (window.__ttMetaIv) return; window.__ttMetaIv = setInterval(paintStatusUI, 1000); }
   function scheduleNext(mins, opts) {
@@ -231,24 +231,24 @@
     var run0 = readRun();
     var mins0 = Math.max(1, Number(run0.mins) || Number(($("interval") || {}).value) || 30);
     var P = window.TarkovUI && TarkovUI.progress;
-    try { if (P && P.start) P.start({ label: "Snapshot…" }); } catch (e) {}
+    try { if (P && P.start) P.start({ label: "Snapshot…" }); } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } }
     await openDb();
-    try { if (P && P.set) P.set(5, "Open DB"); } catch (e) {}
+    try { if (P && P.set) P.set(5, "Open DB"); } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } }
     var mode = (($("gameMode") || {}).value) || run0.mode || "pve";
     var status = $("status");
     if (status) { status.className = "status"; status.textContent = "Fetching…"; }
-    try { if (P && P.set) P.set(15, "Fetching…"); } catch (e) {}
+    try { if (P && P.set) P.set(15, "Fetching…"); } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } }
     var arr;
     try {
       arr = await Promise.race([fetchItems(mode), new Promise(function (_, rej) { setTimeout(function () { rej(new Error("API timeout 45s")); }, 45000); })]);
     } catch (e) {
       if (run0.on) scheduleNext(mins0, { forceOn: true });
       if (status) { status.className = "status err"; status.textContent = String(e.message || e); }
-      try { if (P && P.fail) P.fail(String(e.message || e)); } catch (e2) {}
+      try { if (P && P.fail) P.fail(String(e.message || e)); } catch (e2) { try { console.debug && console.debug("[tt:price-track]", e2); } catch (_tt) { /* ignore */ } }
       throw e;
     }
     if (!arr || !arr.length) throw new Error("API 0 items mode=" + mode);
-    try { if (P && P.set) P.set(40, "Preparing…"); } catch (e) {}
+    try { if (P && P.set) P.set(40, "Preparing…"); } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } }
     var now = Date.now(), n = 0;
     var existing = await getAllSeries();
     var byId = Object.create(null);
@@ -285,19 +285,19 @@
           var pct = 40 + Math.floor(55 * Math.min(1, (c + CHUNK) / pending.length));
           P.set(Math.min(95, pct), "Saving… " + n + "/" + pending.length);
         }
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } }
     }
     pending = null;
     invalidateCache();
     writeMeta({ lastSnap: now, count: n, mode: mode });
     if (readRun().on) scheduleNext(mins0, { forceOn: true }); else paintStatusUI();
     if (status) { status.className = "status ok"; status.textContent = "Snap " + n + " · " + fmtClock(now); }
-    try { if (P && P.done) P.done("Snap " + n); } catch (e) {}
+    try { if (P && P.done) P.done("Snap " + n); } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } }
     await renderList();
     if (selectedId) drawChart(selectedId);
     try {
       if (typeof Notify === "function") Notify({ title: "Price track", body: "Snap " + n + " · " + fmtClock(now), tool: "tarkovtool-price-track.html", kind: "price" });
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } }
   }
   async function renderList() {
     await openDb();
@@ -433,7 +433,7 @@
       if (title) title.textContent = "Chart error: " + (e && e.message ? e.message : e);
     });
   }
-  function clearPollTimer() { try { if (window.TarkovPoll) TarkovPoll.stop(POLL_ID); } catch (e) {} }
+  function clearPollTimer() { try { if (window.TarkovPoll) TarkovPoll.stop(POLL_ID); } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } } }
   function startBg() {
     if (window.__ttStartLock) return;
     window.__ttStartLock = true;
@@ -453,7 +453,7 @@
   }
   function stopBg() {
     window.__ttStartLock = false;
-    try { if (window.TarkovPoll) TarkovPoll.stop(POLL_ID); } catch (e) {}
+    try { if (window.TarkovPoll) TarkovPoll.stop(POLL_ID); } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } }
     paintStatusUI();
   }
   function resumeIfNeeded() {
@@ -513,19 +513,6 @@
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
-
-  window.render = function () {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try {
-      if (typeof renderList === 'function') renderList(); if (typeof paintStatusUI === 'function') paintStatusUI();
-    } catch (e1) {}
-  };
-  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-    TarkovProfile.bindRefresh(function () { window.render(); });
-  }
-
 })();
 
 /* R-2: gameMode from profile on load; changes write to profile */
@@ -539,7 +526,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

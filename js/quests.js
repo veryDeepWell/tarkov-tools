@@ -200,7 +200,7 @@
 
     window.render = render;
     if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-      TarkovProfile.bindRefresh(function () { try { render(); } catch (e) {} });
+      TarkovProfile.bindRefresh(function () { try { render(); } catch (e) { try { console.debug && console.debug("[tt:quests]", e); } catch (_tt) { /* ignore */ } } });
     }
     document.getElementById('q').oninput = render;
     document.getElementById('mapFilter').onchange = render;
@@ -218,7 +218,7 @@
           if (qel && !qel.value) { qel.value = ctx.name || ctx.id; }
         }
       }
-    } catch (eNav) {}
+    } catch (eNav) { try { console.debug && console.debug("[tt:quests]", eNav); } catch (_tt) { /* ignore */ } }
 
     (function () {
   function itemName(it){
@@ -247,7 +247,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:quests]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);
@@ -256,11 +256,11 @@
   }
 })();
 
-window.addEventListener("tt-profile-changed", function () { try { render(); } catch (e) {} });
-window.addEventListener("tt-profile-filter", function () { try { render(); } catch (e) {} });
+window.addEventListener("tt-profile-changed", function () { try { render(); } catch (e) { try { console.debug && console.debug("[tt:quests]", e); } catch (_tt) { /* ignore */ } } });
+window.addEventListener("tt-profile-filter", function () { try { render(); } catch (e) { try { console.debug && console.debug("[tt:quests]", e); } catch (_tt) { /* ignore */ } } });
 window.addEventListener("message", function (ev) {
   if (!ev.data) return;
   if (ev.data.type === "tt-profile-changed" || ev.data.type === "tt-profile-filter") {
-    try { if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage(); render(); } catch (e) {}
+    try { if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage(); render(); } catch (e) { try { console.debug && console.debug("[tt:quests]", e); } catch (_tt) { /* ignore */ } }
   }
 });

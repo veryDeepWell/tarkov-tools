@@ -18,26 +18,26 @@
       TarkovTools.lang = function () {
         try {
           if (window.TarkovI18n && TarkovI18n.lang) return TarkovI18n.lang();
-        } catch (e) {}
+        } catch (e) { try { console.debug && console.debug("[tt:i18n-bridge]", e); } catch (_tt) { /* ignore */ } }
         return origLang.call(TarkovTools);
       };
     }
 
     TarkovI18n.ready().then(function () {
-      try { TarkovI18n.applyDom(document); } catch (e) {}
+      try { TarkovI18n.applyDom(document); } catch (e) { try { console.debug && console.debug("[tt:i18n-bridge]", e); } catch (_tt) { /* ignore */ } }
       if (TarkovTools._paintBar) TarkovTools._paintBar();
     }).catch(function () {});
 
     window.addEventListener("tt-lang-changed", function () {
-      try { TarkovI18n.applyDom(document); } catch (e) {}
+      try { TarkovI18n.applyDom(document); } catch (e) { try { console.debug && console.debug("[tt:i18n-bridge]", e); } catch (_tt) { /* ignore */ } }
       try {
         if (typeof renderCatalog === "function") renderCatalog();
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:i18n-bridge]", e); } catch (_tt) { /* ignore */ } }
       if (TarkovTools._paintBar) TarkovTools._paintBar();
     });
 
     window.addEventListener("tarkov-catalog-ready", function () {
-      try { TarkovI18n.applyDom(document); } catch (e) {}
+      try { TarkovI18n.applyDom(document); } catch (e) { try { console.debug && console.debug("[tt:i18n-bridge]", e); } catch (_tt) { /* ignore */ } }
     });
   });
 })();

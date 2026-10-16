@@ -159,19 +159,19 @@
         current = code;
         try {
           if (global.TarkovStorage) TarkovStorage.set(STORAGE_KEY, code);
-        } catch (e) {}
+        } catch (e) { try { console.debug && console.debug("[tt:i18n]", e); } catch (_tt) { /* ignore */ } }
         try {
           document.documentElement.lang = code === "zh-CN" ? "zh-CN" : code;
-        } catch (e) {}
+        } catch (e) { try { console.debug && console.debug("[tt:i18n]", e); } catch (_tt) { /* ignore */ } }
         applyDom(document);
         listeners.forEach(function (fn) {
           try {
             fn(code);
-          } catch (e) {}
+          } catch (e) { try { console.debug && console.debug("[tt:i18n]", e); } catch (_tt) { /* ignore */ } }
         });
         try {
           window.dispatchEvent(new CustomEvent("tt-lang-changed", { detail: { lang: code } }));
-        } catch (e) {}
+        } catch (e) { try { console.debug && console.debug("[tt:i18n]", e); } catch (_tt) { /* ignore */ } }
         return code;
       });
   }

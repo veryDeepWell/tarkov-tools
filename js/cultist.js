@@ -304,7 +304,7 @@ function wire(){
           allowQuestBarter: !!(document.getElementById('allowQuestBarter')||{}).checked,
           amulet: !!(document.getElementById('amulet')||{}).checked
         });
-      } catch(e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:cultist]", e); } catch (_tt) { /* ignore */ } }
     }catch(e){
       st.className='status err'; st.textContent=e.message;
       console.error(e);
@@ -332,24 +332,11 @@ function wire(){
       document.getElementById('allowQuestBarter').checked = !!saved.allowQuestBarter;
     if (saved.amulet != null && document.getElementById('amulet'))
       document.getElementById('amulet').checked = !!saved.amulet;
-  } catch(e) {}
+  } catch (e) { try { console.debug && console.debug("[tt:cultist]", e); } catch (_tt) { /* ignore */ } }
 }
 
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
 else wire();
-
-
-  window.render = function () {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try {
-      if (typeof renderTable === 'function') renderTable(); if (typeof renderSlots === 'function') renderSlots();
-    } catch (e1) {}
-  };
-  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-    TarkovProfile.bindRefresh(function () { window.render(); });
-  }
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {
@@ -362,7 +349,7 @@ else wire();
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:cultist]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

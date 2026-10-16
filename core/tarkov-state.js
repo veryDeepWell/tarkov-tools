@@ -134,11 +134,11 @@
   }
   function emit(ev, data) {
     (listeners[ev] || []).forEach(function (fn) {
-      try { fn(data); } catch (e) {}
+      try { fn(data); } catch (e) { try { console.debug && console.debug("[tt:state]", e); } catch (_tt) { /* ignore */ } }
     });
   }
   function broadcast(msg) {
-    try { if (bc) bc.postMessage(msg); } catch (e) {}
+    try { if (bc) bc.postMessage(msg); } catch (e) { try { console.debug && console.debug("[tt:state]", e); } catch (_tt) { /* ignore */ } }
   }
 
   if (bc) {
@@ -157,7 +157,7 @@
       if (e.key === MINI) emit('mini', getMiniTabs());
       if (e.key === ROOT) emit('state', getState());
     });
-  } catch (e) {}
+  } catch (e) { try { console.debug && console.debug("[tt:state]", e); } catch (_tt) { /* ignore */ } }
 
   global.TarkovState = {
     get: getState,

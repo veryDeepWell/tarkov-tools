@@ -209,25 +209,12 @@
         mode: (document.getElementById("gameMode") || {}).value || "pve",
         excludeArena: !!(document.getElementById("excludeArena") || {}).checked
       });
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:random-loadout]", e); } catch (_tt) { /* ignore */ } }
   }
   try {
     var saved = TarkovStorage.getJson("tarkovtool-random-loadout-settings", {}) || {};
     if (arena && saved.excludeArena != null) arena.checked = !!saved.excludeArena;
-  } catch (e) {}
-
-  window.render = function () {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try {
-      if (typeof renderPaperdoll === 'function') renderPaperdoll();
-    } catch (e1) {}
-  };
-  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-    TarkovProfile.bindRefresh(function () { window.render(); });
-  }
-
+  } catch (e) { try { console.debug && console.debug("[tt:random-loadout]", e); } catch (_tt) { /* ignore */ } }
 })();
 
 /* R-2: gameMode from profile on load; changes write to profile */
@@ -241,7 +228,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:random-loadout]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

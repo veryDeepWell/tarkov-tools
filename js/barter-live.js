@@ -163,7 +163,7 @@
     function hideProgress() {
       try {
         if (window.TarkovUI && TarkovUI.progress) TarkovUI.progress.done();
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:barter-live]", e); } catch (_tt) { /* ignore */ } }
     }
 
     function playDoneSound() {
@@ -171,7 +171,7 @@
         if (window.TarkovTools && typeof TarkovTools.beep === 'function') {
           TarkovTools.beep('ok', 'tarkovtool-barter-live.html');
         }
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:barter-live]", e); } catch (_tt) { /* ignore */ } }
     }
 
     /**
@@ -581,15 +581,16 @@
   }
 
       const SKEY = 'tarkovBarterLiveSettings';
-      const s = loadSettings(SKEY, { priceMode: 'buyN', commission: 0, intel3: '0', hmLvl: 0 });
+      const s = loadSettings(SKEY, { gameMode: 'regular', priceMode: 'buyN', commission: 0, intel3: '0', hmLvl: 0 });
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-      set('gameMode', (window.TarkovProfile && TarkovProfile.preferredGameMode) ? TarkovProfile.preferredGameMode('pve') : 'pve');
+      set('gameMode', (window.TarkovProfile && TarkovProfile.preferredGameMode) ? TarkovProfile.preferredGameMode(s.gameMode || 'pve') : (s.gameMode || 'regular'));
       set('priceMode', s.priceMode);
       set('commission', s.commission);
       set('intel3', s.intel3);
       set('hmLvl', s.hmLvl);
       function persist() {
         saveSettings(SKEY, {
+          gameMode: document.getElementById('gameMode')?.value,
           priceMode: document.getElementById('priceMode')?.value,
           commission: Number(document.getElementById('commission')?.value) || 0,
           intel3: document.getElementById('intel3')?.value || '0',
@@ -618,15 +619,15 @@
           });
         }
       };
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:barter-live]", e); } catch (_tt) { /* ignore */ } }
 
 
   window.render = function () {
     try {
       if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try { if (typeof renderItems === "function") renderItems(); } catch (e1) {}
-    try { if (typeof recalculate === "function") recalculate(); } catch (e2) {}
+    } catch (e0) { try { console.debug && console.debug("[tt:barter-live]", e0); } catch (_tt) { /* ignore */ } }
+    try { if (typeof renderItems === "function") renderItems(); } catch (e1) { try { console.debug && console.debug("[tt:barter-live]", e1); } catch (_tt) { /* ignore */ } }
+    try { if (typeof recalculate === "function") recalculate(); } catch (e2) { try { console.debug && console.debug("[tt:barter-live]", e2); } catch (_tt) { /* ignore */ } }
   };
   if (window.TarkovProfile && TarkovProfile.bindRefresh) {
     TarkovProfile.bindRefresh(function () { window.render(); });
@@ -646,7 +647,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:barter-live]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

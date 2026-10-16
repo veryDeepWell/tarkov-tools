@@ -67,7 +67,7 @@
           if (!cal) return;
 
           // buy from traders
-          let traderPrice = 0, traderName = '', traderQuest = false, traderLL = 0, traderKey = '', questName = '';
+          let traderPrice = 0, traderName = '', traderQuest = false, traderLL = 0;
           const offers = it.buyFromTrader || [];
           const usable = offers.filter(o => o && (o.priceRUB || o.price));
           if (usable.length) {
@@ -78,12 +78,6 @@
             traderName = TarkovDicts.traderName(best.trader) || t('tool.compare.ui.trader');
             traderQuest = !!best.taskUnlock;
             traderLL = Number(best.minTraderLevel) || 0;
-            traderKey = (window.TarkovProfile && TarkovProfile.offerMeta)
-              ? TarkovProfile.offerMeta(best).traderKey
-              : (best.trader || '');
-            questName = (window.TarkovProfile && TarkovProfile.offerMeta)
-              ? TarkovProfile.offerMeta(best).questName
-              : '';
           }
 
           const crafts = craftByProduct[it.id] || [];
@@ -109,8 +103,6 @@
             traderName,
             traderQuest,
             traderLL,
-            traderKey,
-            questName,
             hasCraft,
             craftQuest,
             craftCount: hasCraft ? crafts[0].count : 0,
@@ -156,6 +148,7 @@
             btn.classList.add('active');
             renderTable();
             saveSettings('tarkovAmmoSettings', {
+              gameMode: document.getElementById('gameMode').value,
               activeCal: cal
             });
           };
@@ -267,16 +260,6 @@
           return `<span class="${cell.rating}">${cell.class}</span>`;
         }).join('');
         const tr = document.createElement('tr');
-        if (window.TarkovProfile && TarkovProfile.gate && (r.traderLL || r.traderQuest)) {
-          r._gate = TarkovProfile.gate({
-            trader: r.traderKey,
-            minLL: r.traderLL,
-            questLocked: !!r.traderQuest,
-            questName: r.questName || ''
-          });
-          if (TarkovProfile.lockVisibility(r._gate) === 'hide') return;
-          TarkovProfile.applyLockToElement(tr, r._gate);
-        }
         const traderCell = r.traderPrice
           ? `<div>${esc(r.traderName)}${r.traderLL ? ' LL' + r.traderLL : ''}</div><div><strong>${formatNum(r.traderPrice)}</strong></div>`
           : '<span class="meta">—</span>';
@@ -359,24 +342,29 @@
     return s||it.id||'';
   }
 
-      const s = loadSettings('tarkovAmmoSettings', {});
-      // gameMode only from TarkovProfile (wireToolPage / bindGameMode)
+      const s = loadSettings('tarkovAmmoSettings', { gameMode: 'regular' });
       if (document.getElementById("gameMode")) {
       var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
-        ? TarkovProfile.preferredGameMode("pve")
-        : "pve";
+        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
+        : ((s.gameMode) || "pve");
       document.getElementById("gameMode").value = __ttMode;
     }
+      document.getElementById('gameMode').addEventListener('change', () => {
+        saveSettings('tarkovAmmoSettings', {
+          gameMode: document.getElementById('gameMode').value,
+          activeCal
+        });
+      });
     })();
 
 
 window.render = function () {
   try {
     if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) {}
+  } catch (e0) { try { console.debug && console.debug("[tt:ammo]", e0); } catch (_tt) { /* ignore */ } }
   try {
     if (typeof typeof renderTable==='function'&&renderTable() === "function") typeof renderTable==='function'&&renderTable()();
-  } catch (e1) {}
+  } catch (e1) { try { console.debug && console.debug("[tt:ammo]", e1); } catch (_tt) { /* ignore */ } }
 };
 if (window.TarkovProfile && TarkovProfile.bindRefresh) {
   TarkovProfile.bindRefresh(function () { window.render(); });
@@ -393,7 +381,7 @@ if (window.TarkovProfile && TarkovProfile.bindRefresh) {
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:ammo]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

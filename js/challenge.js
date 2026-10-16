@@ -68,7 +68,7 @@
   function esc(s) {
     try {
       if (window.TarkovDicts && TarkovDicts.esc) return TarkovDicts.esc(s);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:challenge]", e); } catch (_tt) { /* ignore */ } }
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -94,11 +94,11 @@
       if (window.TarkovSchema && TarkovSchema.readJson) {
         doc = TarkovSchema.readJson(STORE_KEY, SCHEMA_V, { listKey: "history" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:challenge]", e); } catch (_tt) { /* ignore */ } }
     if (!doc) {
       try {
         if (window.TarkovStorage && TarkovStorage.getJson) doc = TarkovStorage.getJson(STORE_KEY, null);
-      } catch (e2) {}
+      } catch (e2) { try { console.debug && console.debug("[tt:challenge]", e2); } catch (_tt) { /* ignore */ } }
     }
     if (!doc || typeof doc !== "object") {
       doc = { _v: SCHEMA_V, xp: 0, level: 1, history: [] };
@@ -117,10 +117,10 @@
         TarkovSchema.writeJson(STORE_KEY, doc);
         return;
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:challenge]", e); } catch (_tt) { /* ignore */ } }
     try {
       if (window.TarkovStorage && TarkovStorage.setJson) TarkovStorage.setJson(STORE_KEY, doc);
-    } catch (e2) {}
+    } catch (e2) { try { console.debug && console.debug("[tt:challenge]", e2); } catch (_tt) { /* ignore */ } }
   }
 
   function xpForLevel(lvl) {
@@ -207,7 +207,7 @@
     function name(it) {
       try {
         if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:challenge]", e); } catch (_tt) { /* ignore */ } }
       return (it && (it.shortName || it.name)) || "—";
     }
     function price(it) {
@@ -310,7 +310,7 @@
     setStatus("Челлендж готов. Честность — на тебе.", true);
     try {
       if (window.TarkovTools && TarkovTools.beep) TarkovTools.beep("ok");
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:challenge]", e); } catch (_tt) { /* ignore */ } }
   }
 
   function finish(done) {
@@ -338,7 +338,7 @@
     setStatus(done ? "Засчитано. +" + entry.xp + " XP" : "Пропущено.", true);
     try {
       if (window.TarkovTools && TarkovTools.beep) TarkovTools.beep(done ? "ok" : "alarm");
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:challenge]", e); } catch (_tt) { /* ignore */ } }
   }
 
   function setStatus(msg, ok) {
@@ -354,7 +354,7 @@
       var mode = "pve";
       try {
         if (window.TarkovTools && TarkovTools.preferredMode) mode = TarkovTools.preferredMode();
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:challenge]", e); } catch (_tt) { /* ignore */ } }
       var items = await TarkovAPI.items(mode);
       if (!Array.isArray(items)) items = items ? Object.values(items) : [];
       pool = items;

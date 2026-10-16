@@ -20,7 +20,7 @@
         var t = TarkovDicts.trader(key);
         if (t) return t.ru || t.name || key;
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:my-tarkov]", e); } catch (_tt) { /* ignore */ } }
     var map = {
       prapor: "Прапор", therapist: "Терапевт", fence: "Скупщик", skier: "Лыжник",
       peacekeeper: "Миротворец", mechanic: "Механик", ragman: "Барахольщик",
@@ -66,9 +66,6 @@
           grid.querySelectorAll(".icon-pick").forEach(function (b) {
             b.classList.toggle("is-on", b.getAttribute("data-icon") === id);
           });
-          try {
-            TarkovProfile.update({ icon: id || "util" });
-          } catch (eI) {}
         };
       });
     }
@@ -91,7 +88,7 @@
     }).join("");
     try {
       if (TarkovProfile.bindTraderLL) TarkovProfile.bindTraderLL(tradersEl);
-    } catch (eBind) {}
+    } catch (eBind) { try { console.debug && console.debug("[tt:my-tarkov]", eBind); } catch (_tt) { /* ignore */ } }
 
     var completed = (p.quests && p.quests.completed) || [];
     var active = (p.quests && p.quests.active) || [];
@@ -138,7 +135,7 @@
     });
 
     var st = null;
-    try { st = TarkovState.get(); } catch (e) {}
+    try { st = TarkovState.get(); } catch (e) { try { console.debug && console.debug("[tt:my-tarkov]", e); } catch (_tt) { /* ignore */ } }
     var alerts = (st && st.alerts && st.alerts.prices) || [];
     document.getElementById("alertList").innerHTML = alerts.length ? alerts.map(function (a, i) {
       return '<div class="meta" style="padding:4px 0;display:flex;justify-content:space-between;gap:8px">' +
@@ -158,7 +155,7 @@
     });
 
     var ns = [];
-    try { ns = TarkovState.notifications().slice(0, 10); } catch (e) {}
+    try { ns = TarkovState.notifications().slice(0, 10); } catch (e) { try { console.debug && console.debug("[tt:my-tarkov]", e); } catch (_tt) { /* ignore */ } }
     document.getElementById("notifs").innerHTML = ns.length ? ns.map(function (n) {
       return '<div style="padding:6px 0;border-bottom:1px solid var(--border)">' +
         "<strong>" + esc(n.title) + '</strong><div class="meta">' + esc(n.body) + "</div></div>";
@@ -194,35 +191,13 @@
     });
     try {
       if (window.TarkovTools && TarkovTools.beep) TarkovTools.beep("ok");
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:my-tarkov]", e); } catch (_tt) { /* ignore */ } }
     paint();
   }
 
   function bind() {
     document.getElementById("saveProfile").onclick = saveMain;
     document.getElementById("saveNotes").onclick = saveMain;
-
-    // R2.9: live-save scalar fields (like УЛ). Quests/notes still via «Сохранить».
-    function liveScalars() {
-      try {
-        TarkovProfile.update({
-          name: (document.getElementById("pmcName").value || "ЧВК").trim(),
-          level: Math.max(1, Number(document.getElementById("level").value) || 1),
-          gameMode: document.getElementById("gameMode").value || "pve",
-          icon: (document.getElementById("pmcIcon") && document.getElementById("pmcIcon").value) || "util",
-          prestige: {
-            level: Math.max(0, Number(document.getElementById("prestigeLevel").value) || 0),
-            carried: (TarkovProfile.getActive().prestige && TarkovProfile.getActive().prestige.carried) || []
-          }
-        });
-      } catch (e) {}
-    }
-    ["pmcName", "level", "gameMode", "prestigeLevel"].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      el.addEventListener("change", liveScalars);
-      if (id === "pmcName") el.addEventListener("blur", liveScalars);
-    });
 
     document.getElementById("profileSelect").onchange = function () {
       TarkovProfile.setActive(this.value);
@@ -267,17 +242,7 @@
       reader.onload = function () {
         try {
           var parsed = JSON.parse(reader.result);
-          if (!parsed || typeof parsed !== "object") throw new Error("ожидался JSON-объект");
-          var isAll = !!(parsed.profiles && Array.isArray(parsed.profiles));
-          var schema = parsed._schema || "";
-          var ver = Number(parsed._version) || 0;
-          if (schema && schema !== "tarkov-tools-pmc-profile" && schema !== "tarkov-tools-pmc-profiles") {
-            if (!confirm("Неизвестный _schema «" + schema + "». Импортировать как профиль?")) return;
-          }
-          if (ver > 1) {
-            if (!confirm("_version=" + ver + " новее ожидаемой (1). Всё равно попробовать?")) return;
-          }
-          if (isAll) TarkovProfile.importAllProfiles(parsed, { activate: true });
+          if (parsed && parsed.profiles) TarkovProfile.importAllProfiles(parsed, { activate: true });
           else TarkovProfile.importProfile(parsed, { activate: true });
           paint();
         } catch (err) {

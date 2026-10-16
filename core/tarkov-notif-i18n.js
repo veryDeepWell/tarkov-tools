@@ -7,7 +7,7 @@
         var v = TarkovI18n.t(key, params);
         if (v && v !== key) return v;
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:notif-i18n]", e); } catch (_tt) { /* ignore */ } }
     var s = fb || key;
     if (params) {
       Object.keys(params).forEach(function (k) {

@@ -134,7 +134,7 @@
           location.origin
         );
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:restock]", e); } catch (_tt) { /* ignore */ } }
   }
 
   function cycleFor(key) {
@@ -270,7 +270,7 @@
           i18nParams: { name: t.name }
         });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:restock]", e); } catch (_tt) { /* ignore */ } }
     reportMini(true, "restock " + t.name);
     queueRefetch();
   }
@@ -484,7 +484,7 @@
           });
         else if (window.TarkovTools && TarkovTools.beep)
           TarkovTools.beep("restock");
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:restock]", e); } catch (_tt) { /* ignore */ } }
     };
 
 
@@ -540,7 +540,7 @@
       // Poll marked on but no snapshot â€” soft resume marker for mini
       reportMini(true, "watching");
     }
-  } catch (eBoot) {}
+  } catch (eBoot) { try { console.debug && console.debug("[tt:restock]", eBoot); } catch (_tt) { /* ignore */ } }
   // Do NOT stop poll / uiTick on pagehide â€” hub used to move iframes (reload)
   // and pagehide would kill background restock. Live tools must keep running.
   window.addEventListener("message", function (ev) {
@@ -552,7 +552,7 @@
       if (traders.length) {
         try {
           render();
-        } catch (e) {}
+        } catch (e) { try { console.debug && console.debug("[tt:restock]", e); } catch (_tt) { /* ignore */ } }
       }
       return;
     }
@@ -578,8 +578,8 @@
   window.render = function () {
     try {
       if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try { render(); } catch (e1) {}
+    } catch (e0) { try { console.debug && console.debug("[tt:restock]", e0); } catch (_tt) { /* ignore */ } }
+    try { render(); } catch (e1) { try { console.debug && console.debug("[tt:restock]", e1); } catch (_tt) { /* ignore */ } }
   };
   if (window.TarkovProfile && TarkovProfile.bindRefresh) {
     TarkovProfile.bindRefresh(function () { window.render(); });
@@ -599,7 +599,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:restock]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

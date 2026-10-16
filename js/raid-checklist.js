@@ -97,7 +97,7 @@
           }
           return;
         }
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:raid-checklist]", e); } catch (_tt) { /* ignore */ } }
       // defaults
       state.maps = {};
       Object.entries(DEFAULT_MAPS).forEach(([k, list]) => {
@@ -113,7 +113,7 @@
           current: state.current,
           endsAt: state.endsAt
         });
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:raid-checklist]", e); } catch (_tt) { /* ignore */ } }
     }
 
     function currentList() {
@@ -192,7 +192,7 @@
           dragId = id;
           row.classList.add('dragging');
           e.dataTransfer.effectAllowed = 'move';
-          try { e.dataTransfer.setData('text/plain', id); } catch (err) {}
+          try { e.dataTransfer.setData('text/plain', id); } catch (err) { try { console.debug && console.debug("[tt:raid-checklist]", err); } catch (_tt) { /* ignore */ } }
         });
         row.addEventListener('dragend', () => {
           dragId = null;

@@ -34,7 +34,7 @@
     }
     function status(m,ok){ var el=document.getElementById('status'); el.className='status'+(ok===true?' ok':ok===false?' err':''); el.textContent=m||''; }
     function presets(){ return TarkovStorage.getJson(KEY, []) || []; }
-    function savePresets(list){ try{ TarkovStorage.setJson(KEY, list); }catch(e){} renderPresets(); }
+    function savePresets(list){ try{ TarkovStorage.setJson(KEY, list); }catch (e) { try { console.debug && console.debug("[tt:loadout-builder]", e); } catch (_tt) { /* ignore */ } } renderPresets(); }
     async function ensureCatalog() {
       if (catalog) return catalog;
       status('Каталог…');
@@ -168,20 +168,7 @@
       };
     }
 
-  
-  window.render = function () {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try {
-      if (typeof renderSlots === 'function') renderSlots(); if (typeof renderPresets === 'function') renderPresets();
-    } catch (e1) {}
-  };
-  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-    TarkovProfile.bindRefresh(function () { window.render(); });
-  }
-
-})();
+  })();
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {
@@ -194,7 +181,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:loadout-builder]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

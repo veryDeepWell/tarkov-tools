@@ -3,7 +3,7 @@
     window.formatNum = function (n) {
       try {
         if (window.TarkovUI && TarkovUI.formatNum) return TarkovUI.formatNum(n);
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:streamer-flip]", e); } catch (_tt) { /* ignore */ } }
       n = Number(n);
       if (!isFinite(n)) return "\u2014";
       return Math.round(n).toLocaleString("ru-RU");
@@ -278,6 +278,7 @@
 
     function persist() {
       saveSettings('tarkovStreamerFlip', {
+        gameMode: document.getElementById('gameMode').value,
         buyPrice: document.getElementById('buyPrice').value,
         onlyProfit: document.getElementById('onlyProfit').checked
       });
@@ -300,8 +301,8 @@
       const s = loadSettings('tarkovStreamerFlip', {});
       if (document.getElementById("gameMode")) {
       var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
-        ? TarkovProfile.preferredGameMode("pve")
-        : "pve";
+        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
+        : ((s.gameMode) || "pve");
       document.getElementById("gameMode").value = __ttMode;
     }
       if (s.buyPrice) document.getElementById('buyPrice').value = s.buyPrice;
@@ -311,8 +312,8 @@
 window.render = function () {
   try {
     if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) {}
-  try { if (typeof render === "function") render(); } catch (e1) {}
+  } catch (e0) { try { console.debug && console.debug("[tt:streamer-flip]", e0); } catch (_tt) { /* ignore */ } }
+  try { if (typeof render === "function") render(); } catch (e1) { try { console.debug && console.debug("[tt:streamer-flip]", e1); } catch (_tt) { /* ignore */ } }
 };
 if (window.TarkovProfile && TarkovProfile.bindRefresh) {
   TarkovProfile.bindRefresh(function () { window.render(); });
@@ -329,7 +330,7 @@ if (window.TarkovProfile && TarkovProfile.bindRefresh) {
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:streamer-flip]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

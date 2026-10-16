@@ -20,7 +20,7 @@
   function esc(s) {
     try {
       if (window.TarkovDicts && TarkovDicts.esc) return TarkovDicts.esc(s);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:shopping-list]", e); } catch (_tt) { /* ignore */ } }
     return String(s == null ? "" : s)
       .replace(/&/g, "&" + "amp;")
       .replace(/</g, "&" + "lt;")
@@ -31,7 +31,7 @@
     if (!it) return "?";
     try {
       if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:shopping-list]", e); } catch (_tt) { /* ignore */ } }
     return it.shortName || it.name || it.normalizedName || it.id || "?";
   }
 
@@ -70,7 +70,7 @@
     var raw = null;
     try {
       if (window.TarkovStorage) raw = TarkovStorage.getJson(STORAGE_KEY, null);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:shopping-list]", e); } catch (_tt) { /* ignore */ } }
     if (!raw || !Array.isArray(raw.items)) {
       list = [];
       return;
@@ -81,7 +81,7 @@
   function saveState() {
     try {
       if (window.TarkovStorage) TarkovStorage.setJson(STORAGE_KEY, { _v: 1, items: list });
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:shopping-list]", e); } catch (_tt) { /* ignore */ } }
   }
 
   function uid() {
@@ -468,8 +468,8 @@
 window.render = function () {
   try {
     if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) {}
-  try { if (typeof paint === "function") paint(); } catch (e1) {}
+  } catch (e0) { try { console.debug && console.debug("[tt:shopping-list]", e0); } catch (_tt) { /* ignore */ } }
+  try { if (typeof paint === "function") paint(); } catch (e1) { try { console.debug && console.debug("[tt:shopping-list]", e1); } catch (_tt) { /* ignore */ } }
 };
 if (window.TarkovProfile && TarkovProfile.bindRefresh) {
   TarkovProfile.bindRefresh(function () { window.render(); });
@@ -486,7 +486,7 @@ if (window.TarkovProfile && TarkovProfile.bindRefresh) {
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:shopping-list]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

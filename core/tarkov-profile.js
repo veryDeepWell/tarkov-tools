@@ -1,7 +1,7 @@
 /*! TarkovProfile — PMC profiles as single source of personal progress (1.1) */
 (function (global) {
   "use strict";
-  if (global.TarkovProfile && global.TarkovProfile.__v >= 4) return;
+  if (global.TarkovProfile && global.TarkovProfile.__v >= 3) return;
 
   var LIST_KEY = "tt:profile:list";
   var ACTIVE_KEY = "tt:profile:active";
@@ -85,16 +85,16 @@
   function emit(type, detail) {
     var ev = { type: type, detail: detail || {}, at: Date.now() };
     listeners.slice().forEach(function (fn) {
-      try { fn(ev); } catch (err) {}
+      try { fn(ev); } catch (err) { try { console.debug && console.debug("[tt:profile]", err); } catch (_tt) { /* ignore */ } }
     });
     try {
       if (bc) bc.postMessage(ev);
-    } catch (err) {}
+    } catch (err) { try { console.debug && console.debug("[tt:profile]", err); } catch (_tt) { /* ignore */ } }
     try {
       if (global.dispatchEvent) {
         global.dispatchEvent(new CustomEvent("tt-profile", { detail: ev }));
       }
-    } catch (err) {}
+    } catch (err) { try { console.debug && console.debug("[tt:profile]", err); } catch (_tt) { /* ignore */ } }
   }
 
   function listMeta() {
@@ -154,12 +154,12 @@
         global.dispatchEvent(new CustomEvent("tt-profile-changed", { detail: { id: id, profile: p } }));
         global.dispatchEvent(new CustomEvent("tt-profile-refresh", { detail: { reason: "active", id: id } }));
       }
-    } catch (eRef) {}
+    } catch (eRef) { try { console.debug && console.debug("[tt:profile]", eRef); } catch (_tt) { /* ignore */ } }
     try {
       document.documentElement.setAttribute("data-tt-profile-id", id);
       document.documentElement.setAttribute("data-tt-level", String((p && p.level) || 1));
       document.documentElement.setAttribute("data-tt-mode", (p && p.gameMode) || "pve");
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } }
     return p;
   }
 
@@ -259,7 +259,7 @@
     if (!id) return false;
     var L = listMeta().filter(function (x) { return x.id !== id; });
     saveList(L);
-    try { storage().remove(dataKey(id)); } catch (e) {}
+    try { storage().remove(dataKey(id)); } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } }
     if (getActiveId() === id) {
       if (L.length) setActiveId(L[0].id);
       else {
@@ -326,7 +326,7 @@
           hideout: { notes: (p.notes && p.notes.hideout) || "" }
         });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } }
     try {
       if (global.TarkovStorage) {
         TarkovStorage.set("tarkovPreferredGameMode", p.gameMode);
@@ -335,10 +335,10 @@
           try {
             var sk = "tt:settings:game-mode";
             TarkovStorage.set(sk, p.gameMode);
-          } catch (e2) {}
+          } catch (e2) { try { console.debug && console.debug("[tt:profile]", e2); } catch (_tt) { /* ignore */ } }
         }
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } }
   }
 
   /** Preferred game mode: active profile wins over defaults. */
@@ -346,7 +346,7 @@
     try {
       var p = getActive();
       if (p && p.gameMode) return p.gameMode;
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } }
     return fallback || "pve";
   }
 
@@ -395,7 +395,7 @@
         }
         if (st.hideout && st.hideout.notes) notes = st.hideout.notes;
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } }
     var p = emptyProfile(name);
     p.id = uid();
     p.level = level;
@@ -412,7 +412,7 @@
       var ev = msg && msg.data;
       if (!ev || !ev.type) return;
       listeners.slice().forEach(function (fn) {
-        try { fn(ev); } catch (err) {}
+        try { fn(ev); } catch (err) { try { console.debug && console.debug("[tt:profile]", err); } catch (_tt) { /* ignore */ } }
       });
     };
   }
@@ -473,7 +473,7 @@
     el.addEventListener("change", function () {
       var v = el.value;
       if (v === "regular") v = "pve";
-      try { update({ gameMode: v === "pvp" ? "pvp" : "pve" }); } catch (err) {}
+      try { update({ gameMode: v === "pvp" ? "pvp" : "pve" }); } catch (err) { try { console.debug && console.debug("[tt:profile]", err); } catch (_tt) { /* ignore */ } }
     });
     return el;
   }
@@ -491,7 +491,7 @@
     el.addEventListener("change", function () {
       var n = Number(el.value);
       if (!isFinite(n)) return;
-      try { writeVal(n); } catch (e) {}
+      try { writeVal(n); } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } }
     });
     return el;
   }
@@ -530,7 +530,7 @@
         var cur = getActive();
         var carried = (cur.prestige && cur.prestige.carried) || [];
         update({ prestige: { level: n, carried: carried } });
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } }
     });
     return el;
   }
@@ -547,9 +547,9 @@
       // R2.4: trader LL selects anywhere on page
       if (document.querySelector("select[data-trader]")) bindTraderLL(document);
       if (typeof context === "function") {
-        try { window.__ttProfileContext = context(); } catch (e) {}
+        try { window.__ttProfileContext = context(); } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } }
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } }
   }
 
 
@@ -677,70 +677,25 @@
     try {
       var m = storage().get(FILTER_MODE_KEY, "off");
       if (m === "dim" || m === "hide" || m === "off") return m;
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } }
     return "off";
   }
 
   function setFilterMode(mode) {
     if (mode !== "dim" && mode !== "hide") mode = "off";
-    try { storage().set(FILTER_MODE_KEY, mode); } catch (e) {}
+    try { storage().set(FILTER_MODE_KEY, mode); } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } }
     emit("filterMode", { mode: mode });
     try {
       document.documentElement.setAttribute("data-tt-filter-mode", mode);
       window.dispatchEvent(new CustomEvent("tt-profile-filter", { detail: { mode: mode } }));
       window.dispatchEvent(new CustomEvent("tt-profile-refresh", { detail: { reason: "filterMode", mode: mode } }));
-    } catch (e2) {}
+    } catch (e2) { try { console.debug && console.debug("[tt:profile]", e2); } catch (_tt) { /* ignore */ } }
     return mode;
   }
 
   /** locked=true means content not available for current PMC.
    *  Accepts boolean or gate() result. Sets hover reason when dim/hide. */
-  
-  /** Normalize a trader offer (API buyFromTrader row or tool bestBuy object) */
-  function offerMeta(offer) {
-    if (!offer || typeof offer !== "object") {
-      return { traderKey: "", minLL: 0, questLocked: false, questName: "" };
-    }
-    var tKey = offer.traderKey || offer.trader || offer.vendor || "";
-    if (tKey && typeof tKey === "object") tKey = tKey.id || tKey.key || tKey.normalizedName || "";
-    tKey = tKey ? String(tKey) : "";
-    try {
-      if (window.TarkovDicts && TarkovDicts.traders && tKey.length > 20) {
-        var hit = TarkovDicts.traders.find(function (x) { return x.id === tKey; });
-        if (hit && (hit.key || hit.id)) tKey = hit.key || hit.id;
-      }
-    } catch (e) {}
-    if (/^[a-z][a-z0-9_-]*$/i.test(tKey) && tKey.length < 24) tKey = tKey.toLowerCase();
-    var qn = offer.questName || offer.taskUnlock || "";
-    if (qn && typeof qn === "object") qn = qn.name || qn.normalizedName || qn.id || "";
-    var minLL = Number(
-      offer.minLL != null ? offer.minLL :
-      offer.minTraderLevel != null ? offer.minTraderLevel :
-      offer.loyaltyLevel != null ? offer.loyaltyLevel :
-      offer.ll != null ? offer.ll :
-      offer.traderLL != null ? offer.traderLL : 0
-    ) || 0;
-    var questLocked = !!(offer.questLocked || offer.taskUnlock || offer.quest || offer.traderQuest);
-    return {
-      traderKey: tKey,
-      minLL: minLL,
-      questLocked: questLocked,
-      questName: qn ? String(qn) : ""
-    };
-  }
-
-  /** gate() from a single trader offer / row-like object */
-  function offerGate(offer) {
-    var m = offerMeta(offer);
-    return gate({
-      trader: m.traderKey,
-      minLL: m.minLL,
-      questLocked: m.questLocked,
-      questName: m.questName
-    });
-  }
-
-function lockVisibility(locked) {
+  function lockVisibility(locked) {
     if (locked && typeof locked === "object" && locked.locked != null) locked = locked.locked;
     if (!locked) return "show";
     var m = getFilterMode();
@@ -814,7 +769,7 @@ function lockVisibility(locked) {
           var n = Math.max(0, Math.min(4, Number(sel.value) || 0)) | 0;
           var patch = {};
           patch[key] = n < 1 ? 1 : n;
-          try { update({ traders: patch }); } catch (e) {}
+          try { update({ traders: patch }); } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } }
         });
       })(sels[i]);
     }
@@ -899,7 +854,7 @@ function lockVisibility(locked) {
           }
         });
       }
-      try { storage().remove("tarkovQuestItemsDone"); } catch (e2) {}
+      try { storage().remove("tarkovQuestItemsDone"); } catch (e2) { try { console.debug && console.debug("[tt:profile]", e2); } catch (_tt) { /* ignore */ } }
       return changed;
     } catch (e) { return false; }
   }
@@ -914,12 +869,12 @@ function lockVisibility(locked) {
     opts = opts || {};
     if (typeof fn !== "function") return function () {};
     if (opts.exportGlobal !== false) {
-      try { window.onProfileRefresh = fn; } catch (e) {}
+      try { window.onProfileRefresh = fn; } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } }
     }
     var unsub = subscribe(function (ev) {
-      try { fn(ev); } catch (err) {}
+      try { fn(ev); } catch (err) { try { console.debug && console.debug("[tt:profile]", err); } catch (_tt) { /* ignore */ } }
     });
-    function onEvt() { try { fn({ type: "dom-event" }); } catch (e) {} }
+    function onEvt() { try { fn({ type: "dom-event" }); } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } } }
     try {
       window.addEventListener("tt-profile-changed", onEvt);
       window.addEventListener("tt-profile-filter", onEvt);
@@ -930,7 +885,7 @@ function lockVisibility(locked) {
           onEvt();
         }
       });
-    } catch (e2) {}
+    } catch (e2) { try { console.debug && console.debug("[tt:profile]", e2); } catch (_tt) { /* ignore */ } }
     return unsub;
   }
 
@@ -938,16 +893,16 @@ function lockVisibility(locked) {
     try {
       window.dispatchEvent(new CustomEvent("tt-profile-refresh", { detail: detail || {} }));
       window.dispatchEvent(new CustomEvent("tt-profile-changed", { detail: detail || {} }));
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } }
     try {
       if (typeof window.onProfileRefresh === "function") window.onProfileRefresh(detail);
       else if (typeof window.render === "function") window.render();
       else if (typeof window.paint === "function") window.paint();
-    } catch (e2) {}
+    } catch (e2) { try { console.debug && console.debug("[tt:profile]", e2); } catch (_tt) { /* ignore */ } }
   }
 
   global.TarkovProfile = {
-    __v: 4,
+    __v: 3,
     TRADER_KEYS: TRADER_KEYS.slice(),
     list: list,
     getActive: getActive,
@@ -978,8 +933,6 @@ function lockVisibility(locked) {
     meetsLevel: meetsLevel,
     meetsTraderLL: meetsTraderLL,
     gate: gate,
-    offerMeta: offerMeta,
-    offerGate: offerGate,
     suggestActions: suggestActions,
     getFilterMode: getFilterMode,
     setFilterMode: setFilterMode,

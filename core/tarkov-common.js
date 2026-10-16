@@ -32,7 +32,7 @@
   function lang() {
     try {
       if (global.TarkovI18n && TarkovI18n.lang) return TarkovI18n.lang();
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:common]", e); } catch (_tt) { /* ignore */ } }
     return get(KEYS.lang, "ru") || "ru";
   }
 
@@ -44,7 +44,7 @@
         var v = TarkovI18n.t(key);
         if (v && v !== key) return v;
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:common]", e); } catch (_tt) { /* ignore */ } }
     var pack = I18N[lang()] || I18N.ru;
     return pack[key] != null ? pack[key] : (I18N.en[key] || key);
   }
@@ -86,7 +86,7 @@
       if (!Ctx) return null;
       var ctx = beep._ctx || (beep._ctx = new Ctx());
       if (ctx.state === "suspended") {
-        try { ctx.resume(); } catch (e) {}
+        try { ctx.resume(); } catch (e) { try { console.debug && console.debug("[tt:common]", e); } catch (_tt) { /* ignore */ } }
       }
       return ctx;
     } catch (e) { return null; }
@@ -96,20 +96,20 @@
     if (armAudioUnlock._done) return;
     armAudioUnlock._done = true;
     var once = function () {
-      try { unlockAudio(); } catch (e) {}
+      try { unlockAudio(); } catch (e) { try { console.debug && console.debug("[tt:common]", e); } catch (_tt) { /* ignore */ } }
       try {
         document.removeEventListener("pointerdown", once, true);
         document.removeEventListener("keydown", once, true);
         document.removeEventListener("touchstart", once, true);
-      } catch (e2) {}
+      } catch (e2) { try { console.debug && console.debug("[tt:common]", e2); } catch (_tt) { /* ignore */ } }
     };
     try {
       document.addEventListener("pointerdown", once, true);
       document.addEventListener("keydown", once, true);
       document.addEventListener("touchstart", once, true);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:common]", e); } catch (_tt) { /* ignore */ } }
   }
-  try { armAudioUnlock(); } catch (eArm) {}
+  try { armAudioUnlock(); } catch (eArm) { try { console.debug && console.debug("[tt:common]", eArm); } catch (_tt) { /* ignore */ } }
 
   function tone(ctx, freq, start, dur, vol, type) {
     var o = ctx.createOscillator();
@@ -139,7 +139,7 @@
       if (kindKey === "error") kindKey = "ok";
       try {
         if (get("tarkovSoundKind." + kindKey, "1") === "0") return;
-      } catch (e0) {}
+      } catch (e0) { try { console.debug && console.debug("[tt:common]", e0); } catch (_tt) { /* ignore */ } }
       var ctx = unlockAudio();
       if (!ctx) return;
       var now = ctx.currentTime;
@@ -166,7 +166,7 @@
       } else {
         tone(ctx, 520, now, 0.1, vol);
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:common]", e); } catch (_tt) { /* ignore */ } }
   }
 
   function pushNotifLocal(opts) {
@@ -175,7 +175,7 @@
       if (window.TarkovState && TarkovState.notify) {
         return TarkovState.notify(opts);
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:common]", e); } catch (_tt) { /* ignore */ } }
     try {
       var key = "tt:notif:v1";
       if (!global.TarkovStorage || !TarkovStorage.getJson || !TarkovStorage.setJson)
@@ -215,7 +215,7 @@
         var bod = TarkovI18n.t(opts.i18nBody, params);
         if (bod && bod !== opts.i18nBody) opts.body = bod;
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:common]", e); } catch (_tt) { /* ignore */ } }
     return opts;
   }
 
@@ -225,7 +225,7 @@
     var kind = opts.kind || opts.sound || "ok";
     if (kind === "price") kind = "ok";
     var inFrame = false;
-    try { inFrame = !!(window.parent && window.parent !== window); } catch (eF) {}
+    try { inFrame = !!(window.parent && window.parent !== window); } catch (eF) { try { console.debug && console.debug("[tt:common]", eF); } catch (_tt) { /* ignore */ } }
     // Inside hub iframe: parent plays sound (iframe AudioContext is often blocked)
     if (opts.silent !== true && !inFrame) {
       if (toolSoundEnabled(opts.tool)) beep(kind, opts.tool);
@@ -241,7 +241,7 @@
           silent: !!opts.silent
         }, location.origin);
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:common]", e); } catch (_tt) { /* ignore */ } }
   }
 
   function hiddenTools() {
@@ -249,7 +249,7 @@
   }
   function setHiddenTools(arr) {
     set(KEYS.hidden, JSON.stringify(arr || []));
-    try { window.dispatchEvent(new CustomEvent("tt-hidden-changed")); } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("tt-hidden-changed")); } catch (e) { try { console.debug && console.debug("[tt:common]", e); } catch (_tt) { /* ignore */ } }
   }
 
   function openSettings() {
@@ -272,7 +272,7 @@
       if (global.TarkovProfile && TarkovProfile.exportAllProfiles) {
         data.profiles = TarkovProfile.exportAllProfiles();
       }
-    } catch (eProf) {}
+    } catch (eProf) { try { console.debug && console.debug("[tt:common]", eProf); } catch (_tt) { /* ignore */ } }
     var ks = TarkovStorage.keys("tt:");
     ks.forEach(function (k) {
       data.keys[k] = TarkovStorage.get(k, null);
@@ -282,7 +282,7 @@
     a.href = URL.createObjectURL(blob);
     a.download = "tarkov-tools-export-" + data._exportedAt.slice(0, 10) + ".json";
     a.click();
-    try { URL.revokeObjectURL(a.href); } catch (e2) {}
+    try { URL.revokeObjectURL(a.href); } catch (e2) { try { console.debug && console.debug("[tt:common]", e2); } catch (_tt) { /* ignore */ } }
   }
 
   function importAll(file) {
@@ -301,14 +301,14 @@
             TarkovStorage.set(k, map[k]);
           }
         });
-        try { applyTheme(); } catch (eT) {}
+        try { applyTheme(); } catch (eT) { try { console.debug && console.debug("[tt:common]", eT); } catch (_tt) { /* ignore */ } }
         try {
           if (global.TarkovI18n && TarkovI18n.setLang) {
             TarkovI18n.setLang(get(KEYS.lang, "ru"));
           }
-        } catch (eL) {}
+        } catch (eL) { try { console.debug && console.debug("[tt:common]", eL); } catch (_tt) { /* ignore */ } }
         alert(t("importOk") !== "importOk" ? t("importOk") : "Import OK — reload the page");
-        try { window.dispatchEvent(new CustomEvent("tt-settings-applied")); } catch (eE) {}
+        try { window.dispatchEvent(new CustomEvent("tt-settings-applied")); } catch (eE) { try { console.debug && console.debug("[tt:common]", eE); } catch (_tt) { /* ignore */ } }
       } catch (e) {
         alert(t("importFail") !== "importFail" ? t("importFail") : "Import failed");
       }
@@ -344,8 +344,8 @@
   try {
     global.Notify = Notify;
     global.beep = beep;
-  } catch (eG) {}
+  } catch (eG) { try { console.debug && console.debug("[tt:common]", eG); } catch (_tt) { /* ignore */ } }
 
-  try { applyTheme(); } catch (e) {}
-  try { armAudioUnlock(); } catch (e2) {}
+  try { applyTheme(); } catch (e) { try { console.debug && console.debug("[tt:common]", e); } catch (_tt) { /* ignore */ } }
+  try { armAudioUnlock(); } catch (e2) { try { console.debug && console.debug("[tt:common]", e2); } catch (_tt) { /* ignore */ } }
 })(typeof window !== "undefined" ? window : this);

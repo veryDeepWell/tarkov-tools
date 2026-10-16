@@ -204,7 +204,7 @@
     try {
       if (global.TarkovTools && TarkovTools.beep) TarkovTools.beep("ok");
       else if (typeof global.beep === "function") global.beep("ok");
-    } catch (eB) {}
+    } catch (eB) { try { console.debug && console.debug("[tt:ui]", eB); } catch (_tt) { /* ignore */ } }
     setTimeout(function () {
       if (progressState.host) progressState.host.classList.remove("visible", "tt-progress-visible");
       if (progressState.bar) progressState.bar.style.width = "0%";
@@ -278,7 +278,7 @@
         if (tHelp && tHelp.indexOf("tool.") !== 0) body = tHelp;
         else if (tDesc && tDesc.indexOf("tool.") !== 0) body = tDesc;
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:ui]", e); } catch (_tt) { /* ignore */ } }
     return { title: title, body: body };
   }
 
@@ -318,6 +318,15 @@
     return el;
   }
 
+
+  function softCatch(err, tag) {
+    try {
+      if (typeof console === "undefined") return;
+      var msg = tag ? ("[tt:" + tag + "]") : "[tt]";
+      if (console.debug) console.debug(msg, err);
+    } catch (_e) { try { console.debug && console.debug("[tt:ui]", _e); } catch (_tt) { /* ignore */ } }
+  }
+
   global.TarkovUI = {
     __v: 3,
     esc: esc,
@@ -335,6 +344,7 @@
     enhanceTable: enhanceTable,
     table: enhanceTable,
     progress: progressAPI,
+    softCatch: softCatch,
     helpModal: helpModal,
     attachHelpButton: attachHelpButton,
     toolHeader: toolHeader,

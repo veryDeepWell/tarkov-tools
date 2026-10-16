@@ -62,7 +62,21 @@
     "notLoaded": "Не загружен",
     "closeTabHint": "ПКМ — закрыть вкладку",
     "unreadNone": "Нет непрочитанных",
-    "help": "Справка"
+    "help": "Справка",
+    "loadError": "Ошибка: {message}",
+    "loadedCount": "Загружено: {count}",
+    "loadedOk": "Загружено",
+    "loadingData": "Загружаю данные…",
+    "pickWeapon": "Выбери оружие",
+    "noBasePrice": "Нет цены на базу",
+    "budgetTooLow": "База ≥ бюджета ({price})",
+    "slotsFull": "Все слоты заняты",
+    "maxTabs": "Макс 8 вкладок",
+    "alreadyExists": "Уже есть",
+    "needOneMap": "Нужна хотя бы одна карта",
+    "saved": "Сохранено",
+    "goonsUpdated": "Гуны обновлены",
+    "prereqFail": "Не выполнены требования. Уровень: {level}"
   },
   "hub": {
     "title": "Tarkov Tools",

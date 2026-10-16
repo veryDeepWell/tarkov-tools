@@ -42,7 +42,7 @@
           if (cat[i].kind === "live" || cat[i].kind === "static") return cat[i].kind;
         }
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:tool-kind]", e); } catch (_tt) { /* ignore */ } }
     return entry(file) ? "live" : "static";
   }
 

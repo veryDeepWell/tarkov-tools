@@ -62,7 +62,21 @@
     "notLoaded": "Not loaded",
     "closeTabHint": "Close tab",
     "unreadNone": "No notifications",
-    "help": "Help"
+    "help": "Help",
+    "loadError": "Error: {message}",
+    "loadedCount": "Loaded: {count}",
+    "loadedOk": "Loaded",
+    "loadingData": "Loading data…",
+    "pickWeapon": "Select a weapon",
+    "noBasePrice": "No price for the base weapon",
+    "budgetTooLow": "Base cost ≥ budget ({price})",
+    "slotsFull": "All slots are full",
+    "maxTabs": "Maximum 8 tabs",
+    "alreadyExists": "Already exists",
+    "needOneMap": "At least one map is required",
+    "saved": "Saved",
+    "goonsUpdated": "Goons updated",
+    "prereqFail": "Requirements not met. Level set to {level}"
   },
   "hub": {
     "title": "Tarkov Tools",

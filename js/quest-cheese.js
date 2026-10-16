@@ -13,7 +13,7 @@
   function esc(s) {
     try {
       if (window.TarkovDicts && TarkovDicts.esc) return TarkovDicts.esc(s);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:quest-cheese]", e); } catch (_tt) { /* ignore */ } }
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -24,7 +24,7 @@
     if (!it) return "";
     try {
       if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:quest-cheese]", e); } catch (_tt) { /* ignore */ } }
     return it.shortName || it.name || it.normalizedName || it.id || "";
   }
 
@@ -35,11 +35,11 @@
         var n = TarkovNames.display(t);
         if (n && n !== t.id) return n;
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:quest-cheese]", e); } catch (_tt) { /* ignore */ } }
     if (t.normalizedName) {
       try {
         if (window.TarkovDicts && TarkovDicts.humanize) return TarkovDicts.humanize(t.normalizedName);
-      } catch (e2) {}
+      } catch (e2) { try { console.debug && console.debug("[tt:quest-cheese]", e2); } catch (_tt) { /* ignore */ } }
       return t.normalizedName;
     }
     return String(t.name || t.id || "");
@@ -48,10 +48,10 @@
   function stationLabel(id) {
     try {
       if (window.TarkovDicts && TarkovDicts.hideoutStation) return TarkovDicts.hideoutStation(id);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:quest-cheese]", e); } catch (_tt) { /* ignore */ } }
     try {
       if (window.TarkovDicts && TarkovDicts.humanize) return TarkovDicts.humanize(id);
-    } catch (e2) {}
+    } catch (e2) { try { console.debug && console.debug("[tt:quest-cheese]", e2); } catch (_tt) { /* ignore */ } }
     return id ? String(id).slice(0, 8) : "?";
   }
 
@@ -323,7 +323,7 @@
       if (P) P.done();
       try {
         if (window.TarkovTools && TarkovTools.beep) TarkovTools.beep("ok");
-      } catch (eB) {}
+      } catch (eB) { try { console.debug && console.debug("[tt:quest-cheese]", eB); } catch (_tt) { /* ignore */ } }
     } catch (e) {
       setStatus(e.message || String(e), false);
       if (P) P.fail(e.message);
@@ -350,19 +350,6 @@
     document.getElementById("results").innerHTML = "";
     document.getElementById("q").value = "";
   };
-
-  window.render = function () {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try {
-      if (typeof renderSuggest === 'function') renderSuggest(); if (typeof renderSources === 'function') renderSources();
-    } catch (e1) {}
-  };
-  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-    TarkovProfile.bindRefresh(function () { window.render(); });
-  }
-
 })();
 
 /* R-2: gameMode from profile on load; changes write to profile */
@@ -376,7 +363,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:quest-cheese]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

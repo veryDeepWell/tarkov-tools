@@ -68,7 +68,7 @@
 
   function itemName(it) {
     if (!it) return "?";
-    try { if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it); } catch (e) {}
+    try { if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it); } catch (e) { try { console.debug && console.debug("[tt:prestige]", e); } catch (_tt) { /* ignore */ } }
     return it.shortName || it.name || it.normalizedName || it.id || "?";
   }
 
@@ -303,7 +303,7 @@
           if ($("maxLvl")) $("maxLvl").value = String(pl);
         }
       }
-    } catch (eML) {}
+    } catch (eML) { try { console.debug && console.debug("[tt:prestige]", eML); } catch (_tt) { /* ignore */ } }
     buildQuestNeed(tasksCache, maxLvl);
 
     var candidates = [];
@@ -422,7 +422,7 @@
 window.render = function () {
   try {
     if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) {}
+  } catch (e0) { try { console.debug && console.debug("[tt:prestige]", e0); } catch (_tt) { /* ignore */ } }
   try {
     if (typeof ensureGrid === "function") ensureGrid();
     if (typeof tasksCache !== "undefined" && tasksCache && typeof buildQuestNeed === "function") {
@@ -434,7 +434,7 @@ window.render = function () {
       buildQuestNeed(tasksCache, maxLvl);
     }
     if (typeof paintHints === "function") { /* noop unless list in scope */ }
-  } catch (e1) {}
+  } catch (e1) { try { console.debug && console.debug("[tt:prestige]", e1); } catch (_tt) { /* ignore */ } }
 };
 if (window.TarkovProfile && TarkovProfile.bindRefresh) {
   TarkovProfile.bindRefresh(function () { window.render(); });
@@ -451,7 +451,7 @@ if (window.TarkovProfile && TarkovProfile.bindRefresh) {
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:prestige]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

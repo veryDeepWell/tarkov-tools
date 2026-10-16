@@ -24,7 +24,7 @@
           mode: (document.getElementById('gameMode') || {}).value || 'pve',
           styleId: styleId
         });
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:drip-loadout]", e); } catch (_tt) { /* ignore */ } }
     }
     function esc(s) { return TarkovDicts.esc(s); }
     function status(m,ok){ var el=document.getElementById('status'); el.className='status'+(ok===true?' ok':ok===false?' err':''); el.textContent=m; }
@@ -46,7 +46,7 @@
     try {
       var saved0 = TarkovStorage.getJson('tarkovtool-drip-loadout-settings', {}) || {};
       if (saved0.styleId) styleId = saved0.styleId;
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:drip-loadout]", e); } catch (_tt) { /* ignore */ } }
     document.getElementById('styles').innerHTML = STYLES.map(function(s){
       return '<button type="button" class="style-chip'+(s.id===styleId?' active':'')+'" data-id="'+s.id+'"><div class="t">'+esc(s.title)+'</div><div class="d">'+esc(s.desc)+'</div></button>';
     }).join('');
@@ -92,20 +92,7 @@
     }
     document.getElementById('btnGo').onclick = function(){ go().catch(function(e){ status(String(e.message||e), false); }); };
     document.getElementById('gameMode').onchange = function(){ pool = null; persist(); };
-  
-  window.render = function () {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try {
-      if (typeof renderPaperdoll === 'function') renderPaperdoll();
-    } catch (e1) {}
-  };
-  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-    TarkovProfile.bindRefresh(function () { window.render(); });
-  }
-
-})();
+  })();
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {
@@ -118,7 +105,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:drip-loadout]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

@@ -179,5 +179,5 @@
           href: 'tarkovtool-my-tarkov.html'
         });
       }
-    } catch(e){}
+    } catch (e) { try { console.debug && console.debug("[tt:desk]", e); } catch (_tt) { /* ignore */ } }
   

@@ -151,7 +151,7 @@
     window.addEventListener("storage", function (e) {
       if (e.key === KEY) invalidate();
     });
-  } catch (e) {}
+  } catch (e) { try { console.debug && console.debug("[tt:names]", e); } catch (_tt) { /* ignore */ } }
 
   function itemName(item) { return display(item); }
   global.itemName = itemName;

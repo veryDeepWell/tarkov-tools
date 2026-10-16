@@ -36,7 +36,7 @@
           });
         };
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:barter-live-ui]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire);
   else wire();

@@ -8,7 +8,7 @@
   function esc(s) {
     try {
       if (window.TarkovDicts && TarkovDicts.esc) return TarkovDicts.esc(s);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:cases]", e); } catch (_tt) { /* ignore */ } }
     return String(s == null ? "" : s)
       .replace(/&/g, "&")
       .replace(/</g, "<")
@@ -19,7 +19,7 @@
     if (!it) return "";
     try {
       if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:cases]", e); } catch (_tt) { /* ignore */ } }
     return it.shortName || it.name || it.normalizedName || it.id || "";
   }
 
@@ -224,7 +224,7 @@
       if (P) P.done();
       try {
         if (window.TarkovTools && TarkovTools.beep) TarkovTools.beep("ok");
-      } catch (eB) {}
+      } catch (eB) { try { console.debug && console.debug("[tt:cases]", eB); } catch (_tt) { /* ignore */ } }
     } catch (e) {
       setStatus(e.message || String(e), false);
       if (P) P.fail(e.message);
@@ -235,19 +235,6 @@
 
   document.getElementById("loadBtn").onclick = load;
   document.getElementById("q").oninput = renderGrid;
-
-  window.render = function () {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try {
-      if (typeof paintList === 'function') paintList(); else if (typeof renderGrid === 'function') renderGrid();
-    } catch (e1) {}
-  };
-  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-    TarkovProfile.bindRefresh(function () { window.render(); });
-  }
-
 })();
 
 /* R-2: gameMode from profile on load; changes write to profile */
@@ -261,7 +248,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:cases]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

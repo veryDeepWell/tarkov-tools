@@ -249,6 +249,7 @@
 
     function persist() {
       saveSettings('tarkovKeysSettings', {
+        gameMode: document.getElementById('gameMode').value,
         activeMap,
         mode,
         hideQuest: document.getElementById('hideQuest').checked
@@ -293,8 +294,8 @@
     return s||it.id||'';
   }
 
-      const s = loadSettings('tarkovKeysSettings', { mode: 'price' });
-      // gameMode from profile only (wireToolPage)
+      const s = loadSettings('tarkovKeysSettings', { gameMode: 'regular', mode: 'price' });
+      document.getElementById('gameMode').value = s.gameMode || 'regular';
       mode = s.mode || 'price';
       document.querySelectorAll('.mode-toggle button').forEach(b => {
         b.classList.toggle('active', b.dataset.mode === mode);
@@ -305,8 +306,8 @@
 window.render = function () {
   try {
     if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) {}
-  try { if (typeof render === "function") render(); } catch (e1) {}
+  } catch (e0) { try { console.debug && console.debug("[tt:keys]", e0); } catch (_tt) { /* ignore */ } }
+  try { if (typeof render === "function") render(); } catch (e1) { try { console.debug && console.debug("[tt:keys]", e1); } catch (_tt) { /* ignore */ } }
 };
 if (window.TarkovProfile && TarkovProfile.bindRefresh) {
   TarkovProfile.bindRefresh(function () { window.render(); });
@@ -323,7 +324,7 @@ if (window.TarkovProfile && TarkovProfile.bindRefresh) {
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:keys]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

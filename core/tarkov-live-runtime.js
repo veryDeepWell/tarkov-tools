@@ -38,7 +38,7 @@
         var f = TarkovToolKind.fileForPollId(id);
         if (f) return f;
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:live-runtime]", e); } catch (_tt) { /* ignore */ } }
     var st = readPoll(id);
     return (st && st.tool) || null;
   }
@@ -51,7 +51,7 @@
       if (map && map[file]) return map[file];
       var base0 = String(file).split("/").pop();
       if (map && map[base0]) return map[base0];
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:live-runtime]", e); } catch (_tt) { /* ignore */ } }
     var pool = document.getElementById("framePool");
     if (!pool) return null;
     var list = pool.querySelectorAll("iframe");
@@ -84,7 +84,7 @@
           if (e.pollId) ids.push(e.pollId);
         });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:live-runtime]", e); } catch (_tt) { /* ignore */ } }
     if (!ids.length) ids = ["price-track", "price-alarm", "restock"];
     return ids;
   }
@@ -130,7 +130,7 @@
   function isLiveFile(file) {
     try {
       if (global.TarkovToolKind && TarkovToolKind.isLive) return TarkovToolKind.isLive(file);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:live-runtime]", e); } catch (_tt) { /* ignore */ } }
     var base = String(file || "").split("/").pop();
     return /price-track|price-alarm|restock/i.test(base);
   }
@@ -139,7 +139,7 @@
     _tickN++;
     var ping = (_tickN % 15) === 0;
     var map = null;
-    try { map = global.__ttHubFrames; } catch (e) {}
+    try { map = global.__ttHubFrames; } catch (e) { try { console.debug && console.debug("[tt:live-runtime]", e); } catch (_tt) { /* ignore */ } }
     if (!map) return;
     var keys = Object.keys(map);
     for (var i = 0; i < keys.length; i++) {
@@ -150,7 +150,7 @@
       try {
         ifr.contentWindow.postMessage({ type: "tt-tick", ts: Date.now() }, location.origin);
         if (ping) ifr.contentWindow.postMessage({ type: "tt-ping-status", ts: Date.now() }, location.origin);
-      } catch (e2) {}
+      } catch (e2) { try { console.debug && console.debug("[tt:live-runtime]", e2); } catch (_tt) { /* ignore */ } }
     }
   }
 
@@ -163,7 +163,7 @@
       // Tool registered; ensure next tick can see storage state
       try {
         if (global.TarkovPoll && TarkovPoll.paintAll) TarkovPoll.paintAll();
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:live-runtime]", e); } catch (_tt) { /* ignore */ } }
       return;
     }
 
@@ -184,7 +184,7 @@
     if (tickIv) return;
     try {
       global.addEventListener("message", onMessage);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:live-runtime]", e); } catch (_tt) { /* ignore */ } }
     tickIv = setInterval(tick, 1000);
     // tt-tick / tt-ping-status broadcast from tick() — single 1s loop (P1)
   }

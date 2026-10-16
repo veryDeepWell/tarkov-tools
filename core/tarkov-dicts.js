@@ -67,10 +67,10 @@
   function currentLang() {
     try {
       if (global.TarkovI18n && TarkovI18n.lang) return TarkovI18n.lang();
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:dicts]", e); } catch (_tt) { /* ignore */ } }
     try {
       if (global.TarkovTools && TarkovTools.lang) return TarkovTools.lang();
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:dicts]", e); } catch (_tt) { /* ignore */ } }
     return "ru";
   }
 
@@ -171,7 +171,7 @@
       if (global.TarkovStorage && TarkovStorage.get) {
         current = TarkovStorage.get(KEY, "pve") || "pve";
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:dicts]", e); } catch (_tt) { /* ignore */ } }
 
     var selects = document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]');
     selects.forEach(function (sel) {
@@ -187,7 +187,7 @@
           if (global.TarkovStorage && TarkovStorage.set) {
             TarkovStorage.set(KEY, val);
           }
-        } catch (e2) {}
+        } catch (e2) { try { console.debug && console.debug("[tt:dicts]", e2); } catch (_tt) { /* ignore */ } }
         selects.forEach(function (other) {
           if (other !== sel && other.value !== val) other.value = val;
         });

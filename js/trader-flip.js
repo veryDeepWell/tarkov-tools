@@ -88,12 +88,12 @@
           var p = TarkovProfile.getActive();
           if (p && p.traders) fromProfile = Object.assign({}, p.traders);
         }
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:trader-flip]", e); } catch (_tt) { /* ignore */ } }
       var legacy = {};
       try {
         var s = TarkovStorage.getJson('tarkovFlipSettings', {}) || {};
         legacy = s.traderLevels || {};
-      } catch (e2) {}
+      } catch (e2) { try { console.debug && console.debug("[tt:trader-flip]", e2); } catch (_tt) { /* ignore */ } }
       // migrate legacy into profile if profile still defaults (all 1) and legacy has higher
       try {
         if (window.TarkovProfile && TarkovProfile.update && legacy && Object.keys(legacy).length) {
@@ -115,10 +115,10 @@
             try {
               var s2 = TarkovStorage.getJson('tarkovFlipSettings', {}) || {};
               if (s2.traderLevels) { delete s2.traderLevels; TarkovStorage.setJson('tarkovFlipSettings', s2); }
-            } catch (e3) {}
+            } catch (e3) { try { console.debug && console.debug("[tt:trader-flip]", e3); } catch (_tt) { /* ignore */ } }
           }
         }
-      } catch (e4) {}
+      } catch (e4) { try { console.debug && console.debug("[tt:trader-flip]", e4); } catch (_tt) { /* ignore */ } }
       return fromProfile;
     })();
 
@@ -151,13 +151,13 @@
             });
             TarkovProfile.update({ traders: patch });
           }
-        } catch (e) {}
-        try { if (typeof renderTable === 'function') renderTable(); } catch (e2) {}
+        } catch (e) { try { console.debug && console.debug("[tt:trader-flip]", e); } catch (_tt) { /* ignore */ } }
+        try { if (typeof renderTable === 'function') renderTable(); } catch (e2) { try { console.debug && console.debug("[tt:trader-flip]", e2); } catch (_tt) { /* ignore */ } }
       });
     });
     try {
       if (window.TarkovProfile && TarkovProfile.bindTraderLL) TarkovProfile.bindTraderLL(tradersEl);
-    } catch (eBind) {}
+    } catch (eBind) { try { console.debug && console.debug("[tt:trader-flip]", eBind); } catch (_tt) { /* ignore */ } }
 
     function getTraderLevels() {
       const map = {};
@@ -573,7 +573,7 @@
       try {
         if (window.TarkovProfile && TarkovProfile.bindTraderLL) TarkovProfile.bindTraderLL(tradersEl);
         if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:trader-flip]", e); } catch (_tt) { /* ignore */ } }
       try {
         if (rawRows && rawRows.length) {
           // re-gate rows against current profile
@@ -589,7 +589,7 @@
           });
           renderTable();
         }
-      } catch (e2) {}
+      } catch (e2) { try { console.debug && console.debug("[tt:trader-flip]", e2); } catch (_tt) { /* ignore */ } }
     };
     if (window.TarkovProfile && TarkovProfile.bindRefresh) {
       TarkovProfile.bindRefresh(function () { window.render(); });
@@ -606,7 +606,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:trader-flip]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

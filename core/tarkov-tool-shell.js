@@ -101,7 +101,7 @@
               .then(function () {
                 try {
                   TarkovI18n.applyDom(document);
-                } catch (e) {}
+                } catch (e) { try { console.debug && console.debug("[tt:tool-shell]", e); } catch (_tt) { /* ignore */ } }
                 resolve();
               })
               .catch(function () {
@@ -109,7 +109,7 @@
               });
             return;
           }
-        } catch (e) {}
+        } catch (e) { try { console.debug && console.debug("[tt:tool-shell]", e); } catch (_tt) { /* ignore */ } }
         resolve();
       }
       if (window.TarkovI18n) {
@@ -158,7 +158,7 @@
       if (heading && !heading.hasAttribute("data-i18n-preserve")) heading.textContent = title;
       var subtitle = document.querySelector(".sub, .subtitle");
       if (subtitle && description && description.indexOf("tool.") !== 0) subtitle.textContent = description;
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:tool-shell]", e); } catch (_tt) { /* ignore */ } }
   }
 
   function showHelpLocal(title, body) {
@@ -261,9 +261,9 @@
             if (hh && hh.indexOf("tool.") !== 0) body = hh;
             else if (dh && dh.indexOf("tool.") !== 0) body = dh;
           }
-        } catch (e3) {}
+        } catch (e3) { try { console.debug && console.debug("[tt:tool-shell]", e3); } catch (_tt) { /* ignore */ } }
         showHelpLocal(title, body || "Tarkov Tools utility.");
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:tool-shell]", e); } catch (_tt) { /* ignore */ } }
     };
   }
 
@@ -338,14 +338,14 @@
         window.__ttProfileWireBound = true;
         TarkovProfile.subscribe(function () { wireProfileGameMode(); });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:tool-shell]", e); } catch (_tt) { /* ignore */ } }
   }
 
 
 
   function ensureProfileChrome() {
     if (!window.TarkovProfile) return;
-    try { if (TarkovProfile.ensureMigrated) TarkovProfile.ensureMigrated(); } catch (e) {}
+    try { if (TarkovProfile.ensureMigrated) TarkovProfile.ensureMigrated(); } catch (e) { try { console.debug && console.debug("[tt:tool-shell]", e); } catch (_tt) { /* ignore */ } }
 
     function iconUrl(id) {
       var base = (location.pathname || "").indexOf("/tools/") >= 0 ? "../assets/icons/" : "assets/icons/";
@@ -369,7 +369,7 @@
         '<span class="tt-profile-chip-text">' + name + " · L" + lvl + "</span>";
       try {
         document.documentElement.setAttribute("data-tt-filter-mode", TarkovProfile.getFilterMode ? TarkovProfile.getFilterMode() : "off");
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:tool-shell]", e); } catch (_tt) { /* ignore */ } }
     }
 
     function paintPop() {
@@ -411,13 +411,13 @@
               if (window.parent && window.parent !== window) {
                 window.parent.postMessage({ type: "tt-profile-changed", id: id }, "*");
               }
-            } catch (e) {}
+            } catch (e) { try { console.debug && console.debug("[tt:tool-shell]", e); } catch (_tt) { /* ignore */ } }
             // soft rebuild: onProfileRefresh → render → paint (R2.1)
             try {
               if (typeof window.onProfileRefresh === "function") window.onProfileRefresh();
               else if (typeof window.render === "function") window.render();
               else if (typeof window.paint === "function") window.paint();
-            } catch (eRef) {}
+            } catch (eRef) { try { console.debug && console.debug("[tt:tool-shell]", eRef); } catch (_tt) { /* ignore */ } }
             closePop();
           } catch (err) {
             alert(err.message || String(err));
@@ -432,7 +432,7 @@
             if (typeof window.onProfileRefresh === "function") window.onProfileRefresh();
             else if (typeof window.render === "function") window.render();
             else if (typeof window.paint === "function") window.paint();
-          } catch (eRef) {}
+          } catch (eRef) { try { console.debug && console.debug("[tt:tool-shell]", eRef); } catch (_tt) { /* ignore */ } }
         };
       });
     }
@@ -497,7 +497,7 @@
           wireProfileGameMode();
         });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:tool-shell]", e); } catch (_tt) { /* ignore */ } }
   }
 
 
@@ -521,11 +521,11 @@
         if (window.TarkovDicts && TarkovDicts.syncGameMode) {
           TarkovDicts.syncGameMode();
         }
-      } catch (eMode) {}
+      } catch (eMode) { try { console.debug && console.debug("[tt:tool-shell]", eMode); } catch (_tt) { /* ignore */ } }
       try {
         if (window.TarkovI18n && TarkovI18n.applyDom) TarkovI18n.applyDom(document);
         localizeToolChrome();
-      } catch (e) {}
+      } catch (e) { try { console.debug && console.debug("[tt:tool-shell]", e); } catch (_tt) { /* ignore */ } }
     });
   }
 
@@ -543,33 +543,33 @@
   // (still kept as a safety net for pages loading the shell from <head>).
   try {
     if (window.TarkovDicts && TarkovDicts.syncGameMode) TarkovDicts.syncGameMode();
-  } catch (ePre) {}
+  } catch (ePre) { try { console.debug && console.debug("[tt:tool-shell]", ePre); } catch (_tt) { /* ignore */ } }
 
   window.addEventListener("tt-profile-changed", function () {
-    try { wireProfileGameMode(); } catch (e) {}
+    try { wireProfileGameMode(); } catch (e) { try { console.debug && console.debug("[tt:tool-shell]", e); } catch (_tt) { /* ignore */ } }
     try {
       if (typeof window.onProfileRefresh === "function") window.onProfileRefresh();
       else if (typeof window.render === "function") window.render();
       else if (typeof window.paint === "function") window.paint();
-    } catch (eRef) {}
+    } catch (eRef) { try { console.debug && console.debug("[tt:tool-shell]", eRef); } catch (_tt) { /* ignore */ } }
   });
   window.addEventListener("tt-profile-refresh", function () {
-    try { wireProfileGameMode(); } catch (e) {}
+    try { wireProfileGameMode(); } catch (e) { try { console.debug && console.debug("[tt:tool-shell]", e); } catch (_tt) { /* ignore */ } }
     try {
       if (typeof window.onProfileRefresh === "function") window.onProfileRefresh();
       else if (typeof window.render === "function") window.render();
       else if (typeof window.paint === "function") window.paint();
-    } catch (eRef) {}
+    } catch (eRef) { try { console.debug && console.debug("[tt:tool-shell]", eRef); } catch (_tt) { /* ignore */ } }
   });
   window.addEventListener("message", function (ev) {
     if (!ev.data || !ev.data.type) return;
     if (ev.data.type === "tt-profile-changed" || ev.data.type === "tt-profile-filter" || ev.data.type === "tt-profile-refresh") {
-      try { wireProfileGameMode(); } catch (e) {}
+      try { wireProfileGameMode(); } catch (e) { try { console.debug && console.debug("[tt:tool-shell]", e); } catch (_tt) { /* ignore */ } }
       try {
         if (typeof window.onProfileRefresh === "function") window.onProfileRefresh();
         else if (typeof window.render === "function") window.render();
         else if (typeof window.paint === "function") window.paint();
-      } catch (eRef) {}
+      } catch (eRef) { try { console.debug && console.debug("[tt:tool-shell]", eRef); } catch (_tt) { /* ignore */ } }
     }
   });
   /* tt-profile-changed-listener */

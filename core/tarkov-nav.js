@@ -9,7 +9,7 @@
   function storage() {
     try {
       if (global.TarkovStorage && TarkovStorage.getJson) return TarkovStorage;
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:nav]", e); } catch (_tt) { /* ignore */ } }
     return null;
   }
 
@@ -28,14 +28,14 @@
       var s = storage();
       if (s && s.setJson) s.setJson(KEY, ctx);
       else sessionStorage.setItem(KEY, JSON.stringify(ctx));
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:nav]", e); } catch (_tt) { /* ignore */ } }
     try {
       if (typeof BroadcastChannel !== "undefined") {
         var bc = new BroadcastChannel(CHANNEL);
         bc.postMessage({ type: "nav", context: ctx });
         bc.close();
       }
-    } catch (e2) {}
+    } catch (e2) { try { console.debug && console.debug("[tt:nav]", e2); } catch (_tt) { /* ignore */ } }
   }
 
   /**
@@ -74,7 +74,7 @@
 
   function clear() {
     write(null);
-    try { sessionStorage.removeItem(KEY); } catch (e) {}
+    try { sessionStorage.removeItem(KEY); } catch (e) { try { console.debug && console.debug("[tt:nav]", e); } catch (_tt) { /* ignore */ } }
   }
 
   function openTool(file, partial) {
@@ -89,7 +89,7 @@
       if (window.parent && window.parent !== window) {
         window.parent.postMessage({ type: "tt-open-tool", file: file, context: partial || null }, "*");
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:nav]", e); } catch (_tt) { /* ignore */ } }
     location.href = href;
   }
 
@@ -105,7 +105,7 @@
         u.searchParams.delete("ttId");
         history.replaceState({}, "", u.pathname + u.search + u.hash);
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:nav]", e); } catch (_tt) { /* ignore */ } }
   }
 
   bootstrapFromQuery();

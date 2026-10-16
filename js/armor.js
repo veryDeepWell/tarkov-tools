@@ -146,22 +146,7 @@
         classes: [...activeClasses],
         onlyFlea: onlyFlea,
         search: q
-      }).filter(r => {
-        if (hideQuest && r.quest) return false;
-        if (!(r.class || r.kind === 'rig')) return false;
-        if (window.TarkovProfile && TarkovProfile.gate && (r.traderLL || r.quest)) {
-          r._gate = TarkovProfile.gate({
-            trader: r.traderKey || r.traderId || '',
-            minLL: r.traderLL || r.traderLevel || 0,
-            questLocked: !!r.quest,
-            questName: r.questName || ''
-          });
-          if (TarkovProfile.lockVisibility(r._gate) === 'hide') return false;
-        } else {
-          r._gate = { locked: false, reason: '' };
-        }
-        return true;
-      });
+      }).filter(r => !(hideQuest && r.quest) && (r.class || r.kind === 'rig'));
       list.sort((a, b) => {
         let va = a[sortKey], vb = b[sortKey];
         if (sortKey === 'quest') { va = a.quest ? 1 : 0; vb = b.quest ? 1 : 0; }
@@ -181,10 +166,6 @@
       }
       list.forEach(r => {
         const tr = document.createElement('tr');
-        if (window.TarkovProfile && TarkovProfile.applyLockToElement && r._gate) {
-          TarkovProfile.applyLockToElement(tr, r._gate);
-          if (r._gate.locked && TarkovProfile.lockVisibility(r._gate) === 'hide') return;
-        }
         const zones = r.zones.map(z => `<span class="zone-tag">${esc(t("tool.itemScore.zone." + z))}</span>`).join('') || '—';
         const flea = r.onFlea ? formatNum(r.avg || r.low) : `<span class="bad">${esc(t("tool.itemScore.no"))}</span>`;
         const trader = r.traderPrice
@@ -235,6 +216,7 @@
 
     function persist() {
       saveSettings('tarkovArmorSettings', {
+        gameMode: document.getElementById('gameMode').value,
         hideQuest: document.getElementById('hideQuest').checked,
         onlyFlea: document.getElementById('onlyFlea').checked,
         types: [...activeTypes],
@@ -278,8 +260,8 @@
       const s = loadSettings('tarkovArmorSettings', {});
       if (document.getElementById("gameMode")) {
       var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
-        ? TarkovProfile.preferredGameMode("pve")
-        : "pve";
+        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
+        : ((s.gameMode) || "pve");
       document.getElementById("gameMode").value = __ttMode;
     }
       if (s.hideQuest) document.getElementById('hideQuest').checked = true;
@@ -291,8 +273,8 @@
 window.render = function () {
   try {
     if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) {}
-  try { if (typeof renderTable === "function") renderTable(); } catch (e1) {}
+  } catch (e0) { try { console.debug && console.debug("[tt:armor]", e0); } catch (_tt) { /* ignore */ } }
+  try { if (typeof renderTable === "function") renderTable(); } catch (e1) { try { console.debug && console.debug("[tt:armor]", e1); } catch (_tt) { /* ignore */ } }
 };
 if (window.TarkovProfile && TarkovProfile.bindRefresh) {
   TarkovProfile.bindRefresh(function () { window.render(); });
@@ -309,7 +291,7 @@ if (window.TarkovProfile && TarkovProfile.bindRefresh) {
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:armor]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

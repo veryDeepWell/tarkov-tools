@@ -405,35 +405,23 @@
     return s||it.id||'';
   }
 
-      const s = loadSettings('tarkovShortSettings', { intel3: '0', hmLvl: 0 });
+      const s = loadSettings('tarkovShortSettings', { gameMode: 'regular', intel3: '0', hmLvl: 0 });
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-      set('gameMode', (window.TarkovProfile && TarkovProfile.preferredGameMode) ? TarkovProfile.preferredGameMode('pve') : 'pve');
+      set('gameMode', (window.TarkovProfile && TarkovProfile.preferredGameMode) ? TarkovProfile.preferredGameMode(s.gameMode || 'pve') : (s.gameMode || 'regular'));
       set('intel3', s.intel3);
       set('hmLvl', s.hmLvl);
       function persist() {
         saveSettings('tarkovShortSettings', {
+          gameMode: document.getElementById('gameMode')?.value,
           intel3: document.getElementById('intel3')?.value || '0',
           hmLvl: Number(document.getElementById('hmLvl')?.value) || 0
         });
       }
-      ['intel3','hmLvl'].forEach(id => {
+      ['gameMode','intel3','hmLvl'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', persist);
       });
-    
-  window.render = function () {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try {
-      if (typeof render === 'function') render();
-    } catch (e1) {}
-  };
-  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-    TarkovProfile.bindRefresh(function () { window.render(); });
-  }
-
-})();
+    })();
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {
@@ -446,7 +434,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:shortname]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

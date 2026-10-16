@@ -81,7 +81,7 @@
             mode: document.getElementById('gameMode').value,
             maxLv: document.getElementById('maxLv').value
           });
-        } catch (e) {}
+        } catch (e) { try { console.debug && console.debug("[tt:hideout-mgmt]", e); } catch (_tt) { /* ignore */ } }
         renderStations();
         render();
       } catch (e) {
@@ -212,7 +212,7 @@
       document.getElementById("gameMode").value = __ttMode;
     }
       if (s.maxLv) document.getElementById('maxLv').value = s.maxLv;
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:hideout-mgmt]", e); } catch (_tt) { /* ignore */ } }
 
     (function(){
   function itemName(it){
@@ -228,8 +228,8 @@
   window.render = function () {
     try {
       if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try { if (typeof render === "function") render(); } catch (e1) {}
+    } catch (e0) { try { console.debug && console.debug("[tt:hideout-mgmt]", e0); } catch (_tt) { /* ignore */ } }
+    try { if (typeof render === "function") render(); } catch (e1) { try { console.debug && console.debug("[tt:hideout-mgmt]", e1); } catch (_tt) { /* ignore */ } }
   };
   if (window.TarkovProfile && TarkovProfile.bindRefresh) {
     TarkovProfile.bindRefresh(function () { window.render(); });
@@ -249,7 +249,7 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:hideout-mgmt]", e); } catch (_tt) { /* ignore */ } }
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);

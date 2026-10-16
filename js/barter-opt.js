@@ -47,7 +47,7 @@
   function esc(s) {
     try {
       if (window.TarkovDicts && TarkovDicts.esc) return TarkovDicts.esc(s);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:barter-opt]", e); } catch (_tt) { /* ignore */ } }
     return String(s == null ? "" : s)
       .replace(/&/g, "&" + "amp;")
       .replace(/</g, "&" + "lt;")
@@ -58,7 +58,7 @@
     if (!it) return "?";
     try {
       if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:barter-opt]", e); } catch (_tt) { /* ignore */ } }
     return it.shortName || it.name || it.normalizedName || it.id || "?";
   }
 
@@ -360,7 +360,7 @@
       buildRows();
       try {
         if (window.TarkovTools && TarkovTools.beep) TarkovTools.beep("ok");
-      } catch (eB) {}
+      } catch (eB) { try { console.debug && console.debug("[tt:barter-opt]", eB); } catch (_tt) { /* ignore */ } }
     } catch (e) {
       setStatus(e.message || String(e), false);
       if (P) P.fail(e.message);
@@ -378,7 +378,7 @@
   window.__ttBarterOptBuild = buildRows;
   window.paint = paint;
   window.render = function () {
-    try { buildRows(); } catch (e) { try { paint(); } catch (e2) {} }
+    try { buildRows(); } catch (e) { try { paint(); } catch (e2) { try { console.debug && console.debug("[tt:barter-opt]", e2); } catch (_tt) { /* ignore */ } } }
   };
 })();
 
@@ -393,13 +393,13 @@
         if (el) el.__ttProfileBound = false;
         TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       }
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:barter-opt]", e); } catch (_tt) { /* ignore */ } }
   }
   function __ttRefresh() {
     try {
       __ttBindMode();
       if (typeof window.__ttBarterOptBuild === "function") window.__ttBarterOptBuild();
-    } catch (e) {}
+    } catch (e) { try { console.debug && console.debug("[tt:barter-opt]", e); } catch (_tt) { /* ignore */ } }
   }
   window.render = __ttRefresh;
   window.paint = __ttRefresh;

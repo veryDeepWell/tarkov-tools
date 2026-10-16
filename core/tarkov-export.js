@@ -57,7 +57,7 @@
     a.href = URL.createObjectURL(blob);
     a.download = "tarkov-tools-export-" + payload._exportedAt.slice(0, 10) + ".json";
     a.click();
-    try { URL.revokeObjectURL(a.href); } catch (e) {}
+    try { URL.revokeObjectURL(a.href); } catch (e) { try { console.debug && console.debug("[tt:export]", e); } catch (_tt) { /* ignore */ } }
   }
 
   function fromFile(file) {
