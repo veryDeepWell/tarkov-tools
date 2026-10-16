@@ -1,5 +1,12 @@
 
-    /* TRADER_RU removed P4 — use TarkovDicts.traderName */
+    const TRADER_RU = (window.TarkovDicts && TarkovDicts.traders)
+      ? TarkovDicts.traders.reduce((acc, t) => { acc[t.id] = t.ru; return acc; }, {})
+      : {
+      '54cb50c76803fa8b248b4571':'Прапор','54cb57776803fa99248b456e':'Терапевт',
+      '58330581ace78e27b8b10cee':'Лыжник','5935c25fb3acc3127c3d8cd9':'Миротворец',
+      '5a7c2eca46aef81a7ca2145d':'Механик','5ac3b934156ae10c4430e83c':'Барахольщик',
+      '5c0647fdd443bc2504c2d371':'Егерь','6617beeaa9cfa777ca915b7c':'Реф'
+    };
     const CAL_LABEL = (window.TarkovDicts && TarkovDicts.calibers)
       ? Object.keys(TarkovDicts.calibers).reduce((acc, k) => { acc[k] = TarkovDicts.calibers[k].label; return acc; }, {})
       : {
@@ -27,29 +34,30 @@
           var hit = TarkovDicts.traders.find(function (x) { return x.id === tKey; });
           if (hit && hit.key) tKey = hit.key;
         }
-      } catch (e) {
-        try { if (__ttProgress) __ttProgress.fail(e && e.message ? e.message : "Error"); } catch (ePF) {} try { console.debug && console.debug("[tt:mags]", e); } catch (_tt) { /* ignore */ } }
+      } catch (e) { try { console.debug && console.debug("[tt:mags]", e); } catch (_tt) { /* ignore */ } }
       var qn = o && o.taskUnlock;
       if (qn && typeof qn === "object") qn = qn.name || qn.id || "";
       return { traderKey: tKey ? String(tKey) : "", questName: qn ? String(qn) : "" };
     }
 
-    function bestBuy(it, opts) {
-      if (window.TarkovItemDomain && TarkovItemDomain.bestBuy) {
-        var b = TarkovItemDomain.bestBuy(it, opts);
-        if (!b) return null;
-        return { price: b.price, name: b.traderName || b.name || "", traderName: b.traderName || "", traderKey: b.traderKey || "", ll: b.ll || 0, quest: !!b.quest, questName: b.questName || "" };
-      }
-      return null;
+    function bestBuy(it){
+      let best=null;
+      (it.buyFromTrader||[]).forEach(o=>{
+        const price=Number(o.priceRUB!=null?o.priceRUB:o.price)||0;
+        if(!price)return;
+        if(!best||price<best.price) {
+          var meta = ttOfferMeta(o);
+          best={price,name:TRADER_RU[o.trader]||'Торговец',ll:Number(o.minTraderLevel)||0,quest:!!o.taskUnlock,traderKey:meta.traderKey,questName:meta.questName};
+        }
+      });
+      return best;
     }
 
     document.getElementById('loadBtn').onclick=async()=>{
       const btn=document.getElementById('loadBtn'), status=document.getElementById('status');
-      btn.disabled=true;
-      var __ttProgress = window.TarkovUI && TarkovUI.progress;
-      if (__ttProgress) __ttProgress.start({ label: (window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t("common.loading") : "Loading…"), indeterminate: true }); status.className='status';
+      btn.disabled=true; status.className='status';
       const mode=document.getElementById('gameMode').value||'regular';
-      status.textContent = (window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t("common.loading") : "Loading…");
+      status.textContent='Гружу items…';
       try{
         const items=await TarkovAPI.items(mode);
         const byId={}; items.forEach(i=>byId[i.id]=i);

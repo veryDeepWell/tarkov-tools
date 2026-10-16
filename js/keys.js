@@ -68,11 +68,9 @@
       const btn = document.getElementById('loadBtn');
       const status = document.getElementById('status');
       btn.disabled = true;
-      var __ttProgress = window.TarkovUI && TarkovUI.progress;
-      if (__ttProgress) __ttProgress.start({ label: (window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t("common.loading") : "Loading…"), indeterminate: true });
       status.className = 'status';
       const modeGame = document.getElementById('gameMode').value || 'regular';
-      status.textContent = (window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t("common.loading") : "Loading…");
+      status.textContent = 'Гружу items + tasks…';
 
       try {
         const [items, tasks] = await Promise.all([
@@ -172,13 +170,11 @@
         }
         render();
       } catch (e) {
-        try { if (__ttProgress) __ttProgress.fail(e && e.message ? e.message : "Error"); } catch (ePF) {}
         console.error(e);
         status.className = 'status err';
         status.textContent = 'Ошибка: ' + e.message;
       } finally {
-        try { if (__ttProgress) __ttProgress.done("OK"); } catch (eD) {}
-      btn.disabled = false;
+        btn.disabled = false;
       }
     });
 

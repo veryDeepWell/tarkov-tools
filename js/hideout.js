@@ -132,7 +132,7 @@
       btn.disabled = true;
       status.className = 'status';
       const mode = document.getElementById('gameMode').value || 'regular';
-      status.textContent = (window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t("common.loading") : "Loading…");
+      status.textContent = 'Гружу hideout + items…';
       try {
         const [stationList, items] = await Promise.all([
           TarkovAPI.hideout(mode),
@@ -233,7 +233,7 @@
           const desired = Number(sel.value);
           const clamped = clampLevel(id, desired);
           if (clamped !== desired) {
-            (window.TarkovUI && TarkovUI.softAlert ? TarkovUI.softAlert.bind(TarkovUI) : function(m){ var el=document.getElementById("status"); if(el){el.textContent=m;el.className="status err";}})('Нельзя: не выполнены требования предыдущих станций/уровней. Установлен уровень ' + clamped, { tone: "err" });
+            alert('Нельзя: не выполнены требования предыдущих станций/уровней. Установлен уровень ' + clamped);
           }
           getProg(id).level = clamped;
           // cascade: if we lower a station, clamp all that depend on it

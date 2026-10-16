@@ -164,19 +164,7 @@
         tbody.innerHTML = `<tr><td colspan="11" class="meta empty-cell">${esc(t("common.empty"))}</td></tr>`;
         return;
       }
-            list.forEach(r => {
-        if (window.TarkovProfile && TarkovProfile.gate && (r.traderLL || r.quest || r.questLocked)) {
-          r._gate = TarkovProfile.gate({
-            trader: r.traderKey || '',
-            minLL: r.traderLL || 0,
-            questLocked: !!(r.quest || r.questLocked),
-            questName: r.questName || ''
-          });
-          if (TarkovProfile.lockVisibility(r._gate) === 'hide') return;
-        } else {
-          r._gate = { locked: false, reason: '' };
-        }
-
+      list.forEach(r => {
         const tr = document.createElement('tr');
         const zones = r.zones.map(z => `<span class="zone-tag">${esc(t("tool.itemScore.zone." + z))}</span>`).join('') || '—';
         const flea = r.onFlea ? formatNum(r.avg || r.low) : `<span class="bad">${esc(t("tool.itemScore.no"))}</span>`;
@@ -208,7 +196,6 @@
           </td>
         `;
         tbody.appendChild(tr);
-        if (window.TarkovProfile && TarkovProfile.applyLockToElement && r._gate) TarkovProfile.applyLockToElement(tr, r._gate);
       });
       tbody.querySelectorAll('.plate-show').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -229,7 +216,7 @@
 
     function persist() {
       saveSettings('tarkovArmorSettings', {
-        gameMode: document.getElementById('gameMode').value,
+        
         hideQuest: document.getElementById('hideQuest').checked,
         onlyFlea: document.getElementById('onlyFlea').checked,
         types: [...activeTypes],
@@ -266,18 +253,12 @@
     if(!it)return '';
     if(typeof it==='string')return it;
     var s=(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
+    if(/^[a-f0-9]{20}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20}$/i.test(it.name)?it.name:it.normalizedName)||s;
     return s||it.id||'';
   }
 
       const s = loadSettings('tarkovArmorSettings', {});
-      if (document.getElementById("gameMode")) {
-      var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
-        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
-        : ((s.gameMode) || "pve");
-      document.getElementById("gameMode").value = __ttMode;
-    }
-      if (s.hideQuest) document.getElementById('hideQuest').checked = true;
+            if (s.hideQuest) document.getElementById('hideQuest').checked = true;
       if (s.onlyFlea) document.getElementById('onlyFlea').checked = true;
       if (s.types) activeTypes = new Set(s.types);
       if (s.classes) activeClasses = new Set(s.classes);
