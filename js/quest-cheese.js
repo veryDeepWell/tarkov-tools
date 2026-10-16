@@ -350,6 +350,19 @@
     document.getElementById("results").innerHTML = "";
     document.getElementById("q").value = "";
   };
+
+  window.render = function () {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+    } catch (e0) {}
+    try {
+      if (typeof renderSuggest === 'function') renderSuggest(); if (typeof renderSources === 'function') renderSources();
+    } catch (e1) {}
+  };
+  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+    TarkovProfile.bindRefresh(function () { window.render(); });
+  }
+
 })();
 
 /* R-2: gameMode from profile on load; changes write to profile */

@@ -1,7 +1,7 @@
 /*! TarkovProfile — PMC profiles as single source of personal progress (1.1) */
 (function (global) {
   "use strict";
-  if (global.TarkovProfile && global.TarkovProfile.__v >= 3) return;
+  if (global.TarkovProfile && global.TarkovProfile.__v >= 4) return;
 
   var LIST_KEY = "tt:profile:list";
   var ACTIVE_KEY = "tt:profile:active";
@@ -695,7 +695,52 @@
 
   /** locked=true means content not available for current PMC.
    *  Accepts boolean or gate() result. Sets hover reason when dim/hide. */
-  function lockVisibility(locked) {
+  
+  /** Normalize a trader offer (API buyFromTrader row or tool bestBuy object) */
+  function offerMeta(offer) {
+    if (!offer || typeof offer !== "object") {
+      return { traderKey: "", minLL: 0, questLocked: false, questName: "" };
+    }
+    var tKey = offer.traderKey || offer.trader || offer.vendor || "";
+    if (tKey && typeof tKey === "object") tKey = tKey.id || tKey.key || tKey.normalizedName || "";
+    tKey = tKey ? String(tKey) : "";
+    try {
+      if (window.TarkovDicts && TarkovDicts.traders && tKey.length > 20) {
+        var hit = TarkovDicts.traders.find(function (x) { return x.id === tKey; });
+        if (hit && (hit.key || hit.id)) tKey = hit.key || hit.id;
+      }
+    } catch (e) {}
+    if (/^[a-z][a-z0-9_-]*$/i.test(tKey) && tKey.length < 24) tKey = tKey.toLowerCase();
+    var qn = offer.questName || offer.taskUnlock || "";
+    if (qn && typeof qn === "object") qn = qn.name || qn.normalizedName || qn.id || "";
+    var minLL = Number(
+      offer.minLL != null ? offer.minLL :
+      offer.minTraderLevel != null ? offer.minTraderLevel :
+      offer.loyaltyLevel != null ? offer.loyaltyLevel :
+      offer.ll != null ? offer.ll :
+      offer.traderLL != null ? offer.traderLL : 0
+    ) || 0;
+    var questLocked = !!(offer.questLocked || offer.taskUnlock || offer.quest || offer.traderQuest);
+    return {
+      traderKey: tKey,
+      minLL: minLL,
+      questLocked: questLocked,
+      questName: qn ? String(qn) : ""
+    };
+  }
+
+  /** gate() from a single trader offer / row-like object */
+  function offerGate(offer) {
+    var m = offerMeta(offer);
+    return gate({
+      trader: m.traderKey,
+      minLL: m.minLL,
+      questLocked: m.questLocked,
+      questName: m.questName
+    });
+  }
+
+function lockVisibility(locked) {
     if (locked && typeof locked === "object" && locked.locked != null) locked = locked.locked;
     if (!locked) return "show";
     var m = getFilterMode();
@@ -902,7 +947,7 @@
   }
 
   global.TarkovProfile = {
-    __v: 3,
+    __v: 4,
     TRADER_KEYS: TRADER_KEYS.slice(),
     list: list,
     getActive: getActive,
@@ -933,6 +978,8 @@
     meetsLevel: meetsLevel,
     meetsTraderLL: meetsTraderLL,
     gate: gate,
+    offerMeta: offerMeta,
+    offerGate: offerGate,
     suggestActions: suggestActions,
     getFilterMode: getFilterMode,
     setFilterMode: setFilterMode,

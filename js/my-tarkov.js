@@ -66,6 +66,9 @@
           grid.querySelectorAll(".icon-pick").forEach(function (b) {
             b.classList.toggle("is-on", b.getAttribute("data-icon") === id);
           });
+          try {
+            TarkovProfile.update({ icon: id || "util" });
+          } catch (eI) {}
         };
       });
     }
@@ -199,6 +202,28 @@
     document.getElementById("saveProfile").onclick = saveMain;
     document.getElementById("saveNotes").onclick = saveMain;
 
+    // R2.9: live-save scalar fields (like УЛ). Quests/notes still via «Сохранить».
+    function liveScalars() {
+      try {
+        TarkovProfile.update({
+          name: (document.getElementById("pmcName").value || "ЧВК").trim(),
+          level: Math.max(1, Number(document.getElementById("level").value) || 1),
+          gameMode: document.getElementById("gameMode").value || "pve",
+          icon: (document.getElementById("pmcIcon") && document.getElementById("pmcIcon").value) || "util",
+          prestige: {
+            level: Math.max(0, Number(document.getElementById("prestigeLevel").value) || 0),
+            carried: (TarkovProfile.getActive().prestige && TarkovProfile.getActive().prestige.carried) || []
+          }
+        });
+      } catch (e) {}
+    }
+    ["pmcName", "level", "gameMode", "prestigeLevel"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("change", liveScalars);
+      if (id === "pmcName") el.addEventListener("blur", liveScalars);
+    });
+
     document.getElementById("profileSelect").onchange = function () {
       TarkovProfile.setActive(this.value);
       paint();
@@ -242,7 +267,17 @@
       reader.onload = function () {
         try {
           var parsed = JSON.parse(reader.result);
-          if (parsed && parsed.profiles) TarkovProfile.importAllProfiles(parsed, { activate: true });
+          if (!parsed || typeof parsed !== "object") throw new Error("ожидался JSON-объект");
+          var isAll = !!(parsed.profiles && Array.isArray(parsed.profiles));
+          var schema = parsed._schema || "";
+          var ver = Number(parsed._version) || 0;
+          if (schema && schema !== "tarkov-tools-pmc-profile" && schema !== "tarkov-tools-pmc-profiles") {
+            if (!confirm("Неизвестный _schema «" + schema + "». Импортировать как профиль?")) return;
+          }
+          if (ver > 1) {
+            if (!confirm("_version=" + ver + " новее ожидаемой (1). Всё равно попробовать?")) return;
+          }
+          if (isAll) TarkovProfile.importAllProfiles(parsed, { activate: true });
           else TarkovProfile.importProfile(parsed, { activate: true });
           paint();
         } catch (err) {

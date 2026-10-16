@@ -146,7 +146,22 @@
         classes: [...activeClasses],
         onlyFlea: onlyFlea,
         search: q
-      }).filter(r => !(hideQuest && r.quest) && (r.class || r.kind === 'rig'));
+      }).filter(r => {
+        if (hideQuest && r.quest) return false;
+        if (!(r.class || r.kind === 'rig')) return false;
+        if (window.TarkovProfile && TarkovProfile.gate && (r.traderLL || r.quest)) {
+          r._gate = TarkovProfile.gate({
+            trader: r.traderKey || r.traderId || '',
+            minLL: r.traderLL || r.traderLevel || 0,
+            questLocked: !!r.quest,
+            questName: r.questName || ''
+          });
+          if (TarkovProfile.lockVisibility(r._gate) === 'hide') return false;
+        } else {
+          r._gate = { locked: false, reason: '' };
+        }
+        return true;
+      });
       list.sort((a, b) => {
         let va = a[sortKey], vb = b[sortKey];
         if (sortKey === 'quest') { va = a.quest ? 1 : 0; vb = b.quest ? 1 : 0; }
@@ -166,6 +181,10 @@
       }
       list.forEach(r => {
         const tr = document.createElement('tr');
+        if (window.TarkovProfile && TarkovProfile.applyLockToElement && r._gate) {
+          TarkovProfile.applyLockToElement(tr, r._gate);
+          if (r._gate.locked && TarkovProfile.lockVisibility(r._gate) === 'hide') return;
+        }
         const zones = r.zones.map(z => `<span class="zone-tag">${esc(t("tool.itemScore.zone." + z))}</span>`).join('') || '—';
         const flea = r.onFlea ? formatNum(r.avg || r.low) : `<span class="bad">${esc(t("tool.itemScore.no"))}</span>`;
         const trader = r.traderPrice

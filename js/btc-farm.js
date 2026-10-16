@@ -259,7 +259,20 @@
     if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
     return s||it.id||'';
   }
-    })();
+    
+  window.render = function () {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+    } catch (e0) {}
+    try {
+      if (typeof render === 'function') render();
+    } catch (e1) {}
+  };
+  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+    TarkovProfile.bindRefresh(function () { window.render(); });
+  }
+
+})();
 
     load();
     render();

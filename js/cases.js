@@ -235,6 +235,19 @@
 
   document.getElementById("loadBtn").onclick = load;
   document.getElementById("q").oninput = renderGrid;
+
+  window.render = function () {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+    } catch (e0) {}
+    try {
+      if (typeof paintList === 'function') paintList(); else if (typeof renderGrid === 'function') renderGrid();
+    } catch (e1) {}
+  };
+  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+    TarkovProfile.bindRefresh(function () { window.render(); });
+  }
+
 })();
 
 /* R-2: gameMode from profile on load; changes write to profile */

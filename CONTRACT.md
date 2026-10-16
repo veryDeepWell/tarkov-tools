@@ -102,6 +102,20 @@ Messages:
 | `tt-tick` | hub → tool | 1s keepalive (optional UI) |
 | `tt-ping-status` | hub → tool | request status refresh |
 
+## 6b. Profile vs tool settings (R-2)
+
+Player progress lives **only** in `TarkovProfile` (`tt:profile:*`):
+
+- level, gameMode, traders LL, quests, prestige, notes, skills (optional)
+
+Tool `saveSettings` / `loadSettings` may store **UI prefs only** (sort, search, chips, hideQuest).  
+**Forbidden** in tool settings: `gameMode`, `playerLevel`, `traderLevels`, quest completion maps.
+
+On every tool page: `storage → schema → profile → … → tool.js → tool-shell`.  
+Profile changes emit refresh; tools expose `window.render` / `bindRefresh`.
+
+See `R2_PROFILE_WIRE.md` and `R2_DONE.md`.
+
 ## 7. Progress (static tools)
 
 Use shell/UI progress, steps of **5%** (snapped in `progress.set`):
@@ -152,15 +166,19 @@ Tool pages must load data through `TarkovAPI`, not call `fetch()` directly.
 - In-tool help: `tool.<id>.help` or meta description.
 - Shell injects help button; hub cards use `?` hover.
 
-## 9. Scripts on the page (typical live tool)
+## 9. Scripts on the page (typical tool)
+
+**R2.8 canon (variant A):** after `storage` always load **`schema` immediately**, then **`profile`**, then the rest. `tool-shell` is always **last** (after tool JS).
 
 ```html
 <script src="../core/tarkov-dicts.js"></script>
 <script src="../core/tarkov-names.js"></script>
 <script src="../core/tarkov-storage.js"></script>
+<script src="../core/tarkov-schema.js"></script>
+<script src="../core/tarkov-profile.js"></script>
+<script src="../core/tarkov-nav.js"></script>
 <script src="../core/tarkov-api.js"></script>
-<script src="../core/tarkov-poll.js"></script>
-<!-- Load only the domain modules this tool needs, after the API. -->
+<!-- domain modules as needed -->
 <script src="../core/tarkov-ui.js"></script>
 <script src="../core/tarkov-state.js"></script>
 <script src="../core/tarkov-common.js"></script>
@@ -168,7 +186,9 @@ Tool pages must load data through `TarkovAPI`, not call `fetch()` directly.
 <script src="../core/tarkov-tool-shell.js"></script>
 ```
 
-Tool pages are currently flat files at `tools/tarkovtool-<id>.html`; their
+Hub / My Tarkov use the same **storage → schema → profile** adjacency (CI-enforced).
+
+Tool pages are flat files at `tools/tarkovtool-<id>.html`; their
 logic is loaded from `js/<slug>.js`. The page metadata block is the source for
 the generated catalog. The active hub entry point is `tarkovtool-hub.html`.
 `hub/tarkov-hub-app.js` owns hub orchestration; category rendering,

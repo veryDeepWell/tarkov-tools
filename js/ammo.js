@@ -67,7 +67,7 @@
           if (!cal) return;
 
           // buy from traders
-          let traderPrice = 0, traderName = '', traderQuest = false, traderLL = 0;
+          let traderPrice = 0, traderName = '', traderQuest = false, traderLL = 0, traderKey = '', questName = '';
           const offers = it.buyFromTrader || [];
           const usable = offers.filter(o => o && (o.priceRUB || o.price));
           if (usable.length) {
@@ -78,6 +78,12 @@
             traderName = TarkovDicts.traderName(best.trader) || t('tool.compare.ui.trader');
             traderQuest = !!best.taskUnlock;
             traderLL = Number(best.minTraderLevel) || 0;
+            traderKey = (window.TarkovProfile && TarkovProfile.offerMeta)
+              ? TarkovProfile.offerMeta(best).traderKey
+              : (best.trader || '');
+            questName = (window.TarkovProfile && TarkovProfile.offerMeta)
+              ? TarkovProfile.offerMeta(best).questName
+              : '';
           }
 
           const crafts = craftByProduct[it.id] || [];
@@ -103,6 +109,8 @@
             traderName,
             traderQuest,
             traderLL,
+            traderKey,
+            questName,
             hasCraft,
             craftQuest,
             craftCount: hasCraft ? crafts[0].count : 0,
@@ -259,6 +267,16 @@
           return `<span class="${cell.rating}">${cell.class}</span>`;
         }).join('');
         const tr = document.createElement('tr');
+        if (window.TarkovProfile && TarkovProfile.gate && (r.traderLL || r.traderQuest)) {
+          r._gate = TarkovProfile.gate({
+            trader: r.traderKey,
+            minLL: r.traderLL,
+            questLocked: !!r.traderQuest,
+            questName: r.questName || ''
+          });
+          if (TarkovProfile.lockVisibility(r._gate) === 'hide') return;
+          TarkovProfile.applyLockToElement(tr, r._gate);
+        }
         const traderCell = r.traderPrice
           ? `<div>${esc(r.traderName)}${r.traderLL ? ' LL' + r.traderLL : ''}</div><div><strong>${formatNum(r.traderPrice)}</strong></div>`
           : '<span class="meta">—</span>';

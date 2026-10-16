@@ -109,6 +109,21 @@ def main() -> int:
                     fail(errors, f"{rel_page} must load tool script {name} before tarkov-tool-shell.js")
         if not ordered(scripts, "tarkov-storage.js", "tarkov-api.js"):
             fail(errors, f"{rel_page} must load storage before API")
+        # R2.10 / R2.8: storage → schema → profile when those scripts are present
+        if "tarkov-schema.js" in scripts:
+            if not ordered(scripts, "tarkov-storage.js", "tarkov-schema.js"):
+                fail(errors, f"{rel_page} must load storage before schema")
+            try:
+                if scripts.index("tarkov-schema.js") != scripts.index("tarkov-storage.js") + 1:
+                    fail(errors, f"{rel_page} must load schema immediately after storage")
+            except ValueError:
+                pass
+        if "tarkov-profile.js" in scripts and "tarkov-schema.js" in scripts:
+            if not ordered(scripts, "tarkov-schema.js", "tarkov-profile.js"):
+                fail(errors, f"{rel_page} must load schema before profile")
+        if "tarkov-profile.js" in scripts:
+            if not ordered(scripts, "tarkov-storage.js", "tarkov-profile.js"):
+                fail(errors, f"{rel_page} must load storage before profile")
         if not ordered(scripts, "tarkov-api.js", "tarkov-item-domain.js") or not ordered(scripts, "tarkov-api.js", "tarkov-weapon-domain.js"):
             fail(errors, f"{rel_page} must load API before domain modules")
 

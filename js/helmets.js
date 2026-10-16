@@ -70,7 +70,20 @@
       classes: minClass ? [minClass, minClass + 1, minClass + 2, minClass + 3, minClass + 4, 6] : [],
       onlyFlea: onlyFlea
     }).filter(function (row) {
-      return (!minClass || row.class >= minClass) && !(hideQuest && row.quest);
+      if (minClass && row.class < minClass) return false;
+      if (hideQuest && row.quest) return false;
+      if (window.TarkovProfile && TarkovProfile.gate && (row.traderLL || row.traderLevel || row.quest)) {
+        row._gate = TarkovProfile.gate({
+          trader: row.traderKey || row.traderId || "",
+          minLL: row.traderLL || row.traderLevel || 0,
+          questLocked: !!row.quest,
+          questName: row.questName || ""
+        });
+        if (TarkovProfile.lockVisibility(row._gate) === "hide") return false;
+      } else {
+        row._gate = { locked: false, reason: "" };
+      }
+      return true;
     });
     list.sort(function (a, b) {
       var left = a[sortKey];
@@ -86,7 +99,15 @@
       var icon = row.icon
         ? '<img class="ico" src="' + esc(row.icon) + '" loading="lazy" alt="">'
         : "";
-      return '<tr>' +
+      var lockAttr = "";
+      if (row._gate && row._gate.locked && window.TarkovProfile && TarkovProfile.lockVisibility) {
+        var vis = TarkovProfile.lockVisibility(row._gate);
+        if (vis === "dim") {
+          lockAttr = ' style="opacity:0.45" data-tt-locked="1"';
+          if (row._gate.reason) lockAttr += ' title="' + esc(row._gate.reason) + '"';
+        }
+      }
+      return "<tr" + lockAttr + ">" +
         '<td title="' + esc(tooltip(row)) + '"><div class="name-cell">' + icon +
         '<div><div class="name">' + esc(row.name) + '</div><div class="meta">' + esc(row.slug) + '</div></div></div></td>' +
         '<td>' + (row.cls || "—") + '</td><td>' + (row.dur || "—") + '</td>' +

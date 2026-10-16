@@ -221,8 +221,10 @@
             var n = TarkovProfile.traderLL(k);
             if (n > maxLL) maxLL = n;
           });
-          // if UI still at default 3 and profile higher — use profile max
-          if (maxLL > ll) ll = maxLL;
+          // UI may simulate lower LL; never above real profile max
+          if (maxLL >= 1) ll = Math.min(ll, maxLL);
+          var llEl = document.getElementById('ll');
+          if (llEl && Number(llEl.value) !== ll) llEl.value = String(ll);
         }
       } catch (eLL) {}
       const w = selectedGun;

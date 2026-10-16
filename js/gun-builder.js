@@ -107,6 +107,12 @@ var low = Number(it.lastLowPrice) || 0;
 if (low > 0) return low;
 var min = Infinity;
 asArray(it.buyFor || it.buyFromTrader).forEach(function (b) {
+try {
+  if (window.TarkovProfile && TarkovProfile.offerGate) {
+    var g = TarkovProfile.offerGate(b);
+    if (g && g.locked) return;
+  }
+} catch (eG) {}
 var p = Number(b.priceRUB != null ? b.priceRUB : b.price) || 0;
 if (p > 0 && p < min) min = p;
 });
@@ -1276,6 +1282,19 @@ document.getElementById("abChart").setAttribute("aria-label", t("autoBuild"));
 });
 
 bindZoom();
+
+  window.render = function () {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+    } catch (e0) {}
+    try {
+      if (typeof draw === 'function') draw(); else if (typeof renderSlots === 'function') renderSlots();
+    } catch (e1) {}
+  };
+  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+    TarkovProfile.bindRefresh(function () { window.render(); });
+  }
+
 })();
 
 /* R-2: gameMode from profile on load; changes write to profile */

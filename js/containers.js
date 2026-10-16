@@ -35,11 +35,14 @@
         const price = Number(o.priceRUB != null ? o.priceRUB : o.price) || 0;
         if (!price) return;
         if (!best || price < best.price) {
+          var meta = (window.TarkovProfile && TarkovProfile.offerMeta) ? TarkovProfile.offerMeta(o) : {};
           best = {
             price,
             name: TRADER_RU[o.trader] || 'Торговец',
             ll: Number(o.minTraderLevel) || 0,
-            quest: !!o.taskUnlock
+            quest: !!o.taskUnlock,
+            traderKey: meta.traderKey || '',
+            questName: meta.questName || ''
           };
         }
       });
@@ -121,6 +124,8 @@
         traderName: buy ? buy.name : '',
         traderLL: buy ? buy.ll : 0,
         quest: buy ? buy.quest : false,
+        traderKey: buy ? (buy.traderKey || '') : '',
+        questName: buy ? (buy.questName || '') : '',
         armorClass: Number(p.class) || 0,
         plateSlots: (p.armorSlots || []).length,
         speedPenalty: Math.abs(Number(p.speedPenalty) || 0),
@@ -182,6 +187,17 @@
         if (r.capacity < minSlots) return false;
         if (hideQuest && r.quest) return false;
         if (tab === 'rig' && onlyArmor && !r.plateSlots && !r.armorClass) return false;
+        if (window.TarkovProfile && TarkovProfile.gate && (r.traderLL || r.quest)) {
+          r._gate = TarkovProfile.gate({
+            trader: r.traderKey,
+            minLL: r.traderLL,
+            questLocked: !!r.quest,
+            questName: r.questName || ''
+          });
+          if (TarkovProfile.lockVisibility(r._gate) === 'hide') return false;
+        } else {
+          r._gate = { locked: false, reason: '' };
+        }
         if (q) {
           const hay = (r.name + ' ' + r.slug).toLowerCase();
           if (!hay.includes(q)) return false;
@@ -226,6 +242,10 @@
       }
       list.forEach(r => {
         const tr = document.createElement('tr');
+        if (window.TarkovProfile && TarkovProfile.applyLockToElement && r._gate) {
+          TarkovProfile.applyLockToElement(tr, r._gate);
+          if (r._gate.locked && TarkovProfile.lockVisibility(r._gate) === 'hide') return;
+        }
         const badges = [];
         if (r.armorClass) badges.push(`<span class="badge">бр.кл.${r.armorClass}</span>`);
         if (r.plateSlots) badges.push(`<span class="badge">${r.plateSlots} плит</span>`);
@@ -325,7 +345,20 @@
       document.querySelectorAll('.tab').forEach(t => {
         t.classList.toggle('active', t.dataset.tab === tab);
       });
-    })();
+    
+  window.render = function () {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+    } catch (e0) {}
+    try {
+      if (typeof render === 'function') render();
+    } catch (e1) {}
+  };
+  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+    TarkovProfile.bindRefresh(function () { window.render(); });
+  }
+
+})();
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {
