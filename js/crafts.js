@@ -265,6 +265,19 @@
         if (r.perHour < minH) return false;
         if (hideQuest && r.quest) return false;
         if (onlyProfit && r.profit <= 0) return false;
+        // R2.2 profile gate (quest unlock)
+        if (r.quest && window.TarkovProfile && TarkovProfile.gate) {
+          var qn = r.questId;
+          if (qn && typeof qn === 'object') qn = qn.name || qn.id || '';
+          r._gate = TarkovProfile.gate({
+            questLocked: true,
+            questId: r.questId,
+            questName: qn || 'квест'
+          });
+          if (TarkovProfile.lockVisibility(r._gate) === 'hide') return false;
+        } else {
+          r._gate = { locked: false, reason: '' };
+        }
         if (q) {
           const hay = (r.product + ' ' + r.productSlug + ' ' + r.station + ' ' + r.stationSlug + ' ' +
             r.inputs.map(i => i.name).join(' ')).toLowerCase();
@@ -316,6 +329,10 @@
       const frag = document.createDocumentFragment();
       list.forEach(r => {
         const tr = document.createElement('tr');
+        if (window.TarkovProfile && TarkovProfile.applyLockToElement && r._gate) {
+          TarkovProfile.applyLockToElement(tr, r._gate);
+          if (r._gate.locked && TarkovProfile.lockVisibility(r._gate) === 'hide') return;
+        }
         const inputsStr = r.inputs.map(i =>
           `${i.count}× ${i.name}${i.isTool ? ' (' + t('tool.crafts.ui.tool') + ')' : ''}`
         ).join(', ');
@@ -395,7 +412,6 @@
       set('onlyProfit', s.onlyProfit, true);
       function persist() {
         saveSettings(SKEY, {
-          gameMode: document.getElementById('gameMode')?.value,
           priceIn: document.getElementById('priceIn')?.value,
           priceOut: document.getElementById('priceOut')?.value,
           intel3: document.getElementById('intel3')?.value,
@@ -404,11 +420,21 @@
           onlyProfit: document.getElementById('onlyProfit')?.checked
         });
       }
-      ['gameMode','priceIn','priceOut','intel3','hmLvl','hideQuest','onlyProfit'].forEach(id => {
+      ['priceIn','priceOut','intel3','hmLvl','hideQuest','onlyProfit'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', persist);
       });
     })();
+
+window.render = function () {
+  try {
+    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+    if (typeof renderTable === "function") renderTable();
+  } catch (e) {}
+};
+if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+  TarkovProfile.bindRefresh(function () { window.render(); });
+}
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {

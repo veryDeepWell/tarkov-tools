@@ -213,7 +213,18 @@
     document.getElementById('buildBtn').onclick = () => {
       if (!selectedGun) { alert('Выбери оружие'); return; }
       const budget = Number(document.getElementById('budget').value) || 500000;
-      const ll = Number(document.getElementById('ll').value) || 3;
+      let ll = Number(document.getElementById('ll').value) || 3;
+      try {
+        if (window.TarkovProfile && TarkovProfile.TRADER_KEYS && TarkovProfile.traderLL) {
+          var maxLL = 1;
+          TarkovProfile.TRADER_KEYS.forEach(function (k) {
+            var n = TarkovProfile.traderLL(k);
+            if (n > maxLL) maxLL = n;
+          });
+          // if UI still at default 3 and profile higher — use profile max
+          if (maxLL > ll) ll = maxLL;
+        }
+      } catch (eLL) {}
       const w = selectedGun;
       const basePrice = getPrice(w.raw, ll);
       if (basePrice == null) { alert('Нет цены на базу'); return; }
@@ -580,6 +591,16 @@
     return s||it.id||'';
   }
 })();
+
+window.render = function () {
+  try {
+    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+  } catch (e0) {}
+  try { if (typeof renderGuns === "function") renderGuns(); } catch (e1) {}
+};
+if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+  TarkovProfile.bindRefresh(function () { window.render(); });
+}
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {

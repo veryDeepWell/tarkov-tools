@@ -216,7 +216,6 @@
 
     function persist() {
       saveSettings('tarkovArmorSettings', {
-        gameMode: document.getElementById('gameMode').value,
         hideQuest: document.getElementById('hideQuest').checked,
         onlyFlea: document.getElementById('onlyFlea').checked,
         types: [...activeTypes],
@@ -260,8 +259,8 @@
       const s = loadSettings('tarkovArmorSettings', {});
       if (document.getElementById("gameMode")) {
       var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
-        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
-        : ((s.gameMode) || "pve");
+        ? TarkovProfile.preferredGameMode("pve")
+        : "pve";
       document.getElementById("gameMode").value = __ttMode;
     }
       if (s.hideQuest) document.getElementById('hideQuest').checked = true;
@@ -269,6 +268,16 @@
       if (s.types) activeTypes = new Set(s.types);
       if (s.classes) activeClasses = new Set(s.classes);
     })();
+
+window.render = function () {
+  try {
+    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+  } catch (e0) {}
+  try { if (typeof renderTable === "function") renderTable(); } catch (e1) {}
+};
+if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+  TarkovProfile.bindRefresh(function () { window.render(); });
+}
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {

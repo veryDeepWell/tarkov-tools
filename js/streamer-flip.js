@@ -278,7 +278,6 @@
 
     function persist() {
       saveSettings('tarkovStreamerFlip', {
-        gameMode: document.getElementById('gameMode').value,
         buyPrice: document.getElementById('buyPrice').value,
         onlyProfit: document.getElementById('onlyProfit').checked
       });
@@ -301,13 +300,23 @@
       const s = loadSettings('tarkovStreamerFlip', {});
       if (document.getElementById("gameMode")) {
       var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
-        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
-        : ((s.gameMode) || "pve");
+        ? TarkovProfile.preferredGameMode("pve")
+        : "pve";
       document.getElementById("gameMode").value = __ttMode;
     }
       if (s.buyPrice) document.getElementById('buyPrice').value = s.buyPrice;
       if (s.onlyProfit === false) document.getElementById('onlyProfit').checked = false;
     })();
+
+window.render = function () {
+  try {
+    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+  } catch (e0) {}
+  try { if (typeof render === "function") render(); } catch (e1) {}
+};
+if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+  TarkovProfile.bindRefresh(function () { window.render(); });
+}
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {

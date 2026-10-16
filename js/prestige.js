@@ -295,6 +295,15 @@
     var focusEl = document.querySelector('input[name="focus"]:checked');
     var focus = focusEl ? focusEl.value : "balanced";
     var maxLvl = Number(($("maxLvl") && $("maxLvl").value) || 15);
+    try {
+      if (window.TarkovProfile && TarkovProfile.playerLevel) {
+        var pl = TarkovProfile.playerLevel();
+        if (pl > maxLvl) {
+          maxLvl = pl;
+          if ($("maxLvl")) $("maxLvl").value = String(pl);
+        }
+      }
+    } catch (eML) {}
     buildQuestNeed(tasksCache, maxLvl);
 
     var candidates = [];
@@ -409,6 +418,27 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire);
   else wire();
 })();
+
+window.render = function () {
+  try {
+    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+  } catch (e0) {}
+  try {
+    if (typeof ensureGrid === "function") ensureGrid();
+    if (typeof tasksCache !== "undefined" && tasksCache && typeof buildQuestNeed === "function") {
+      var maxLvl = Number((document.getElementById("maxLvl") && document.getElementById("maxLvl").value) || 15);
+      if (window.TarkovProfile && TarkovProfile.playerLevel) {
+        var pl = TarkovProfile.playerLevel();
+        if (pl > maxLvl) maxLvl = pl;
+      }
+      buildQuestNeed(tasksCache, maxLvl);
+    }
+    if (typeof paintHints === "function") { /* noop unless list in scope */ }
+  } catch (e1) {}
+};
+if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+  TarkovProfile.bindRefresh(function () { window.render(); });
+}
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {

@@ -249,7 +249,6 @@
 
     function persist() {
       saveSettings('tarkovKeysSettings', {
-        gameMode: document.getElementById('gameMode').value,
         activeMap,
         mode,
         hideQuest: document.getElementById('hideQuest').checked
@@ -294,14 +293,24 @@
     return s||it.id||'';
   }
 
-      const s = loadSettings('tarkovKeysSettings', { gameMode: 'regular', mode: 'price' });
-      document.getElementById('gameMode').value = s.gameMode || 'regular';
+      const s = loadSettings('tarkovKeysSettings', { mode: 'price' });
+      // gameMode from profile only (wireToolPage)
       mode = s.mode || 'price';
       document.querySelectorAll('.mode-toggle button').forEach(b => {
         b.classList.toggle('active', b.dataset.mode === mode);
       });
       if (s.hideQuest) document.getElementById('hideQuest').checked = true;
     })();
+
+window.render = function () {
+  try {
+    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+  } catch (e0) {}
+  try { if (typeof render === "function") render(); } catch (e1) {}
+};
+if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+  TarkovProfile.bindRefresh(function () { window.render(); });
+}
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {

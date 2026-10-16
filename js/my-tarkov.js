@@ -86,6 +86,9 @@
         }).join("") +
         "</select></label>";
     }).join("");
+    try {
+      if (TarkovProfile.bindTraderLL) TarkovProfile.bindTraderLL(tradersEl);
+    } catch (eBind) {}
 
     var completed = (p.quests && p.quests.completed) || [];
     var active = (p.quests && p.quests.active) || [];
@@ -175,8 +178,15 @@
       gameMode: document.getElementById("gameMode").value,
       icon: (document.getElementById("pmcIcon") && document.getElementById("pmcIcon").value) || "util",
       traders: traderPatch,
-      prestige: { level: Number(document.getElementById("prestigeLevel").value) || 0 },
-      quests: { completed: lines("questCompleted"), active: lines("questActive") },
+      prestige: {
+        level: Math.max(0, Number(document.getElementById("prestigeLevel").value) || 0),
+        carried: (TarkovProfile.getActive().prestige && TarkovProfile.getActive().prestige.carried) || []
+      },
+      quests: {
+        completed: lines("questCompleted"),
+        active: lines("questActive"),
+        itemDone: (TarkovProfile.getActive().quests && TarkovProfile.getActive().quests.itemDone) || {}
+      },
       notes: { hideout: document.getElementById("hideoutNotes").value || "" }
     });
     try {
@@ -261,6 +271,11 @@
     };
 
     TarkovProfile.subscribe(function () { paint(); });
+  window.render = paint;
+  window.paint = paint;
+  if (TarkovProfile.bindRefresh) {
+    TarkovProfile.bindRefresh(function () { paint(); });
+  }
     paint();
   }
 

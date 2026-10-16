@@ -70,6 +70,21 @@
     function humanize(slug) { return TarkovDicts.humanize(slug); }
     function formatNum(n) { return TarkovDicts.fmtNum(n); }
     function esc(s) { return TarkovDicts.esc(s); }
+
+    function ttOfferMeta(o) {
+      var tKey = o && o.trader;
+      if (tKey && typeof tKey === "object") tKey = tKey.id || tKey.key || "";
+      try {
+        if (window.TarkovDicts && TarkovDicts.traders && tKey && String(tKey).length > 20) {
+          var hit = TarkovDicts.traders.find(function (x) { return x.id === tKey; });
+          if (hit && hit.key) tKey = hit.key;
+        }
+      } catch (e) {}
+      var qn = o && o.taskUnlock;
+      if (qn && typeof qn === "object") qn = qn.name || qn.id || "";
+      return { traderKey: tKey ? String(tKey) : "", questName: qn ? String(qn) : "" };
+    }
+
     function bestBuy(it) {
       const offers = it.buyFromTrader || [];
       let best = null;
@@ -77,11 +92,14 @@
         const price = Number(o.priceRUB != null ? o.priceRUB : o.price) || 0;
         if (!price) return;
         if (!best || price < best.price) {
+          var meta = ttOfferMeta(o);
           best = {
             price,
             name: TRADER_RU[o.trader] || 'Торговец',
             ll: Number(o.minTraderLevel) || 0,
-            quest: !!o.taskUnlock
+            quest: !!o.taskUnlock,
+            traderKey: meta.traderKey,
+            questName: meta.questName
           };
         }
       });
@@ -116,6 +134,8 @@
           row.traderName = buy ? buy.name : '';
           row.traderLL = buy ? buy.ll : 0;
           row.quest = buy ? buy.quest : false;
+          row.traderKey = buy ? buy.traderKey : '';
+          row.questName = buy ? buy.questName : '';
           if (row.fits || row.ergo || row.recoil || row.acc || row.capacity) result.push(row);
           return result;
         }, []);
@@ -225,6 +245,17 @@
         if (m.fits < minFits) return false;
         if (hideQuest && m.quest) return false;
         if (onlyFlea && (m.noFlea || !m.onFlea)) return false;
+        if (window.TarkovProfile && TarkovProfile.gate && (m.traderLL || m.quest)) {
+          m._gate = TarkovProfile.gate({
+            trader: m.traderKey,
+            minLL: m.traderLL,
+            questLocked: !!m.quest,
+            questName: m.questName || ''
+          });
+          if (TarkovProfile.lockVisibility(m._gate) === 'hide') return false;
+        } else {
+          m._gate = { locked: false, reason: '' };
+        }
         if (q) {
           const hay = (m.name + ' ' + m.slug).toLowerCase();
           if (!hay.includes(q)) return false;
@@ -257,6 +288,10 @@
       }
       list.slice(0, 300).forEach(m => {
         const tr = document.createElement('tr');
+        if (window.TarkovProfile && TarkovProfile.applyLockToElement && m._gate) {
+          TarkovProfile.applyLockToElement(tr, m._gate);
+          if (m._gate.locked && TarkovProfile.lockVisibility(m._gate) === 'hide') return;
+        }
         const ergoCls = m.ergo > 0 ? 'pos' : (m.ergo < 0 ? 'neg' : '');
         const recCls = m.recoilPct < 0 ? 'pos' : (m.recoilPct > 0 ? 'neg' : '');
         const flea = m.noFlea ? '<span class="bad">бан</span>' : (m.avg ? formatNum(m.avg) : '—');
@@ -315,7 +350,6 @@
 
     function persist() {
       saveSettings('tarkovModsSettings', {
-        gameMode: document.getElementById('gameMode').value,
         hideQuest: document.getElementById('hideQuest').checked,
         onlyFlea: document.getElementById('onlyFlea').checked,
         minFits: Number(document.getElementById('minFits').value) || 0,
@@ -340,8 +374,8 @@
       const s = loadSettings('tarkovModsSettings', {});
       if (document.getElementById("gameMode")) {
       var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
-        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
-        : ((s.gameMode) || "pve");
+        ? TarkovProfile.preferredGameMode("pve")
+        : "pve";
       document.getElementById("gameMode").value = __ttMode;
     }
       if (s.hideQuest) document.getElementById('hideQuest').checked = true;
@@ -350,6 +384,16 @@
       // weapon restored after load
       window._savedWeaponId = s.weaponId || null;
     })();
+
+window.render = function () {
+  try {
+    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+  } catch (e0) {}
+  try { if (typeof renderTable === "function") renderTable(); } catch (e1) {}
+};
+if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+  TarkovProfile.bindRefresh(function () { window.render(); });
+}
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {

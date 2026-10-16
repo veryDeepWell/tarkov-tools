@@ -1,7 +1,7 @@
 /*! TarkovProfile — PMC profiles as single source of personal progress (1.1) */
 (function (global) {
   "use strict";
-  if (global.TarkovProfile && global.TarkovProfile.__v >= 2) return;
+  if (global.TarkovProfile && global.TarkovProfile.__v >= 3) return;
 
   var LIST_KEY = "tt:profile:list";
   var ACTIVE_KEY = "tt:profile:active";
@@ -544,6 +544,8 @@
       // #level only when not My Tarkov full form — still OK to bind
       if (document.getElementById("level") && !document.getElementById("pmcName")) bindLevel("level");
       if (document.getElementById("prestige")) bindPrestige("prestige");
+      // R2.4: trader LL selects anywhere on page
+      if (document.querySelector("select[data-trader]")) bindTraderLL(document);
       if (typeof context === "function") {
         try { window.__ttProfileContext = context(); } catch (e) {}
       }
@@ -900,7 +902,7 @@
   }
 
   global.TarkovProfile = {
-    __v: 2,
+    __v: 3,
     TRADER_KEYS: TRADER_KEYS.slice(),
     list: list,
     getActive: getActive,

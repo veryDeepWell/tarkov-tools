@@ -104,4 +104,59 @@ if [[ -e fixed-push ]]; then
   fail 'fixed-push artifacts must not remain at the workspace root'
 fi
 
-printf 'P2/P4 tool/storage contract: PASS\n'
+# --- R2.4: My Tarkov load order (storage → schema → profile) ---
+my_tarkov="tools/tarkovtool-my-tarkov.html"
+if [[ -f "$my_tarkov" ]]; then
+  assert_order "$my_tarkov" '../core/tarkov-storage.js' '../core/tarkov-schema.js'
+  assert_order "$my_tarkov" '../core/tarkov-schema.js' '../core/tarkov-profile.js'
+  mt_storage="$(line_of "$my_tarkov" '../core/tarkov-storage.js')"
+  mt_schema="$(line_of "$my_tarkov" '../core/tarkov-schema.js')"
+  [[ "$mt_schema" -eq $((mt_storage + 1)) ]] ||
+    fail "$my_tarkov must load tarkov-schema.js immediately after tarkov-storage.js"
+fi
+
+# --- R2.4: profile API surface ---
+assert_match core/tarkov-profile.js 'function gate\(' 'TarkovProfile.gate must exist'
+assert_match core/tarkov-profile.js 'function bindRefresh\(' 'TarkovProfile.bindRefresh must exist'
+assert_match core/tarkov-profile.js 'function bindTraderLL\(' 'TarkovProfile.bindTraderLL must exist'
+assert_match core/tarkov-profile.js 'bindTraderLL: *bindTraderLL' 'bindTraderLL must be exported'
+
+# --- R2.4: tools that call gate must expose refresh ---
+while IFS= read -r f; do
+  [[ -n "$f" ]] || continue
+  if ! grep -Eq 'window\.render[[:space:]]*=|onProfileRefresh|bindRefresh\(' "$f"; then
+    fail "$f uses TarkovProfile.gate but has no window.render / onProfileRefresh / bindRefresh"
+  fi
+done < <(grep -Rl --include='*.js' 'TarkovProfile\.gate' js 2>/dev/null || true)
+
+# --- R2.4: no dual-progress keys in tool settings persists ---
+# traderLevels in tool JS is forbidden (must live in TarkovProfile)
+dual_trader="$(grep -Rn --include='*.js' -E 'traderLevels[[:space:]]*:' js 2>/dev/null | grep -v 'tarkov-profile' || true)"
+[[ -z "$dual_trader" ]] || {
+  printf 'FAIL: traderLevels must not be persisted in tool JS (use TarkovProfile.traders):\n%s\n' "$dual_trader" >&2
+  exit 1
+}
+
+# playerLevel written into saveSettings/loadSettings blobs is forbidden
+dual_level="$(grep -Rn --include='*.js' -E "saveSettings\([^)]*playerLevel|playerLevel:[[:space:]]*Number\(document\.getElementById\(['\"]playerLevel" js 2>/dev/null || true)"
+[[ -z "$dual_level" ]] || {
+  printf 'FAIL: playerLevel must not be persisted via tool saveSettings (use TarkovProfile):\n%s\n' "$dual_level" >&2
+  exit 1
+}
+
+
+# --- R2.5: gameMode must not be persisted in tool settings (profile only) ---
+# Allow my-tarkov.js (profile dashboard). Flag object fields written from #gameMode.
+dual_mode="$(grep -Rn --include='*.js' -E 'gameMode[[:space:]]*:[[:space:]]*document\.getElementById\(['\''"]gameMode['\''"]' js 2>/dev/null | grep -v 'js/my-tarkov\.js:' || true)"
+[[ -z "$dual_mode" ]] || {
+  printf 'FAIL: gameMode must not be written into tool settings (use TarkovProfile.bindGameMode):\n%s\n' "$dual_mode" >&2
+  exit 1
+}
+# Also flag loadSettings defaults that still seed progress from stored gameMode when paired with setting the select from s.gameMode
+dual_mode_load="$(grep -Rn --include='*.js' -E "getElementById\(['\"]gameMode['\"]\)\.value\s*=\s*s\.gameMode" js 2>/dev/null | grep -v 'js/my-tarkov\.js:' || true)"
+[[ -z "$dual_mode_load" ]] || {
+  printf 'FAIL: gameMode select must not be restored from tool settings (use profile):\n%s\n' "$dual_mode_load" >&2
+  exit 1
+}
+
+printf 'P2/P4 + R2 profile contract: PASS\n'

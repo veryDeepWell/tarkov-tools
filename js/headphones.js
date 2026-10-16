@@ -31,6 +31,19 @@
     return it.shortName || it.name || it.normalizedName || it.id || "";
   }
 
+  function ttOfferMeta(o) {
+    var tKey = o && (o.trader || o.vendor);
+    if (tKey && typeof tKey === "object") tKey = tKey.id || tKey.key || "";
+    try {
+      if (window.TarkovDicts && TarkovDicts.traders && tKey && String(tKey).length > 20) {
+        var hit = TarkovDicts.traders.find(function (x) { return x.id === tKey; });
+        if (hit && hit.key) tKey = hit.key;
+      }
+    } catch (e) {}
+    var qn = o && o.taskUnlock;
+    if (qn && typeof qn === "object") qn = qn.name || qn.id || "";
+    return { traderKey: tKey ? String(tKey) : "", questName: qn ? String(qn) : "" };
+  }
   function traderBuy(it) {
     var list = it.buyFromTrader || it.buyFor || [];
     if (!Array.isArray(list) || !list.length) return null;
@@ -39,11 +52,14 @@
       var b = list[i];
       var rub = Number(b.priceRUB != null ? b.priceRUB : b.price) || 0;
       if (!best || (rub > 0 && rub < best.rub)) {
+        var meta = ttOfferMeta(b);
         best = {
           rub: rub,
           level: Number(b.minTraderLevel) || 0,
           taskUnlock: b.taskUnlock || null,
-          trader: b.trader || b.vendor || ""
+          trader: b.trader || b.vendor || "",
+          traderKey: meta.traderKey,
+          questName: meta.questName
         };
       }
     }
@@ -90,6 +106,8 @@
       traderRub: buy ? buy.rub : 0,
       traderLvl: buy ? buy.level : 0,
       questLock: !!(buy && buy.taskUnlock),
+      traderKey: buy ? buy.traderKey : "",
+      questName: buy ? buy.questName : "",
       types: it.types || []
     };
     r.slots = r.width * r.height;
@@ -164,6 +182,17 @@
       if (r.dist < minDist) return false;
       if (isFinite(r.distort) && r.distort > maxDistort) return false;
       if (maxPrice > 0 && r.avg > maxPrice) return false;
+      if (window.TarkovProfile && TarkovProfile.gate && (r.traderLvl || r.questLock)) {
+        r._gate = TarkovProfile.gate({
+          trader: r.traderKey,
+          minLL: r.traderLvl,
+          questLocked: !!r.questLock,
+          questName: r.questName || ""
+        });
+        if (TarkovProfile.lockVisibility(r._gate) === "hide") return false;
+      } else {
+        r._gate = { locked: false, reason: "" };
+      }
       if (!q) return true;
       return (r.name + " " + r.slug).toLowerCase().indexOf(q) >= 0;
     });
@@ -191,10 +220,20 @@
             (r.traderLvl ? ' <span class="meta">LL' + r.traderLvl + "</span>" : "") +
             (r.questLock ? ' <span class="quest">quest</span>' : "")
           : "—";
+        var lockAttr = "";
+        if (r._gate && r._gate.locked && window.TarkovProfile && TarkovProfile.lockVisibility) {
+          var vis = TarkovProfile.lockVisibility(r._gate);
+          if (vis === "dim") {
+            lockAttr = ' style="opacity:0.45" data-tt-locked="1"';
+            if (r._gate.reason) lockAttr += ' title="' + esc(r._gate.reason) + '"';
+          }
+        }
         return (
           "<tr data-id=\"" +
           esc(r.id) +
-          "\">" +
+          "\"" +
+          lockAttr +
+          ">" +
           '<td class="score">' +
           esc(String(r.score)) +
           "</td>" +
@@ -331,6 +370,16 @@
     };
   });
 })();
+
+window.render = function () {
+  try {
+    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+  } catch (e0) {}
+  try { if (typeof render === "function") render(); } catch (e1) {}
+};
+if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+  TarkovProfile.bindRefresh(function () { window.render(); });
+}
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {

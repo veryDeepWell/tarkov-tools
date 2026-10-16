@@ -581,16 +581,15 @@
   }
 
       const SKEY = 'tarkovBarterLiveSettings';
-      const s = loadSettings(SKEY, { gameMode: 'regular', priceMode: 'buyN', commission: 0, intel3: '0', hmLvl: 0 });
+      const s = loadSettings(SKEY, { priceMode: 'buyN', commission: 0, intel3: '0', hmLvl: 0 });
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-      set('gameMode', (window.TarkovProfile && TarkovProfile.preferredGameMode) ? TarkovProfile.preferredGameMode(s.gameMode || 'pve') : (s.gameMode || 'regular'));
+      set('gameMode', (window.TarkovProfile && TarkovProfile.preferredGameMode) ? TarkovProfile.preferredGameMode('pve') : 'pve');
       set('priceMode', s.priceMode);
       set('commission', s.commission);
       set('intel3', s.intel3);
       set('hmLvl', s.hmLvl);
       function persist() {
         saveSettings(SKEY, {
-          gameMode: document.getElementById('gameMode')?.value,
           priceMode: document.getElementById('priceMode')?.value,
           commission: Number(document.getElementById('commission')?.value) || 0,
           intel3: document.getElementById('intel3')?.value || '0',
@@ -621,7 +620,20 @@
       };
     } catch (e) {}
 
+
+  window.render = function () {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+    } catch (e0) {}
+    try { if (typeof renderItems === "function") renderItems(); } catch (e1) {}
+    try { if (typeof recalculate === "function") recalculate(); } catch (e2) {}
+  };
+  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+    TarkovProfile.bindRefresh(function () { window.render(); });
+  }
+
 })();
+
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {

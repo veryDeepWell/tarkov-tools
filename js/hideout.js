@@ -64,11 +64,24 @@
         const price = Number(o.priceRUB != null ? o.priceRUB : o.price) || 0;
         if (!price) return;
         if (!best || price < best.price) {
+          var tKey = o.trader;
+          if (tKey && typeof tKey === 'object') tKey = tKey.id || tKey.key || '';
+          // map mongo id → key when possible via dicts
+          try {
+            if (window.TarkovDicts && TarkovDicts.traders && tKey && tKey.length > 20) {
+              var hit = TarkovDicts.traders.find(function (x) { return x.id === tKey; });
+              if (hit && hit.key) tKey = hit.key;
+            }
+          } catch (e) {}
+          var qn = o.taskUnlock;
+          if (qn && typeof qn === 'object') qn = qn.name || qn.id || '';
           best = {
             price,
             name: TRADER_RU[o.trader] || 'Торговец',
             ll: Number(o.minTraderLevel) || 0,
-            quest: !!o.taskUnlock
+            quest: !!o.taskUnlock,
+            questName: qn ? String(qn) : '',
+            traderKey: tKey ? String(tKey) : ''
           };
         }
       });
@@ -429,6 +442,16 @@
           ? `${esc(r.buy.name)} LL${r.buy.ll}: ${formatNum(r.buy.price)}${r.buy.quest ? ' (квест)' : ''}`
           : '—';
         const tr = document.createElement('tr');
+        if (r.buy && window.TarkovProfile && TarkovProfile.gate) {
+          var g = TarkovProfile.gate({
+            trader: r.buy.traderKey,
+            minLL: r.buy.ll,
+            questLocked: !!r.buy.quest,
+            questName: r.buy.questName || ''
+          });
+          TarkovProfile.applyLockToElement(tr, g);
+          if (g.locked && TarkovProfile.lockVisibility(g) === 'hide') return;
+        }
         const ic = (itemsById[r.id] && (itemsById[r.id].iconLink || itemsById[r.id].gridImageLink)) || '';
         tr.innerHTML = `
           <td>
@@ -464,7 +487,6 @@
     document.getElementById('shopOnlyMissing').addEventListener('change', () => {
       renderShop();
       saveSettings('tarkovHideoutSettings', {
-        gameMode: document.getElementById('gameMode').value,
         shopOnlyMissing: document.getElementById('shopOnlyMissing').checked
       });
     });
@@ -478,7 +500,6 @@
     });
     document.getElementById('gameMode').addEventListener('change', () => {
       saveSettings('tarkovHideoutSettings', {
-        gameMode: document.getElementById('gameMode').value,
         shopOnlyMissing: document.getElementById('shopOnlyMissing').checked
       });
     });
@@ -495,10 +516,22 @@
     return s||it.id||'';
   }
 
-      const s = loadSettings('tarkovHideoutSettings', { gameMode: 'regular', shopOnlyMissing: true });
-      document.getElementById('gameMode').value = s.gameMode || 'regular';
+      const s = loadSettings('tarkovHideoutSettings', { shopOnlyMissing: true });
+      // gameMode from profile only (wireToolPage)
       document.getElementById('shopOnlyMissing').checked = s.shopOnlyMissing !== false;
     })();
+
+window.render = function () {
+  try {
+    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+    if (typeof renderStations === "function") renderStations();
+    if (typeof renderDetail === "function") renderDetail();
+    if (typeof renderShop === "function") renderShop();
+  } catch (e) {}
+};
+if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+  TarkovProfile.bindRefresh(function () { window.render(); });
+}
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {

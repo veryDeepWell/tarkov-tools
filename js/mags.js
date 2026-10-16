@@ -25,12 +25,30 @@
     function humanize(slug) { return TarkovDicts.humanize(slug); }
     function formatNum(n) { return TarkovDicts.fmtNum(n); }
     function esc(s) { return TarkovDicts.esc(s); }
+
+    function ttOfferMeta(o) {
+      var tKey = o && o.trader;
+      if (tKey && typeof tKey === "object") tKey = tKey.id || tKey.key || "";
+      try {
+        if (window.TarkovDicts && TarkovDicts.traders && tKey && String(tKey).length > 20) {
+          var hit = TarkovDicts.traders.find(function (x) { return x.id === tKey; });
+          if (hit && hit.key) tKey = hit.key;
+        }
+      } catch (e) {}
+      var qn = o && o.taskUnlock;
+      if (qn && typeof qn === "object") qn = qn.name || qn.id || "";
+      return { traderKey: tKey ? String(tKey) : "", questName: qn ? String(qn) : "" };
+    }
+
     function bestBuy(it){
       let best=null;
       (it.buyFromTrader||[]).forEach(o=>{
         const price=Number(o.priceRUB!=null?o.priceRUB:o.price)||0;
         if(!price)return;
-        if(!best||price<best.price) best={price,name:TRADER_RU[o.trader]||'Торговец',ll:Number(o.minTraderLevel)||0,quest:!!o.taskUnlock};
+        if(!best||price<best.price) {
+          var meta = ttOfferMeta(o);
+          best={price,name:TRADER_RU[o.trader]||'Торговец',ll:Number(o.minTraderLevel)||0,quest:!!o.taskUnlock,traderKey:meta.traderKey,questName:meta.questName};
+        }
       });
       return best;
     }
@@ -96,6 +114,10 @@
       let list=rows.filter(r=>{
         if(activeCal&&r.cal!==activeCal) return false;
         if(hideQ&&r.quest) return false;
+        if(r.buy&&window.TarkovProfile&&TarkovProfile.gate){
+          r._gate=TarkovProfile.gate({trader:r.buy.traderKey,minLL:r.buy.ll,questLocked:!!r.quest,questName:r.buy.questName||''});
+          if(TarkovProfile.lockVisibility(r._gate)==='hide') return false;
+        } else r._gate={locked:false,reason:''};
         if(q&&!(r.name.toLowerCase().includes(q)||r.slug.toLowerCase().includes(q))) return false;
         return true;
       });
@@ -112,6 +134,10 @@
         const recCls=r.recoilPct<0?'pos':(r.recoilPct>0?'neg':'');
         const trader=r.buy?`${esc(r.buy.name)} LL${r.buy.ll}<br><strong>${formatNum(r.buy.price)}</strong>`:'—';
         const tr=document.createElement('tr');
+        if(window.TarkovProfile&&TarkovProfile.applyLockToElement&&r._gate){
+          TarkovProfile.applyLockToElement(tr,r._gate);
+          if(r._gate.locked&&TarkovProfile.lockVisibility(r._gate)==='hide') return;
+        }
         tr.innerHTML=`
           <td><div class="name-cell">${r.icon?`<img class="ico" src="${esc(r.icon)}" loading="lazy" alt="">`:''}<div class="txt"><div class="name">${esc(r.name)}</div><div class="meta">${esc(r.slug)}</div></div></div></td>
           <td>${esc(r.calLabel)}</td>
@@ -137,7 +163,7 @@
       document.getElementById(id).addEventListener('input',render);
       document.getElementById(id).addEventListener('change',()=>{render();persist()});
     });
-    function persist(){saveSettings('tarkovMagsSettings',{gameMode:document.getElementById('gameMode').value,hideQuest:document.getElementById('hideQuest').checked,activeCal})}
+    function persist(){saveSettings('tarkovMagsSettings',{hideQuest:document.getElementById('hideQuest').checked,activeCal})}
     (function(){
   function itemName(it){
     if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
@@ -150,10 +176,20 @@
   }
 const s=loadSettings('tarkovMagsSettings',{});if (document.getElementById("gameMode")) {
       var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
-        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
-        : ((s.gameMode) || "pve");
+        ? TarkovProfile.preferredGameMode("pve")
+        : "pve";
       document.getElementById("gameMode").value = __ttMode;
     }if(s.hideQuest)document.getElementById('hideQuest').checked=true;if(s.activeCal)activeCal=s.activeCal})();
+
+window.render = function () {
+  try {
+    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+  } catch (e0) {}
+  try { if (typeof render === "function") render(); } catch (e1) {}
+};
+if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+  TarkovProfile.bindRefresh(function () { window.render(); });
+}
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {

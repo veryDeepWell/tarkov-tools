@@ -72,7 +72,12 @@
       <div class="card">
         <h3>УЛ торговцев</h3>
         <div id="traders"></div>
-        <p class="meta" style="margin-top:8px">Сохраняется кнопкой «Сохранить» в блоке профиля.</p>
+        <p class="meta" style="margin-top:8px">Пишется в профиль сразу при смене (bindTraderLL). Кнопка «Сохранить» тоже синхронизирует.</p>
+      </div>
+
+      <div class="card">
+        <h3>Навыки</h3>
+        <p class="meta" id="skillsDeferred">Отложено (R2.4): модель <code>profile.skills</code> есть, полноценный UI — после стабилизации gate/фильтров. Пока правь через экспорт/импорт JSON при необходимости.</p>
       </div>
 
       <div class="card">
@@ -132,14 +137,16 @@
     </div>
   </div>
 
+  <!-- R2.4: storage → schema → profile → nav → … -->
   <script src="../core/tarkov-dicts.js"></script>
   <script src="../core/tarkov-names.js"></script>
   <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-schema.js"></script>
+  <script src="../core/tarkov-profile.js"></script>
+  <script src="../core/tarkov-nav.js"></script>
   <script src="../core/tarkov-api.js"></script>
   <script src="../core/tarkov-ui.js"></script>
   <script src="../core/tarkov-state.js"></script>
-  <script src="../core/tarkov-profile.js"></script>
-  <script src="../core/tarkov-nav.js"></script>
   <script src="../core/tarkov-common.js"></script>
   <script src="../js/my-tarkov.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>

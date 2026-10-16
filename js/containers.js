@@ -293,7 +293,6 @@
 
     function persist() {
       saveSettings('tarkovContainersSettings', {
-        gameMode: document.getElementById('gameMode').value,
         tab,
         hideQuest: document.getElementById('hideQuest').checked,
         onlyArmorRig: document.getElementById('onlyArmorRig').checked,
@@ -315,8 +314,8 @@
       const s = loadSettings('tarkovContainersSettings', {});
       if (document.getElementById("gameMode")) {
       var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
-        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
-        : ((s.gameMode) || "pve");
+        ? TarkovProfile.preferredGameMode("pve")
+        : "pve";
       document.getElementById("gameMode").value = __ttMode;
     }
       if (s.tab) tab = s.tab;

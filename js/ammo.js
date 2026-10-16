@@ -148,7 +148,6 @@
             btn.classList.add('active');
             renderTable();
             saveSettings('tarkovAmmoSettings', {
-              gameMode: document.getElementById('gameMode').value,
               activeCal: cal
             });
           };
@@ -342,20 +341,28 @@
     return s||it.id||'';
   }
 
-      const s = loadSettings('tarkovAmmoSettings', { gameMode: 'regular' });
+      const s = loadSettings('tarkovAmmoSettings', {});
+      // gameMode only from TarkovProfile (wireToolPage / bindGameMode)
       if (document.getElementById("gameMode")) {
       var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
-        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
-        : ((s.gameMode) || "pve");
+        ? TarkovProfile.preferredGameMode("pve")
+        : "pve";
       document.getElementById("gameMode").value = __ttMode;
     }
-      document.getElementById('gameMode').addEventListener('change', () => {
-        saveSettings('tarkovAmmoSettings', {
-          gameMode: document.getElementById('gameMode').value,
-          activeCal
-        });
-      });
     })();
+
+
+window.render = function () {
+  try {
+    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+  } catch (e0) {}
+  try {
+    if (typeof typeof renderTable==='function'&&renderTable() === "function") typeof renderTable==='function'&&renderTable()();
+  } catch (e1) {}
+};
+if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+  TarkovProfile.bindRefresh(function () { window.render(); });
+}
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {

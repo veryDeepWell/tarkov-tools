@@ -13,6 +13,32 @@
     "5c064c2f86f77447f049e2c7": "Егерь",
     "6617beeaa9cfa777ca915b7c": "Реф"
   };
+  var TRADER_KEY = {
+    "54cb50c76803fa8b248b4571": "prapor",
+    "54cb57776803fa99248b456e": "therapist",
+    "579dc571d53a0658a154fbec": "fence",
+    "58330581ace78e27b8b10cee": "skier",
+    "5935c25fb3acc3127c3d8cd9": "peacekeeper",
+    "5a7c2eca46aef81a7ca2145d": "mechanic",
+    "5ac3b934156ae10c4430e83c": "ragman",
+    "5c064c2f86f77447f049e2c7": "jaeger",
+    "5c0647fdd443bc2504c2d371": "jaeger",
+    "6617beeaa9cfa777ca915b7c": "ref",
+    "638f541a29ffd1183d187f57": "lightkeeper"
+  };
+  function traderKeyOf(id) {
+    if (!id) return "";
+    if (typeof id === "object") id = id.id || id.key || "";
+    var s = String(id);
+    if (TRADER_KEY[s]) return TRADER_KEY[s];
+    if (/^[a-z][a-z0-9_-]*$/i.test(s) && s.length < 24) return s.toLowerCase();
+    return s;
+  }
+  function questLabel(tu) {
+    if (!tu) return "";
+    if (typeof tu === "object") return String(tu.name || tu.normalizedName || tu.id || "");
+    return String(tu);
+  }
 
   var itemsById = {};
   var barters = [];
@@ -176,6 +202,18 @@
       });
 
       var fleaReward = unitPrice(offeredItem).flea || 0;
+      var tKey = traderKeyOf(b.trader);
+      var qLocked = !!(b.taskUnlock);
+      var qName = questLabel(b.taskUnlock);
+      var gateRes = null;
+      if (window.TarkovProfile && TarkovProfile.gate) {
+        gateRes = TarkovProfile.gate({
+          trader: tKey,
+          minLL: ll,
+          questLocked: qLocked,
+          questName: qName
+        });
+      }
       rows.push({
         barter: b,
         offered: offeredItem,
@@ -185,7 +223,10 @@
         missing: missing,
         ll: ll,
         trader: b.trader,
+        traderKey: tKey,
         taskUnlock: b.taskUnlock,
+        questName: qName,
+        _gate: gateRes,
         margin: budget > 0 ? budget - total : 0,
         fleaReward: fleaReward
       });
@@ -216,11 +257,27 @@
       return;
     }
     el.innerHTML = rows
+      .filter(function (r) {
+        if (!r._gate || !r._gate.locked) return true;
+        if (window.TarkovProfile && TarkovProfile.lockVisibility) {
+          return TarkovProfile.lockVisibility(r._gate) !== "hide";
+        }
+        return true;
+      })
       .slice(0, 80)
       .map(function (r) {
         var inB = budget > 0 && r.total > 0 && r.total <= budget;
         var over = budget > 0 && r.total > budget;
         var costCls = inB ? "ok" : over ? "bad" : "";
+        var lockAttr = "";
+        if (r._gate && r._gate.locked) {
+          var vis = window.TarkovProfile && TarkovProfile.lockVisibility
+            ? TarkovProfile.lockVisibility(r._gate) : "show";
+          if (vis === "dim") {
+            lockAttr = ' style="opacity:0.45" data-tt-locked="1"';
+            if (r._gate.reason) lockAttr += ' title="' + esc(r._gate.reason) + '"';
+          }
+        }
         var badges =
           '<span class="badge ll">LL ' +
           r.ll +
@@ -249,7 +306,9 @@
         return (
           '<div class="bcard ' +
           (inB ? "in-budget" : over ? "over-budget" : "") +
-          '"><div class="bhead"><div><div class="btitle">' +
+          '"' +
+          lockAttr +
+          '><div class="bhead"><div><div class="btitle">' +
           esc(itemName(r.offered)) +
           (r.offeredCount > 1 ? " ×" + r.offeredCount : "") +
           '</div><div class="meta-line">' +
@@ -316,9 +375,14 @@
     el.addEventListener("input", buildRows);
     el.addEventListener("change", buildRows);
   });
+  window.__ttBarterOptBuild = buildRows;
+  window.paint = paint;
+  window.render = function () {
+    try { buildRows(); } catch (e) { try { paint(); } catch (e2) {} }
+  };
 })();
 
-/* R-2: gameMode from profile on load; changes write to profile */
+/* R-2 / R2.2: profile wire + refresh */
 (function () {
   function __ttBindMode() {
     try {
@@ -331,9 +395,20 @@
       }
     } catch (e) {}
   }
+  function __ttRefresh() {
+    try {
+      __ttBindMode();
+      if (typeof window.__ttBarterOptBuild === "function") window.__ttBarterOptBuild();
+    } catch (e) {}
+  }
+  window.render = __ttRefresh;
+  window.paint = __ttRefresh;
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __ttBindMode);
   } else {
     __ttBindMode();
+  }
+  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+    TarkovProfile.bindRefresh(__ttRefresh);
   }
 })();
