@@ -173,17 +173,20 @@
         )) {
           lock += '<span class="tag opt">сдано в профиле</span> ';
         }
-        const lockedLvl = !!(window.TarkovProfile && TarkovProfile.meetsLevel && !TarkovProfile.meetsLevel(t.minPlayerLevel));
+        const gateRes = (window.TarkovProfile && TarkovProfile.gate)
+          ? TarkovProfile.gate({ minLevel: t.minPlayerLevel })
+          : { locked: !!(window.TarkovProfile && TarkovProfile.meetsLevel && !TarkovProfile.meetsLevel(t.minPlayerLevel)), reason: '' };
         const doneProf = !!(window.TarkovProfile && TarkovProfile.isQuestCompleted && (
           TarkovProfile.isQuestCompleted(t.id) || TarkovProfile.isQuestCompleted(t.normalizedName)
         ));
-        const locked = lockedLvl; // level gate is the main lock for filter mode
-        if (window.TarkovProfile && TarkovProfile.lockVisibility && TarkovProfile.lockVisibility(locked) === 'hide') {
+        const locked = !!gateRes.locked;
+        if (window.TarkovProfile && TarkovProfile.lockVisibility && TarkovProfile.lockVisibility(gateRes) === 'hide') {
           return '';
         }
-        const dimStyle = (window.TarkovProfile && TarkovProfile.lockVisibility && TarkovProfile.lockVisibility(locked) === 'dim')
+        const dimStyle = (window.TarkovProfile && TarkovProfile.lockVisibility && TarkovProfile.lockVisibility(gateRes) === 'dim')
           ? ' style="opacity:.45;filter:grayscale(.35)"' : '';
-        return `<div class="qcard"${dimStyle}${locked ? ' data-tt-locked="1"' : ''}>
+        const lockTitle = locked && gateRes.reason ? ` title="${esc(gateRes.reason)}"` : '';
+        return `<div class="qcard"${dimStyle}${locked ? ' data-tt-locked="1"' : ''}${lockTitle}>
           <h2>${esc(en)}</h2>
           ${ru ? `<div class="meta">${esc(ru)}</div>` : ''}
           <div class="meta">${esc(t.normalizedName || '')} · lvl ${t.minPlayerLevel ?? '?'} · ${esc(traderName[t.trader] || '')} ${lock}</div>
@@ -196,6 +199,9 @@
     }
 
     window.render = render;
+    if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+      TarkovProfile.bindRefresh(function () { try { render(); } catch (e) {} });
+    }
     document.getElementById('q').oninput = render;
     document.getElementById('mapFilter').onchange = render;
     document.getElementById('traderFilter').onchange = render;

@@ -22,8 +22,47 @@
 
     function loadSettings(key, defaults) { return TarkovUI.loadSettings(key, defaults); }
     function saveSettings(key, obj) { TarkovUI.saveSettings(key, obj); }
-    function loadDone(){done=TarkovStorage.getJson('tarkovQuestItemsDone',{})||{}}
-    function saveDone(){try{TarkovStorage.setJson('tarkovQuestItemsDone',done)}catch(e){}}
+    /** R2.1: item-done lives in TarkovProfile.quests.itemDone */
+    function loadDone(){
+      try {
+        if (window.TarkovProfile && TarkovProfile.migrateQuestItemDoneFromStorage) {
+          TarkovProfile.migrateQuestItemDoneFromStorage();
+        }
+      } catch (e) {}
+      done = {};
+      try {
+        if (window.TarkovProfile && TarkovProfile.getActive) {
+          var p = TarkovProfile.getActive();
+          var map = (p && p.quests && p.quests.itemDone) || {};
+          done = Object.assign({}, map);
+        } else {
+          done = TarkovStorage.getJson('tarkovQuestItemsDone', {}) || {};
+        }
+      } catch (e2) { done = {}; }
+    }
+    function saveDone(){
+      /* no-op: writes go through setQuestItemDone */
+    }
+    function setDoneKey(key, isDone){
+      if (isDone) done[key] = true; else delete done[key];
+      try {
+        if (window.TarkovProfile && TarkovProfile.setQuestItemDone) {
+          TarkovProfile.setQuestItemDone(key, !!isDone);
+          return;
+        }
+      } catch (e) {}
+      try { TarkovStorage.setJson('tarkovQuestItemsDone', done); } catch (e2) {}
+    }
+    function clearAllDone(){
+      done = {};
+      try {
+        if (window.TarkovProfile && TarkovProfile.clearQuestItemDone) {
+          TarkovProfile.clearQuestItemDone();
+          return;
+        }
+      } catch (e) {}
+      try { TarkovStorage.setJson('tarkovQuestItemsDone', {}); } catch (e2) {}
+    }
     function humanize(slug) { return TarkovDicts.humanize(slug); }
     function formatNum(n) { return TarkovDicts.fmtNum(n); }
     function esc(s) { return TarkovDicts.esc(s); }
@@ -129,9 +168,12 @@
         if(hideDone&&window.TarkovProfile&&TarkovProfile.isQuestCompleted&&(
           TarkovProfile.isQuestCompleted(r.taskId)||TarkovProfile.isQuestCompleted(r.questName)
         )) return false;
-        if(hideLocked&&r.minLvl>myLvl) return false;
-        var lockedRow = r.minLvl>myLvl;
-        if(window.TarkovProfile&&TarkovProfile.lockVisibility&&TarkovProfile.lockVisibility(lockedRow)==='hide') return false;
+        var gateRes = (window.TarkovProfile && TarkovProfile.gate)
+          ? TarkovProfile.gate({ minLevel: r.minLvl })
+          : { locked: r.minLvl > myLvl, reason: r.minLvl > myLvl ? ('Уровень < ' + r.minLvl) : '' };
+        if(hideLocked && gateRes.locked) return false;
+        if(window.TarkovProfile&&TarkovProfile.lockVisibility&&TarkovProfile.lockVisibility(gateRes)==='hide') return false;
+        r._gate = gateRes;
         if(q){
           const hay=(r.itemName+' '+r.slugs.join(' ')+' '+r.questName+' '+r.trader).toLowerCase();
           if(!hay.includes(q)) return false;
@@ -150,6 +192,9 @@
         const isDone=!!done[r.key];
         const tr=document.createElement('tr');
         if(isDone) tr.classList.add('done');
+        if(window.TarkovProfile&&TarkovProfile.applyLockToElement&&r._gate){
+          TarkovProfile.applyLockToElement(tr, r._gate);
+        }
         const copySlug=r.slugs[0]||'';
         tr.innerHTML=`
           <td><input type="checkbox" data-key="${esc(r.key)}" ${isDone?'checked':''} title="Собрал / сдал"></td>
@@ -177,8 +222,8 @@
       });
       tbody.querySelectorAll('input[data-key]').forEach(cb=>{
         cb.onchange=()=>{
-          if(cb.checked) done[cb.dataset.key]=true; else delete done[cb.dataset.key];
-          saveDone(); render();
+          setDoneKey(cb.dataset.key, cb.checked);
+          render();
         };
       });
       tbody.querySelectorAll('.copy-btn').forEach(btn=>{
@@ -189,7 +234,10 @@
     document.querySelectorAll('th[data-k]').forEach(th=>{
       th.onclick=()=>{const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else{sortKey=k;sortDir=k==='itemName'||k==='questName'||k==='trader'||k==='type'?1:-1} render()};
     });
-    window.render = render;
+    window.render = function(){ loadDone(); render(); };
+    if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+      TarkovProfile.bindRefresh(function(){ window.render(); });
+    }
     ['search','onlyFir','hideDone','hideLocked','playerLevel'].forEach(id=>{
       const el=document.getElementById(id);
       el.addEventListener('input',render);
@@ -197,12 +245,11 @@
     });
     document.getElementById('clearDone').onclick=()=>{
       if(!confirm('Сбросить все галочки «собрал»?')) return;
-      done={}; saveDone(); render();
+      clearAllDone(); render();
     };
     function persist(){
+      // R2.1: UI prefs only — level/mode live in TarkovProfile
       saveSettings('tarkovQuestItemsSettings',{
-        gameMode:document.getElementById('gameMode').value,
-        playerLevel:Number(document.getElementById('playerLevel').value)||31,
         onlyFir:document.getElementById('onlyFir').checked,
         hideDone:document.getElementById('hideDone').checked,
         hideLocked:document.getElementById('hideLocked').checked
@@ -224,15 +271,8 @@
     return s||it.id||'';
   }
 
-      const s=loadSettings('tarkovQuestItemsSettings',{playerLevel:31});
-      if (document.getElementById("gameMode")) {
-      var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
-        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
-        : ((s.gameMode) || "pve");
-      document.getElementById("gameMode").value = __ttMode;
-    }
+      const s=loadSettings('tarkovQuestItemsSettings',{});
       if (window.TarkovProfile && TarkovProfile.bindLevel) { TarkovProfile.bindLevel("playerLevel"); }
-      else if (s.playerLevel) document.getElementById("playerLevel").value = s.playerLevel;
       if(s.onlyFir) document.getElementById('onlyFir').checked=true;
       if(s.hideDone===false) document.getElementById('hideDone').checked=false;
       if(s.hideLocked===false) document.getElementById('hideLocked').checked=false;

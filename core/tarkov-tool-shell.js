@@ -412,11 +412,12 @@
                 window.parent.postMessage({ type: "tt-profile-changed", id: id }, "*");
               }
             } catch (e) {}
-            // soft rebuild: re-run tool render if exposed
+            // soft rebuild: onProfileRefresh → render → paint (R2.1)
             try {
-              if (typeof window.render === "function") window.render();
-              if (typeof window.paint === "function") window.paint();
-            } catch (e2) {}
+              if (typeof window.onProfileRefresh === "function") window.onProfileRefresh();
+              else if (typeof window.render === "function") window.render();
+              else if (typeof window.paint === "function") window.paint();
+            } catch (eRef) {}
             closePop();
           } catch (err) {
             alert(err.message || String(err));
@@ -428,8 +429,10 @@
           TarkovProfile.setFilterMode(btn.getAttribute("data-mode"));
           paintPop();
           try {
-            if (typeof window.render === "function") window.render();
-          } catch (e) {}
+            if (typeof window.onProfileRefresh === "function") window.onProfileRefresh();
+            else if (typeof window.render === "function") window.render();
+            else if (typeof window.paint === "function") window.paint();
+          } catch (eRef) {}
         };
       });
     }
@@ -544,15 +547,29 @@
 
   window.addEventListener("tt-profile-changed", function () {
     try { wireProfileGameMode(); } catch (e) {}
-    try { if (typeof window.render === "function") window.render(); } catch (e) {}
-    try { if (typeof window.paint === "function") window.paint(); } catch (e) {}
+    try {
+      if (typeof window.onProfileRefresh === "function") window.onProfileRefresh();
+      else if (typeof window.render === "function") window.render();
+      else if (typeof window.paint === "function") window.paint();
+    } catch (eRef) {}
+  });
+  window.addEventListener("tt-profile-refresh", function () {
+    try { wireProfileGameMode(); } catch (e) {}
+    try {
+      if (typeof window.onProfileRefresh === "function") window.onProfileRefresh();
+      else if (typeof window.render === "function") window.render();
+      else if (typeof window.paint === "function") window.paint();
+    } catch (eRef) {}
   });
   window.addEventListener("message", function (ev) {
     if (!ev.data || !ev.data.type) return;
-    if (ev.data.type === "tt-profile-changed" || ev.data.type === "tt-profile-filter") {
+    if (ev.data.type === "tt-profile-changed" || ev.data.type === "tt-profile-filter" || ev.data.type === "tt-profile-refresh") {
       try { wireProfileGameMode(); } catch (e) {}
-      try { if (typeof window.render === "function") window.render(); } catch (e) {}
-      try { if (typeof window.paint === "function") window.paint(); } catch (e) {}
+      try {
+        if (typeof window.onProfileRefresh === "function") window.onProfileRefresh();
+        else if (typeof window.render === "function") window.render();
+        else if (typeof window.paint === "function") window.paint();
+      } catch (eRef) {}
     }
   });
   /* tt-profile-changed-listener */

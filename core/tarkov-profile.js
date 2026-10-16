@@ -1,7 +1,7 @@
 /*! TarkovProfile — PMC profiles as single source of personal progress (1.1) */
 (function (global) {
   "use strict";
-  if (global.TarkovProfile && global.TarkovProfile.__v >= 1) return;
+  if (global.TarkovProfile && global.TarkovProfile.__v >= 2) return;
 
   var LIST_KEY = "tt:profile:list";
   var ACTIVE_KEY = "tt:profile:active";
@@ -40,7 +40,7 @@
       gameMode: "pve",
       traders: defaultTraders(),
       skills: {},
-      quests: { completed: [], active: [] },
+      quests: { completed: [], active: [], itemDone: {} },
       prestige: { level: 0, carried: [] },
       notes: { hideout: "" },
       icon: "util",
@@ -62,7 +62,9 @@
     out.skills = p.skills && typeof p.skills === "object" ? p.skills : {};
     out.quests = {
       completed: Array.isArray(p.quests && p.quests.completed) ? p.quests.completed.slice() : [],
-      active: Array.isArray(p.quests && p.quests.active) ? p.quests.active.slice() : []
+      active: Array.isArray(p.quests && p.quests.active) ? p.quests.active.slice() : [],
+      itemDone: (p.quests && p.quests.itemDone && typeof p.quests.itemDone === "object")
+        ? Object.assign({}, p.quests.itemDone) : {}
     };
     out.prestige = {
       level: Math.max(0, Number(p.prestige && p.prestige.level) || 0) | 0,
@@ -148,6 +150,12 @@
     emit("active", { id: id, profile: p });
     emit("change", { profile: p, fields: ["*"], reason: "active" });
     try {
+      if (global.dispatchEvent) {
+        global.dispatchEvent(new CustomEvent("tt-profile-changed", { detail: { id: id, profile: p } }));
+        global.dispatchEvent(new CustomEvent("tt-profile-refresh", { detail: { reason: "active", id: id } }));
+      }
+    } catch (eRef) {}
+    try {
       document.documentElement.setAttribute("data-tt-profile-id", id);
       document.documentElement.setAttribute("data-tt-level", String((p && p.level) || 1));
       document.documentElement.setAttribute("data-tt-mode", (p && p.gameMode) || "pve");
@@ -206,7 +214,10 @@
     if (patch && patch.quests) {
       next.quests = {
         completed: patch.quests.completed != null ? patch.quests.completed : cur.quests.completed,
-        active: patch.quests.active != null ? patch.quests.active : cur.quests.active
+        active: patch.quests.active != null ? patch.quests.active : cur.quests.active,
+        itemDone: patch.quests.itemDone != null
+          ? Object.assign({}, patch.quests.itemDone)
+          : Object.assign({}, (cur.quests && cur.quests.itemDone) || {})
       };
     }
     if (patch && patch.prestige) {
@@ -499,17 +510,16 @@
     var el = typeof elOrId === "string" ? document.getElementById(elOrId) : (elOrId || document.getElementById("prestige"));
     if (!el) return null;
     var p = getActive();
-    var lvl = (p && p.prestige && p.prestige.level) || 0;
-    if (lvl < 1) lvl = Number(el.value) || 1;
-    // select may only have 1..6
+    var lvl = (p && p.prestige && p.prestige.level != null) ? Number(p.prestige.level) : 0;
+    if (!isFinite(lvl) || lvl < 0) lvl = 0;
+    // select may only have fixed values — pick closest existing option without inventing prestige
     var values = [];
     if (el.options) {
       for (var i = 0; i < el.options.length; i++) values.push(el.options[i].value);
     }
     if (values.length && values.indexOf(String(lvl)) < 0) {
-      if (lvl < 1 && values.indexOf("1") >= 0) lvl = 1;
-      else if (values.indexOf("6") >= 0) lvl = 6;
-      else lvl = values[values.length - 1];
+      if (values.indexOf("0") >= 0) lvl = 0;
+      else lvl = Number(values[0]) || 0;
     }
     el.value = String(lvl);
     if (el.__ttProfileBoundPrestige) return el;
@@ -589,6 +599,54 @@
     return traderLL(traderKey) >= need;
   }
 
+  /**
+   * Unified availability gate for profile filter (R-2 / R2.1).
+   * @param {object} req
+   * @param {number} [req.minLevel]
+   * @param {string} [req.trader] trader key (prapor, …)
+   * @param {number} [req.minLL]
+   * @param {string} [req.questId]
+   * @param {string} [req.questName]
+   * @param {boolean} [req.requireQuest] if true, locked until quest completed
+   * @param {boolean} [req.questLocked] treat as locked by quest (offer requires unlock)
+   * @param {number} [req.fleaLevel] flea unlock level
+   * @returns {{ locked: boolean, reasons: string[], reason: string }}
+   */
+  function gate(req) {
+    req = req || {};
+    var reasons = [];
+    var locked = false;
+    var minLevel = req.minLevel != null ? Number(req.minLevel) : null;
+    if (minLevel != null && isFinite(minLevel) && minLevel > 1 && !meetsLevel(minLevel)) {
+      locked = true;
+      reasons.push("Уровень " + playerLevel() + " < " + (minLevel | 0));
+    }
+    var fleaLevel = req.fleaLevel != null ? Number(req.fleaLevel) : null;
+    if (fleaLevel != null && isFinite(fleaLevel) && fleaLevel > 1 && !meetsLevel(fleaLevel)) {
+      locked = true;
+      reasons.push("Барахолка с ур. " + (fleaLevel | 0));
+    }
+    if (req.trader && req.minLL != null) {
+      var needLL = Number(req.minLL);
+      if (isFinite(needLL) && needLL >= 1 && !meetsTraderLL(req.trader, needLL)) {
+        locked = true;
+        reasons.push("УЛ " + req.trader + " " + traderLL(req.trader) + " < " + (needLL | 0));
+      }
+    }
+    if (req.questLocked) {
+      locked = true;
+      var qn = req.questName || req.questId || "?";
+      reasons.push("Квест: " + qn);
+    } else if (req.requireQuest) {
+      var qid = req.questId || req.questName;
+      if (qid && !isQuestCompleted(qid)) {
+        locked = true;
+        reasons.push("Нужен квест: " + qid);
+      }
+    }
+    return { locked: !!locked, reasons: reasons, reason: reasons.join("; ") };
+  }
+
   /** Suggestions for «Что я могу» based on profile only (no API). */
   function suggestActions() {
     var p = getActive();
@@ -628,12 +686,15 @@
     try {
       document.documentElement.setAttribute("data-tt-filter-mode", mode);
       window.dispatchEvent(new CustomEvent("tt-profile-filter", { detail: { mode: mode } }));
+      window.dispatchEvent(new CustomEvent("tt-profile-refresh", { detail: { reason: "filterMode", mode: mode } }));
     } catch (e2) {}
     return mode;
   }
 
-  /** locked=true means content not available for current PMC. */
+  /** locked=true means content not available for current PMC.
+   *  Accepts boolean or gate() result. Sets hover reason when dim/hide. */
   function lockVisibility(locked) {
+    if (locked && typeof locked === "object" && locked.locked != null) locked = locked.locked;
     if (!locked) return "show";
     var m = getFilterMode();
     if (m === "hide") return "hide";
@@ -641,13 +702,35 @@
     return "show";
   }
 
-  function applyLockToElement(el, locked) {
+  function applyLockToElement(el, lockedOrGate) {
     if (!el) return;
-    var vis = lockVisibility(!!locked);
+    var locked = false;
+    var reason = "";
+    if (lockedOrGate && typeof lockedOrGate === "object" && lockedOrGate.locked != null) {
+      locked = !!lockedOrGate.locked;
+      reason = lockedOrGate.reason || (lockedOrGate.reasons && lockedOrGate.reasons.join("; ")) || "";
+    } else {
+      locked = !!lockedOrGate;
+    }
+    var vis = lockVisibility(locked);
     el.classList.remove("tt-profile-dim", "tt-profile-hide");
     el.removeAttribute("data-tt-locked");
-    if (!locked) return;
+    el.removeAttribute("data-tt-lock-reason");
+    if (!locked) {
+      el.style.display = "";
+      el.style.opacity = "";
+      if (el.getAttribute("title") && el.__ttLockTitle) {
+        el.removeAttribute("title");
+        el.__ttLockTitle = false;
+      }
+      return;
+    }
     el.setAttribute("data-tt-locked", "1");
+    if (reason) {
+      el.setAttribute("data-tt-lock-reason", reason);
+      el.setAttribute("title", reason);
+      el.__ttLockTitle = true;
+    }
     if (vis === "hide") {
       el.classList.add("tt-profile-hide");
       el.style.display = "none";
@@ -661,8 +744,163 @@
     }
   }
 
+  /** Bind trader LL <select data-trader="prapor">… to profile.traders */
+  function bindTraderLL(rootOrId) {
+    var root = rootOrId
+      ? (typeof rootOrId === "string" ? document.getElementById(rootOrId) : rootOrId)
+      : document;
+    if (!root) return;
+    ensureMigrated();
+    var p = getActive();
+    var sels = root.querySelectorAll ? root.querySelectorAll("select[data-trader]") : [];
+    for (var i = 0; i < sels.length; i++) {
+      (function (sel) {
+        var key = sel.getAttribute("data-trader");
+        if (!key) return;
+        var cur = traderLL(key);
+        // option 0 = disabled trader in some UIs
+        if (sel.querySelector('option[value="' + cur + '"]')) sel.value = String(cur);
+        else if (sel.options && sel.options.length) sel.value = sel.options[0].value;
+        if (sel.__ttProfileBoundTrader) return;
+        sel.__ttProfileBoundTrader = true;
+        sel.addEventListener("change", function () {
+          var n = Math.max(0, Math.min(4, Number(sel.value) || 0)) | 0;
+          var patch = {};
+          patch[key] = n < 1 ? 1 : n;
+          try { update({ traders: patch }); } catch (e) {}
+        });
+      })(sels[i]);
+    }
+  }
+
+  function markQuestComplete(idOrName, done) {
+    if (!idOrName) return getActive();
+    var p = getActive();
+    var completed = ((p.quests && p.quests.completed) || []).slice();
+    var active = ((p.quests && p.quests.active) || []).slice();
+    var s = String(idOrName);
+    var lower = s.toLowerCase().trim();
+    var idx = -1;
+    for (var i = 0; i < completed.length; i++) {
+      if (String(completed[i]).toLowerCase().trim() === lower) { idx = i; break; }
+    }
+    if (done !== false) {
+      if (idx < 0) completed.push(s);
+      active = active.filter(function (x) { return String(x).toLowerCase().trim() !== lower; });
+    } else if (idx >= 0) {
+      completed.splice(idx, 1);
+    }
+    return update({
+      quests: {
+        completed: completed,
+        active: active,
+        itemDone: (p.quests && p.quests.itemDone) || {}
+      }
+    });
+  }
+
+  function isQuestItemDone(key) {
+    if (!key) return false;
+    var p = getActive();
+    var map = (p && p.quests && p.quests.itemDone) || {};
+    return !!map[key];
+  }
+
+  function setQuestItemDone(key, isDone) {
+    if (!key) return getActive();
+    var p = getActive();
+    var map = Object.assign({}, (p.quests && p.quests.itemDone) || {});
+    if (isDone) map[key] = true;
+    else delete map[key];
+    return update({
+      quests: {
+        completed: (p.quests && p.quests.completed) || [],
+        active: (p.quests && p.quests.active) || [],
+        itemDone: map
+      }
+    });
+  }
+
+  function clearQuestItemDone() {
+    var p = getActive();
+    return update({
+      quests: {
+        completed: (p.quests && p.quests.completed) || [],
+        active: (p.quests && p.quests.active) || [],
+        itemDone: {}
+      }
+    });
+  }
+
+  /** One-time migrate tool-local quest item done map into active profile. */
+  function migrateQuestItemDoneFromStorage() {
+    try {
+      var legacy = storage().getJson("tarkovQuestItemsDone", null);
+      if (!legacy || typeof legacy !== "object") return false;
+      var p = getActive();
+      var map = Object.assign({}, (p.quests && p.quests.itemDone) || {});
+      var changed = false;
+      Object.keys(legacy).forEach(function (k) {
+        if (legacy[k] && !map[k]) { map[k] = true; changed = true; }
+      });
+      if (changed) {
+        update({
+          quests: {
+            completed: (p.quests && p.quests.completed) || [],
+            active: (p.quests && p.quests.active) || [],
+            itemDone: map
+          }
+        });
+      }
+      try { storage().remove("tarkovQuestItemsDone"); } catch (e2) {}
+      return changed;
+    } catch (e) { return false; }
+  }
+
+  /**
+   * Subscribe tool UI to profile/filter changes (R2.1).
+   * Calls fn on: subscribe events, tt-profile-changed, tt-profile-filter,
+   * tt-profile-refresh, and postMessage from hub.
+   * Also assigns window.onProfileRefresh = fn when opts.exportGlobal !== false.
+   */
+  function bindRefresh(fn, opts) {
+    opts = opts || {};
+    if (typeof fn !== "function") return function () {};
+    if (opts.exportGlobal !== false) {
+      try { window.onProfileRefresh = fn; } catch (e) {}
+    }
+    var unsub = subscribe(function (ev) {
+      try { fn(ev); } catch (err) {}
+    });
+    function onEvt() { try { fn({ type: "dom-event" }); } catch (e) {} }
+    try {
+      window.addEventListener("tt-profile-changed", onEvt);
+      window.addEventListener("tt-profile-filter", onEvt);
+      window.addEventListener("tt-profile-refresh", onEvt);
+      window.addEventListener("message", function (ev) {
+        if (!ev.data || !ev.data.type) return;
+        if (ev.data.type === "tt-profile-changed" || ev.data.type === "tt-profile-filter" || ev.data.type === "tt-profile-refresh") {
+          onEvt();
+        }
+      });
+    } catch (e2) {}
+    return unsub;
+  }
+
+  function flushRefresh(detail) {
+    try {
+      window.dispatchEvent(new CustomEvent("tt-profile-refresh", { detail: detail || {} }));
+      window.dispatchEvent(new CustomEvent("tt-profile-changed", { detail: detail || {} }));
+    } catch (e) {}
+    try {
+      if (typeof window.onProfileRefresh === "function") window.onProfileRefresh(detail);
+      else if (typeof window.render === "function") window.render();
+      else if (typeof window.paint === "function") window.paint();
+    } catch (e2) {}
+  }
+
   global.TarkovProfile = {
-    __v: 1,
+    __v: 2,
     TRADER_KEYS: TRADER_KEYS.slice(),
     list: list,
     getActive: getActive,
@@ -684,6 +922,7 @@
     bindGameMode: bindGameMode,
     bindLevel: bindLevel,
     bindPrestige: bindPrestige,
+    bindTraderLL: bindTraderLL,
     wireToolPage: wireToolPage,
     playerLevel: playerLevel,
     traderLL: traderLL,
@@ -691,10 +930,18 @@
     isQuestActive: isQuestActive,
     meetsLevel: meetsLevel,
     meetsTraderLL: meetsTraderLL,
+    gate: gate,
     suggestActions: suggestActions,
     getFilterMode: getFilterMode,
     setFilterMode: setFilterMode,
     lockVisibility: lockVisibility,
-    applyLockToElement: applyLockToElement
+    applyLockToElement: applyLockToElement,
+    markQuestComplete: markQuestComplete,
+    isQuestItemDone: isQuestItemDone,
+    setQuestItemDone: setQuestItemDone,
+    clearQuestItemDone: clearQuestItemDone,
+    migrateQuestItemDoneFromStorage: migrateQuestItemDoneFromStorage,
+    bindRefresh: bindRefresh,
+    flushRefresh: flushRefresh
   };
 })(typeof window !== "undefined" ? window : globalThis);

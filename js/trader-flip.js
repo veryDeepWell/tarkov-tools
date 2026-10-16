@@ -65,31 +65,68 @@
     let filtersInitialized = false;
 
     const tradersEl = document.getElementById('traders');
-    const _savedLL = (function() {
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    var s=String(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s)) {
-      var n=String(it.name||'').trim();
-      var sl=String(it.normalizedName||'').trim();
-      if(n && !/^[a-f0-9]{20,}$/i.test(n)) s=n;
-      else if(sl) s=sl;
-    }
-    return s||it.id||'';
-  }
 
+    function itemName(it){
+      if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
+      if(!it)return '';
+      if(typeof it==='string')return it;
+      var s=String((it.shortName||it.name||it.normalizedName||'')||'').trim();
+      if(/^[a-f0-9]{20,}$/i.test(s)) {
+        var n=String(it.name||'').trim();
+        var sl=String(it.normalizedName||'').trim();
+        if(n && !/^[a-f0-9]{20,}$/i.test(n)) s=n;
+        else if(sl) s=sl;
+      }
+      return s||it.id||'';
+    }
+
+    /** R2.1: LL from TarkovProfile; one-shot migrate legacy tarkovFlipSettings.traderLevels */
+    const _savedLL = (function() {
+      var fromProfile = {};
       try {
-        const s = TarkovStorage.getJson('tarkovFlipSettings', {}) || {};
-        return s.traderLevels || {};
-      } catch (e) { return {}; }
+        if (window.TarkovProfile && TarkovProfile.getActive) {
+          var p = TarkovProfile.getActive();
+          if (p && p.traders) fromProfile = Object.assign({}, p.traders);
+        }
+      } catch (e) {}
+      var legacy = {};
+      try {
+        var s = TarkovStorage.getJson('tarkovFlipSettings', {}) || {};
+        legacy = s.traderLevels || {};
+      } catch (e2) {}
+      // migrate legacy into profile if profile still defaults (all 1) and legacy has higher
+      try {
+        if (window.TarkovProfile && TarkovProfile.update && legacy && Object.keys(legacy).length) {
+          var allDefault = true;
+          Object.keys(fromProfile).forEach(function (k) {
+            if (Number(fromProfile[k]) > 1) allDefault = false;
+          });
+          if (allDefault) {
+            var patch = {};
+            Object.keys(legacy).forEach(function (k) {
+              var n = Number(legacy[k]);
+              if (isFinite(n) && n >= 1) patch[k] = Math.min(4, n | 0);
+            });
+            if (Object.keys(patch).length) {
+              TarkovProfile.update({ traders: patch });
+              fromProfile = Object.assign({}, fromProfile, patch);
+            }
+            // drop traderLevels from settings
+            try {
+              var s2 = TarkovStorage.getJson('tarkovFlipSettings', {}) || {};
+              if (s2.traderLevels) { delete s2.traderLevels; TarkovStorage.setJson('tarkovFlipSettings', s2); }
+            } catch (e3) {}
+          }
+        }
+      } catch (e4) {}
+      return fromProfile;
     })();
+
     TRADERS_UI.forEach(trader => {
       const div = document.createElement('div');
       div.className = 'trader-row';
       const saved = _savedLL[trader.id];
-      const cur = saved != null ? String(saved) : '3';
+      const cur = saved != null ? String(saved) : '1';
       div.innerHTML = `
         <label>${TarkovDicts.traderName ? TarkovDicts.traderName(trader.id) : t('trader.' + trader.id)}</label>
         <select data-trader="${trader.id}">
@@ -101,24 +138,34 @@
         </select>`;
       tradersEl.appendChild(div);
       div.querySelector('select').addEventListener('change', () => {
-        // persist LL immediately
+        // R2.1: write LL to profile immediately
         try {
-          const s = TarkovStorage.getJson('tarkovFlipSettings', {}) || {};
-          s.traderLevels = s.traderLevels || {};
-          TRADERS_UI.forEach(tr => {
-            const sel = tradersEl.querySelector(`select[data-trader="${tr.id}"]`);
-            if (sel) s.traderLevels[tr.id] = Number(sel.value);
-          });
-          TarkovStorage.setJson('tarkovFlipSettings', s);
+          if (window.TarkovProfile && TarkovProfile.update) {
+            const patch = {};
+            TRADERS_UI.forEach(tr => {
+              const sel = tradersEl.querySelector(`select[data-trader="${tr.id}"]`);
+              if (sel) {
+                var n = Number(sel.value);
+                patch[tr.id] = (!isFinite(n) || n < 1) ? 1 : Math.min(4, n | 0);
+              }
+            });
+            TarkovProfile.update({ traders: patch });
+          }
         } catch (e) {}
+        try { if (typeof renderTable === 'function') renderTable(); } catch (e2) {}
       });
     });
+    try {
+      if (window.TarkovProfile && TarkovProfile.bindTraderLL) TarkovProfile.bindTraderLL(tradersEl);
+    } catch (eBind) {}
 
     function getTraderLevels() {
       const map = {};
       TRADERS_UI.forEach(t => {
         const sel = tradersEl.querySelector(`select[data-trader="${t.id}"]`);
-        map[t.id] = Number(sel.value);
+        if (sel) map[t.id] = Number(sel.value);
+        else if (window.TarkovProfile && TarkovProfile.traderLL) map[t.id] = TarkovProfile.traderLL(t.id);
+        else map[t.id] = 1;
       });
       return map;
     }
@@ -250,7 +297,8 @@
 
           const reqLL = Number(offer.minTraderLevel) || 1;
           const myLL = levels[traderKey] ?? 0;
-          if (myLL < reqLL) continue;
+          // 0 in UI = trader disabled — skip entirely
+          if (myLL < 1) continue;
 
           const traderPrice = offer.priceRUB != null ? Number(offer.priceRUB) : Number(offer.price);
           if (!traderPrice || traderPrice <= 0) continue;
@@ -274,6 +322,18 @@
             }
           }
 
+          var gateRes = null;
+          if (window.TarkovProfile && TarkovProfile.gate) {
+            gateRes = TarkovProfile.gate({
+              trader: traderKey,
+              minLL: reqLL,
+              questLocked: questLocked,
+              questName: questName
+            });
+          } else if (myLL < reqLL) {
+            gateRes = { locked: true, reason: 'УЛ ' + traderKey + ' < ' + reqLL };
+          }
+
           rawRows.push({
             id: item.id,
             name,
@@ -293,7 +353,8 @@
             profit,
             roi,
             types: typesArr.join(', '),
-            typesArr
+            typesArr,
+            _gate: gateRes
           });
         }
       }
@@ -346,6 +407,10 @@
         if (r.roi < minRoi) return false;
         if (r.offers < minOffers) return false;
         if (hideQuest && r.quest) return false;
+        // R2.1 profile filter
+        if (r._gate && r._gate.locked && window.TarkovProfile && TarkovProfile.lockVisibility) {
+          if (TarkovProfile.lockVisibility(r._gate) === 'hide') return false;
+        }
         if (search) {
           const hay = (r.name + ' ' + r.shortName + ' ' + r.normalizedName).toLowerCase();
           if (!hay.includes(search)) return false;
@@ -405,6 +470,10 @@
       rows.forEach(r => {
         const tr = document.createElement('tr');
         const copyName = r.normalizedName || r.name;
+        if (window.TarkovProfile && TarkovProfile.applyLockToElement && r._gate) {
+          TarkovProfile.applyLockToElement(tr, r._gate);
+          if (r._gate.locked && TarkovProfile.lockVisibility(r._gate) === 'hide') return;
+        }
         tr.innerHTML = `
           <td title="${escapeHtml(r.name)}"><div class="name-cell">${r.icon?`<img class="ico ico-sm" src="${escapeHtml(r.icon)}" loading="lazy" alt="">`:''}<div class="txt">${escapeHtml(r.name)}</div></div></td>
           <td>${escapeHtml(traderLabel(r.traderKey))}</td>
@@ -465,11 +534,10 @@
       }
     });
   
-    // settings persist
+    // settings persist — UI prefs only (R2.1: no playerLevel / traderLevels / gameMode)
     (function() {
       const SKEY = 'tarkovFlipSettings';
-      const defs = { gameMode: 'regular', playerLevel: 31, intel3: '0', hmLvl: 0, minProfit: 5000, minRoi: 5, minOffers: 3, hideQuest: true };
-      // gameMode may not exist in flip - skip if missing
+      const defs = { intel3: '0', hmLvl: 0, minProfit: 5000, minRoi: 5, minOffers: 3, hideQuest: true };
       const s = loadSettings(SKEY, defs);
       const set = (id, val, isCheck) => {
         const el = document.getElementById(id);
@@ -478,7 +546,6 @@
         else el.value = val;
       };
       if (window.TarkovProfile && TarkovProfile.bindLevel) TarkovProfile.bindLevel('playerLevel');
-      else set('playerLevel', s.playerLevel);
       set('intel3', s.intel3);
       set('hmLvl', s.hmLvl);
       set('minProfit', s.minProfit);
@@ -486,27 +553,47 @@
       set('minOffers', s.minOffers);
       set('hideQuest', s.hideQuest, true);
       function persist() {
-        const traderLevels = {};
-        TRADERS_UI.forEach(tr => {
-          const sel = tradersEl.querySelector(`select[data-trader="${tr.id}"]`);
-          if (sel) traderLevels[tr.id] = Number(sel.value);
-        });
         saveSettings(SKEY, {
-          playerLevel: Number(document.getElementById('playerLevel')?.value) || 31,
           intel3: document.getElementById('intel3')?.value || '0',
           hmLvl: Number(document.getElementById('hmLvl')?.value) || 0,
           minProfit: Number(document.getElementById('minProfit')?.value) || 0,
           minRoi: Number(document.getElementById('minRoi')?.value) || 0,
           minOffers: Number(document.getElementById('minOffers')?.value) || 0,
-          hideQuest: document.getElementById('hideQuest')?.checked ?? true,
-          traderLevels
+          hideQuest: document.getElementById('hideQuest')?.checked ?? true
         });
       }
-      ['playerLevel','intel3','hmLvl','minProfit','minRoi','minOffers','hideQuest'].forEach(id => {
+      ['intel3','hmLvl','minProfit','minRoi','minOffers','hideQuest'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', persist);
       });
     })();
+
+    // R2.1: expose render for shell / profile refresh
+    window.render = function () {
+      try {
+        if (window.TarkovProfile && TarkovProfile.bindTraderLL) TarkovProfile.bindTraderLL(tradersEl);
+        if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+      } catch (e) {}
+      try {
+        if (rawRows && rawRows.length) {
+          // re-gate rows against current profile
+          rawRows.forEach(function (r) {
+            if (window.TarkovProfile && TarkovProfile.gate) {
+              r._gate = TarkovProfile.gate({
+                trader: r.traderKey,
+                minLL: r.ll,
+                questLocked: !!r.quest,
+                questName: r.questName
+              });
+            }
+          });
+          renderTable();
+        }
+      } catch (e2) {}
+    };
+    if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+      TarkovProfile.bindRefresh(function () { window.render(); });
+    }
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {
