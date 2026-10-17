@@ -247,8 +247,8 @@ window.__TT_CATALOG_DATA = {
     },
     {
       "file": "tools/tarkovtool-item-use.html",
-      "title": "item-use",
-      "description": "",
+      "title": "Карточка предмета",
+      "description": "Совместимость со старыми ссылками на использование предметов. Перенаправление на новую карточку предмета.",
       "icon": "other",
       "cat": "other",
       "kind": "static"
