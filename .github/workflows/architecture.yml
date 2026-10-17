@@ -12,8 +12,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
       - name: Validate architecture and generated catalog
         run: python scripts/lint-architecture.py
+      - name: Check static project integrity
+        run: python scripts/static-integrity-check.py
       - name: Check domain contract
         run: bash scripts/domain-contract-check.sh
       - name: Check storage/tool contract

@@ -453,7 +453,6 @@ window.__TT_CATALOG_DATA = {
       "kind": "static"
     },
     {
-          {
       "file": "tools/tarkovtool-effects.html",
       "title": "Эффекты",
       "description": "R-3.5: баффы и дебаффы со стимуляторов и расходников.",
@@ -485,7 +484,8 @@ window.__TT_CATALOG_DATA = {
       "cat": "other",
       "kind": "static"
     },
-    "file": "tools/tarkovtool-skills.html",
+    {
+      "file": "tools/tarkovtool-skills.html",
       "title": "Скиллы + чизы",
       "description": "Уровень и способ быстрой прокачки каждого навыка.",
       "icon": "skills",

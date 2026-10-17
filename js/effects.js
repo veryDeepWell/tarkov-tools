@@ -2,6 +2,7 @@
 (function () {
   "use strict";
   var rows = [];
+  var hasLoaded = false;
   function esc(s) {
     return window.TarkovDicts && TarkovDicts.esc ? TarkovDicts.esc(s) :
       String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
@@ -54,12 +55,13 @@
     });
     setStatus("Показано " + n + " / " + rows.length, "ok");
   }
-  document.getElementById("loadBtn").onclick = async function () {
-    var btn = this;
+  async function load() {
+    var btn = document.getElementById("loadBtn");
     btn.disabled = true;
     setStatus("Загрузка items…");
     try {
       var items = await TarkovAPI.items(mode());
+      hasLoaded = true;
       rows = [];
       (items || []).forEach(function (it) {
         var buffs = extractBuffs(it);
@@ -84,10 +86,14 @@
     } finally {
       btn.disabled = false;
     }
-  };
+  }
+  document.getElementById("loadBtn").onclick = load;
   document.getElementById("q").addEventListener("input", paint);
+  window.render = function () { if (hasLoaded) load(); };
   try {
     if (window.TarkovProfile && TarkovProfile.bindGameMode)
       TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+    if (window.TarkovProfile && TarkovProfile.bindRefresh)
+      TarkovProfile.bindRefresh(function () { window.render(); });
   } catch (e) {}
 })();

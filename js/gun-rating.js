@@ -31,6 +31,7 @@
   var rows = [];
   var sortKey = "score";
   var sortDir = -1;
+  var hasLoaded = false;
 
   function esc(s) {
     try {
@@ -310,6 +311,7 @@
         }
       });
       fillCalSelect();
+      hasLoaded = true;
       document.getElementById("filterCard").hidden = false;
       setStatus("Оружие: " + guns.length + " · калибров патронов: " + Object.keys(ammoByCal).length, true);
       if (P) P.done();
@@ -326,6 +328,10 @@
   }
 
   document.getElementById("loadBtn").onclick = load;
+  window.render = function () { if (hasLoaded) load(); };
+  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+    TarkovProfile.bindRefresh(function () { window.render(); });
+  }
   ["q", "cal", "maxPrice"].forEach(function (id) {
     var el = document.getElementById(id);
     el.addEventListener("input", buildRows);

@@ -460,7 +460,7 @@
       map.fitBounds(BOUNDS, { padding: [16, 16] });
     });
     document.getElementById("btnAll").addEventListener("click", function () { setAll(true); });
-    document.getElementById("btnNone").addEventListener("click", function () { set
+    document.getElementById("btnNone").addEventListener("click", function () { setAll(false); });
     /* ——— admin edit layer (same map engine) ——— */
     var addMode = false;
     var pickPosMode = null; /* { item, opts, fields } after "указать на карте" */
@@ -836,17 +836,6 @@
         };
       }, 30);
     };
-
-JSON.parse(reader.result));
-          loadMap(currentMapId);
-          adminStatus("Импорт OK");
-        } catch (err) { alert(err.message); }
-      };
-      reader.readAsText(f);
-      this.value = "";
-    });
-
-
 
     /* gate */
     (function () {

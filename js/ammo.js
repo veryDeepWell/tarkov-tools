@@ -364,32 +364,12 @@
       });
     });
 
-    (function() {
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(window.itemName&&window.itemName!==itemName)return window.itemName(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    var s=(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
-    return s||it.id||'';
-  }
-
-      // Game mode is owned by the shared Tarkov profile, not tool settings.
-      if (window.TarkovProfile && TarkovProfile.bindGameMode) {
-        var gameModeEl = document.getElementById('gameMode');
-        if (gameModeEl) gameModeEl.__ttProfileBound = false;
-        TarkovProfile.bindGameMode('gameMode', { fallback: 'pve' });
-      }
-    })();
-
-
 window.render = function () {
   try {
     if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
   } catch (e0) { try { console.debug && console.debug("[tt:ammo]", e0); } catch (_tt) { /* ignore */ } }
   try {
-    if (typeof typeof renderTable==='function'&&renderTable() === "function") typeof renderTable==='function'&&renderTable()();
+    renderTable();
   } catch (e1) { try { console.debug && console.debug("[tt:ammo]", e1); } catch (_tt) { /* ignore */ } }
 };
 if (window.TarkovProfile && TarkovProfile.bindRefresh) {

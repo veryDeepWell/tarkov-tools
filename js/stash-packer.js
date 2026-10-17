@@ -2,6 +2,7 @@
 (function () {
   "use strict";
   var pool = []; // {id,name,w,h,kind}
+  var hasLoaded = false;
 
   function esc(s) {
     return window.TarkovDicts && TarkovDicts.esc ? TarkovDicts.esc(s) :
@@ -107,8 +108,8 @@
       : "");
   }
 
-  document.getElementById("loadBtn").onclick = async function () {
-    var btn = this;
+  async function load() {
+    var btn = document.getElementById("loadBtn");
     btn.disabled = true;
     setStatus("Загрузка контейнеров…");
     try {
@@ -142,13 +143,15 @@
       sel.innerHTML = pool.slice(0, 200).map(function (c) {
         return "<option value=\"" + esc(c.id) + "\">" + esc(c.name) + " (" + c.w + "×" + c.h + " · " + c.kind + ")</option>";
       }).join("");
+      hasLoaded = true;
       setStatus("Контейнеров: " + pool.length, "ok");
     } catch (e) {
       setStatus("Ошибка: " + (e.message || e), "err");
     } finally {
       btn.disabled = false;
     }
-  };
+  }
+  document.getElementById("loadBtn").onclick = load;
 
   document.getElementById("packBtn").onclick = function () {
     var sel = document.getElementById("pick");
@@ -179,8 +182,11 @@
     setStatus("Размещено " + result.placed.length + " / " + items.length, result.failed.length ? "err" : "ok");
   };
 
+  window.render = function () { if (hasLoaded) load(); };
   try {
     if (window.TarkovProfile && TarkovProfile.bindGameMode)
       TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+    if (window.TarkovProfile && TarkovProfile.bindRefresh)
+      TarkovProfile.bindRefresh(function () { window.render(); });
   } catch (e) {}
 })();
