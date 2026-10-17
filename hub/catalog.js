@@ -158,6 +158,14 @@ window.__TT_CATALOG_DATA = {
       "kind": "static"
     },
     {
+      "file": "tools/tarkovtool-effects.html",
+      "title": "Эффекты",
+      "description": "R-3.5: баффы/дебаффы со стимуляторов и расходников",
+      "icon": "other",
+      "cat": "other",
+      "kind": "static"
+    },
+    {
       "file": "tools/tarkovtool-food.html",
       "title": "Еда и вода",
       "description": "Пища / вода: energy, hydration, цена, рейтинг ₽/очко.",
@@ -230,9 +238,17 @@ window.__TT_CATALOG_DATA = {
       "kind": "static"
     },
     {
+      "file": "tools/tarkovtool-item-card.html",
+      "title": "Карточка предмета",
+      "description": "R-3: узел связей предмета (квесты, крафты, торговцы).",
+      "icon": "other",
+      "cat": "other",
+      "kind": "static"
+    },
+    {
       "file": "tools/tarkovtool-item-use.html",
-      "title": "Что с предметом",
-      "description": "Ввёл предмет — продажа, крафт, убежище, квесты, бартер.",
+      "title": "item-use",
+      "description": "",
       "icon": "other",
       "cat": "other",
       "kind": "static"
@@ -414,6 +430,14 @@ window.__TT_CATALOG_DATA = {
       "kind": "static"
     },
     {
+      "file": "tools/tarkovtool-random-fact.html",
+      "title": "Случайный факт",
+      "description": "R-3.8: факты из базы и curated JSON",
+      "icon": "other",
+      "cat": "other",
+      "kind": "static"
+    },
+    {
       "file": "tools/tarkovtool-random-loadout.html",
       "title": "Рандомный лоадаут",
       "description": "Случайный ган без модов — раскладка как на персонаже.",
@@ -478,6 +502,22 @@ window.__TT_CATALOG_DATA = {
       "kind": "static"
     },
     {
+      "file": "tools/tarkovtool-sources.html",
+      "title": "Источники",
+      "description": "Wiki, Reddit, YouTube, API — R-3.7",
+      "icon": "other",
+      "cat": "other",
+      "kind": "static"
+    },
+    {
+      "file": "tools/tarkovtool-stash-packer.html",
+      "title": "Уклад схрона",
+      "description": "R-3.6: оптимизация кейсов/рюкзаков на сетке",
+      "icon": "other",
+      "cat": "other",
+      "kind": "static"
+    },
+    {
       "file": "tools/tarkovtool-stim-combos.html",
       "title": "Комбо стимуляторов",
       "description": "Связки вроде Meldonin+SJ1, SJ6+Trimadol, Propital+MULE. Иконки и копир.",
@@ -499,6 +539,14 @@ window.__TT_CATALOG_DATA = {
       "description": "Ивент-предметы и флип",
       "icon": "flea",
       "cat": "flea",
+      "kind": "static"
+    },
+    {
+      "file": "tools/tarkovtool-strength-calc.html",
+      "title": "Калькулятор силы",
+      "description": "Перевес по Strength, комбо стимов до elite.",
+      "icon": "other",
+      "cat": "other",
       "kind": "static"
     },
     {
