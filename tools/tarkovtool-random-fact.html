@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Случайный факт — Tarkov Tools</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Случайный факт", "description": "R-3.8: факты из базы и curated JSON"}
+  </script>
+  <style>
+    body{min-height:100vh;padding:20px 14px 48px}
+    .container{max-width:min(700px,94vw);margin:0 auto}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:12px}
+    .fact-box{font-size:1.2rem;line-height:1.55;padding:18px;background:var(--input-bg);border-radius:10px;border:1px solid var(--border);min-height:4em}
+    .btn{background:var(--accent);color:#111;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;margin-right:8px;margin-top:12px}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 12px;cursor:pointer;margin-top:12px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Случайный факт</h1>
+    <p class="sub">R-3.8 — curated + опционально цифры из API.</p>
+    <div class="card">
+      <div class="fact-box" id="fact">…</div>
+      <button type="button" class="btn" id="nextBtn">Ещё факт</button>
+      <button type="button" class="btn-ghost" id="refreshDyn">Подтянуть из API</button>
+    </div>
+  </div>
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-schema.js"></script>
+  <script src="../core/tarkov-profile.js"></script>
+  <script src="../core/tarkov-nav.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="../js/random-fact.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>

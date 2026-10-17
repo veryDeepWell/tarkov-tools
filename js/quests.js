@@ -58,7 +58,7 @@
 
     document.getElementById('loadBtn').onclick = async () => {
       const st = document.getElementById('status');
-      st.className = 'status'; st.textContent = (window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t("common.loading") : "Loading…");
+      st.className = 'status'; st.textContent = 'Гружу…';
       try {
         const mode = document.getElementById('gameMode').value || 'pve';
         const [jt, jm, en, ru] = await Promise.all([
@@ -254,6 +254,20 @@
   } else {
     __ttBindMode();
   }
+
+  // R3.1b: deep-link ?task=
+  (function () {
+    try {
+      var sp = new URLSearchParams(location.search);
+      var tid = sp.get("task");
+      if (!tid) return;
+      var input = document.getElementById("search") || document.querySelector("input[type=search], #q, #filter");
+      if (input) {
+        input.value = tid;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    } catch (e) {}
+  })();
 })();
 
 window.addEventListener("tt-profile-changed", function () { try { render(); } catch (e) { try { console.debug && console.debug("[tt:quests]", e); } catch (_tt) { /* ignore */ } } });

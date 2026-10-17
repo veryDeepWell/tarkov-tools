@@ -453,7 +453,39 @@ window.__TT_CATALOG_DATA = {
       "kind": "static"
     },
     {
-      "file": "tools/tarkovtool-skills.html",
+          {
+      "file": "tools/tarkovtool-effects.html",
+      "title": "Эффекты",
+      "description": "R-3.5: баффы и дебаффы со стимуляторов и расходников.",
+      "icon": "stims",
+      "cat": "other",
+      "kind": "static"
+    },
+    {
+      "file": "tools/tarkovtool-stash-packer.html",
+      "title": "Уклад схрона",
+      "description": "R-3.6: раскладка кейсов и рюкзаков на сетке.",
+      "icon": "containers",
+      "cat": "other",
+      "kind": "static"
+    },
+    {
+      "file": "tools/tarkovtool-sources.html",
+      "title": "Источники",
+      "description": "R-3.7: вики, Reddit, YouTube, API.",
+      "icon": "info",
+      "cat": "other",
+      "kind": "static"
+    },
+    {
+      "file": "tools/tarkovtool-random-fact.html",
+      "title": "Случайный факт",
+      "description": "R-3.8: факты из базы Tarkov Tools.",
+      "icon": "info",
+      "cat": "other",
+      "kind": "static"
+    },
+    "file": "tools/tarkovtool-skills.html",
       "title": "Скиллы + чизы",
       "description": "Уровень и способ быстрой прокачки каждого навыка.",
       "icon": "skills",

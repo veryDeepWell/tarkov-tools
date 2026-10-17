@@ -185,24 +185,25 @@
     var maxRpm = maxOf("rpm");
 
     raw.forEach(function (r) {
-      var cheapGun = 1 - r.price / maxPriceG;
-      var cheapAmmo = r.ammoPrice ? 1 - r.ammoPrice / maxAmmoP : 0.3;
-      var ammoAvail = r.ammoN / maxAmmoN;
+      // R3.3 pure: weapon stats + modularity only (price/ammo cost kept as columns, not in score)
       var slotsN = r.slots / maxSlots;
       var modsN = r.modPool / maxPool;
       var ergoN = r.ergo / maxErgo;
       var recoilN = 1 - r.recoil / maxRecoil;
       var rpmN = r.rpm / maxRpm;
+      var ammoN = r.ammoN / maxAmmoN; // variety of ammo types, not price
       r.score =
         100 *
-        (0.14 * cheapGun +
-          0.12 * cheapAmmo +
-          0.12 * ammoAvail +
-          0.1 * slotsN +
+        (0.22 * ergoN +
+          0.22 * recoilN +
+          0.16 * rpmN +
+          0.16 * slotsN +
           0.14 * modsN +
-          0.14 * ergoN +
-          0.14 * recoilN +
-          0.1 * rpmN);
+          0.1 * ammoN);
+      r.metaScore =
+        100 *
+        (0.5 * (1 - r.price / maxPriceG) +
+          0.5 * (r.ammoPrice ? 1 - r.ammoPrice / maxAmmoP : 0.3));
     });
 
     rows = raw.filter(function (r) {
@@ -363,17 +364,5 @@
     document.addEventListener("DOMContentLoaded", __ttBindMode);
   } else {
     __ttBindMode();
-  }
-
-  window.render = function () {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try {
-      if (typeof paint === 'function') paint(); else if (typeof render === 'function') render();
-    } catch (e1) {}
-  };
-  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-    TarkovProfile.bindRefresh(function () { window.render(); });
   }
 })();

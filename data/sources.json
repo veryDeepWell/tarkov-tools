@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "groups": [
+    {
+      "id": "wiki",
+      "title": "Wiki",
+      "items": [
+        {
+          "name": "Escape from Tarkov Wiki (Fandom)",
+          "url": "https://escapefromtarkov.fandom.com/wiki/Escape_from_Tarkov_Wiki",
+          "note": "Механики, предметы, квесты"
+        },
+        {
+          "name": "Official Battlestate site",
+          "url": "https://www.escapefromtarkov.com/",
+          "note": "Новости, лаунчер"
+        }
+      ]
+    },
+    {
+      "id": "community",
+      "title": "Community",
+      "items": [
+        {
+          "name": "r/EscapefromTarkov",
+          "url": "https://www.reddit.com/r/EscapefromTarkov/",
+          "note": "Reddit"
+        },
+        {
+          "name": "r/Tarkov",
+          "url": "https://www.reddit.com/r/Tarkov/",
+          "note": "Reddit alt"
+        },
+        {
+          "name": "Tarkov.dev",
+          "url": "https://tarkov.dev/",
+          "note": "API / данные предметов"
+        }
+      ]
+    },
+    {
+      "id": "youtube",
+      "title": "YouTube",
+      "items": [
+        {
+          "name": "Pestily",
+          "url": "https://www.youtube.com/@Pestily",
+          "note": "Гайды, вайпы"
+        },
+        {
+          "name": "DeadlySlob",
+          "url": "https://www.youtube.com/@DeadlySlob",
+          "note": "Deep dive"
+        }
+      ]
+    },
+    {
+      "id": "dev",
+      "title": "Разработчики",
+      "items": [
+        {
+          "name": "BSG Twitter/X",
+          "url": "https://x.com/bstategames",
+          "note": "Патчноуты, тизеры"
+        }
+      ]
+    }
+  ]
+}

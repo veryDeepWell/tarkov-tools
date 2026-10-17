@@ -66,18 +66,35 @@
           const cal = p.caliber;
           if (!cal) return;
 
-          // buy from traders
+          // buy from traders (P3: meta for gate)
           let traderPrice = 0, traderName = '', traderQuest = false, traderLL = 0;
-          const offers = it.buyFromTrader || [];
-          const usable = offers.filter(o => o && (o.priceRUB || o.price));
-          if (usable.length) {
-            // prefer cheapest RUB
-            usable.sort((a, b) => (a.priceRUB || a.price) - (b.priceRUB || b.price));
-            const best = usable[0];
-            traderPrice = Number(best.priceRUB != null ? best.priceRUB : best.price) || 0;
-            traderName = TarkovDicts.traderName(best.trader) || t('tool.compare.ui.trader');
-            traderQuest = !!best.taskUnlock;
-            traderLL = Number(best.minTraderLevel) || 0;
+          let traderKey = '', questName = '';
+          if (window.TarkovItemDomain && TarkovItemDomain.bestBuy) {
+            const best = TarkovItemDomain.bestBuy(it, { sources: 'buyFromTrader' });
+            if (best) {
+              traderPrice = best.price || 0;
+              traderName = best.traderName || best.name || TarkovDicts.traderName(best.trader) || t('tool.compare.ui.trader');
+              traderQuest = !!best.quest;
+              traderLL = best.ll || 0;
+              traderKey = best.traderKey || best.trader || '';
+              questName = best.questName || '';
+            }
+          } else {
+            const offers = it.buyFromTrader || [];
+            const usable = offers.filter(o => o && (o.priceRUB || o.price));
+            if (usable.length) {
+              usable.sort((a, b) => (a.priceRUB || a.price) - (b.priceRUB || b.price));
+              const best = usable[0];
+              traderPrice = Number(best.priceRUB != null ? best.priceRUB : best.price) || 0;
+              traderName = TarkovDicts.traderName(best.trader) || t('tool.compare.ui.trader');
+              traderQuest = !!best.taskUnlock;
+              traderLL = Number(best.minTraderLevel) || 0;
+              if (window.TarkovProfile && TarkovProfile.offerMeta) {
+                const meta = TarkovProfile.offerMeta(best);
+                traderKey = meta.traderKey || '';
+                questName = meta.questName || '';
+              }
+            }
           }
 
           const crafts = craftByProduct[it.id] || [];
@@ -103,6 +120,8 @@
             traderName,
             traderQuest,
             traderLL,
+            traderKey,
+            questName,
             hasCraft,
             craftQuest,
             craftCount: hasCraft ? crafts[0].count : 0,
@@ -148,7 +167,7 @@
             btn.classList.add('active');
             renderTable();
             saveSettings('tarkovAmmoSettings', {
-              
+              gameMode: document.getElementById('gameMode').value,
               activeCal: cal
             });
           };
@@ -256,6 +275,18 @@
       const tbody = document.getElementById('tbody');
       tbody.innerHTML = '';
       rows.forEach(r => {
+        // P3: profile gate on best trader offer
+        if (window.TarkovProfile && TarkovProfile.gate && (r.traderLL || r.traderQuest)) {
+          r._gate = TarkovProfile.gate({
+            trader: r.traderKey || '',
+            minLL: r.traderLL || 0,
+            questLocked: !!r.traderQuest,
+            questName: r.questName || ''
+          });
+          if (TarkovProfile.lockVisibility(r._gate) === 'hide') return;
+        } else {
+          r._gate = { locked: false, reason: '' };
+        }
         const cls = TarkovWeaponDomain.penChart(r.pen).map(cell => {
           return `<span class="${cell.rating}">${cell.class}</span>`;
         }).join('');
@@ -276,7 +307,7 @@
             <div class="name-cell" data-tip="1">
               ${r.icon?`<img class="ico ico-sm" src="${esc(r.icon)}" loading="lazy" alt="">`:''}
               <div class="txt">
-                <div class="name">${esc(r.name)}${r.tracer ? ' <span class="meta">TR</span>' : ''}${r.projectiles > 1 ? ' <span class="meta">×' + r.projectiles + '</span>' : ''}</div>
+                <div class="name">${r.id && window.TarkovItemGraph ? '<a class="item-link" href="'+esc(TarkovItemGraph.href(r.id))+'">' : ''}${esc(r.name)}${r.id && window.TarkovItemGraph ? '</a>' : ''}${r.tracer ? ' <span class="meta">TR</span>' : ''}${r.projectiles > 1 ? ' <span class="meta">×' + r.projectiles + '</span>' : ''}</div>
                 <div class="meta">${esc(r.slug)}</div>
               </div>
             </div>
@@ -292,6 +323,9 @@
           <td><button type="button" class="copy-btn" data-name="${esc(r.slug)}">${esc(t('tool.ammo.ui.copy'))}</button></td>
         `;
         tbody.appendChild(tr);
+        if (window.TarkovProfile && TarkovProfile.applyLockToElement && r._gate) {
+          TarkovProfile.applyLockToElement(tr, r._gate);
+        }
       });
 
       tbody.querySelectorAll('.copy-btn').forEach(btn => {
@@ -338,14 +372,20 @@
     if(!it)return '';
     if(typeof it==='string')return it;
     var s=(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20}$/i.test(it.name)?it.name:it.normalizedName)||s;
+    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
     return s||it.id||'';
   }
 
-      const s = loadSettings('tarkovAmmoSettings', {});
-            document.getElementById('gameMode').addEventListener('change', () => {
+      const s = loadSettings('tarkovAmmoSettings', { gameMode: 'regular' });
+      if (document.getElementById("gameMode")) {
+      var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
+        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
+        : ((s.gameMode) || "pve");
+      document.getElementById("gameMode").value = __ttMode;
+    }
+      document.getElementById('gameMode').addEventListener('change', () => {
         saveSettings('tarkovAmmoSettings', {
-          
+          gameMode: document.getElementById('gameMode').value,
           activeCal
         });
       });

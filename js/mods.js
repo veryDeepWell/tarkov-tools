@@ -303,7 +303,7 @@
         tr.innerHTML = `
           <td>
             <div class="name-cell">${m.icon?`<img class="ico ico-sm" src="${esc(m.icon)}" loading="lazy" alt="">`:''}<div class="txt">
-            <div class="name">${esc(m.name)}</div>
+            <div class="name">${m.id && window.TarkovItemGraph ? '<a class="item-link" href="'+esc(TarkovItemGraph.href(m.id))+'">' : ''}${esc(m.name)}${m.id && window.TarkovItemGraph ? '</a>' : ''}</div>
             <div class="meta">${esc(m.slug)}${extra}</div>
             </div></div>
           </td>

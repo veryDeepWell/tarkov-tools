@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Источники — Tarkov Tools</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"title": "Источники", "description": "Wiki, Reddit, YouTube, API — R-3.7"}
+  </script>
+  <style>
+    body{min-height:100vh;padding:20px 14px 48px}
+    .container{max-width:min(900px,94vw);margin:0 auto}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
+    .card-title{font-size:.85rem;text-transform:uppercase;color:var(--muted);margin-bottom:10px;font-weight:600}
+    .link-list{list-style:none;padding:0}
+    .link-list li{padding:8px 0;border-bottom:1px solid var(--border)}
+    a.item-link{color:var(--accent);text-decoration:none}
+    .meta{font-size:.82rem;color:var(--muted)}
+    .status{margin-top:8px;color:var(--muted)}.status.ok{color:var(--green)}.status.err{color:var(--red)}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Источники</h1>
+    <p class="sub">R-3.7 — вики, Reddit, YouTube, API. Редактируй <code>data/sources.json</code>.</p>
+    <div class="status" id="status">Загрузка…</div>
+    <div id="groups"></div>
+  </div>
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-schema.js"></script>
+  <script src="../core/tarkov-profile.js"></script>
+  <script src="../core/tarkov-nav.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="../js/sources.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>

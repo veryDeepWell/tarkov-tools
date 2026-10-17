@@ -261,6 +261,22 @@
     return width && height ? width * height : 0;
   }
 
+
+  /** R3.3: bonus if helmet can take NVG / tactical light */
+  function helmetMountBonus(item) {
+    var p = props(item);
+    var bonus = 0;
+    var slots = p.slots || p.armorSlots || [];
+    var i, name;
+    for (i = 0; i < slots.length; i++) {
+      name = String((slots[i] && (slots[i].name || slots[i]._name || slots[i].slotId || slots[i].nameId)) || "").toLowerCase();
+      if (/nvg|night.?vision|thermal/.test(name)) bonus += 12;
+      if (/light|tactical.?device|flash|laser|pointer/.test(name)) bonus += 8;
+      if (/mount|helmet.?block/.test(name)) bonus += 3;
+    }
+    return Math.min(30, bonus);
+  }
+
   function qualityValue(item, kind) {
     var p = props(item);
     if (kind === "food") {
@@ -283,7 +299,8 @@
     var slots = p.armorSlots || p.slots || [];
     var slotBenefit = Math.min(Array.isArray(slots) ? slots.length : 0, 5) * 0.03;
     var blindProtection = kind === "helmet" ? Math.max(0, number(p.blindnessProtection)) * 0.1 : 0;
-    return base * (1 + Math.min(coverage, 8) * 0.06 + ricochet + slotBenefit + blindProtection) /
+    var mountBonus = kind === "helmet" ? helmetMountBonus(item) / 100 : 0;
+    return base * (1 + Math.min(coverage, 8) * 0.06 + ricochet + slotBenefit + blindProtection + mountBonus) /
       (1 + mobilityPenalty * 5);
   }
 
@@ -363,12 +380,14 @@
           value: Math.round(priceScores[index]),
           load: Math.round(burdenScores[index])
         };
-        var score = components.quality * 0.5 +
-          components.accessibility * 0.2 +
-          components.value * 0.15 +
-          components.load * 0.15;
+        // R3.3 pure rating: stats only (quality + load). Meta (access/price) kept in components.
+        var pure = components.quality * 0.85 + components.load * 0.15;
+        var meta = components.accessibility * 0.55 + components.value * 0.45;
+        var score = pure;
         scores[item.id] = {
           score: Math.round(score * 10) / 10,
+          pureScore: Math.round(pure * 10) / 10,
+          metaScore: Math.round(meta * 10) / 10,
           components: components,
           price: effectivePrice(item),
           availability: components.accessibility,
@@ -435,13 +454,14 @@
   }
 
   global.TarkovItemDomain = {
-    __v: 2,
+    __v: 3,
     armorTypes: ARMOR_TYPES,
     classifyItem: classifyItem,
     baseModel: baseModel,
     armorModel: armorModel,
     plateModel: plateModel,
     armorRating: armorRating,
+    helmetMountBonus: helmetMountBonus,
     plateScore: plateScore,
     fleaTax: fleaTax,
     fleaNet: fleaNet,
