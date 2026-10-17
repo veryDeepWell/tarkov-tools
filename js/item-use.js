@@ -171,7 +171,7 @@
     if(!it)return '';
     if(typeof it==='string')return it;
     var s=(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
+    if(/^[a-f0-9]{20}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20}$/i.test(it.name)?it.name:it.normalizedName)||s;
     return s||it.id||'';
   }
 })();

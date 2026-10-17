@@ -140,7 +140,7 @@ const BOSS_RU = {
 
     async function doLoad(){
       const btn=document.getElementById('loadBtn'), status=document.getElementById('status');
-      btn.disabled=true; status.className='status'; status.textContent = (window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t("common.loading") : "Loading…");
+      btn.disabled=true; status.className='status'; status.textContent='Гружу…';
       try{
         await fetchData();
         document.getElementById('main').style.display='block';
@@ -153,7 +153,7 @@ const BOSS_RU = {
     }
     document.getElementById('loadBtn').onclick=doLoad;
     document.getElementById('refreshGoons').onclick=async()=>{
-      try{await fetchData();renderGoons();render();document.getElementById('status').textContent='Гуны обновлены'}catch(e){(window.TarkovUI && TarkovUI.softAlert ? TarkovUI.softAlert.bind(TarkovUI) : function(m){ var el=document.getElementById("status"); if(el){el.textContent=m;el.className="status err";}})(e.message, { tone: "err" })}
+      try{await fetchData();renderGoons();render();document.getElementById('status').textContent='Гуны обновлены'}catch(e){alert(e.message)}
     };
     document.getElementById('filters').onclick=e=>{
       const c=e.target.closest('.chip'); if(!c) return;

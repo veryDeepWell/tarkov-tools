@@ -32,7 +32,7 @@
     var slug = String(it.normalizedName || it.slug || "").trim();
     function bad(s) {
       if (!s) return true;
-      if (/^[a-f0-9]{20,}$/i.test(s)) return true;
+      if (/^[a-f0-9]{20}$/i.test(s)) return true;
       if (id && s.indexOf(id) === 0) return true;
       if (/\s(Name|ShortName)$/i.test(s)) return true;
       return false;

@@ -3,10 +3,10 @@
     if(!it)return '';
     if(typeof it==='string')return it;
     var s=String(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s)) {
+    if(/^[a-f0-9]{20}$/i.test(s)) {
       var n=String(it.name||'').trim();
       var sl=String(it.normalizedName||'').trim();
-      if(n && !/^[a-f0-9]{20,}$/i.test(n)) s=n;
+      if(n && !/^[a-f0-9]{20}$/i.test(n)) s=n;
       else if(sl) s=sl;
     }
     return s||it.id||'';
@@ -220,7 +220,7 @@ function renderTable(){
 
 function addToSacrifice(id){
   const idx = sacrifice.findIndex(x=>!x);
-  if(idx<0){ (window.TarkovUI && TarkovUI.softAlert ? TarkovUI.softAlert.bind(TarkovUI) : function(m){ var el=document.getElementById("status"); if(el){el.textContent=m;el.className="status err";}})(null, { key: "common.slotsFull", tone: "err" }); return; }
+  if(idx<0){ alert('Все 5 слотов заняты'); return; }
   sacrifice[idx]=id; renderSlots();
   if(window.TarkovTools&&TarkovTools.beep) TarkovTools.beep('ok');
 }

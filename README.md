@@ -1,1 +1,2 @@
-P4: copy core/, js/, locales/ into repo. Add script tag for tarkov-const.js before api.
+P2 hotfix: copy js/* into repo (wire⇒refresh + no dual gameMode).
+Critical for CI: shortname.js must have window.render + bindRefresh.
