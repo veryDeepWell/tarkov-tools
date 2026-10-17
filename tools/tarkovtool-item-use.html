@@ -1,46 +1,36 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Карточка предмета — Tarkov Tools</title>
-
   <script type="application/json" id="tarkovtool-meta">
   {
     "title": "Карточка предмета",
-    "description": "Совместимость со старыми ссылками на использование предметов. Перенаправление на новую карточку предмета.",
+    "description": "Совместимость со старыми ссылками на использование предметов. Перенаправление на карточку предмета.",
     "cat": "other",
     "kind": "static",
     "icon": "other"
   }
   </script>
-
   <script>
     (function () {
       var q = location.search || "";
       var hash = location.hash || "";
-
-      // Переносим старый параметр ?id= в новый ?item=.
+      // map legacy ?id= to ?item=
       try {
-        var params = new URLSearchParams(q);
-
-        if (params.has("id") && !params.has("item")) {
-          params.set("item", params.get("id"));
-          params.delete("id");
-          q = "?" + params.toString();
+        var sp = new URLSearchParams(q);
+        if (sp.get("id") && !sp.get("item")) {
+          sp.set("item", sp.get("id"));
+          sp.delete("id");
+          q = "?" + sp.toString();
         }
-      } catch (e) {
-        // При ошибке разбора сохраняем исходную строку запроса.
-      }
-
+      } catch (e) {}
       location.replace("tarkovtool-item-card.html" + q + hash);
     })();
   </script>
 </head>
 <body>
-  <p>
-    <a href="tarkovtool-item-card.html">Перейти к карточке предмета</a>
-  </p>
+  <p><a href="tarkovtool-item-card.html">Карточка предмета</a></p>
 </body>
 </html>

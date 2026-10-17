@@ -167,7 +167,6 @@
             btn.classList.add('active');
             renderTable();
             saveSettings('tarkovAmmoSettings', {
-              gameMode: document.getElementById('gameMode').value,
               activeCal: cal
             });
           };
@@ -376,19 +375,12 @@
     return s||it.id||'';
   }
 
-      const s = loadSettings('tarkovAmmoSettings', { gameMode: 'regular' });
-      if (document.getElementById("gameMode")) {
-      var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
-        ? TarkovProfile.preferredGameMode((s.gameMode) || "pve")
-        : ((s.gameMode) || "pve");
-      document.getElementById("gameMode").value = __ttMode;
-    }
-      document.getElementById('gameMode').addEventListener('change', () => {
-        saveSettings('tarkovAmmoSettings', {
-          gameMode: document.getElementById('gameMode').value,
-          activeCal
-        });
-      });
+      // Game mode is owned by the shared Tarkov profile, not tool settings.
+      if (window.TarkovProfile && TarkovProfile.bindGameMode) {
+        var gameModeEl = document.getElementById('gameMode');
+        if (gameModeEl) gameModeEl.__ttProfileBound = false;
+        TarkovProfile.bindGameMode('gameMode', { fallback: 'pve' });
+      }
     })();
 
 
