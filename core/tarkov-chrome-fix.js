@@ -115,6 +115,23 @@
       b.textContent = "Settings";
       bar.appendChild(b);
     }
+    /* Sources: header chrome only — between Settings and Language, NOT a catalog tool */
+    if (!document.getElementById("tt-bar-sources")) {
+      var src = document.createElement("a");
+      src.id = "tt-bar-sources";
+      src.className = "btn-ghost";
+      src.textContent = "Sources";
+      src.title = "Источники";
+      try {
+        var path = location.pathname || "";
+        if (/\/tools\//i.test(path)) src.href = "tarkovtool-sources.html";
+        else src.href = "tools/tarkovtool-sources.html";
+      } catch (eH) {
+        src.href = "tools/tarkovtool-sources.html";
+      }
+      src.style.textDecoration = "none";
+      bar.appendChild(src);
+    }
     if (!document.getElementById("tt-open-faq") && !document.getElementById("tt-bar-faq")) {
       var f = document.createElement("button");
       f.type = "button";

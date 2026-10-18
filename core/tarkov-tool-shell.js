@@ -255,17 +255,6 @@
       btn.style.cssText =
         "min-width:36px!important;width:36px;min-height:36px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center";
       act.appendChild(btn);
-      if (!document.getElementById("ttSourcesBtn")) {
-        var src = document.createElement("a");
-        src.id = "ttSourcesBtn";
-        src.className = "btn-ghost";
-        src.href = (location.pathname || "").indexOf("/tools/") >= 0
-          ? "tarkovtool-sources.html"
-          : "tools/tarkovtool-sources.html";
-        src.textContent = "Источники";
-        src.style.cssText = "margin-left:6px;text-decoration:none;display:inline-flex;align-items:center;padding:6px 10px;font-size:.85rem";
-        act.appendChild(src);
-      }
     }
     var hb = document.getElementById("helpBtn");
     if (!hb) return;
