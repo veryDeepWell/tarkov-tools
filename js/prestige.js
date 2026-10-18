@@ -442,7 +442,19 @@ if (window.TarkovProfile && TarkovProfile.bindRefresh) {
 
 /* R-2: gameMode from profile on load; changes write to profile */
 (function () {
-  function __ttBindMode() {
+  
+  // AUTO_LOAD: load API data once grid is ready (no silent empty state)
+  setTimeout(function () {
+    try {
+      if (!ensureGrid()) return;
+      if (window.TarkovAPI && TarkovAPI.items && !dataReady) {
+        var btn = $("loadBtn");
+        if (btn) btn.click();
+        else load();
+      }
+    } catch (eA) { try { console.debug && console.debug("[tt:prestige]", eA); } catch (_tt) {} }
+  }, 400);
+function __ttBindMode() {
     try {
       if (window.TarkovProfile && TarkovProfile.wireToolPage) {
         TarkovProfile.wireToolPage();

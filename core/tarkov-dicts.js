@@ -144,16 +144,32 @@
       .replace(/'/g, "&#39;");
   }
 
-  function humanize(slug) {
+    function humanize(slug) {
+    if (slug && typeof slug === "object") {
+      try {
+        if (global.TarkovNames && TarkovNames.display) return TarkovNames.display(slug) || "?";
+      } catch (e0) {}
+      slug = slug.normalizedName || slug.shortName || slug.name || slug.id || "";
+    }
     if (!slug) return "?";
-    return String(slug)
+    var s = String(slug).trim();
+    // mongo / uuid-like — do not title-case into garbage
+    if (/^[a-f0-9]{20,}$/i.test(s) || /^[a-f0-9]{24}$/i.test(s)) {
+      return s.length > 8 ? ("…" + s.slice(-6)) : s;
+    }
+    try {
+      if (global.TarkovNames && TarkovNames.display && s.indexOf(" ") < 0 && s.indexOf("-") >= 0) {
+        /* slug path still humanize below */
+      }
+    } catch (e1) {}
+    return s
       .replace(/[-_]+/g, " ")
       .replace(/\s+/g, " ")
       .trim()
       .replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });
   }
 
-  function fmtNum(n, digits) {
+function fmtNum(n, digits) {
     var x = Number(n);
     if (!isFinite(x)) return "—";
     if (digits != null) {

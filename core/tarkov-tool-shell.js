@@ -11,6 +11,17 @@
     (document.head || document.documentElement).appendChild(link);
   }
 
+
+  function ensureNamesJs() {
+    if (window.TarkovNames || document.getElementById("tt-names-js")) return;
+    var path = location.pathname || "";
+    var s = document.createElement("script");
+    s.id = "tt-names-js";
+    s.src = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-names.js";
+    s.async = false;
+    (document.head || document.documentElement).appendChild(s);
+  }
+
   function ensureUiJs() {
     if (window.TarkovUI) return;
     if (document.getElementById("tt-ui-js")) return;
@@ -244,6 +255,17 @@
       btn.style.cssText =
         "min-width:36px!important;width:36px;min-height:36px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center";
       act.appendChild(btn);
+      if (!document.getElementById("ttSourcesBtn")) {
+        var src = document.createElement("a");
+        src.id = "ttSourcesBtn";
+        src.className = "btn-ghost";
+        src.href = (location.pathname || "").indexOf("/tools/") >= 0
+          ? "tarkovtool-sources.html"
+          : "tools/tarkovtool-sources.html";
+        src.textContent = "Источники";
+        src.style.cssText = "margin-left:6px;text-decoration:none;display:inline-flex;align-items:center;padding:6px 10px;font-size:.85rem";
+        act.appendChild(src);
+      }
     }
     var hb = document.getElementById("helpBtn");
     if (!hb) return;

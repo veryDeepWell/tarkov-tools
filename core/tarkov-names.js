@@ -71,7 +71,11 @@
     if (typeof item === "string") {
       const custom = getShort(item);
       if (custom) return custom;
-      if (isPlaceholderName(item) || isHashLike(item)) return humanizeSlug(item) || item;
+      if (isPlaceholderName(item) || isHashLike(item)) {
+        var h = humanizeSlug(item);
+        if (h && !isHashLike(h) && h !== item) return h;
+        return item.length > 8 ? ("…" + item.slice(-6)) : item;
+      }
       return item;
     }
     const id = item.id || item.itemId || "";
@@ -84,10 +88,15 @@
 
     if (gameShort && !isPlaceholderName(gameShort, id)) return gameShort;
     if (apiName && !isPlaceholderName(apiName, id)) return apiName;
-    if (slug) return humanizeSlug(slug);
-    if (gameShort) return gameShort;
-    if (apiName) return apiName;
-    return id || "";
+    if (slug && !isHashLike(slug) && !isPlaceholderName(slug, id)) return humanizeSlug(slug);
+    if (slug) {
+      var hum = humanizeSlug(slug);
+      if (hum && !isHashLike(hum)) return hum;
+    }
+    if (gameShort && !isHashLike(gameShort)) return gameShort;
+    if (apiName && !isHashLike(apiName)) return apiName;
+    if (id && id.length > 8) return "…" + id.slice(-6);
+    return id || "?";
   }
 
   function displayFull(item) {

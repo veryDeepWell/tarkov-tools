@@ -230,8 +230,8 @@ window.__TT_CATALOG_DATA = {
     },
     {
       "file": "tools/tarkovtool-item-use.html",
-      "title": "Что с предметом",
-      "description": "Ввёл предмет — продажа, крафт, убежище, квесты, бартер.",
+      "title": "Карточка предмета",
+      "description": "Старая ссылка — открывает карточку предмета.",
       "icon": "item-use",
       "cat": "other",
       "kind": "static"
@@ -455,7 +455,7 @@ window.__TT_CATALOG_DATA = {
     {
       "file": "tools/tarkovtool-effects.html",
       "title": "Эффекты",
-      "description": "R-3.5: баффы и дебаффы со стимуляторов и расходников.",
+      "description": "Баффы и дебаффы со стимуляторов, еды и расходников.",
       "icon": "stims",
       "cat": "other",
       "kind": "static"
@@ -463,23 +463,15 @@ window.__TT_CATALOG_DATA = {
     {
       "file": "tools/tarkovtool-stash-packer.html",
       "title": "Уклад схрона",
-      "description": "R-3.6: раскладка кейсов и рюкзаков на сетке.",
+      "description": "Раскладка кейсов и рюкзаков на сетке схрона.",
       "icon": "containers",
-      "cat": "other",
-      "kind": "static"
-    },
-    {
-      "file": "tools/tarkovtool-sources.html",
-      "title": "Источники",
-      "description": "R-3.7: вики, Reddit, YouTube, API.",
-      "icon": "info",
       "cat": "other",
       "kind": "static"
     },
     {
       "file": "tools/tarkovtool-random-fact.html",
       "title": "Случайный факт",
-      "description": "R-3.8: факты из базы Tarkov Tools.",
+      "description": "Факты о предметах, квестах и базе сайта.",
       "icon": "info",
       "cat": "other",
       "kind": "static"

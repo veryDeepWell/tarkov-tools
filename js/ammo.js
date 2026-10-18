@@ -22,11 +22,22 @@
 
     function humanize(slug) { return TarkovDicts.humanize(slug); }
     function formatNum(n) { return TarkovDicts.fmtNum(n); }
-    function shortAmmoName(slug) {
-      // 556x45mm-m855 -> M855
-      if (!slug) return '?';
-      const s = slug.replace(/^\d+x\d+(mm)?-?/i, '').replace(/-gzh$/i, '');
-      return s.toUpperCase().replace(/-/g, ' ') || humanize(slug);
+    function shortAmmoName(itOrSlug) {
+      if (itOrSlug && typeof itOrSlug === "object") {
+        try { if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(itOrSlug); } catch (e) {}
+        return shortAmmoName(itOrSlug.normalizedName || itOrSlug.shortName || itOrSlug.name || "");
+      }
+      var slug = String(itOrSlug || "");
+      try {
+        if (window.TarkovNames && TarkovNames.isHashLike && TarkovNames.isHashLike(slug))
+          return slug.length > 8 ? ("…" + slug.slice(-6)) : slug;
+      } catch (e2) {}
+      var s = slug.replace(/^caliber/i, "").replace(/^[0-9.]+x[0-9.]+-/i, function(m){return m;});
+      // keep last segment often ammo type
+      var parts = slug.split("-").filter(Boolean);
+      if (parts.length >= 2) s = parts.slice(-2).join(" ");
+      else s = slug;
+      return s.toUpperCase().replace(/-/g, " ") || humanize(slug);
     }
 
     document.getElementById('loadBtn').addEventListener('click', async () => {
@@ -104,8 +115,8 @@
           const row = {
             id: it.id,
             slug: it.normalizedName || '',
-            name: shortAmmoName(it.normalizedName),
-            full: humanize(it.normalizedName),
+            name: shortAmmoName(it),
+            full: (window.TarkovNames && TarkovNames.displayFull ? TarkovNames.displayFull(it) : humanize(it.normalizedName)),
             icon: it.iconLink || it.gridImageLink || '',
             pen: Number(p.penetrationPower) || 0,
             dmg: Number(p.damage) || 0,
