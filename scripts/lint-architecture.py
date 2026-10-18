@@ -67,7 +67,24 @@ def main() -> int:
     for warning in warnings:
         fail(errors, warning)
 
-    page_names = {f"tools/{page.name}" for page in pages}
+    def is_catalogable(page: Path) -> bool:
+        html = page.read_text(encoding="utf-8", errors="replace")
+        m = CATALOG_HTML.search(html)
+        if not m:
+            return True
+        try:
+            import json
+            meta = json.loads(m.group(1).strip())
+            if meta.get("catalog") is False:
+                return False
+        except Exception:
+            pass
+        slug = page.name.replace("tarkovtool-", "").replace(".html", "")
+        if slug in ("sources", "item-use"):
+            return False
+        return True
+
+    page_names = {f"tools/{page.name}" for page in pages if is_catalogable(page)}
     entry_names = {entry["file"] for entry in entries}
     if page_names != entry_names:
         fail(errors, f"catalog/page mismatch: {len(page_names - entry_names)} pages missing, {len(entry_names - page_names)} stale entries")

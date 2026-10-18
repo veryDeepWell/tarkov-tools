@@ -26,6 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ROOT / "tools"
+SKIP_SLUGS = {"sources", "item-use"}
 OUT_HUB = ROOT / "hub" / "catalog.js"
 ICON_DIR = ROOT / "assets" / "icons"
 
@@ -108,6 +109,8 @@ def collect() -> list[dict]:
         slug = slug_from_file(path.name)
         raw = path.read_text(encoding="utf-8", errors="replace")
         meta = parse_meta(raw) or {}
+        if meta.get("catalog") is False or slug in SKIP_SLUGS:
+            continue
 
         title = (meta.get("title") or slug).strip()
         description = (meta.get("description") or "").strip()

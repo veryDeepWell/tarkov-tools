@@ -1,22 +1,19 @@
-# Bugfix: names, prestige, catalog, Sources header
+# Fix: hub/catalog.js stale + Sources not a catalog tool
 
-## 1. Names (hashes)
-- `core/tarkov-names.js` — never show full mongo id as name; fallback `…xxxxxx`
-- `core/tarkov-dicts.js` — `humanize()` skips hash-like strings; objects → TarkovNames.display
-- `core/tarkov-tool-shell.js` — injects `tarkov-names.js` if missing
-- `js/ammo.js` — names via TarkovNames.display(item)
+## Changes
+1. **Rebuilt** `hub/catalog.js` via `scripts/build-catalog.py` (67 catalog tools)
+2. **`scripts/build-catalog.py`**: skip pages with `"catalog": false` or slug in `{sources, item-use}`
+3. **`scripts/lint-architecture.py`**: page/catalog set uses same rule (no false mismatch)
+4. **Meta** on `tarkovtool-sources.html` and `tarkovtool-item-use.html`: `"catalog": false`
+5. Cleaned R-3 prefixes in tool metas
 
-## 2. Prestige
-- Auto-load API ~400ms after grid ready (less empty state)
-
-## 3. Catalog
-- Removed **Источники** as catalog tool
-- Descriptions without `R-3.x:` prefixes
-- Human-readable titles/descriptions for item-card, effects, packer, fact, strength
-
-## 4. Sources = header button
-- Shell adds **Источники** link in `.tt-tool-header-actions` (all tool pages)
-- Page `tarkovtool-sources.html` remains for the content
-
-## Copy
-core/*, js/*, tools/*, catalog-data.js, hub/catalog-data.js
+## Apply to repo
+```
+cp hub/catalog.js
+cp scripts/build-catalog.py
+cp scripts/lint-architecture.py
+cp tools/tarkovtool-sources.html tools/tarkovtool-item-use.html
+# + other cleaned tool html if needed
+python3 scripts/build-catalog.py
+python3 scripts/lint-architecture.py
+```

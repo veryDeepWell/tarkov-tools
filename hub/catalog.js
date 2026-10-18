@@ -160,7 +160,7 @@ window.__TT_CATALOG_DATA = {
     {
       "file": "tools/tarkovtool-effects.html",
       "title": "Эффекты",
-      "description": "R-3.5: баффы/дебаффы со стимуляторов и расходников",
+      "description": "Баффы и дебаффы со стимуляторов, еды и расходников.",
       "icon": "other",
       "cat": "other",
       "kind": "static"
@@ -240,15 +240,7 @@ window.__TT_CATALOG_DATA = {
     {
       "file": "tools/tarkovtool-item-card.html",
       "title": "Карточка предмета",
-      "description": "R-3: узел связей предмета (квесты, крафты, торговцы).",
-      "icon": "other",
-      "cat": "other",
-      "kind": "static"
-    },
-    {
-      "file": "tools/tarkovtool-item-use.html",
-      "title": "Карточка предмета",
-      "description": "Совместимость со старыми ссылками на использование предметов. Перенаправление на карточку предмета.",
+      "description": "Характеристики, цены, торговцы, квесты, крафты и связи предмета.",
       "icon": "other",
       "cat": "other",
       "kind": "static"
@@ -432,7 +424,7 @@ window.__TT_CATALOG_DATA = {
     {
       "file": "tools/tarkovtool-random-fact.html",
       "title": "Случайный факт",
-      "description": "R-3.8: факты из базы и curated JSON",
+      "description": "Факты о предметах, квестах и базе сайта.",
       "icon": "other",
       "cat": "other",
       "kind": "static"
@@ -502,17 +494,9 @@ window.__TT_CATALOG_DATA = {
       "kind": "static"
     },
     {
-      "file": "tools/tarkovtool-sources.html",
-      "title": "Источники",
-      "description": "Wiki, Reddit, YouTube, API — R-3.7",
-      "icon": "other",
-      "cat": "other",
-      "kind": "static"
-    },
-    {
       "file": "tools/tarkovtool-stash-packer.html",
       "title": "Уклад схрона",
-      "description": "R-3.6: оптимизация кейсов/рюкзаков на сетке",
+      "description": "Раскладка кейсов и рюкзаков на сетке схрона.",
       "icon": "other",
       "cat": "other",
       "kind": "static"
@@ -544,7 +528,7 @@ window.__TT_CATALOG_DATA = {
     {
       "file": "tools/tarkovtool-strength-calc.html",
       "title": "Калькулятор силы",
-      "description": "Перевес по Strength, комбо стимов до elite.",
+      "description": "Пороги перевеса по уровню Strength и комбо стимуляторов.",
       "icon": "other",
       "cat": "other",
       "kind": "static"
