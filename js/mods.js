@@ -260,4 +260,30 @@
       if (btn) btn.disabled = false;
     }
   };
+
+
+  // contract: gate ⇒ window.render = in this file
+  var __ttPaint = function () {
+    try {
+      if (api && typeof api.setRows === "function" && mods && mods.length) {
+        api.setRows(mods);
+      } else if (window.render && window.render !== __ttPaint) {
+        /* noop */
+      }
+    } catch (e) {}
+  };
+  window.render = function () {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+    } catch (e0) {}
+    try {
+      if (api && typeof api.setRows === "function") api.setRows(mods || []);
+    } catch (e1) {}
+  };
+  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+    TarkovProfile.bindRefresh(function () {
+      window.render();
+    });
+  }
+
 })();

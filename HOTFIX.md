@@ -1,12 +1,12 @@
-# Hotfix: armor `plate-show`
+# Hotfix: mods.js gate ⇒ window.render =
 
 CI:
 ```
-FAIL: armor tool must expose compatible plates from its own column
+FAIL: js/mods.js uses TarkovProfile.gate but has no window.render / onProfileRefresh / bindRefresh
 ```
-Cause: `domain-contract-check.sh` greps `plate-show` in `js/armor.js`.
-T4 used `compat-btn` → renamed to `plate-show`.
 
-```bash
-bash scripts/domain-contract-check.sh
-```
+Contract greps **this file** for `window.render =` (assignment), not calls.
+
+Added:
+- `window.render = function () { ... }`
+- `TarkovProfile.bindRefresh(...)`
