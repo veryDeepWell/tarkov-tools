@@ -35,7 +35,7 @@
     columns: [
       {
         key: "name",
-        label: "Предмет",
+        label: "name",
         html: function (r, h) {
           return TarkovTableTool.nameCell(
             { name: r.name, slug: r.full || r.slug, icon: r.icon },
@@ -45,7 +45,7 @@
       },
       {
         key: "kind",
-        label: "Тип",
+        label: "kind",
         html: function (r, h) {
           try {
             return h.esc(t("tool.food.ui.kind." + r.kind));

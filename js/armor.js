@@ -132,7 +132,7 @@
     columns: [
       {
         key: "name",
-        label: "Броня",
+        label: "name",
         html: function (r, h) {
           return TarkovTableTool.nameCell(r, h);
         }
@@ -142,7 +142,7 @@
       { key: "dur", label: "Dur", format: "num" },
       { key: "zones", label: "Zones" },
       { key: "avg", label: "Flea", format: "num" },
-      { key: "traderPrice", label: "Торговец", format: "num" },
+      { key: "traderPrice", label: "trader", format: "num" },
       {
         key: "score",
         label: "Score",
@@ -158,7 +158,7 @@
           var n = (r.plateIds && r.plateIds.length) || 0;
           if (!n) return "—";
           return (
-            '<button type="button" class="copy-btn compat-btn" data-id="' +
+            '<button type="button" class="copy-btn plate-show" data-id="' +
             h.esc(r.id) +
             '">' +
             n +
@@ -180,7 +180,7 @@
       list.forEach(function (r) {
         byId[r.id] = r;
       });
-      tb.querySelectorAll(".compat-btn").forEach(function (btn) {
+      tb.querySelectorAll(".plate-show").forEach(function (btn) {
         btn.onclick = function () {
           var row = byId[btn.getAttribute("data-id")];
           if (row) showPlates(row);

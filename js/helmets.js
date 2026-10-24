@@ -39,7 +39,7 @@
     columns: [
       {
         key: "name",
-        label: "Шлем",
+        label: "name",
         html: function (r, h) {
           return TarkovTableTool.nameCell(r, h);
         }
