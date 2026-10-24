@@ -85,7 +85,7 @@
   }
 
   TarkovTableTool.create({
-    tbody: "#tbody",
+    tbody: "#stimBody",
     thead: "#stimHead",
     status: "#status",
     loadBtn: "#loadBtn",

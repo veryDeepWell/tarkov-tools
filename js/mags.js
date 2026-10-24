@@ -92,6 +92,7 @@
     });
 
   var api = TarkovTableTool.create({
+    autoLoad: false,
     tbody: "#tbody",
     thead: "#magsHead",
     status: "#status",

@@ -128,6 +128,7 @@
   });
 
   var api = TarkovTableTool.create({
+    autoLoad: false,
     tbody: "#tbody",
     thead: "#modsHead",
     status: "#status",

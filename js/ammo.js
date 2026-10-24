@@ -71,7 +71,8 @@
     if (card) card.style.display = cals.length ? "block" : "none";
   }
 
-  api = TarkovTableTool.create({
+  var api = TarkovTableTool.create({
+    autoLoad: false,
     tbody: "#tbody",
     thead: "#ammoHead",
     status: "#status",

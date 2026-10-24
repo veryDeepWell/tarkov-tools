@@ -112,6 +112,7 @@
     });
 
   tableApi = TarkovTableTool.create({
+    autoLoad: false,
     tbody: "#tbody",
     thead: "#keysHead",
     status: "#status",

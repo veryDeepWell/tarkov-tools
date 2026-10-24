@@ -5,6 +5,7 @@ Requires Node.js on PATH. Archived historical files under _archive/ are excluded
 """
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import sys
@@ -21,7 +22,9 @@ class HtmlAuditParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=False)
         self.ids: list[str] = []
+        self.id_tags: dict[str, str] = {}
         self.refs: list[str] = []
+        self.script_srcs: list[str] = []
         self.inline_scripts: list[tuple[str, str]] = []
         self._script_open = False
         self._script_type = ""
@@ -30,11 +33,15 @@ class HtmlAuditParser(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         values = dict(attrs)
         if values.get("id"):
-            self.ids.append(str(values["id"]))
+            element_id = str(values["id"])
+            self.ids.append(element_id)
+            self.id_tags.setdefault(element_id, tag.lower())
         for attr in ("src", "href"):
             value = values.get(attr)
             if value:
                 self.refs.append(value)
+        if tag.lower() == "script" and values.get("src"):
+            self.script_srcs.append(str(values["src"]))
         if tag.lower() == "script" and not values.get("src"):
             self._script_open = True
             self._script_type = (values.get("type") or "").lower()
@@ -98,6 +105,64 @@ def main() -> int:
             local_path = ref.split("#", 1)[0].split("?", 1)[0]
             if local_path and not (path.parent / local_path).resolve().exists():
                 errors.append(f"Missing local href/src in {path.relative_to(ROOT)}: {ref}")
+
+        # Runtime contract: every page using the shared table renderer must load it
+        # before its tool script, and all selectors captured at initialization must exist.
+        script_paths: list[Path] = []
+        script_sources: list[tuple[str, Path, str]] = []
+        for src in parser.script_srcs:
+            if src.startswith(("http:", "https:", "//", "data:", "javascript:")):
+                continue
+            local_path = src.split("#", 1)[0].split("?", 1)[0]
+            if not local_path:
+                continue
+            resolved = (path.parent / local_path).resolve()
+            script_paths.append(resolved)
+            if resolved.suffix.lower() == ".js" and resolved.is_file():
+                script_sources.append((src, resolved, resolved.read_text(encoding="utf-8", errors="replace")))
+
+        table_engine = next((i for i, candidate in enumerate(script_paths)
+                             if candidate.name == "tarkov-table-tool.js"), None)
+        for index, (_src, tool_path, tool_source) in enumerate(script_sources):
+            if "TarkovTableTool.create" not in tool_source:
+                continue
+            rel_tool = str(tool_path.relative_to(ROOT)) if tool_path.is_relative_to(ROOT) else str(tool_path)
+            custom_load_handler = re.search(
+                r"(?:\bloadBtn\s*\.onclick|document\.getElementById\(\s*['\"]loadBtn['\"]\s*\)\s*\.onclick)",
+                tool_source,
+            )
+            if custom_load_handler and not re.search(r"\bautoLoad\s*:\s*false", tool_source):
+                errors.append(
+                    f"{path.relative_to(ROOT)}: {rel_tool} has a custom loadBtn.onclick but does not disable the table engine auto-loader"
+                )
+            if table_engine is None:
+                errors.append(
+                    f"Missing shared table engine in {path.relative_to(ROOT)} (required by {rel_tool})"
+                )
+            else:
+                tool_script_index = next((i for i, candidate in enumerate(script_paths) if candidate == tool_path), None)
+                if tool_script_index is not None and table_engine >= tool_script_index:
+                    errors.append(
+                        f"Table engine must load before {rel_tool} in {path.relative_to(ROOT)}"
+                    )
+            for option in ("tbody", "thead"):
+                # Check every literal selector in the tool source, not only the first
+                # occurrence: a script may initialize multiple tables.
+                pattern = re.compile(r"\b" + option + r"\s*:\s*['\"]([^'\"]+)['\"]")
+                for match in pattern.finditer(tool_source):
+                    selector = match.group(1)
+                    if not selector.startswith("#"):
+                        continue
+                    element_id = selector[1:]
+                    if element_id not in parser.id_tags:
+                        errors.append(
+                            f"{path.relative_to(ROOT)}: {rel_tool} captures missing {option} selector {selector}"
+                        )
+                    elif parser.id_tags[element_id] != option:
+                        errors.append(
+                            f"{path.relative_to(ROOT)}: {rel_tool} selector {selector} points to "
+                            f"<{parser.id_tags[element_id]}>, expected <{option}>"
+                        )
 
         for index, (source, _script_type) in enumerate(parser.inline_scripts, start=1):
             if not source.strip():

@@ -77,8 +77,9 @@
   });
 
   var api = TarkovTableTool.create({
+    autoLoad: false,
     tbody: "#tbody",
-    thead: "#thead",
+    thead: "#craftHead",
     status: "#status",
     loadBtn: "#loadBtn",
     search: "#search",

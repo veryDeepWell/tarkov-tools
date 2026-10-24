@@ -61,6 +61,7 @@
    * @param {string} [opts.defaultSort]
    * @param {number} [opts.defaultSortDir] -1|1
    * @param {boolean} [opts.progress]
+   * @param {boolean} [opts.autoLoad=true] — set false when the tool owns loadBtn.onclick
    * @param {function(rows, ctx)} [opts.afterPaint]
    * @param {function(ctx)} [opts.onLoaded]
    */
@@ -81,10 +82,22 @@
       if (!thead || !columns.length) return;
       var tr = thead.querySelector("tr") || document.createElement("tr");
       if (!tr.parentNode) thead.appendChild(tr);
+
+      // R3.16 retained localized table labels in HTML but removed the generated
+      // header IDs. Prefer a matching existing header label, then fall back to
+      // the tool's configured label. Header order always follows the data columns.
+      var labelsByKey = Object.create(null);
+      thead.querySelectorAll("th").forEach(function (th) {
+        var key = th.getAttribute("data-k") || th.getAttribute("data-s");
+        var label = (th.textContent || "").trim();
+        if (key && label && !labelsByKey[key]) labelsByKey[key] = label;
+      });
+
       tr.innerHTML = columns
         .map(function (c) {
           var sk = c.sort === false ? "" : ' data-k="' + esc(c.key) + '" style="cursor:pointer"';
-          return "<th" + sk + ">" + esc(c.label || c.key) + "</th>";
+          var label = labelsByKey[c.key] || c.label || c.key;
+          return "<th" + sk + ">" + esc(label) + "</th>";
         })
         .join("");
       tr.querySelectorAll("th[data-k]").forEach(function (th) {
@@ -206,9 +219,14 @@
 
     paintHead();
 
-    if (loadBtn) loadBtn.addEventListener("click", function () {
-      load();
-    });
+    // Some tools own their full load pipeline (multiple API requests, custom
+    // normalization, progress and error handling). They opt out with autoLoad:false
+    // to avoid running this generic empty/default loader on the same click.
+    if (loadBtn && opts.autoLoad !== false) {
+      loadBtn.addEventListener("click", function () {
+        load();
+      });
+    }
     if (search) {
       search.addEventListener("input", function () {
         paint();

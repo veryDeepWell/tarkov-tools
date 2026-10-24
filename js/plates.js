@@ -57,6 +57,7 @@
   });
 
   var api = TarkovTableTool.create({
+    autoLoad: false,
     tbody: "#plateBody",
     thead: "#plateHead",
     status: "#status",

@@ -7,7 +7,7 @@
   }
 
   TarkovTableTool.create({
-    tbody: "#tbody",
+    tbody: "#medBody",
     thead: "#medHead",
     status: "#status",
     loadBtn: "#loadBtn",

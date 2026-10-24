@@ -2,36 +2,76 @@
 (function () {
   "use strict";
 
-  var WANT_TYPES = ["findItem", "giveItem", "buildWeapon", "mark", "plantItem", "sellItem"];
+  var WANT_TYPES = [
+    "findItem", "giveItem", "buildWeapon", "mark", "plantItem", "sellItem",
+    "findQuestItem", "giveQuestItem", "plantQuestItem"
+  ];
   var TYPE_RU = {
     findItem: "Найти",
     giveItem: "Сдать",
     buildWeapon: "Собрать",
     mark: "Метка",
     plantItem: "Заложить",
-    sellItem: "Продать"
+    sellItem: "Продать",
+    findQuestItem: "Найти квестовый предмет",
+    giveQuestItem: "Сдать квестовый предмет",
+    plantQuestItem: "Заложить квестовый предмет"
   };
   var activeTypes = null;
   var done = {};
 
   function loadDone() {
     try {
-      if (window.TarkovProfile && TarkovProfile.getItemDone) {
-        /* profile may expose itemDone map */
+      if (window.TarkovProfile && TarkovProfile.migrateQuestItemDoneFromStorage) {
+        TarkovProfile.migrateQuestItemDoneFromStorage();
       }
-      var raw = window.TarkovStorage
-        ? TarkovStorage.load("tt:quest-items:done", {})
-        : {};
-      done = raw && typeof raw === "object" ? raw : {};
+      if (window.TarkovProfile && TarkovProfile.getActive) {
+        var profile = TarkovProfile.getActive();
+        var map = (profile && profile.quests && profile.quests.itemDone) || {};
+        done = Object.assign({}, map);
+      } else if (window.TarkovStorage && TarkovStorage.getJson) {
+        done = Object.assign({}, TarkovStorage.getJson("tarkovQuestItemsDone", {}) || {});
+      } else {
+        done = {};
+      }
     } catch (e) {
       done = {};
+      try { console.debug && console.debug("[tt:quest-items] loadDone", e); } catch (_e) {}
     }
   }
-  function saveDone() {
+
+  function setDoneKey(key, isDone) {
+    if (!key) return;
+    if (isDone) done[key] = true;
+    else delete done[key];
     try {
-      if (window.TarkovStorage) TarkovStorage.save("tt:quest-items:done", done);
-    } catch (e) {}
+      if (window.TarkovProfile && TarkovProfile.setQuestItemDone) {
+        TarkovProfile.setQuestItemDone(key, !!isDone);
+        return;
+      }
+      if (window.TarkovStorage && TarkovStorage.setJson) {
+        TarkovStorage.setJson("tarkovQuestItemsDone", done);
+      }
+    } catch (e) {
+      try { console.debug && console.debug("[tt:quest-items] setDoneKey", e); } catch (_e) {}
+    }
   }
+
+  function clearAllDone() {
+    done = {};
+    try {
+      if (window.TarkovProfile && TarkovProfile.clearQuestItemDone) {
+        TarkovProfile.clearQuestItemDone();
+        return;
+      }
+      if (window.TarkovStorage && TarkovStorage.setJson) {
+        TarkovStorage.setJson("tarkovQuestItemsDone", done);
+      }
+    } catch (e) {
+      try { console.debug && console.debug("[tt:quest-items] clearAllDone", e); } catch (_e) {}
+    }
+  }
+
   loadDone();
 
   function paintTypes(rows) {
@@ -87,12 +127,12 @@
   var clearBtn = document.getElementById("clearDone");
   if (clearBtn)
     clearBtn.onclick = function () {
-      done = {};
-      saveDone();
+      clearAllDone();
       if (window.render) window.render();
     };
 
   var api = TarkovTableTool.create({
+    autoLoad: false,
     tbody: "#tbody",
     thead: "#qiHead",
     status: "#status",
@@ -110,8 +150,8 @@
         if (done[row.key]) return false;
         if (
           window.TarkovProfile &&
-          TarkovProfile.isItemDone &&
-          TarkovProfile.isItemDone(row.key)
+          TarkovProfile.isQuestItemDone &&
+          TarkovProfile.isQuestItemDone(row.key)
         )
           return false;
       }
@@ -188,9 +228,7 @@
       tb.querySelectorAll(".qi-done").forEach(function (cb) {
         cb.onchange = function () {
           var key = cb.getAttribute("data-key");
-          if (cb.checked) done[key] = 1;
-          else delete done[key];
-          saveDone();
+          setDoneKey(key, cb.checked);
         };
       });
       list.forEach(function (r, i) {
@@ -250,11 +288,17 @@
         (task.objectives || []).forEach(function (o) {
           if (!WANT_TYPES.includes(o.type)) return;
           var ids = [];
-          if (typeof o.item === "string") ids.push(o.item);
-          (o.items || []).forEach(function (x) {
-            if (typeof x === "string") ids.push(x);
-            else if (x && x.id) ids.push(x.id);
-          });
+          function addItemRef(ref) {
+            if (typeof ref === "string" && ref) {
+              ids.push(ref);
+              return;
+            }
+            if (!ref || typeof ref !== "object") return;
+            if (typeof ref.id === "string" && ref.id) ids.push(ref.id);
+            else if (ref.item) addItemRef(ref.item);
+          }
+          addItemRef(o.item);
+          if (Array.isArray(o.items)) o.items.forEach(addItemRef);
           if (!ids.length) return;
           var names = [];
           var slugs = [];
@@ -274,7 +318,7 @@
           var count = Number(o.count) || 1;
           var fir = !!(o.foundInRaid || o.fir);
           var optional = !!o.optional;
-          var key = task.id + ":" + (o.id || ids[0]);
+          var key = task.id + "|" + (o.id || ids[0]);
           var locked = false;
           if (window.TarkovProfile && TarkovProfile.meetsLevel && minLvl) {
             locked = !TarkovProfile.meetsLevel(minLvl);
@@ -327,7 +371,10 @@
   window.render = function () {
     try {
       if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
+      loadDone();
+    } catch (e0) {
+      try { console.debug && console.debug("[tt:quest-items] render", e0); } catch (_e) {}
+    }
     try {
       if (typeof api !== "undefined" && api && typeof api.setRows === "function") {
         if (typeof api.getRows === "function") api.setRows(api.getRows());

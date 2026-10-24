@@ -111,6 +111,7 @@
   });
 
   var api = TarkovTableTool.create({
+    autoLoad: false,
     tbody: "#tbody",
     thead: "#armorHead",
     status: "#status",
