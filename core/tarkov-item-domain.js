@@ -155,7 +155,7 @@
       id: String(item && item.id || ""),
       slug: slug(item),
       name: name(item),
-      icon: String(item && (item.iconLink || item.gridImageLink) || ""),
+      icon: String(item && (item.displayIconLink || item.iconLink || item.gridImageLink || item.image512pxLink || item.imageLink) || ""),
       kind: classifyItem(item),
       class: number(p.class),
       durability: number(p.durability, number(item && item.maxDurability)),
@@ -171,9 +171,13 @@
     var p = props(item);
     var model = baseModel(item);
     var plateIds = [];
-    (p.armorSlots || []).forEach(function (slot) {
-      (slot && slot.allowedPlates || []).forEach(function (id) {
-        if (plateIds.indexOf(id) < 0) plateIds.push(id);
+    (Array.isArray(p.armorSlots) ? p.armorSlots : []).forEach(function (slot) {
+      var allowed = slot && slot.allowedPlates;
+      if (!Array.isArray(allowed)) return;
+      allowed.forEach(function (ref) {
+        var id = typeof ref === "string" ? ref : ref && typeof ref === "object"
+          ? (ref.id || ref.itemId || ref.item && (ref.item.id || ref.item)) : "";
+        if (id && plateIds.indexOf(String(id)) < 0) plateIds.push(String(id));
       });
     });
     model.zones = Array.isArray(p.zones) ? p.zones.slice() : [];

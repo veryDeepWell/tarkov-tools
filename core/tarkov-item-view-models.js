@@ -4,6 +4,17 @@
   if (global.TarkovItemViewModels) return;
 
   function domain() { return global.TarkovItemDomain; }
+  function displayName(item, fallback) {
+    try {
+      if (global.TarkovItemMedia && TarkovItemMedia.name) return TarkovItemMedia.name(item);
+      if (global.TarkovNames && TarkovNames.display) return TarkovNames.display(item);
+    } catch (e) {}
+    return String((item && (item.shortName || item.name || item.normalizedName || item.id)) || fallback || "?");
+  }
+  function displayIcon(item) {
+    try { if (global.TarkovItemMedia && TarkovItemMedia.icon) return TarkovItemMedia.icon(item); } catch (e) {}
+    return String(item && (item.displayIconLink || item.iconLink || item.gridImageLink || item.image512pxLink) || "");
+  }
   function humanize(value) {
     return value ? String(value).replace(/-/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); }) : "?";
   }
@@ -54,9 +65,9 @@
         var plate = d.plateModel(item);
         plateById[plate.id] = {
           id: plate.id,
-          name: humanize(plate.slug || plate.name),
+          name: displayName(item, plate.slug || plate.name),
           slug: plate.slug,
-          icon: plate.icon,
+          icon: displayIcon(item),
           class: plate.class,
           dur: plate.durability,
           material: plate.material,
@@ -69,8 +80,8 @@
       if (["armor", "rig", "helmet"].indexOf(armorModel.kind) >= 0) {
         armorById[armorModel.id] = {
           id: armorModel.id,
-          name: humanize(armorModel.slug || armorModel.name),
-          icon: armorModel.icon
+          name: displayName(item, armorModel.slug || armorModel.name),
+          icon: displayIcon(item)
         };
       }
     });
@@ -86,8 +97,8 @@
       rows.push({
         id: model.id,
         slug: model.slug,
-        name: humanize(model.slug || model.name),
-        icon: model.icon,
+        name: displayName(item, model.slug || model.name),
+        icon: displayIcon(item),
         class: model.class,
         dur: model.durability,
         kind: model.kind,
@@ -130,8 +141,8 @@
       if (["armor", "rig", "helmet"].indexOf(model.kind) < 0) return;
       armorById[model.id] = {
         id: model.id,
-        name: humanize(model.slug || model.name),
-        icon: model.icon
+        name: displayName(item, model.slug || model.name),
+        icon: displayIcon(item)
       };
     });
     return (items || []).reduce(function (result, item) {
@@ -141,8 +152,8 @@
       result.push({
         id: model.id,
         slug: model.slug,
-        name: humanize(model.slug || model.name),
-        icon: model.icon,
+        name: displayName(item, model.slug || model.name),
+        icon: displayIcon(item),
         avg: model.avg,
         low: model.low,
         onFlea: model.onFlea,
@@ -175,8 +186,8 @@
       rows.push({
         id: model.id,
         slug: model.slug,
-        name: model.name,
-        icon: model.icon,
+        name: displayName(item, model.name),
+        icon: displayIcon(item),
         class: model.class,
         cls: model.class,
         dur: model.durability,
@@ -225,10 +236,10 @@
       var score = scores[item.id];
       rows.push({
         id: item.id,
-        name: String(item.shortName || item.name || item.normalizedName || item.id),
+        name: displayName(item),
         full: String(item.name || ""),
         slug: String(item.normalizedName || item.name || ""),
-        icon: String(item.iconLink || item.gridImageLink || ""),
+        icon: displayIcon(item),
         kind: kind,
         energy: energy,
         hydration: hydration,

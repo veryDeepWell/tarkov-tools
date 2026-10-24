@@ -22,7 +22,7 @@
               ? '<img class="plate-icon" src="' + esc(armor.icon) + '" alt="" loading="lazy">'
               : "";
             return (
-              '<div class="plate-option">' +
+              '<div class="plate-option" data-item-id="' + esc(armor.id) + '" data-item-name="' + esc(armor.name || armor.id) + '">' +
               icon +
               "<span>" +
               esc(armor.name || armor.id) +
@@ -33,6 +33,11 @@
       : '<p class="meta">' + esc(t("tool.plates.ui.noCompatibleArmor")) + "</p>";
     dialog.hidden = false;
     dialog.classList.add("show");
+    if (typeof dialog.showModal === "function" && !dialog.open) {
+      try { dialog.showModal(); } catch (e) { dialog.setAttribute("open", "open"); }
+    } else if (typeof dialog.showModal !== "function") {
+      dialog.style.display = "block";
+    }
   }
 
   var closeBtn = document.getElementById("armorDialogClose");
@@ -40,8 +45,10 @@
     closeBtn.onclick = function () {
       var d = document.getElementById("armorDialog");
       if (d) {
+        if (typeof d.close === "function" && d.open) d.close();
         d.hidden = true;
         d.classList.remove("show");
+        d.style.display = "";
       }
     };
 

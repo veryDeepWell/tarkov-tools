@@ -202,11 +202,22 @@
       var el = document.createElement("div");
       el.className = "tt-igrid-item";
       el.setAttribute("data-uid", it.uid);
+      if (it.id && !/^demo-/i.test(String(it.id))) el.setAttribute("data-item-id", String(it.id));
+      if (it.name) el.setAttribute("data-item-name", String(it.name));
       el.innerHTML =
         '<div class="tt-ig-btns">' +
         '<button type="button" class="tt-ig-rot" title="Повернуть (R)" tabindex="-1">⟳</button>' +
         '<button type="button" class="tt-ig-x" title="Убрать" tabindex="-1">×</button></div>' +
-        '<div class="tt-ig-name"></div><div class="tt-ig-meta"></div>';
+        '<div class="tt-ig-art"></div><div class="tt-ig-name"></div><div class="tt-ig-meta"></div>';
+      if (it.icon) {
+        var img = document.createElement("img");
+        img.className = "tt-ig-icon";
+        img.alt = "";
+        img.loading = "lazy";
+        img.onerror = function () { img.remove(); };
+        img.src = it.icon;
+        el.querySelector(".tt-ig-art").appendChild(img);
+      }
       el.querySelector(".tt-ig-name").textContent = it.name || "?";
       syncMeta(it);
 
@@ -306,6 +317,7 @@
       var it = {
         uid: nextUid(), id: raw.id || null,
         name: raw.name || raw.shortName || raw.id || "item",
+        icon: raw.icon || raw.displayIconLink || raw.iconLink || "",
         w: pos.w, h: pos.h, x: pos.x, y: pos.y,
         meta: raw.meta || "", data: raw.data != null ? raw.data : raw
       };
@@ -341,7 +353,7 @@
 
     function getItems() {
       return state.items.map(function (it) {
-        return { uid: it.uid, id: it.id, name: it.name, w: it.w, h: it.h, x: it.x, y: it.y, meta: it.meta, data: it.data };
+        return { uid: it.uid, id: it.id, name: it.name, icon: it.icon, w: it.w, h: it.h, x: it.x, y: it.y, meta: it.meta, data: it.data };
       });
     }
 
@@ -352,7 +364,7 @@
       clear();
       layoutBoard();
       prev.forEach(function (p) {
-        addItem({ id: p.id, name: p.name, w: p.w, h: p.h, meta: p.meta, data: p.data }, p.x, p.y);
+        addItem({ id: p.id, name: p.name, icon: p.icon, w: p.w, h: p.h, meta: p.meta, data: p.data }, p.x, p.y);
       });
       emit();
     }

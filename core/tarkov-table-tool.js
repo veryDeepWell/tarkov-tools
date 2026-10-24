@@ -281,19 +281,58 @@
   /** Standard name cell with optional icon + meta slug */
   function nameCell(row, helpers) {
     helpers = helpers || {};
+    row = row || {};
     var e = helpers.esc || esc;
-    var icon = row.icon
-      ? '<img class="ico" src="' + e(row.icon) + '" loading="lazy" alt="">'
-      : "";
-    var meta = row.slug || row.id || "";
+    var raw = row.item || row.rawItem || row.raw || row;
+    var itemId = String((raw && raw.id) || row.itemId || row.id || "");
+    var catalogueItem = null;
+    try {
+      var catalogue = global.TarkovItemCatalog || {};
+      var modeEl = document.getElementById("gameMode");
+      var selectedMode = modeEl && modeEl.value || (global.TarkovProfile && TarkovProfile.preferredMode ? TarkovProfile.preferredMode() : "pve");
+      var modeOrder = [selectedMode, "pve", "regular", "pvp-season"];
+      var ids = [String((raw && raw.id) || ""), String(row.itemId || ""), String(row.id || "")].filter(Boolean);
+      for (var mi = 0; mi < modeOrder.length && !catalogueItem; mi++) {
+        var map = catalogue[modeOrder[mi]];
+        if (!map) continue;
+        for (var ii = 0; ii < ids.length; ii++) {
+          if (map[ids[ii]]) { catalogueItem = map[ids[ii]]; break; }
+        }
+      }
+    } catch (eLookup) {}
+    var imageSource = raw;
+    var sourcePreset = imageSource && imageSource.properties && imageSource.properties.defaultPreset;
+    var cataloguePreset = catalogueItem && catalogueItem.properties && catalogueItem.properties.defaultPreset;
+    // A light row may retain a stale/base icon but omit the weapon preset. Prefer
+    // the full canonical object in that case so M4A1 and similar weapons show the
+    // standard configured weapon, not the bare receiver.
+    if (catalogueItem && (!imageSource || !imageSource.properties || (!sourcePreset && cataloguePreset))) {
+      imageSource = catalogueItem;
+    }
+    var iconUrl = "";
+    try {
+      if (global.TarkovItemMedia && TarkovItemMedia.icon) iconUrl = TarkovItemMedia.icon(imageSource);
+    } catch (e0) {}
+    iconUrl = iconUrl || row.icon || row.displayIconLink || row.iconLink || row.gridImageLink || "";
+    if (!iconUrl && catalogueItem) {
+      try { if (global.TarkovItemMedia && TarkovItemMedia.icon) iconUrl = TarkovItemMedia.icon(catalogueItem); } catch (e1) {}
+      iconUrl = iconUrl || catalogueItem.displayIconLink || catalogueItem.iconLink || catalogueItem.gridImageLink || catalogueItem.image512pxLink || "";
+    }
+    var fallbackIcon = (global.location && String(location.pathname).indexOf("/tools/") >= 0)
+      ? "../assets/icons/other.svg" : "assets/icons/other.svg";
+    if (!iconUrl) iconUrl = fallbackIcon;
+    itemId = String((catalogueItem && catalogueItem.id) || itemId);
+    var canonicalName = catalogueItem && global.TarkovItemMedia && TarkovItemMedia.name
+      ? TarkovItemMedia.name(catalogueItem) : "";
+    var itemNameValue = canonicalName || row.name ||
+      (global.TarkovItemMedia && TarkovItemMedia.name ? TarkovItemMedia.name(raw) : "") || "";
+    var itemAttr = itemId ? ' data-item-id="' + e(itemId) + '" data-item-name="' + e(itemNameValue) + '"' : "";
+    var meta = row.slug || row.normalizedName || row.id || "";
     return (
-      '<div class="name-cell">' +
-      icon +
-      "<div><div class=\"name\">" +
-      e(row.name || "") +
-      '</div><div class="meta">' +
-      e(meta) +
-      "</div></div></div>"
+      '<div class="name-cell tt-inspectable-item"' + itemAttr +
+      ' title="Двойной клик — карточка предмета · Alt+I — режим инспектора">' +
+      '<img class="ico" src="' + e(iconUrl) + '" data-fallback="' + e(fallbackIcon) + '" loading="lazy" alt="" onerror="this.onerror=null;this.src=this.dataset.fallback">' +
+      '<div><div class="name">' + e(itemNameValue) + '</div><div class="meta">' + e(meta) + '</div></div></div>'
     );
   }
 

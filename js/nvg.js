@@ -46,7 +46,13 @@
     },
     mapItem: function (it) {
       var p = it.properties || {};
-      if (p.propertiesType !== "ItemPropertiesNightVision") return null;
+      var types = Array.isArray(it.types) ? it.types : (it.types ? [it.types] : []);
+      var type = String(p.propertiesType || "");
+      var nameKey = String(it.normalizedName || it.shortName || it.name || "").toLowerCase();
+      var isNightVision = type === "ItemPropertiesNightVision" ||
+        /night.?vision|nightvision|nvg|gpnvg|pvs.?14|pvs.?7|n-15|nvip/.test(nameKey) ||
+        types.some(function (value) { return /night.?vision|nvg/i.test(String(value)); });
+      if (!isNightVision) return null;
       var intensity = Number(p.intensity) || 0;
       var noise = Number(p.noiseIntensity) || 0;
       var noiseScale = Number(p.noiseScale) || 0;
@@ -56,7 +62,7 @@
         id: it.id,
         name: TarkovTableTool.itemName(it),
         slug: it.normalizedName || "",
-        icon: it.iconLink || "",
+        icon: it.displayIconLink || it.iconLink || it.gridImageLink || it.image512pxLink || "",
         intensity: intensity,
         noise: noise,
         noiseScale: noiseScale,
@@ -65,6 +71,17 @@
         avg: Number(it.avg24hPrice) || 0,
         weight: Number(it.weight) || 0
       };
+    },
+    onLoaded: function (ctx) {
+      var card = document.getElementById("tableCard");
+      if (card) { card.hidden = false; card.style.display = "block"; }
+      if (!ctx.rows.length) {
+        var status = document.getElementById("status");
+        if (status) {
+          status.className = "status err";
+          status.textContent = "Данные загружены, но ПНВ не найдены. Проверь ответ API и свойства предметов.";
+        }
+      }
     },
     afterPaint: function (list, ctx) {
       TarkovTableTool.wireCopyButtons(ctx.tbody);

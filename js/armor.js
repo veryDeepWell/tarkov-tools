@@ -27,7 +27,7 @@
         var plate = platesById[id];
         if (!plate) {
           return (
-            '<div class="plate-option"><span>' +
+            '<div class="plate-option" data-item-id="' + esc(id) + '" data-item-name="' + esc(id) + '"><span>' +
             esc(id) +
             '</span><span class="meta">' +
             esc(t("tool.armor.ui.unresolved")) +
@@ -41,7 +41,7 @@
           : "";
         var price = plate.avg || plate.low;
         return (
-          '<div class="plate-option">' +
+          '<div class="plate-option" data-item-id="' + esc(plate.id) + '" data-item-name="' + esc(plate.name) + '">' +
           icon +
           "<span><strong>" +
           esc(plate.name) +
@@ -58,6 +58,11 @@
       '<p class="meta">' + esc(t("tool.armor.ui.noPlates") || "—") + "</p>";
     dialog.hidden = false;
     dialog.classList.add("show");
+    if (typeof dialog.showModal === "function" && !dialog.open) {
+      try { dialog.showModal(); } catch (e) { dialog.setAttribute("open", "open"); }
+    } else if (typeof dialog.showModal !== "function") {
+      dialog.style.display = "block";
+    }
   }
 
   var closeBtn = document.getElementById("plateDialogClose");
@@ -65,8 +70,10 @@
     closeBtn.onclick = function () {
       var d = document.getElementById("plateDialog");
       if (d) {
+        if (typeof d.close === "function" && d.open) d.close();
         d.hidden = true;
         d.classList.remove("show");
+        d.style.display = "";
       }
     };
 

@@ -113,7 +113,31 @@
   async function items(gameMode) {
     var m = gameMode || mode();
     var json = await getJson("/" + m + "/items");
-    return asArray(json && json.data && json.data.items != null ? json.data.items : (json && json.data) || json);
+    var list = asArray(json && json.data && json.data.items != null ? json.data.items : (json && json.data) || json);
+    // Normalize display fields in one place. API payloads remain cached untouched; callers
+    // receive shallow copies so UI changes never mutate the shared cache.
+    var media = global.TarkovItemMedia;
+    var normalized = list.map(function (item) {
+      if (!item || typeof item !== "object") return item;
+      if (media && media.decorate) return media.decorate(item);
+      var p = item.properties || {};
+      var types = Array.isArray(item.types) ? item.types : (item.types ? [item.types] : []);
+      var weapon = p.propertiesType === "ItemPropertiesWeapon" || types.indexOf("gun") >= 0 || types.indexOf("weapon") >= 0;
+      var preset = p.defaultPreset && typeof p.defaultPreset === "object" ? p.defaultPreset : null;
+      var icon = weapon && preset && (preset.image512pxLink || preset.baseImageLink || preset.imageLink || preset.gridImageLink || preset.iconLink);
+      icon = icon || item.iconLink || item.gridImageLink || item.image512pxLink || item.imageLink || item.baseImageLink || "";
+      var clone = Object.assign({}, item, { displayIconLink: icon, displayName: item.shortName || item.name || item.normalizedName || item.id });
+      if (weapon && icon && icon !== item.iconLink) clone.sourceIconLink = item.iconLink || "";
+      if (icon) clone.iconLink = icon;
+      return clone;
+    });
+    // A mode-scoped catalogue lets lightweight table rows resolve their item image/name
+    // without having to duplicate the full API object into every view model.
+    if (!global.TarkovItemCatalog) global.TarkovItemCatalog = Object.create(null);
+    var byId = Object.create(null);
+    normalized.forEach(function (item) { if (item && item.id) byId[String(item.id)] = item; });
+    global.TarkovItemCatalog[m] = byId;
+    return normalized;
   }
 
   async function barters(gameMode) {

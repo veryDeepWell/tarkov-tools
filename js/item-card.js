@@ -168,9 +168,13 @@
       (c.normalizedName || (item && item.normalizedName) || "") + (types ? " · " + types : "");
 
     var icon = document.getElementById("cardIcon");
-    if (c.icon || (item && item.iconLink)) {
-      icon.src = c.icon || item.iconLink;
+    var itemIcon = "";
+    try { itemIcon = window.TarkovItemMedia && TarkovItemMedia.icon ? TarkovItemMedia.icon(item) : ""; } catch (eIcon) {}
+    itemIcon = itemIcon || c.icon || (item && (item.displayIconLink || item.iconLink || item.gridImageLink || item.image512pxLink)) || "";
+    if (itemIcon) {
+      icon.src = itemIcon;
       icon.style.display = "";
+      icon.onerror = function () { icon.onerror = null; icon.style.display = "none"; };
     } else {
       icon.style.display = "none";
     }
@@ -210,43 +214,46 @@
     var barterHref = "tarkovtool-barter-opt.html";
 
     fillList("listQuestUse", L.questsUsing, function (o) {
-      var name = taskLabel(o.taskId);
-      return '<li><a class="item-link" href="' + href + '">' + esc(itemLabel(iid)) +
-        esc(name) + "</a> <code>" + esc(o.taskId.slice(0, 8)) + "…</code> · " +
-        esc(o.objectiveType || "") + (o.count ? " ×" + o.count : "") + "</li>";
+      var taskId = String(o.taskId || "");
+      var name = taskLabel(taskId);
+      return '<li><a class="item-link" href="' + questsHref + '">' + esc(name) + '</a>' +
+        ' <code>' + esc(taskId.slice(0, 8)) + (taskId.length > 8 ? "…" : "") + '</code> · ' +
+        esc(o.objectiveType || "") + (o.count ? " ×" + esc(o.count) : "") + "</li>";
     });
     fillList("listQuestReward", L.questsRewarding, function (tid) {
-      var name = taskLabel(tid);
-      return '<li><a class="item-link" href="' + href + '">' + esc(itemLabel(iid)) +
-        esc(name) + "</a> <code>" + esc(String(tid).slice(0, 8)) + "…</code></li>";
+      tid = String(tid || "");
+      return '<li><a class="item-link" href="' + questsHref + '">' + esc(taskLabel(tid)) +
+        '</a> <code>' + esc(tid.slice(0, 8)) + (tid.length > 8 ? "…" : "") + "</code></li>";
     });
     fillList("listCraftIn", L.craftsAsInput, function (o) {
-      return '<li><a class="item-link" href="' + href + '">' + esc(itemLabel(iid)) +
-        "</a> · ×" + (o.count || 1) + " <code>" + esc(String(o.craftKey).slice(0, 24)) + "</code></li>";
+      return '<li><a class="item-link" href="' + craftsHref + '">' + esc(craftLab(o.craftKey)) +
+        '</a> · требуется ×' + esc(o.count || 1) + '</li>';
     });
     fillList("listCraftOut", L.craftsAsProduct, function (o) {
-      return '<li><a class="item-link" href="' + href + '">' + esc(itemLabel(iid)) +
-        "</a> · ×" + (o.count || 1) + "</li>";
+      return '<li><a class="item-link" href="' + craftsHref + '">' + esc(craftLab(o.craftKey)) +
+        '</a> · результат ×' + esc(o.count || 1) + '</li>';
     });
     fillList("listBarterIn", L.bartersAsInput, function (o) {
       var tr = o.trader ? (window.TarkovDicts && TarkovDicts.traderName ? TarkovDicts.traderName(o.trader) : o.trader) : "";
-      return '<li><a class="item-link" href="' + href + '">' + esc(itemLabel(iid)) +
-        esc(String(tr || "")) + " <code>" + esc(String(o.barterKey || "").slice(0, 12)) + "</code></li>";
+      return '<li><a class="item-link" href="' + barterHref + '">' + esc(tr || "Обмен") +
+        '</a> · требуется ×' + esc(o.count || 1) + ' <code>' + esc(String(o.barterKey || "").slice(0, 12)) + '</code></li>';
     });
     fillList("listBarterOut", L.bartersAsReward, function (o) {
       var tr = o.trader ? (window.TarkovDicts && TarkovDicts.traderName ? TarkovDicts.traderName(o.trader) : o.trader) : "";
-      return '<li><a class="item-link" href="' + href + '">' + esc(itemLabel(iid)) +
-        esc(String(tr || "")) + " <code>" + esc(String(o.barterKey || "").slice(0, 12)) + "</code></li>";
+      return '<li><a class="item-link" href="' + barterHref + '">' + esc(tr || "Обмен") +
+        '</a> · награда ×' + esc(o.count || 1) + ' <code>' + esc(String(o.barterKey || "").slice(0, 12)) + '</code></li>';
     });
     fillList("listHideout", L.hideoutRequiring, function (o) {
-      var label = (o.stationName || o.stationId || "?") + (o.level != null ? " L" + o.level : "");
-      return '<li><a class="item-link" href="' + href + '">' + esc(itemLabel(iid)) +
-        "</a> · ×" + (o.count || 1) + "</li>";
+      var label = (o.stationName || o.stationId || "Убежище") + (o.level != null ? " · уровень " + o.level : "");
+      return '<li><a class="item-link" href="' + hideoutHref + '">' + esc(label) +
+        '</a> · требуется ×' + esc(o.count || 1) + "</li>";
     });
 
     function itemLabel(iid) {
       var it = TarkovItemGraph.get(iid);
       if (!it) return iid;
+      try { if (window.TarkovItemMedia && TarkovItemMedia.name) return TarkovItemMedia.name(it); } catch (e) {}
+      try { if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it); } catch (e2) {}
       return it.shortName || it.name || it.normalizedName || iid;
     }
     function itemLi(iid) {
@@ -278,9 +285,13 @@
     if (!hits.length) { box.style.display = "none"; return; }
     box.style.display = "block";
     box.innerHTML = hits.map(function (it) {
-      return '<div data-id="' + esc(it.id) + '">' +
-        (it.iconLink ? '<img class="ico" src="' + esc(it.iconLink) + '" alt="">' : "") +
-        "<span>" + esc(it.shortName || it.name || it.id) + "</span></div>";
+      var name = itemLabel(it.id);
+      var image = "";
+      try { image = window.TarkovItemMedia && TarkovItemMedia.icon ? TarkovItemMedia.icon(it) : ""; } catch (e) {}
+      image = image || it.displayIconLink || it.iconLink || it.gridImageLink || it.image512pxLink || "";
+      return '<div data-id="' + esc(it.id) + '" data-item-id="' + esc(it.id) + '" data-item-name="' + esc(name) + '" title="Двойной клик — быстрый просмотр предмета">' +
+        (image ? '<img class="ico" src="' + esc(image) + '" alt="" loading="lazy" onerror="this.hidden=true">' : "") +
+        "<span>" + esc(name) + "</span></div>";
     }).join("");
     box.querySelectorAll("div[data-id]").forEach(function (row) {
       row.addEventListener("click", function () {
@@ -362,5 +373,10 @@
     }
   } catch (e) {}
 
+  try {
+    var requestedMode = new URLSearchParams(location.search).get("mode");
+    var modeControl = document.getElementById("gameMode");
+    if (modeControl && (requestedMode === "pve" || requestedMode === "regular" || requestedMode === "pvp-season")) modeControl.value = requestedMode;
+  } catch (eMode) {}
   if (queryItemId()) loadBase();
 })();

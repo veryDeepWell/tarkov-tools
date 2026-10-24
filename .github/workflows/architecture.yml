@@ -23,3 +23,7 @@ jobs:
         run: bash scripts/domain-contract-check.sh
       - name: Check storage/tool contract
         run: bash scripts/tool-contract-check.sh
+      - name: Check R3.21 UX integration contracts
+        run: python scripts/ux-contract-check.py
+      - name: Smoke-test standard item imagery
+        run: node scripts/item-media-smoke-test.js

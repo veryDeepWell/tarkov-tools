@@ -102,6 +102,36 @@
     (document.head || document.documentElement).appendChild(s);
   }
 
+  function ensureItemMediaJs() {
+    if (window.TarkovItemMedia || document.getElementById("tt-item-media-js")) return;
+    var path = location.pathname || "";
+    var s = document.createElement("script");
+    s.id = "tt-item-media-js";
+    s.src = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-item-media.js";
+    s.async = false;
+    (document.head || document.documentElement).appendChild(s);
+  }
+
+  function ensureApiJs() {
+    if (window.TarkovAPI || document.getElementById("tt-api-js")) return;
+    var path = location.pathname || "";
+    var s = document.createElement("script");
+    s.id = "tt-api-js";
+    s.src = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-api.js";
+    s.async = false;
+    (document.head || document.documentElement).appendChild(s);
+  }
+
+  function ensureItemInspectorJs() {
+    if (window.TarkovItemInspector || document.getElementById("tt-item-inspector-js")) return;
+    var path = location.pathname || "";
+    var s = document.createElement("script");
+    s.id = "tt-item-inspector-js";
+    s.src = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-item-inspector.js";
+    s.async = false;
+    (document.head || document.documentElement).appendChild(s);
+  }
+
   function ensureI18n() {
     return new Promise(function (resolve) {
       function done() {
@@ -522,6 +552,9 @@
     ensureItemViewModelsJs();
     ensureWeaponDomainJs();
     ensureDictsJs();
+    ensureItemMediaJs();
+    ensureApiJs();
+    ensureItemInspectorJs();
     ensureI18n().then(function () {
       ensureHelp();
       setTimeout(ensureHelp, 100);

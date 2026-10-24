@@ -1,0 +1,30 @@
+R3.21 changed-file overlay
+Baseline: tarkov-tools-R3.19-fixed.zip
+Extract archive contents directly into the existing repository root.
+
+Changed/added project files (excluding this manifest): 23
+Removed files: 0
+
+  .github/workflows/architecture.yml
+  CHANGELOG.md
+  R3.21_UX_AUDIT.md
+  core/tarkov-api.js
+  core/tarkov-item-domain.js
+  core/tarkov-item-grid.css
+  core/tarkov-item-grid.js
+  core/tarkov-item-inspector.js
+  core/tarkov-item-media.js
+  core/tarkov-item-view-models.js
+  core/tarkov-table-tool.js
+  core/tarkov-tool-shell.js
+  js/armor.js
+  js/item-card.js
+  js/nvg.js
+  js/plates.js
+  js/prestige.js
+  js/stash-packer.js
+  scripts/item-media-smoke-test.js
+  scripts/ux-contract-check.py
+  tools/tarkovtool-item-card.html
+  tools/tarkovtool-prestige.html
+  tools/tarkovtool-stash-packer.html

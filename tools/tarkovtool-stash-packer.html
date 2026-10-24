@@ -33,7 +33,26 @@
     .fact-box{font-size:1.15rem;line-height:1.5;padding:16px;background:var(--input-bg);border-radius:10px;border:1px solid var(--border)}
     .pack-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
     .case-card{border:1px solid var(--border);border-radius:10px;padding:10px;background:var(--input-bg)}
-    .slot-map{font-family:ui-monospace,monospace;font-size:.7rem;line-height:1.2;white-space:pre;overflow:auto;max-height:200px}
+    .stash-board-wrap{overflow:auto;max-width:100%;padding:4px 0 12px}
+    .stash-board{display:grid;gap:2px;align-content:start;padding:4px;border:1px solid var(--border);border-radius:8px;background-color:#0e1116;background-image:linear-gradient(to right,rgba(180,190,210,.12) 1px,transparent 1px),linear-gradient(to bottom,rgba(180,190,210,.12) 1px,transparent 1px);width:max-content;min-width:100%;}
+    .stash-piece{position:relative;min-width:0;min-height:0;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:1px solid color-mix(in srgb,var(--accent) 55%,#4c5667);border-radius:4px;background:color-mix(in srgb,var(--accent) 15%,#1b2028);padding:2px;color:var(--text);font-size:.68rem;text-align:center}
+    .stash-piece img{width:calc(100% - 4px);height:calc(100% - 18px);object-fit:contain;min-height:0;pointer-events:none}
+    .stash-piece strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.65rem;line-height:1.1}
+    .stash-piece small{font-size:.58rem;color:var(--muted);line-height:1.1}
+    .picker-search{margin:0 0 6px}
+    .check-row{display:flex;align-items:center;gap:8px;font-size:.86rem;color:var(--muted);margin:8px 0}
+    .check-row input{width:auto}
+    .picker-actions{display:flex;gap:6px;margin:0 0 8px}
+    .container-picker{display:grid;gap:5px;max-height:310px;overflow:auto;padding:2px}
+    .container-option{display:flex;align-items:center;gap:9px;padding:7px 8px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);cursor:pointer;min-width:0}
+    .container-option[hidden]{display:none}
+    .container-option:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--input-bg))}
+    .container-option input{width:auto;flex:0 0 auto}
+    .container-option img{width:38px;height:34px;object-fit:contain;flex:0 0 38px}
+    .container-option .container-name{font-size:.85rem;font-weight:650;overflow-wrap:anywhere}
+    .container-option .container-meta{font-size:.72rem;color:var(--muted)}
+    .result-head{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:.9rem;margin-bottom:10px}
+    .result-head strong{color:var(--text)}
 </style>
 </head>
 <body>
@@ -51,10 +70,13 @@
     </div>
     <div class="card">
       <div class="row">
-        <div class="field" style="flex:2"><label>Контейнеры (Ctrl/⌘ — несколько)</label>
-          <select id="pick" multiple size="10"></select>
+        <div class="field" style="flex:2;min-width:250px"><label>Контейнеры (можно выбрать несколько)</label>
+          <input class="picker-search" type="search" id="containerSearch" placeholder="Фильтр по названию…" autocomplete="off">
+          <div class="picker-actions"><button type="button" class="btn-ghost" id="selectAllBtn">Выбрать все</button><button type="button" class="btn-ghost" id="clearSelectionBtn">Снять выбор</button></div>
+          <div id="pickList" class="container-picker" role="group" aria-label="Выбор кейсов и рюкзаков"><div class="meta">Сначала загрузи контейнеры.</div></div>
+          <div class="meta">Выбрано: <strong id="selectedCount">0</strong>.</div>
         </div>
-        <div class="field"><label>Кол-во каждого</label><input id="count" type="number" min="1" value="1"></div>
+        <div class="field"><label>Копий каждого выбранного</label><input id="count" type="number" min="1" max="20" value="1"></div>
         <div class="field"><label>Сетка W</label><input id="cols" type="number" min="4" value="10"></div>
         <div class="field"><label>Сетка H</label><input id="rows" type="number" min="4" value="28"></div>
         <div class="field"><label>Стратегия</label>
@@ -67,10 +89,12 @@
         </div>
         <button type="button" class="btn" id="packBtn">Уложить</button>
       </div>
+      <label class="check-row"><input type="checkbox" id="rotateItems" checked> Разрешить поворачивать контейнеры, если так они помещаются</label>
     </div>
     <div class="card">
-      <div class="card-title">Карта слотов</div>
-      <div class="slot-map" id="slotMap">···</div>
+      <div class="card-title">Раскладка по слотам</div>
+      <div class="result-head" id="resultSummary">Загрузи контейнеры и нажми «Уложить».</div>
+      <div class="stash-board-wrap"><div class="stash-board" id="slotMap" aria-label="Визуальная сетка схрона"></div></div>
       <ul class="link-list" id="placedList"></ul>
     </div>
   </div>
@@ -81,7 +105,8 @@
   <script src="../core/tarkov-nav.js"></script>
     <script src="../core/tarkov-const.js"></script>
   <script src="../core/tarkov-names.js"></script>
-<script src="../core/tarkov-api.js"></script>
+<script src="../core/tarkov-item-media.js"></script>
+  <script src="../core/tarkov-api.js"></script>
   <script src="../core/tarkov-ui.js"></script>
   <script src="../core/tarkov-common.js"></script>
   <script src="../js/stash-packer.js"></script>
