@@ -327,4 +327,23 @@
       if (btn) btn.disabled = false;
     }
   };
+
+
+  window.render = function () {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+    } catch (e0) {}
+    try {
+      if (typeof api !== "undefined" && api && typeof api.setRows === "function") {
+        if (typeof api.getRows === "function") api.setRows(api.getRows());
+        else if (typeof api.paint === "function") api.paint();
+      }
+    } catch (e1) {}
+  };
+  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+    TarkovProfile.bindRefresh(function () {
+      window.render();
+    });
+  }
+
 })();

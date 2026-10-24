@@ -1,12 +1,15 @@
-# Hotfix: mods.js gate ⇒ window.render =
+# Hotfix: gate ⇒ window.render = (all table tools)
 
-CI:
+Same CI rule as mods:
 ```
-FAIL: js/mods.js uses TarkovProfile.gate but has no window.render / onProfileRefresh / bindRefresh
+window.render\s*=|onProfileRefresh|bindRefresh\(
 ```
+must appear **in the tool file** that calls `TarkovProfile.gate`.
 
-Contract greps **this file** for `window.render =` (assignment), not calls.
+Patched every migrated tool JS under T2–T7 that had gate without assignment.
+Primary failure: `js/crafts.js`.
 
-Added:
-- `window.render = function () { ... }`
-- `TarkovProfile.bindRefresh(...)`
+Copy all files from `js/` into project `js/` and re-run:
+```bash
+bash scripts/tool-contract-check.sh
+```
