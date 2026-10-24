@@ -290,20 +290,7 @@
       <div class="card-title" id="tableTitle" data-i18n="tool.ammo.ui.table">Таблица</div>
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th data-k="name" data-i18n="tool.ammo.ui.column.ammo">Патрон</th>
-              <th data-k="pen" data-i18n="tool.ammo.ui.column.penetration">Pen</th>
-              <th data-k="dmg" data-i18n="tool.ammo.ui.column.damage">Урон</th>
-              <th data-k="ad" data-i18n="tool.ammo.ui.column.armorDamage">Бр%</th>
-              <th data-k="traderPrice" data-i18n="tool.ammo.ui.column.trader">Торговец</th>
-              <th data-k="price" data-i18n="tool.ammo.ui.column.average">avg 24ч</th>
-              <th data-k="quest" data-i18n="tool.ammo.ui.column.quest">Квест</th>
-              <th data-k="craft" data-i18n="tool.ammo.ui.column.craft">Крафт</th>
-              <th data-i18n="tool.ammo.ui.column.classes">Классы 1–6</th>
-              <th></th>
-            </tr>
-          </thead>
+          <thead id="ammoHead"><tr></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
@@ -325,6 +312,8 @@
   <script type="module" src="../core/tarkov-ui.js"></script>
   <script type="module" src="../core/tarkov-state.js"></script>
   <script type="module" src="../core/tarkov-common.js"></script>
+    <script src="../core/tarkov-item-domain.js"></script>
+  <script src="../core/tarkov-table-tool.js"></script>
   <script type="module" src="../js/ammo.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>

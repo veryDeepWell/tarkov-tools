@@ -84,16 +84,7 @@
     </div>
     <p class="status" id="status"></p></div>
     <div class="card"><div class="table-wrap"><table id="plateTable">
-      <thead><tr>
-        <th data-k="score" data-i18n="tool.itemScore.score">Рейтинг</th>
-        <th data-k="name" data-i18n="tool.itemScore.name">Плита</th>
-        <th data-k="cls" data-i18n="tool.itemScore.classShort">Класс</th>
-        <th data-k="dur" data-i18n="tool.itemScore.durabilityShort">Прочность</th>
-        <th data-k="weight" data-i18n="tool.itemScore.weight">Вес</th>
-        <th data-k="repair" data-i18n="tool.plates.ui.repair">Ремонт</th>
-        <th data-k="pen" data-i18n="tool.plates.ui.penalties">Штрафы</th>
-        <th data-k="avg" data-i18n="tool.itemScore.flea">Барахолка</th>
-        <th data-i18n="tool.plates.ui.compatibility">Броня</th><th></th></tr></thead>
+      <thead id="plateHead"><tr></tr></thead>
       <tbody id="plateBody"></tbody>
     </table></div>
     <p class="hint" data-i18n="tool.itemScore.scoreHint"></p></div>
@@ -118,6 +109,7 @@
   <script src="../core/tarkov-ui.js"></script>
   <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
+    <script src="../core/tarkov-table-tool.js"></script>
   <script src="../js/plates.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>

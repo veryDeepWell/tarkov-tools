@@ -1,192 +1,112 @@
+/*! Helmets — TarkovTableTool + ViewModels */
 (function () {
   "use strict";
-
-  var rows = [];
-  var sortKey = "score";
-  var sortDir = -1;
-  var settingKey = "tarkovHelmets";
-  var statusState = null;
 
   function t(key, params) {
     return window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t(key, params) : key;
   }
-  function renderStatus() {
-    if (!statusState) return;
-    var status = document.getElementById("status");
-    status.className = "status" + (statusState.tone ? " " + statusState.tone : "");
-    status.textContent = t(statusState.key, statusState.params);
-  }
-  function setStatus(key, params, tone) {
-    statusState = { key: key, params: params, tone: tone };
-    renderStatus();
-  }
-  function esc(value) { return TarkovDicts.esc(value); }
-  function formatNum(value) { return TarkovDicts.fmtNum(value); }
-  function scoreTitle(components, details) {
-    if (!components) return "";
-    var lines = ["quality", "accessibility", "value", "load"].map(function (key) {
-      return t("tool.itemScore.factor." + key) + ": " + components[key];
+
+  ["q", "minClass", "onlyFlea", "hideQuest"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("input", function () {
+      if (window.render) window.render();
     });
-    if (details) {
-      lines.push(t("tool.itemScore.detail.fleaPrice") + ": " + (details.fleaPrice ? formatNum(details.fleaPrice) : "—"));
-      lines.push(t("tool.itemScore.detail.traderPrice") + ": " + (details.traderPrice ? formatNum(details.traderPrice) : "—"));
-      lines.push(t("tool.itemScore.detail.traderLevel") + ": " + (details.traderPrice ? details.traderLevel : "—"));
-      lines.push(t("tool.itemScore.detail.questLocked") + ": " + t(details.questLocked ? "tool.itemScore.yes" : "tool.itemScore.no"));
-      lines.push(t("tool.itemScore.detail.listingCount") + ": " + (details.listingCount || "—"));
-      lines.push(t("tool.itemScore.detail.weightSize") + ": " + details.weight + " / " + details.size);
+    el.addEventListener("change", function () {
+      if (window.render) window.render();
+    });
+  });
+
+  var api = TarkovTableTool.create({
+    tbody: "#tbody",
+    thead: "#helmHead",
+    status: "#status",
+    loadBtn: "#loadBtn",
+    search: "#q",
+    defaultSort: "score",
+    defaultSortDir: -1,
+    progress: true,
+    filterRow: function (row, q) {
+      var minClass = Number((document.getElementById("minClass") || {}).value) || 0;
+      if ((row.class || row.cls || 0) < minClass) return false;
+      var onlyFlea = document.getElementById("onlyFlea");
+      if (onlyFlea && onlyFlea.checked && !(row.avg > 0 || row.onFlea)) return false;
+      var hideQuest = document.getElementById("hideQuest");
+      if (hideQuest && hideQuest.checked && row.quest) return false;
+      if (!q) return true;
+      return ((row.name || "") + " " + (row.slug || "")).toLowerCase().indexOf(q) >= 0;
+    },
+    columns: [
+      {
+        key: "name",
+        label: "Шлем",
+        html: function (r, h) {
+          return TarkovTableTool.nameCell(r, h);
+        }
+      },
+      { key: "class", label: "Class", format: "num" },
+      { key: "dur", label: "Dur", format: "num" },
+      { key: "mat", label: "Mat" },
+      { key: "zones", label: "Zones" },
+      { key: "ergo", label: "Ergo", format: "num" },
+      { key: "avg", label: "Flea", format: "num" },
+      {
+        key: "score",
+        label: "Score",
+        html: function (r) {
+          return "<strong>" + (r.score != null ? Number(r.score).toFixed(1) : "—") + "</strong>";
+        }
+      }
+    ],
+    fetch: function () {
+      return Promise.resolve([]);
+    },
+    mapItem: function () {
+      return null;
+    },
+    onLoaded: function () {
+      var c = document.getElementById("tableCard");
+      if (c) c.hidden = false;
     }
-    return lines.join("\n");
-  }
-  function zoneLabels(row) {
-    return (row.zones || []).map(function (zone) {
-      return t("tool.itemScore.zone." + zone);
-    }).join(", ");
-  }
-  function tooltip(row) {
-    return [
-      t("tool.helmets.ui.ricochet") + ": " + [row.rx, row.ry, row.rz].map(function (value) {
-        return value == null ? "—" : value;
-      }).join(" / "),
-      t("tool.helmets.ui.blunt") + ": " + (row.blunt == null ? "—" : row.blunt),
-      t("tool.helmets.ui.repair") + ": " + (row.repair == null ? "—" : row.repair),
-      t("tool.helmets.ui.blocksEye") + ": " + t(row.blocksEye ? "tool.itemScore.yes" : "tool.itemScore.no"),
-      t("tool.helmets.ui.blocksHead") + ": " + t(row.blocksHead ? "tool.itemScore.yes" : "tool.itemScore.no"),
-      t("tool.helmets.ui.slots") + ": " + row.slotCount
-    ].join("\n");
-  }
-  function persist() {
-    TarkovStorage.setJson(settingKey, {
-      mode: document.getElementById("gameMode").value || "pve"
-    });
-  }
+  });
 
-  function render() {
-    var query = document.getElementById("q").value || "";
-    var minClass = Number(document.getElementById("minClass").value) || 0;
-    var onlyFlea = document.getElementById("onlyFlea").checked;
-    var hideQuest = document.getElementById("hideQuest").checked;
-    var list = TarkovItemDomain.filter(rows, {
-      search: query,
-      classes: minClass ? [minClass, minClass + 1, minClass + 2, minClass + 3, minClass + 4, 6] : [],
-      onlyFlea: onlyFlea
-    }).filter(function (row) {
-      return (!minClass || row.class >= minClass) && !(hideQuest && row.quest);
-    });
-    list.sort(function (a, b) {
-      var left = a[sortKey];
-      var right = b[sortKey];
-      if (typeof left === "string") return sortDir * String(left).localeCompare(String(right));
-      return sortDir * ((Number(left) || 0) - (Number(right) || 0));
-    });
-    document.getElementById("tbody").innerHTML = list.map(function (row) {
-      var fleaPrice = row.avg || row.low;
-      var trader = row.traderPrice
-        ? formatNum(row.traderPrice) + (row.quest ? " · " + t("tool.itemScore.questLocked") : "")
-        : "—";
-      var icon = row.icon
-        ? '<img class="ico" src="' + esc(row.icon) + '" loading="lazy" alt="">'
-        : "";
-      return '<tr>' +
-        '<td title="' + esc(tooltip(row)) + '"><div class="name-cell">' + icon +
-        '<div><div class="name">' + esc(row.name) + '</div><div class="meta">' + esc(row.slug) + '</div></div></div></td>' +
-        '<td>' + (row.cls || "—") + '</td><td>' + (row.dur || "—") + '</td>' +
-        '<td>' + esc(row.mat || "—") + '</td><td>' + esc(zoneLabels(row) || "—") + '</td>' +
-        '<td>' + (fleaPrice ? formatNum(fleaPrice) : "—") + '</td><td>' + trader + '</td>' +
-        '<td>' + formatNum(row.weight) + ' / ' + (row.size || "—") + '</td>' +
-        '<td class="score" title="' + esc(scoreTitle(row.scoreComponents, row.scoreDetails)) + '">' + row.score.toFixed(1) + '</td>' +
-        '<td><button type="button" class="copy-btn" data-name="' + esc(row.slug) + '">' +
-        esc(t("tool.itemScore.copy")) + '</button></td></tr>';
-    }).join("") || '<tr><td colspan="10" class="meta empty-cell">' + esc(t("common.empty")) + '</td></tr>';
-    document.querySelectorAll("#tbody .copy-btn").forEach(function (button) {
-      button.addEventListener("click", function () {
-        navigator.clipboard.writeText(button.dataset.name || "").catch(function (error) {
-          console.error(error);
-        });
-      });
-    });
-  }
-
-  document.getElementById("loadBtn").addEventListener("click", async function () {
+  document.getElementById("loadBtn").onclick = async function () {
     var button = document.getElementById("loadBtn");
+    var status = document.getElementById("status");
+    if (button) button.disabled = true;
     var progress = window.TarkovUI && TarkovUI.progress;
-    button.disabled = true;
-    setStatus("tool.helmets.ui.loading");
-    if (progress) progress.start({ label: t("tool.itemScore.loading"), indeterminate: true });
     try {
-      var mode = document.getElementById("gameMode").value || "pve";
-      rows = TarkovItemViewModels.helmets(await TarkovAPI.items(mode));
-      document.getElementById("tableCard").style.display = "block";
-      render();
-      setStatus("tool.itemScore.loaded", { count: rows.length }, "ok");
-      if (progress) progress.done(t("tool.itemScore.loaded", { count: rows.length }));
-      persist();
-    } catch (error) {
-      setStatus("tool.itemScore.loadError", { message: error.message }, "err");
-      if (progress) progress.fail(t("tool.itemScore.loadError", { message: error.message }));
-      console.error(error);
+      if (progress) progress.start({ label: t("tool.itemScore.loading"), indeterminate: true });
+      var mode = (document.getElementById("gameMode") || {}).value || "pve";
+      var rows = TarkovItemViewModels.helmets(await TarkovAPI.items(mode));
+      rows.forEach(function (r) {
+        r.name = TarkovTableTool.itemName({
+          id: r.id,
+          name: r.name,
+          shortName: r.shortName,
+          normalizedName: r.slug
+        });
+        if (r.class == null && r.cls != null) r.class = r.cls;
+      });
+      api.setRows(rows);
+      var card = document.getElementById("tableCard");
+      if (card) {
+        card.hidden = false;
+        card.style.display = "block";
+      }
+      if (status) {
+        status.className = "status ok";
+        status.textContent = t("tool.itemScore.loaded", { count: rows.length }) || "OK · " + rows.length;
+      }
+      if (progress) progress.done();
+    } catch (e) {
+      if (status) {
+        status.className = "status err";
+        status.textContent = e.message || String(e);
+      }
+      if (progress) progress.fail(e.message);
     } finally {
-      button.disabled = false;
+      if (button) button.disabled = false;
     }
-  });
-
-  document.getElementById("q").addEventListener("input", render);
-  document.getElementById("minClass").addEventListener("change", render);
-  document.getElementById("onlyFlea").addEventListener("change", render);
-  document.getElementById("hideQuest").addEventListener("change", render);
-  document.querySelectorAll("#tbl th[data-k]").forEach(function (header) {
-    header.addEventListener("click", function () {
-      var key = header.dataset.k;
-      if (sortKey === key) sortDir *= -1;
-      else {
-        sortKey = key;
-        sortDir = key === "name" || key === "mat" ? 1 : -1;
-      }
-      render();
-    });
-  });
-  window.addEventListener("tt-lang-changed", function () {
-    render();
-    renderStatus();
-  });
-  try {
-    var saved = TarkovStorage.getJson(settingKey, {}) || {};
-    if (document.getElementById("gameMode")) {
-      var __ttMode = (window.TarkovProfile && TarkovProfile.preferredGameMode)
-        ? TarkovProfile.preferredGameMode(saved.mode || "pve")
-        : (saved.mode || "pve");
-      document.getElementById("gameMode").value = __ttMode;
-    }
-  } catch (error) {
-    console.error(error);
-  }
-})();
-
-window.render = function () {
-  try {
-    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) { try { console.debug && console.debug("[tt:helmets]", e0); } catch (_tt) { /* ignore */ } }
-  try { if (typeof render === "function") render(); } catch (e1) { try { console.debug && console.debug("[tt:helmets]", e1); } catch (_tt) { /* ignore */ } }
-};
-if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-  TarkovProfile.bindRefresh(function () { window.render(); });
-}
-
-/* R-2: gameMode from profile on load; changes write to profile */
-(function () {
-  function __ttBindMode() {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
-        TarkovProfile.wireToolPage();
-      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
-        var el = document.getElementById("gameMode");
-        if (el) el.__ttProfileBound = false;
-        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
-      }
-    } catch (e) { try { console.debug && console.debug("[tt:helmets]", e); } catch (_tt) { /* ignore */ } }
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", __ttBindMode);
-  } else {
-    __ttBindMode();
-  }
+  };
 })();

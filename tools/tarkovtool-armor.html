@@ -242,21 +242,7 @@
       <div class="card-title" data-i18n="tool.itemScore.name">Список</div>
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th data-k="name" data-i18n="tool.itemScore.name">Название</th>
-              <th data-k="class" data-i18n="tool.itemScore.classShort">Кл</th>
-              <th data-k="dur" data-i18n="tool.itemScore.durabilityShort">Дур</th>
-              <th data-k="kind" data-i18n="tool.armor.ui.type">Тип</th>
-              <th data-i18n="tool.itemScore.zones">Зоны</th>
-              <th data-k="avg" data-i18n="tool.itemScore.flea">Барахолка</th>
-              <th data-k="traderPrice" data-i18n="tool.itemScore.trader">Торговец</th>
-              <th data-k="quest" data-i18n="tool.itemScore.quest">Квест</th>
-              <th data-k="plateSlots" data-i18n="tool.armor.ui.plates">Плиты</th>
-              <th data-k="score" data-i18n="tool.itemScore.score">Рейтинг</th>
-              <th></th>
-            </tr>
-          </thead>
+          <thead id="armorHead"><tr></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
@@ -283,6 +269,7 @@
   <script type="module" src="../core/tarkov-ui.js"></script>
   <script type="module" src="../core/tarkov-state.js"></script>
   <script type="module" src="../core/tarkov-common.js"></script>
+    <script src="../core/tarkov-table-tool.js"></script>
   <script type="module" src="../js/armor.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>

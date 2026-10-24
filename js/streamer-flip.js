@@ -1,20 +1,9 @@
+/*! Streamer flip — TarkovTableTool */
 (function () {
-  if (typeof formatNum !== "function") {
-    window.formatNum = function (n) {
-      try {
-        if (window.TarkovUI && TarkovUI.formatNum) return TarkovUI.formatNum(n);
-      } catch (e) { try { console.debug && console.debug("[tt:streamer-flip]", e); } catch (_tt) { /* ignore */ } }
-      n = Number(n);
-      if (!isFinite(n)) return "\u2014";
-      return Math.round(n).toLocaleString("ru-RU");
-    };
-  }
-})();
+  "use strict";
 
-    const THERAPIST = '54cb57776803fa99248b456e';
-
-    // известные стримерские / коллекционные (slug содержит)
-    const STREAMER_KEYS = [
+  var THERAPIST = "54cb57776803fa99248b456e";
+  const STREAMER_KEYS = [
       'deadlyslobs-beard-oil',
       'kotton-beanie',
       'pestily-plague-mask',
@@ -82,9 +71,7 @@
       'mastichin',
       'tarcoin'
     ];
-
-    // точные slug'и — приоритет (меньше ложных срабатываний)
-    const STREAMER_EXACT = new Set([
+  const STREAMER_EXACT = new Set([
       'deadlyslobs-beard-oil',
       'kotton-beanie',
       'pestily-plague-mask',
@@ -108,227 +95,142 @@
       'tigzresq-splint'
     ]);
 
-    let rows = [];
-    let sortKey = 'profit';
-    let sortDir = -1;
+  function isStreamerItem(slug) {
+    if (!slug) return false;
+    var s = String(slug).toLowerCase();
+    if (STREAMER_EXACT.has && STREAMER_EXACT.has(s)) return true;
+    if (STREAMER_EXACT instanceof Set && STREAMER_EXACT.has(s)) return true;
+    if (Array.isArray(STREAMER_KEYS) && STREAMER_KEYS.indexOf(s) >= 0) return true;
+    if (s.endsWith("-figurine") || s.indexOf("figurine") >= 0) return true;
+    var keys = [
+      "deadlyslob", "pestily", "lvndmark", "kotton", "viibiin", "bakeezy",
+      "fireklean", "baddie", "beard-oil", "streamer", "twitch"
+    ];
+    for (var i = 0; i < keys.length; i++) if (s.indexOf(keys[i]) >= 0) return true;
+    return false;
+  }
 
-    function humanize(slug) { return TarkovDicts.humanize(slug); }
-    function esc(s) { return TarkovDicts.esc(s); }
+  function formatNum(n) {
+    return TarkovTableTool.fmtNum(n);
+  }
 
-    function isStreamerItem(slug) {
-      if (!slug) return false;
-      const s = slug.toLowerCase();
-      if (STREAMER_EXACT.has(s)) return true;
-      // фигурки торговцев / коллекционка
-      if (s.endsWith('-figurine') || s.includes('figurine')) return true;
-      const keys = [
-        'deadlyslob', 'pestily', 'lvndmark', 'kotton', 'viibiin', 'bakeezy',
-        'fireklean', 'baddie', 'beard-oil', 'rat-poison', 'plague-mask',
-        'smoke-balaclava', 'english-tea', '42-signature', 'devildog',
-        'old-firesteel', 'can-of-sprats', 'gingy-keychain', 'mazoni-golden',
-        'desmondpilak', 'lm-kc-130', 'tigzresq', 'tarcoin', 'fake-white-beard'
-      ];
-      return keys.some(k => s.includes(k));
-    }
+  ["search", "buyPrice", "onlyProfit"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("input", function () { if (window.render) window.render(); });
+    el.addEventListener("change", function () { if (window.render) window.render(); });
+  });
 
-    document.getElementById('loadBtn').addEventListener('click', async () => {
-      const btn = document.getElementById('loadBtn');
-      const status = document.getElementById('status');
-      btn.disabled = true;
-      status.className = 'status';
-      const mode = document.getElementById('gameMode').value || 'regular';
-      status.textContent = 'Тяну items…';
-      try {
-        const items = await TarkovAPI.items(mode);
-        if (!items.length) throw new Error('Нет items');
-
-        const priceMode = document.getElementById('buyPrice').value;
-        rows = [];
-        items.forEach(it => {
-          const slug = it.normalizedName || '';
-          if (!isStreamerItem(slug)) return;
-
-          const sell = it.sellToTrader || [];
-          const th = sell.find(s => s.trader === THERAPIST);
-          const therapist = th ? Number(th.priceRUB != null ? th.priceRUB : th.price) || 0 : 0;
-
-          const avg = Number(it.avg24hPrice) || 0;
-          const low = Number(it.lastLowPrice) || 0;
-          const buy = priceMode === 'avg24h' ? (avg || low) : (low || avg);
-          const profit = therapist && buy ? therapist - buy : null;
-          const roi = profit != null && buy > 0 ? (profit / buy) * 100 : null;
-
-          rows.push({
-            id: it.id,
-            slug,
-            name: humanize(slug),
-            icon: it.iconLink || it.gridImageLink || '',
-            buy,
-            avg,
-            low,
-            therapist,
-            profit: profit != null ? profit : -Infinity,
-            roi: roi != null ? roi : -Infinity,
-            offers: it.lastOfferCount || 0,
-            hasTherapist: therapist > 0
-          });
-        });
-
-        document.getElementById('tableCard').style.display = 'block';
-        render();
-        status.className = 'status ok';
-        status.textContent = `Найдено стримерских/коллекционных: ${rows.length} · с ценой Терапевта: ${rows.filter(r => r.hasTherapist).length}`;
-      } catch (e) {
-        console.error(e);
-        status.className = 'status err';
-        status.textContent = 'Ошибка: ' + e.message;
-      } finally {
-        btn.disabled = false;
-      }
-    });
-
-    function getFiltered() {
-      const q = (document.getElementById('search').value || '').toLowerCase().trim();
-      const only = document.getElementById('onlyProfit').checked;
-      let list = rows.filter(r => {
-        if (only && !(r.profit > 0)) return false;
-        if (q) {
-          const hay = (r.name + ' ' + r.slug).toLowerCase();
-          if (!hay.includes(q)) return false;
+  var api = TarkovTableTool.create({
+    tbody: "#tbody",
+    thead: "#sfHead",
+    status: "#status",
+    loadBtn: "#loadBtn",
+    search: "#search",
+    defaultSort: "profit",
+    defaultSortDir: -1,
+    progress: true,
+    filterRow: function (row, q) {
+      var only = document.getElementById("onlyProfit");
+      if (only && only.checked && !(row.profit > 0)) return false;
+      if (!q) return true;
+      return ((row.name || "") + " " + (row.slug || "")).toLowerCase().indexOf(q) >= 0;
+    },
+    columns: [
+      {
+        key: "name",
+        label: "Предмет",
+        html: function (r, h) { return TarkovTableTool.nameCell(r, h); }
+      },
+      { key: "buy", label: "Buy", format: "num" },
+      { key: "therapist", label: "Therapist", format: "num" },
+      {
+        key: "profit",
+        label: "Profit",
+        html: function (r) {
+          if (!r.hasTherapist) return "—";
+          var cls = r.profit > 0 ? "pos" : "neg";
+          return '<span class="' + cls + '">' + (r.profit > 0 ? "+" : "") + formatNum(r.profit) + "</span>";
         }
-        return true;
+      },
+      {
+        key: "roi",
+        label: "ROI%",
+        html: function (r) {
+          if (!r.hasTherapist || !isFinite(r.roi)) return "—";
+          var cls = r.roi > 0 ? "pos" : "neg";
+          return '<span class="' + cls + '">' + Number(r.roi).toFixed(1) + "%</span>";
+        }
+      },
+      { key: "offers", label: "Offers", format: "num" }
+    ],
+    fetch: function () { return Promise.resolve([]); },
+    mapItem: function () { return null; },
+    afterPaint: function (list, ctx) {
+      (ctx.tbody || document.getElementById("tbody")).querySelectorAll("tr").forEach(function (tr, i) {
+        if (list[i] && list[i].profit > 0) tr.classList.add("good");
       });
-      list.sort((a, b) => {
-        let va = a[sortKey], vb = b[sortKey];
-        if (typeof va === 'string') return sortDir * va.localeCompare(vb, 'ru');
-        return sortDir * ((va ?? -Infinity) - (vb ?? -Infinity));
-      });
-      return list;
     }
+  });
 
-    function render() {
-      const list = getFiltered();
-      const tbody = document.getElementById('tbody');
-      tbody.innerHTML = '';
-      if (!list.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="meta" style="text-align:center;padding:24px;">Пусто</td></tr>';
-        return;
-      }
-      list.forEach(r => {
-        const tr = document.createElement('tr');
-        if (r.profit > 0) tr.classList.add('good');
-        const profitCell = r.hasTherapist
-          ? `<span class="${r.profit > 0 ? 'pos' : 'neg'}">${r.profit > 0 ? '+' : ''}${formatNum(r.profit)}</span>`
-          : '—';
-        const roiCell = r.hasTherapist && r.roi > -Infinity
-          ? `<span class="${r.roi > 0 ? 'pos' : 'neg'}">${r.roi.toFixed(1)}%</span>`
-          : '—';
-        tr.innerHTML = `
-          <td>
-            <div class="name-cell">${r.icon?`<img class="ico" src="${esc(r.icon)}" loading="lazy" alt="">`:''}<div class="txt">
-            <div class="name">${esc(r.name)}</div>
-            <div class="meta">${esc(r.slug)}</div>
-            </div></div>
-          </td>
-          <td>
-            <strong>${r.buy ? formatNum(r.buy) : '—'}</strong>
-            <div class="meta">avg ${formatNum(r.avg)} · min ${formatNum(r.low)}</div>
-          </td>
-          <td>${r.hasTherapist ? formatNum(r.therapist) : '<span class="meta">не берёт</span>'}</td>
-          <td>${profitCell}</td>
-          <td>${roiCell}</td>
-          <td>${r.offers || '—'}</td>
-          <td><button type="button" class="copy-btn" data-name="${esc(r.slug)}">копир.</button></td>
-        `;
-        tbody.appendChild(tr);
-      });
-      tbody.querySelectorAll('.copy-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          navigator.clipboard.writeText(btn.dataset.name).then(() => {
-            const old = btn.textContent;
-            btn.textContent = '✓';
-            setTimeout(() => { btn.textContent = old; }, 800);
-          });
+  document.getElementById("loadBtn").onclick = async function () {
+    var btn = document.getElementById("loadBtn");
+    var status = document.getElementById("status");
+    if (btn) btn.disabled = true;
+    var P = window.TarkovUI && TarkovUI.progress;
+    try {
+      if (P) P.start({ label: "Streamer items…", indeterminate: true });
+      var mode = (document.getElementById("gameMode") || {}).value || "pve";
+      var priceMode = (document.getElementById("buyPrice") || {}).value || "avg24h";
+      var items = await TarkovAPI.items(mode);
+      var rows = [];
+      (items || []).forEach(function (it) {
+        var slug = it.normalizedName || "";
+        if (!isStreamerItem(slug)) return;
+        var sell = it.sellToTrader || [];
+        var th = sell.find(function (s) { return s.trader === THERAPIST; });
+        var therapist = th ? Number(th.priceRUB != null ? th.priceRUB : th.price) || 0 : 0;
+        var avg = Number(it.avg24hPrice) || 0;
+        var low = Number(it.lastLowPrice) || 0;
+        var buy = priceMode === "avg24h" ? avg || low : low || avg;
+        var profit = therapist && buy ? therapist - buy : null;
+        var roi = profit != null && buy > 0 ? (profit / buy) * 100 : null;
+        rows.push({
+          id: it.id,
+          slug: slug,
+          name: TarkovTableTool.itemName(it),
+          icon: it.iconLink || it.gridImageLink || "",
+          buy: buy,
+          avg: avg,
+          low: low,
+          therapist: therapist,
+          profit: profit != null ? profit : -Infinity,
+          roi: roi != null ? roi : -Infinity,
+          offers: it.lastOfferCount || 0,
+          hasTherapist: therapist > 0
         });
       });
-    }
-
-    document.querySelectorAll('th[data-k]').forEach(th => {
-      th.addEventListener('click', () => {
-        const k = th.dataset.k;
-        if (sortKey === k) sortDir *= -1;
-        else { sortKey = k; sortDir = k === 'name' ? 1 : -1; }
-        render();
-      });
-    });
-    document.getElementById('search').addEventListener('input', render);
-    document.getElementById('onlyProfit').addEventListener('change', () => { render(); persist(); });
-    document.getElementById('buyPrice').addEventListener('change', () => {
-      // re-run last logic on rows if already loaded
-      if (!rows.length) return;
-      const priceMode = document.getElementById('buyPrice').value;
-      rows.forEach(r => {
-        r.buy = priceMode === 'avg24h' ? (r.avg || r.low) : (r.low || r.avg);
-        r.profit = r.hasTherapist && r.buy ? r.therapist - r.buy : -Infinity;
-        r.roi = r.profit > -Infinity && r.buy > 0 ? (r.profit / r.buy) * 100 : -Infinity;
-      });
-      render();
-      persist();
-    });
-
-    function persist() {
-      saveSettings('tarkovStreamerFlip', {
-        
-        buyPrice: document.getElementById('buyPrice').value,
-        onlyProfit: document.getElementById('onlyProfit').checked
-      });
-    }
-    (function() {
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    var s=String(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20}$/i.test(s)) {
-      var n=String(it.name||'').trim();
-      var sl=String(it.normalizedName||'').trim();
-      if(n && !/^[a-f0-9]{20}$/i.test(n)) s=n;
-      else if(sl) s=sl;
-    }
-    return s||it.id||'';
-  }
-
-      const s = loadSettings('tarkovStreamerFlip', {});
-            if (s.buyPrice) document.getElementById('buyPrice').value = s.buyPrice;
-      if (s.onlyProfit === false) document.getElementById('onlyProfit').checked = false;
-    })();
-
-window.render = function () {
-  try {
-    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) { try { console.debug && console.debug("[tt:streamer-flip]", e0); } catch (_tt) { /* ignore */ } }
-  try { if (typeof render === "function") render(); } catch (e1) { try { console.debug && console.debug("[tt:streamer-flip]", e1); } catch (_tt) { /* ignore */ } }
-};
-if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-  TarkovProfile.bindRefresh(function () { window.render(); });
-}
-
-/* R-2: gameMode from profile on load; changes write to profile */
-(function () {
-  function __ttBindMode() {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
-        TarkovProfile.wireToolPage();
-      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
-        var el = document.getElementById("gameMode");
-        if (el) el.__ttProfileBound = false;
-        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+      api.setRows(rows);
+      var card = document.getElementById("tableCard");
+      if (card) card.style.display = "block";
+      if (status) {
+        status.className = "status ok";
+        status.textContent =
+          "Стримерских: " +
+          rows.length +
+          " · с Терапевтом: " +
+          rows.filter(function (r) { return r.hasTherapist; }).length;
       }
-    } catch (e) { try { console.debug && console.debug("[tt:streamer-flip]", e); } catch (_tt) { /* ignore */ } }
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", __ttBindMode);
-  } else {
-    __ttBindMode();
-  }
+      if (P) P.done();
+    } catch (e) {
+      console.error(e);
+      if (status) {
+        status.className = "status err";
+        status.textContent = e.message || String(e);
+      }
+      if (P) P.fail(e.message);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  };
 })();

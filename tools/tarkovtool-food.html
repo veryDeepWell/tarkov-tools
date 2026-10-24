@@ -49,18 +49,7 @@
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th data-s="name" data-i18n="tool.itemScore.name">Предмет</th>
-              <th data-s="kind" data-i18n="tool.itemScore.type">Тип</th>
-              <th data-s="energy" data-i18n="tool.food.ui.energy">Energy</th>
-              <th data-s="hydration" data-i18n="tool.food.ui.hydration">Hydration</th>
-              <th data-s="units" data-i18n="tool.food.ui.units">Units</th>
-              <th data-s="avg" data-i18n="tool.itemScore.price">Цена ₽</th>
-              <th data-s="perPoint" data-i18n="tool.food.ui.pricePerPoint">Цена / очко</th>
-              <th data-s="score" data-i18n="tool.itemScore.score">Рейтинг</th>
-            </tr>
-          </thead>
+          <thead id="foodHead"><tr></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
@@ -79,6 +68,7 @@
   <script type="module" src="../core/tarkov-ui.js"></script>
   <script type="module" src="../core/tarkov-state.js"></script>
   <script type="module" src="../core/tarkov-common.js"></script>
+    <script src="../core/tarkov-table-tool.js"></script>
   <script type="module" src="../js/food.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>

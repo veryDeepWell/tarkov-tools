@@ -1,333 +1,266 @@
-
-    const MAP_ORDER = [
-      'factory', 'ground-zero', 'customs', 'woods', 'shoreline',
-      'interchange', 'reserve', 'lighthouse', 'streets', 'labs', 'labyrinth', 'other'
-    ];
-    const MAP_RU = {
-      factory: 'Factory',
-      'ground-zero': 'Ground Zero',
-      customs: 'Customs',
-      woods: 'Woods',
-      shoreline: 'Shoreline',
-      interchange: 'Interchange',
-      reserve: 'Reserve',
-      lighthouse: 'Lighthouse',
-      streets: 'Streets',
-      labs: 'The Lab',
-      labyrinth: 'Labyrinth',
-      other: 'Прочее'
-    };
-
-    // эвристика локации по normalizedName
-    const MAP_RULES = [
-      ['labs', /labs|terragroup|lab-|\blab\b/],
-      ['labyrinth', /labyrinth/],
-      ['factory', /factory/],
-      ['ground-zero', /ground-zero|groundzero|science-campus|nexus|basement/],
-      ['customs', /customs|dorm|gas-station|trailer|checkpoint|military-base|tarcone|portable-cabin|unknown-key|cabinet|portable-bunkhouse/],
-      ['woods', /woods|lumber|sawmill|zb-0|zb-01|shturman|cabin|scav-house| emercom|fishing/],
-      ['shoreline', /shoreline|resort|cottage|weather|health-resort|sanatorium|pier|hydro|station-key|keycard-with-a-blue/],
-      ['interchange', /interchange|idea|oli|goshan|power-station|ultra|kiba|emegency|pharmacy|object-11|object-14|object-21/],
-      ['reserve', /reserve|\brb-|\brb |bunker|hermetic|d-2|d2|military-checkpoint|pumping|radar|workshop|barrack|k-buildings/],
-      ['lighthouse', /lighthouse|water-treatment|operating|radar-station|conference|building-1|building-2|building-3|rogue/],
-      ['streets', /streets|chekannaya|cinema|cardinal|mvd|lexos|concordia|pinewood|tarbank|primorsky|beluga|iron-gate|collapsed|cargo|x-ray|finance|construction/]
-    ];
-
-    let byMap = {};
-    let activeMap = null;
-    let mode = 'price'; // price | rating
-    let sortKey = 'avg';
-    let sortDir = -1;
-
-    function loadSettings(key, defaults) { return TarkovUI.loadSettings(key, defaults); }
-    function saveSettings(key, obj) { TarkovUI.saveSettings(key, obj); }
-
-    function humanize(slug) { return TarkovDicts.humanize(slug); }
-    function formatNum(n) { return TarkovDicts.fmtNum(n); }
-    function detectMap(slug) {
-      const s = (slug || '').toLowerCase();
-      for (const [map, re] of MAP_RULES) {
-        if (re.test(s)) return map;
-      }
-      return 'other';
-    }
-    function stars(rating, maxR) {
-      if (!maxR || rating <= 0) return '—';
-      const n = Math.max(1, Math.min(5, Math.ceil((rating / maxR) * 5)));
-      return '★'.repeat(n) + '☆'.repeat(5 - n);
-    }
-
-    // рейтинг фарма: дорогой многоразовый без квеста выше; квестовый сильно режется
-    function farmScore(avg, uses, isQuest) {
-      const u = Math.max(1, uses || 1);
-      const base = (avg || 0) * Math.sqrt(u);
-      return base * (isQuest ? 0.25 : 1);
-    }
-
-    document.getElementById('loadBtn').addEventListener('click', async () => {
-      const btn = document.getElementById('loadBtn');
-      const status = document.getElementById('status');
-      btn.disabled = true;
-      status.className = 'status';
-      const modeGame = document.getElementById('gameMode').value || 'regular';
-      status.textContent = 'Гружу items + tasks…';
-
-      try {
-        const [items, tasks] = await Promise.all([
-          TarkovAPI.items(modeGame),
-          TarkovAPI.tasks(modeGame)
-        ]);
-        if (!items.length) throw new Error('Нет items');
-
-        // quest keys from neededKeys + giveItem/findItem on key ids later
-        const questKeyIds = new Set();
-        {
-          (tasks || []).forEach(t => {
-            (t.neededKeys || []).forEach(block => {
-              (block.keys || []).forEach(id => questKeyIds.add(id));
-            });
-            (t.objectives || []).forEach(o => {
-              if (['giveItem', 'findItem'].includes(o.type)) {
-                if (typeof o.item === 'string') questKeyIds.add(o.item);
-                (o.items || []).forEach(x => {
-                  if (typeof x === 'string') questKeyIds.add(x);
-                  else if (x && x.id) questKeyIds.add(x.id);
-                });
-              }
-            });
-          });
-        }
-
-        byMap = {};
-        MAP_ORDER.forEach(m => { byMap[m] = []; });
-
-        items.forEach(it => {
-          if (!(it.types || []).includes('keys')) return;
-          const p = it.properties || {};
-          const uses = Number(p.uses) || 1;
-          const avg = Number(it.avg24hPrice) || 0;
-          const low = Number(it.lastLowPrice) || 0;
-          const isQuest = questKeyIds.has(it.id);
-          // also name heuristic: "marked" often loot; "quest" in name rare
-          const slug = it.normalizedName || '';
-          const map = detectMap(slug);
-          const score = farmScore(avg, uses, isQuest);
-          const row = {
-            id: it.id,
-            slug,
-            name: humanize(slug),
-            icon: it.iconLink || it.gridImageLink || '',
-            uses,
-            avg,
-            low,
-            perUse: uses > 0 ? avg / uses : avg,
-            rating: score,
-            quest: isQuest,
-            map
-          };
-          if (!byMap[map]) byMap[map] = [];
-          byMap[map].push(row);
-        });
-
-        const box = document.getElementById('maps');
-        box.innerHTML = '';
-        MAP_ORDER.forEach(m => {
-          const list = byMap[m] || [];
-          if (!list.length && m !== 'other') return;
-          if (!list.length) return;
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'map-btn' + (activeMap === m ? ' active' : '');
-          b.innerHTML = `${MAP_RU[m] || m}<span class="count">${list.length}</span>`;
-          b.onclick = () => {
-            activeMap = m;
-            box.querySelectorAll('.map-btn').forEach(x => x.classList.remove('active'));
-            b.classList.add('active');
-            render();
-            persist();
-          };
-          box.appendChild(b);
-        });
-
-        document.getElementById('mapsCard').style.display = 'block';
-        document.getElementById('tableCard').style.display = 'block';
-        status.className = 'status ok';
-        const total = Object.values(byMap).reduce((s, a) => s + a.length, 0);
-        status.textContent = `Ключей: ${total} · квестовых (API): ${questKeyIds.size}`;
-
-        const saved = loadSettings('tarkovKeysSettings', {});
-        if (saved.activeMap && byMap[saved.activeMap]?.length) {
-          activeMap = saved.activeMap;
-          mode = saved.mode || 'price';
-          document.querySelectorAll('.mode-toggle button').forEach(b => {
-            b.classList.toggle('active', b.dataset.mode === mode);
-          });
-          [...box.querySelectorAll('.map-btn')].forEach(b => {
-            if (b.textContent.includes(MAP_RU[activeMap] || '')) b.classList.add('active');
-          });
-        } else if (!activeMap) {
-          activeMap = MAP_ORDER.find(m => byMap[m]?.length) || 'customs';
-        }
-        render();
-      } catch (e) {
-        console.error(e);
-        status.className = 'status err';
-        status.textContent = 'Ошибка: ' + e.message;
-      } finally {
-        btn.disabled = false;
-      }
-    });
-
-    function render() {
-      if (!activeMap || !byMap[activeMap]) return;
-      let rows = [...byMap[activeMap]];
-      const q = (document.getElementById('search').value || '').toLowerCase().trim();
-      const hideQuest = document.getElementById('hideQuest').checked;
-      if (hideQuest) rows = rows.filter(r => !r.quest);
-      if (q) {
-        rows = rows.filter(r =>
-          r.name.toLowerCase().includes(q) || r.slug.toLowerCase().includes(q)
-        );
-      }
-
-      // default sort by mode
-      const primary = mode === 'rating' ? 'rating' : 'avg';
-      if (!['name', 'uses', 'avg', 'perUse', 'rating', 'quest'].includes(sortKey)) {
-        sortKey = primary;
-      }
-      // when switching mode, prefer that key
-      const sk = sortKey;
-      rows.sort((a, b) => {
-        let va = a[sk], vb = b[sk];
-        if (sk === 'quest') { va = a.quest ? 1 : 0; vb = b.quest ? 1 : 0; }
-        if (typeof va === 'string') return sortDir * va.localeCompare(vb, 'ru');
-        return sortDir * ((va || 0) - (vb || 0));
-      });
-
-      const maxR = Math.max(...rows.map(r => r.rating), 1);
-      document.getElementById('tableTitle').textContent =
-        (MAP_RU[activeMap] || activeMap) + ' · ' + rows.length + ' ключей · режим: ' +
-        (mode === 'rating' ? 'рейтинг' : 'стоимость');
-
-      const tbody = document.getElementById('tbody');
-      tbody.innerHTML = '';
-      rows.forEach(r => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>
-            <div class="name-cell">${r.icon?`<img class="ico" src="${esc(r.icon)}" loading="lazy" alt="">`:''}<div class="txt">
-            <div class="name">${esc(r.name)}</div>
-            <div class="meta">${esc(r.slug)}</div>
-            </div></div>
-          </td>
-          <td>${r.uses}</td>
-          <td><strong>${r.avg ? formatNum(r.avg) : '—'}</strong></td>
-          <td>${r.avg ? formatNum(r.perUse) : '—'}</td>
-          <td>
-            <div class="stars">${stars(r.rating, maxR)}</div>
-            <div class="meta">${formatNum(r.rating)}</div>
-          </td>
-          <td>${r.quest ? '<span class="quest">квест</span>' : '<span class="loot">лут</span>'}</td>
-          <td><button type="button" class="copy-btn" data-name="${esc(r.slug)}">копир.</button></td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      tbody.querySelectorAll('.copy-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const text = btn.dataset.name || '';
-          navigator.clipboard.writeText(text).then(() => {
-            const old = btn.textContent;
-            btn.textContent = '✓';
-            setTimeout(() => { btn.textContent = old; }, 700);
-          }).catch(() => {});
-        });
-      });
-    }
-
-    function esc(s) { return TarkovDicts.esc(s); }
-
-    function persist() {
-      saveSettings('tarkovKeysSettings', {
-        
-        activeMap,
-        mode,
-        hideQuest: document.getElementById('hideQuest').checked
-      });
-    }
-
-    document.querySelectorAll('.mode-toggle button').forEach(b => {
-      b.addEventListener('click', () => {
-        mode = b.dataset.mode;
-        document.querySelectorAll('.mode-toggle button').forEach(x => x.classList.remove('active'));
-        b.classList.add('active');
-        sortKey = mode === 'rating' ? 'rating' : 'avg';
-        sortDir = -1;
-        render();
-        persist();
-      });
-    });
-
-    document.querySelectorAll('th[data-k]').forEach(th => {
-      th.addEventListener('click', () => {
-        const k = th.dataset.k;
-        if (sortKey === k) sortDir *= -1;
-        else {
-          sortKey = k;
-          sortDir = k === 'name' ? 1 : -1;
-        }
-        render();
-      });
-    });
-
-    document.getElementById('search').addEventListener('input', render);
-    document.getElementById('hideQuest').addEventListener('change', () => { render(); persist(); });
-
-    (function() {
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(window.itemName&&window.itemName!==itemName)return window.itemName(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    var s=(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20}$/i.test(it.name)?it.name:it.normalizedName)||s;
-    return s||it.id||'';
-  }
-
-      const s = loadSettings('tarkovKeysSettings', {  mode: 'price' });
-            mode = s.mode || 'price';
-      document.querySelectorAll('.mode-toggle button').forEach(b => {
-        b.classList.toggle('active', b.dataset.mode === mode);
-      });
-      if (s.hideQuest) document.getElementById('hideQuest').checked = true;
-    })();
-
-window.render = function () {
-  try {
-    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) { try { console.debug && console.debug("[tt:keys]", e0); } catch (_tt) { /* ignore */ } }
-  try { if (typeof render === "function") render(); } catch (e1) { try { console.debug && console.debug("[tt:keys]", e1); } catch (_tt) { /* ignore */ } }
-};
-if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-  TarkovProfile.bindRefresh(function () { window.render(); });
-}
-
-/* R-2: gameMode from profile on load; changes write to profile */
+/*! Keys — TarkovTableTool + map chips */
 (function () {
-  function __ttBindMode() {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
-        TarkovProfile.wireToolPage();
-      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
-        var el = document.getElementById("gameMode");
-        if (el) el.__ttProfileBound = false;
-        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
-      }
-    } catch (e) { try { console.debug && console.debug("[tt:keys]", e); } catch (_tt) { /* ignore */ } }
+  "use strict";
+
+  var MAP_ORDER = [
+    "factory",
+    "ground-zero",
+    "customs",
+    "woods",
+    "shoreline",
+    "interchange",
+    "reserve",
+    "lighthouse",
+    "streets",
+    "labs",
+    "labyrinth",
+    "other"
+  ];
+  var MAP_RU = {
+    factory: "Factory",
+    "ground-zero": "Ground Zero",
+    customs: "Customs",
+    woods: "Woods",
+    shoreline: "Shoreline",
+    interchange: "Interchange",
+    reserve: "Reserve",
+    lighthouse: "Lighthouse",
+    streets: "Streets",
+    labs: "The Lab",
+    labyrinth: "Labyrinth",
+    other: "Прочее"
+  };
+  var MAP_RULES = [
+    ["labs", /labs|terragroup|lab-|\blab\b/],
+    ["labyrinth", /labyrinth/],
+    ["factory", /factory/],
+    ["ground-zero", /ground-zero|groundzero|science-campus|nexus/],
+    ["customs", /customs|customs-/],
+    ["woods", /woods|sawmill|scav-house/],
+    ["shoreline", /shoreline|health-resort|resort|cottage/],
+    ["interchange", /interchange|ultra|oli|idea|goshan/],
+    ["reserve", /reserve|bunker|d-2|d2|rb-/],
+    ["lighthouse", /lighthouse|water-treatment|rogue/],
+    ["streets", /streets|lexos|cardinal|chek/]
+  ];
+
+  var activeMap = "customs";
+  var mode = "rating";
+  var tableApi = null;
+
+  function detectMap(slug) {
+    slug = String(slug || "").toLowerCase();
+    for (var i = 0; i < MAP_RULES.length; i++) {
+      if (MAP_RULES[i][1].test(slug)) return MAP_RULES[i][0];
+    }
+    return "other";
   }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", __ttBindMode);
-  } else {
-    __ttBindMode();
+
+  function farmScore(avg, uses, isQuest) {
+    if (isQuest) return 0;
+    uses = Math.max(1, uses || 1);
+    if (!avg) return 1;
+    return Math.round((avg / uses / 1000) * 10) / 10;
+  }
+
+  function paintMaps(counts) {
+    var box = document.getElementById("maps");
+    if (!box) return;
+    box.innerHTML = MAP_ORDER.map(function (m) {
+      var n = counts[m] || 0;
+      if (!n && m !== "other") return "";
+      var on = m === activeMap ? " on" : "";
+      return (
+        '<button type="button" class="chip' +
+        on +
+        '" data-map="' +
+        m +
+        '">' +
+        (MAP_RU[m] || m) +
+        " (" +
+        n +
+        ")</button>"
+      );
+    }).join("");
+    box.querySelectorAll("[data-map]").forEach(function (btn) {
+      btn.onclick = function () {
+        activeMap = btn.getAttribute("data-map");
+        var title = document.getElementById("tableTitle");
+        if (title) title.textContent = MAP_RU[activeMap] || activeMap;
+        box.querySelectorAll("[data-map]").forEach(function (b) {
+          b.classList.toggle("on", b.getAttribute("data-map") === activeMap);
+        });
+        if (window.render) window.render();
+      };
+    });
+  }
+
+  document.getElementById("modePrice") &&
+    document.getElementById("modePrice").addEventListener("click", function () {
+      mode = "price";
+      if (window.render) window.render();
+    });
+  document.getElementById("modeRating") &&
+    document.getElementById("modeRating").addEventListener("click", function () {
+      mode = "rating";
+      if (window.render) window.render();
+    });
+  var hq = document.getElementById("hideQuest");
+  if (hq)
+    hq.addEventListener("change", function () {
+      if (window.render) window.render();
+    });
+
+  tableApi = TarkovTableTool.create({
+    tbody: "#tbody",
+    thead: "#keysHead",
+    status: "#status",
+    loadBtn: "#loadBtn",
+    search: "#search",
+    defaultSort: "rating",
+    defaultSortDir: -1,
+    progress: true,
+    filterRow: function (row, q) {
+      if (row.map !== activeMap) return false;
+      var hideQuest = document.getElementById("hideQuest");
+      if (hideQuest && hideQuest.checked && row.quest) return false;
+      if (!q) return true;
+      return ((row.name || "") + " " + (row.slug || "")).toLowerCase().indexOf(q) >= 0;
+    },
+    columns: [
+      {
+        key: "name",
+        label: "Ключ",
+        html: function (r, h) {
+          return TarkovTableTool.nameCell(r, h);
+        }
+      },
+      { key: "uses", label: "Uses", format: "num" },
+      { key: "avg", label: "avg 24ч", format: "num" },
+      {
+        key: "perUse",
+        label: "₽/use",
+        format: "num"
+      },
+      {
+        key: "rating",
+        label: "Farm",
+        html: function (r, h) {
+          return r.quest ? "quest" : String(r.rating);
+        }
+      },
+      {
+        key: "quest",
+        label: "Quest",
+        html: function (r) {
+          return r.quest ? "✓" : "";
+        }
+      }
+    ],
+    fetch: async function (modeGame, API) {
+      var items = await API.items(modeGame);
+      var tasks = [];
+      try {
+        tasks = await API.tasks(modeGame);
+      } catch (e) {
+        tasks = [];
+      }
+      return { items: items, tasks: tasks };
+    },
+    mapItem: function () {
+      return null;
+    },
+    onLoaded: function () {}
+  });
+
+  // Override load to expand quest set + flat rows
+  var origLoad = tableApi.load;
+  tableApi.load = async function () {
+    var btn = document.getElementById("loadBtn");
+    var status = document.getElementById("status");
+    if (btn) btn.disabled = true;
+    var P = window.TarkovUI && TarkovUI.progress;
+    try {
+      if (P) P.start({ label: "Keys…" });
+      var modeGame = (document.getElementById("gameMode") || {}).value || "pve";
+      var items = await TarkovAPI.items(modeGame);
+      var tasks = [];
+      try {
+        tasks = await TarkovAPI.tasks(modeGame);
+      } catch (eT) {}
+      var questKeyIds = {};
+      (tasks || []).forEach(function (t) {
+        (t.neededKeys || []).forEach(function (block) {
+          (block.keys || []).forEach(function (id) {
+            questKeyIds[id] = 1;
+          });
+        });
+        (t.objectives || []).forEach(function (o) {
+          if (o.type === "giveItem" || o.type === "findItem") {
+            if (typeof o.item === "string") questKeyIds[o.item] = 1;
+            (o.items || []).forEach(function (x) {
+              if (typeof x === "string") questKeyIds[x] = 1;
+              else if (x && x.id) questKeyIds[x.id] = 1;
+            });
+          }
+        });
+      });
+      var rows = [];
+      var counts = {};
+      MAP_ORDER.forEach(function (m) {
+        counts[m] = 0;
+      });
+      (items || []).forEach(function (it) {
+        if (!(it.types || []).includes("keys")) return;
+        var p = it.properties || {};
+        var uses = Number(p.uses) || 1;
+        var avg = Number(it.avg24hPrice) || 0;
+        var isQuest = !!questKeyIds[it.id];
+        var slug = it.normalizedName || "";
+        var map = detectMap(slug);
+        var row = {
+          id: it.id,
+          slug: slug,
+          name: TarkovTableTool.itemName(it),
+          icon: it.iconLink || it.gridImageLink || "",
+          uses: uses,
+          avg: avg,
+          perUse: uses > 0 ? avg / uses : avg,
+          rating: farmScore(avg, uses, isQuest),
+          quest: isQuest,
+          map: map
+        };
+        rows.push(row);
+        counts[map] = (counts[map] || 0) + 1;
+      });
+      tableApi.setRows(rows);
+      paintMaps(counts);
+      var mapsCard = document.getElementById("mapsCard");
+      var tableCard = document.getElementById("tableCard");
+      if (mapsCard) mapsCard.style.display = "block";
+      if (tableCard) tableCard.style.display = "block";
+      var title = document.getElementById("tableTitle");
+      if (title) title.textContent = MAP_RU[activeMap] || activeMap;
+      if (status) {
+        status.className = "status ok";
+        status.textContent = "Ключей: " + rows.length;
+      }
+      if (P) P.done("OK");
+    } catch (e) {
+      if (status) {
+        status.className = "status err";
+        status.textContent = e.message || String(e);
+      }
+      if (P) P.fail(e.message);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  };
+
+  var loadBtn = document.getElementById("loadBtn");
+  if (loadBtn) {
+    loadBtn.onclick = function () {
+      tableApi.load();
+    };
   }
 })();

@@ -1,408 +1,304 @@
-
-    let byCaliber = {};
-    let activeCal = null;
-    let sortKey = 'pen';
-    let sortDir = -1;
-    let statusState = { key: 'tool.ammo.ui.loadPrompt', params: null, tone: '' };
-
-    function t(key, params) { return TarkovI18n.t(key, params); }
-    function caliberLabel(key) { return TarkovDicts.caliberLabel(key); }
-    function renderStatus() {
-      const status = document.getElementById('status');
-      status.className = 'status' + (statusState.tone ? ' ' + statusState.tone : '');
-      status.textContent = t(statusState.key, statusState.params);
-    }
-    function setStatus(key, params, tone) {
-      statusState = { key, params, tone: tone || '' };
-      renderStatus();
-    }
-
-    function loadSettings(key, defaults) { return TarkovUI.loadSettings(key, defaults); }
-    function saveSettings(key, obj) { TarkovUI.saveSettings(key, obj); }
-
-    function humanize(slug) { return TarkovDicts.humanize(slug); }
-    function formatNum(n) { return TarkovDicts.fmtNum(n); }
-    function shortAmmoName(itOrSlug) {
-      if (itOrSlug && typeof itOrSlug === "object") {
-        try { if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(itOrSlug); } catch (e) {}
-        return shortAmmoName(itOrSlug.normalizedName || itOrSlug.shortName || itOrSlug.name || "");
-      }
-      var slug = String(itOrSlug || "");
-      try {
-        if (window.TarkovNames && TarkovNames.isHashLike && TarkovNames.isHashLike(slug))
-          return slug.length > 8 ? ("…" + slug.slice(-6)) : slug;
-      } catch (e2) {}
-      var s = slug.replace(/^caliber/i, "").replace(/^[0-9.]+x[0-9.]+-/i, function(m){return m;});
-      // keep last segment often ammo type
-      var parts = slug.split("-").filter(Boolean);
-      if (parts.length >= 2) s = parts.slice(-2).join(" ");
-      else s = slug;
-      return s.toUpperCase().replace(/-/g, " ") || humanize(slug);
-    }
-
-    document.getElementById('loadBtn').addEventListener('click', async () => {
-      const btn = document.getElementById('loadBtn');
-      btn.disabled = true;
-      setStatus('tool.ammo.ui.loadingItems');
-      const mode = document.getElementById('gameMode').value || 'regular';
-      try {
-        setStatus('tool.ammo.ui.loadingCrafts');
-        const [items, craftsList] = await Promise.all([
-          TarkovAPI.items(mode),
-          TarkovAPI.crafts(mode)
-        ]);
-
-        // crafts by product item id
-        const craftByProduct = {};
-        craftsList.forEach(c => {
-          const pid = c.productItem && c.productItem.item;
-          if (!pid) return;
-          const entry = {
-            count: Number(c.productItem.count) || 1,
-            quest: !!(c.taskUnlock),
-            station: c.station,
-            level: c.level
-          };
-          if (!craftByProduct[pid]) craftByProduct[pid] = [];
-          craftByProduct[pid].push(entry);
-        });
-
-        byCaliber = {};
-        items.forEach(it => {
-          const types = it.types || [];
-          if (!types.includes('ammo') || types.includes('grenade')) return;
-          const p = it.properties;
-          if (!p || p.propertiesType !== 'ItemPropertiesAmmo') return;
-          if (p.ammoType === 'grenade' || p.ammoType === 'flashbang') return;
-          const cal = p.caliber;
-          if (!cal) return;
-
-          // buy from traders (P3: meta for gate)
-          let traderPrice = 0, traderName = '', traderQuest = false, traderLL = 0;
-          let traderKey = '', questName = '';
-          if (window.TarkovItemDomain && TarkovItemDomain.bestBuy) {
-            const best = TarkovItemDomain.bestBuy(it, { sources: 'buyFromTrader' });
-            if (best) {
-              traderPrice = best.price || 0;
-              traderName = best.traderName || best.name || TarkovDicts.traderName(best.trader) || t('tool.compare.ui.trader');
-              traderQuest = !!best.quest;
-              traderLL = best.ll || 0;
-              traderKey = best.traderKey || best.trader || '';
-              questName = best.questName || '';
-            }
-          } else {
-            const offers = it.buyFromTrader || [];
-            const usable = offers.filter(o => o && (o.priceRUB || o.price));
-            if (usable.length) {
-              usable.sort((a, b) => (a.priceRUB || a.price) - (b.priceRUB || b.price));
-              const best = usable[0];
-              traderPrice = Number(best.priceRUB != null ? best.priceRUB : best.price) || 0;
-              traderName = TarkovDicts.traderName(best.trader) || t('tool.compare.ui.trader');
-              traderQuest = !!best.taskUnlock;
-              traderLL = Number(best.minTraderLevel) || 0;
-              if (window.TarkovProfile && TarkovProfile.offerMeta) {
-                const meta = TarkovProfile.offerMeta(best);
-                traderKey = meta.traderKey || '';
-                questName = meta.questName || '';
-              }
-            }
-          }
-
-          const crafts = craftByProduct[it.id] || [];
-          const hasCraft = crafts.length > 0;
-          const craftQuest = crafts.some(c => c.quest);
-
-          const row = {
-            id: it.id,
-            slug: it.normalizedName || '',
-            name: shortAmmoName(it),
-            full: (window.TarkovNames && TarkovNames.displayFull ? TarkovNames.displayFull(it) : humanize(it.normalizedName)),
-            icon: it.iconLink || it.gridImageLink || '',
-            pen: Number(p.penetrationPower) || 0,
-            dmg: Number(p.damage) || 0,
-            ad: Number(p.armorDamage) || 0,
-            frag: Math.round((Number(p.fragmentationChance) || 0) * 100),
-            speed: Number(p.initialSpeed) || 0,
-            projectiles: Number(p.projectileCount) || 1,
-            tracer: !!p.tracer,
-            avg: it.avg24hPrice || 0,
-            low: it.lastLowPrice || 0,
-            traderPrice,
-            traderName,
-            traderQuest,
-            traderLL,
-            traderKey,
-            questName,
-            hasCraft,
-            craftQuest,
-            craftCount: hasCraft ? crafts[0].count : 0,
-            // hidden ballistics — tooltip only
-            mass: Number(p.bulletMassGrams) || 0,
-            diam: Number(p.bulletDiameterMilimeters) || 0,
-            bc: Number(p.ballisticCoeficient) || 0,
-            rico: Math.round((Number(p.ricochetChance) || 0) * 100),
-            penChance: Math.round((Number(p.penetrationChance) || 0) * 100),
-            penDev: Number(p.penetrationPowerDeviation) || 0,
-            stamina: Number(p.staminaBurnPerDamage) || 0,
-            durBurn: Number(p.durabilityBurnFactor) || 0,
-            heat: Number(p.heatFactor) || 0,
-            misfire: Math.round((Number(p.misfireChance) || 0) * 1000) / 10,
-            ftf: Math.round((Number(p.failureToFeedChance) || 0) * 1000) / 10,
-            acc: Number(p.accuracyModifier) || 0,
-            reco: Number(p.recoilModifier) || 0,
-            bleedL: Number(p.lightBleedModifier) || 0,
-            bleedH: Number(p.heavyBleedModifier) || 0
-          };
-          if (!byCaliber[cal]) byCaliber[cal] = [];
-          byCaliber[cal].push(row);
-        });
-
-        // sort calibers by label
-        const cals = Object.keys(byCaliber).sort((a, b) => {
-          const la = caliberLabel(a);
-          const lb = caliberLabel(b);
-          return la.localeCompare(lb, TarkovI18n.lang());
-        });
-
-        const box = document.getElementById('calibers');
-        box.innerHTML = '';
-        cals.forEach(cal => {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'cal-btn' + (activeCal === cal ? ' active' : '');
-          btn.dataset.cal = cal;
-          btn.innerHTML = `${caliberLabel(cal)}<span class="count">${byCaliber[cal].length}</span>`;
-          btn.onclick = () => {
-            activeCal = cal;
-            box.querySelectorAll('.cal-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            renderTable();
-            saveSettings('tarkovAmmoSettings', {
-              activeCal: cal
-            });
-          };
-          box.appendChild(btn);
-        });
-
-        document.getElementById('calCard').style.display = 'block';
-        setStatus('tool.ammo.ui.loaded', {
-          items: Object.values(byCaliber).reduce((s, a) => s + a.length, 0),
-          calibers: cals.length
-        }, 'ok');
-
-        const saved = loadSettings('tarkovAmmoSettings', {});
-        if (saved.activeCal && byCaliber[saved.activeCal]) {
-          activeCal = saved.activeCal;
-          const btns = [...box.querySelectorAll('.cal-btn')];
-          const idx = cals.indexOf(activeCal);
-          if (idx >= 0 && btns[idx]) btns[idx].classList.add('active');
-          renderTable();
-        }
-      } catch (e) {
-        setStatus('tool.ammo.ui.loadError', { message: e.message }, 'err');
-      } finally {
-        btn.disabled = false;
-      }
-    });
-
-
-    function pct(n) {
-      if (n == null || Number.isNaN(n)) return '—';
-      return n + '%';
-    }
-    function tipHtml(r) {
-      const rows = [
-        [t('tool.ammo.ui.detail.mass'), r.mass || '—'],
-        [t('tool.ammo.ui.detail.diameter'), r.diam || '—'],
-        [t('tool.ammo.ui.detail.ballisticCoefficient'), r.bc ? r.bc.toFixed(3) : '—'],
-        [t('tool.ammo.ui.detail.speed'), r.speed || '—'],
-        [t('tool.ammo.ui.detail.ricochet'), pct(r.rico)],
-        [t('tool.ammo.ui.detail.penetration'), pct(r.penChance)],
-        [t('tool.ammo.ui.detail.fragmentation'), pct(r.frag)],
-        [t('tool.ammo.ui.detail.deviation'), r.penDev || '—'],
-        [t('tool.ammo.ui.detail.stamina'), r.stamina ? r.stamina.toFixed(3) : '—'],
-        [t('tool.ammo.ui.detail.durability'), r.durBurn ? r.durBurn.toFixed(2) : '—'],
-        [t('tool.ammo.ui.detail.heat'), r.heat ? r.heat.toFixed(2) : '—'],
-        [t('tool.ammo.ui.detail.misfire'), pct(r.misfire)],
-        [t('tool.ammo.ui.detail.failureToFeed'), pct(r.ftf)],
-        [t('tool.ammo.ui.detail.accuracy'), r.acc ? ((r.acc * 100).toFixed(0) + '%') : '0%'],
-        [t('tool.ammo.ui.detail.recoil'), r.reco ? ((r.reco * 100).toFixed(0) + '%') : '0%'],
-        [t('tool.ammo.ui.detail.lightBleed'), r.bleedL || '—'],
-        [t('tool.ammo.ui.detail.heavyBleed'), r.bleedH || '—']
-      ];
-      return `<div class="tip-title">${esc(r.name)}</div><div class="tip-grid">${
-        rows.map(([k,v]) => `<span class="k">${esc(k)}</span><span class="v">${esc(String(v))}</span>`).join('')
-      }</div>`;
-    }
-
-    let tipEl = null;
-    function ensureTip() {
-      if (tipEl) return tipEl;
-      tipEl = document.createElement('div');
-      tipEl.className = 'ammo-tip';
-      tipEl.id = 'ammoTip';
-      document.body.appendChild(tipEl);
-      return tipEl;
-    }
-    function showTip(anchor, r, e) {
-      const el = ensureTip();
-      el.innerHTML = tipHtml(r);
-      el.style.display = 'block';
-      const pad = 12;
-      let x = (e && e.clientX != null ? e.clientX : 0) + 16;
-      let y = (e && e.clientY != null ? e.clientY : 0) + 16;
-      el.style.left = '0px';
-      el.style.top = '0px';
-      const rect = el.getBoundingClientRect();
-      if (x + rect.width + pad > window.innerWidth) x = window.innerWidth - rect.width - pad;
-      if (y + rect.height + pad > window.innerHeight) y = window.innerHeight - rect.height - pad;
-      if (x < pad) x = pad;
-      if (y < pad) y = pad;
-      el.style.left = x + 'px';
-      el.style.top = y + 'px';
-    }
-    function hideTip() {
-      if (tipEl) tipEl.style.display = 'none';
-    }
-
-    function renderTable() {
-      const card = document.getElementById('tableCard');
-      if (!activeCal || !byCaliber[activeCal]) {
-        card.style.display = 'none';
-        return;
-      }
-      card.style.display = 'block';
-      document.getElementById('tableTitle').textContent =
-        caliberLabel(activeCal) + ' · ' + t('tool.ammo.ui.caliberRows', { count: byCaliber[activeCal].length });
-
-      let rows = [...byCaliber[activeCal]];
-      rows.sort((a, b) => {
-        const va = a[sortKey], vb = b[sortKey];
-        if (typeof va === 'string') return sortDir * va.localeCompare(vb);
-        return sortDir * ((va || 0) - (vb || 0));
-      });
-
-      const tbody = document.getElementById('tbody');
-      tbody.innerHTML = '';
-      rows.forEach(r => {
-        // P3: profile gate on best trader offer
-        if (window.TarkovProfile && TarkovProfile.gate && (r.traderLL || r.traderQuest)) {
-          r._gate = TarkovProfile.gate({
-            trader: r.traderKey || '',
-            minLL: r.traderLL || 0,
-            questLocked: !!r.traderQuest,
-            questName: r.questName || ''
-          });
-          if (TarkovProfile.lockVisibility(r._gate) === 'hide') return;
-        } else {
-          r._gate = { locked: false, reason: '' };
-        }
-        const cls = TarkovWeaponDomain.penChart(r.pen).map(cell => {
-          return `<span class="${cell.rating}">${cell.class}</span>`;
-        }).join('');
-        const tr = document.createElement('tr');
-        const traderCell = r.traderPrice
-          ? `<div>${esc(r.traderName)}${r.traderLL ? ' LL' + r.traderLL : ''}</div><div><strong>${formatNum(r.traderPrice)}</strong></div>`
-          : '<span class="meta">—</span>';
-        const questCell = r.traderQuest
-          ? '<span class="bad">' + esc(t('tool.ammo.ui.yes')) + '</span>'
-          : (r.traderPrice ? '<span class="ok">' + esc(t('tool.ammo.ui.no')) + '</span>' : '—');
-        const craftCell = r.hasCraft
-          ? (r.craftQuest
-              ? `<span class="bad">${esc(t('tool.ammo.ui.yes'))}</span> <span class="meta">${esc(t('tool.ammo.ui.quest'))}</span>`
-              : `<span class="ok">${esc(t('tool.ammo.ui.yes'))}</span>${r.craftCount > 1 ? ' <span class="meta">×' + r.craftCount + '</span>' : ''}`)
-          : '<span class="meta">' + esc(t('tool.ammo.ui.no')) + '</span>';
-        tr.innerHTML = `
-          <td>
-            <div class="name-cell" data-tip="1">
-              ${r.icon?`<img class="ico ico-sm" src="${esc(r.icon)}" loading="lazy" alt="">`:''}
-              <div class="txt">
-                <div class="name">${r.id && window.TarkovItemGraph ? '<a class="item-link" href="'+esc(TarkovItemGraph.href(r.id))+'">' : ''}${esc(r.name)}${r.id && window.TarkovItemGraph ? '</a>' : ''}${r.tracer ? ' <span class="meta">TR</span>' : ''}${r.projectiles > 1 ? ' <span class="meta">×' + r.projectiles + '</span>' : ''}</div>
-                <div class="meta">${esc(r.slug)}</div>
-              </div>
-            </div>
-          </td>
-          <td><strong>${r.pen}</strong></td>
-          <td>${r.dmg}</td>
-          <td>${r.ad}</td>
-          <td>${traderCell}</td>
-          <td>${r.avg ? formatNum(r.avg) : '—'}</td>
-          <td>${questCell}</td>
-          <td>${craftCell}</td>
-          <td><div class="cls">${cls}</div></td>
-          <td><button type="button" class="copy-btn" data-name="${esc(r.slug)}">${esc(t('tool.ammo.ui.copy'))}</button></td>
-        `;
-        tbody.appendChild(tr);
-        if (window.TarkovProfile && TarkovProfile.applyLockToElement && r._gate) {
-          TarkovProfile.applyLockToElement(tr, r._gate);
-        }
-      });
-
-      tbody.querySelectorAll('.copy-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const text = btn.dataset.name || '';
-          navigator.clipboard.writeText(text).then(() => {
-            const old = btn.textContent;
-            btn.textContent = '✓';
-            setTimeout(() => { btn.textContent = old; }, 700);
-          }).catch(() => {});
-        });
-      });
-      tbody.querySelectorAll('.name-cell[data-tip]').forEach((cell, idx) => {
-        const row = rows[idx];
-        cell.addEventListener('mouseenter', (e) => showTip(cell, row, e));
-        cell.addEventListener('mousemove', (e) => showTip(cell, row, e));
-        cell.addEventListener('mouseleave', hideTip);
-      });
-    }
-
-    function esc(s) { return TarkovDicts.esc(s); }
-
-    document.querySelectorAll('th[data-k]').forEach(th => {
-      th.addEventListener('click', () => {
-        const k = th.dataset.k;
-        if (sortKey === k) sortDir *= -1;
-        else { sortKey = k; sortDir = k === 'name' ? 1 : -1; }
-        renderTable();
-      });
-      window.addEventListener('tt-lang-changed', () => {
-        renderStatus();
-        document.querySelectorAll('.cal-btn').forEach(btn => {
-          const cal = btn.dataset.cal;
-          btn.innerHTML = `${esc(caliberLabel(cal))}<span class="count">${byCaliber[cal] ? byCaliber[cal].length : 0}</span>`;
-        });
-        renderTable();
-      });
-    });
-
-window.render = function () {
-  try {
-    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) { try { console.debug && console.debug("[tt:ammo]", e0); } catch (_tt) { /* ignore */ } }
-  try {
-    renderTable();
-  } catch (e1) { try { console.debug && console.debug("[tt:ammo]", e1); } catch (_tt) { /* ignore */ } }
-};
-if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-  TarkovProfile.bindRefresh(function () { window.render(); });
-}
-
-/* R-2: gameMode from profile on load; changes write to profile */
+/*! Ammo table — TarkovTableTool + caliber chips + crafts + gate */
 (function () {
-  function __ttBindMode() {
+  "use strict";
+
+  var activeCal = null;
+  var api = null;
+
+  function t(key, params) {
+    return window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t(key, params) : key;
+  }
+  function esc(s) {
+    return TarkovTableTool.esc(s);
+  }
+  function formatNum(n) {
+    return TarkovTableTool.fmtNum(n);
+  }
+  function caliberLabel(cal) {
     try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
-        TarkovProfile.wireToolPage();
-      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
-        var el = document.getElementById("gameMode");
-        if (el) el.__ttProfileBound = false;
-        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+      if (window.TarkovDicts && TarkovDicts.caliberLabel) return TarkovDicts.caliberLabel(cal);
+    } catch (e) {}
+    return String(cal || "").replace(/^Caliber/, "");
+  }
+
+  function penCells(pen) {
+    if (window.TarkovWeaponDomain && TarkovWeaponDomain.penChart) {
+      return TarkovWeaponDomain.penChart(pen)
+        .map(function (cell) {
+          return '<span class="' + cell.rating + '">' + cell.class + "</span>";
+        })
+        .join("");
+    }
+    return String(pen || "");
+  }
+
+  function paintCalibers(rows) {
+    var counts = {};
+    rows.forEach(function (r) {
+      counts[r.cal] = (counts[r.cal] || 0) + 1;
+    });
+    var cals = Object.keys(counts).sort(function (a, b) {
+      return caliberLabel(a).localeCompare(caliberLabel(b), "ru");
+    });
+    if (!activeCal || !counts[activeCal]) activeCal = cals[0] || null;
+    var box = document.getElementById("calibers");
+    if (!box) return;
+    box.innerHTML = "";
+    cals.forEach(function (cal) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "cal-btn" + (activeCal === cal ? " active" : "");
+      btn.dataset.cal = cal;
+      btn.innerHTML =
+        caliberLabel(cal) + '<span class="count">' + counts[cal] + "</span>";
+      btn.onclick = function () {
+        activeCal = cal;
+        box.querySelectorAll(".cal-btn").forEach(function (b) {
+          b.classList.remove("active");
+        });
+        btn.classList.add("active");
+        var title = document.getElementById("tableTitle");
+        if (title)
+          title.textContent =
+            caliberLabel(cal) +
+            " · " +
+            (t("tool.ammo.ui.caliberRows", { count: counts[cal] }) || counts[cal]);
+        if (window.render) window.render();
+      };
+      box.appendChild(btn);
+    });
+    var card = document.getElementById("calCard");
+    if (card) card.style.display = cals.length ? "block" : "none";
+  }
+
+  api = TarkovTableTool.create({
+    tbody: "#tbody",
+    thead: "#ammoHead",
+    status: "#status",
+    loadBtn: "#loadBtn",
+    search: null,
+    defaultSort: "pen",
+    defaultSortDir: -1,
+    progress: true,
+    filterRow: function (row) {
+      if (!activeCal || row.cal !== activeCal) return false;
+      if (row._gateHide) return false;
+      return true;
+    },
+    columns: [
+      {
+        key: "name",
+        label: "Патрон",
+        html: function (r, h) {
+          return TarkovTableTool.nameCell(
+            { name: r.name, slug: r.full || r.slug, icon: r.icon },
+            h
+          );
+        }
+      },
+      { key: "pen", label: "Pen", format: "num" },
+      { key: "dmg", label: "Dmg", format: "num" },
+      { key: "ad", label: "AD", format: "num" },
+      { key: "frag", label: "Frag%", format: "num" },
+      {
+        key: "chart",
+        label: "vs armor",
+        sort: false,
+        html: function (r) {
+          return '<div class="pen-chart">' + penCells(r.pen) + "</div>";
+        }
+      },
+      { key: "avg", label: "Flea", format: "num" },
+      {
+        key: "traderPrice",
+        label: "Торговец",
+        html: function (r, h) {
+          if (!r.traderPrice) return '<span class="meta">—</span>';
+          return (
+            "<div>" +
+            h.esc(r.traderName || "") +
+            (r.traderLL ? " LL" + r.traderLL : "") +
+            "</div><div><strong>" +
+            formatNum(r.traderPrice) +
+            "</strong></div>"
+          );
+        }
+      },
+      {
+        key: "craft",
+        label: "Craft",
+        html: function (r, h) {
+          if (!r.hasCraft) return "—";
+          var q = r.craftQuest ? ' <span class="bad">Q</span>' : "";
+          return "×" + (r.craftCount || 1) + q;
+        }
       }
-    } catch (e) { try { console.debug && console.debug("[tt:ammo]", e); } catch (_tt) { /* ignore */ } }
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", __ttBindMode);
-  } else {
-    __ttBindMode();
-  }
+    ],
+    fetch: function () {
+      return Promise.resolve([]);
+    },
+    mapItem: function () {
+      return null;
+    },
+    afterPaint: function (list, ctx) {
+      var tb = ctx.tbody;
+      if (!tb) return;
+      list.forEach(function (r, i) {
+        var tr = tb.querySelectorAll("tr")[i];
+        if (!tr || !r) return;
+        if (r._gate && window.TarkovProfile && TarkovProfile.applyLockToElement) {
+          try {
+            TarkovProfile.applyLockToElement(tr, r._gate);
+          } catch (e) {}
+        }
+      });
+    }
+  });
+
+  document.getElementById("loadBtn").onclick = async function () {
+    var btn = document.getElementById("loadBtn");
+    var status = document.getElementById("status");
+    if (btn) btn.disabled = true;
+    var P = window.TarkovUI && TarkovUI.progress;
+    try {
+      if (P) P.start({ label: t("tool.ammo.ui.loadingItems") || "Ammo…", indeterminate: true });
+      var mode = (document.getElementById("gameMode") || {}).value || "pve";
+      var items = await TarkovAPI.items(mode);
+      var craftsList = [];
+      try {
+        craftsList = await TarkovAPI.crafts(mode);
+      } catch (eC) {
+        craftsList = [];
+      }
+      var craftByProduct = {};
+      (craftsList || []).forEach(function (c) {
+        var pid = c.productItem && c.productItem.item;
+        if (!pid) return;
+        var entry = {
+          count: Number(c.productItem.count) || 1,
+          quest: !!c.taskUnlock,
+          station: c.station,
+          level: c.level
+        };
+        if (!craftByProduct[pid]) craftByProduct[pid] = [];
+        craftByProduct[pid].push(entry);
+      });
+
+      var rows = [];
+      (items || []).forEach(function (it) {
+        var types = it.types || [];
+        if (!types.includes("ammo") || types.includes("grenade")) return;
+        var p = it.properties;
+        if (!p || p.propertiesType !== "ItemPropertiesAmmo") return;
+        if (p.ammoType === "grenade" || p.ammoType === "flashbang") return;
+        var cal = p.caliber;
+        if (!cal) return;
+
+        var traderPrice = 0,
+          traderName = "",
+          traderQuest = false,
+          traderLL = 0,
+          traderKey = "",
+          questName = "";
+        if (window.TarkovItemDomain && TarkovItemDomain.bestBuy) {
+          var best = TarkovItemDomain.bestBuy(it, { sources: "buyFromTrader" });
+          if (best) {
+            traderPrice = best.price || 0;
+            traderName =
+              best.traderName ||
+              best.name ||
+              (window.TarkovDicts && TarkovDicts.traderName
+                ? TarkovDicts.traderName(best.trader)
+                : "") ||
+              "";
+            traderQuest = !!(best.quest || best.questLocked);
+            traderLL = best.ll || best.minLL || 0;
+            traderKey = best.traderKey || best.trader || "";
+            questName = best.questName || "";
+          }
+        }
+
+        var crafts = craftByProduct[it.id] || [];
+        var row = {
+          id: it.id,
+          cal: cal,
+          slug: it.normalizedName || "",
+          name: TarkovTableTool.itemName(it),
+          full:
+            window.TarkovNames && TarkovNames.displayFull
+              ? TarkovNames.displayFull(it)
+              : it.normalizedName || "",
+          icon: it.iconLink || it.gridImageLink || "",
+          pen: Number(p.penetrationPower) || 0,
+          dmg: Number(p.damage) || 0,
+          ad: Number(p.armorDamage) || 0,
+          frag: Math.round((Number(p.fragmentationChance) || 0) * 100),
+          speed: Number(p.initialSpeed) || 0,
+          projectiles: Number(p.projectileCount) || 1,
+          tracer: !!p.tracer,
+          avg: it.avg24hPrice || 0,
+          low: it.lastLowPrice || 0,
+          traderPrice: traderPrice,
+          traderName: traderName,
+          traderQuest: traderQuest,
+          traderLL: traderLL,
+          traderKey: traderKey,
+          questName: questName,
+          hasCraft: crafts.length > 0,
+          craftQuest: crafts.some(function (c) {
+            return c.quest;
+          }),
+          craftCount: crafts.length ? crafts[0].count : 0,
+          _gateHide: false,
+          _gate: { locked: false, reason: "" }
+        };
+
+        if (window.TarkovProfile && TarkovProfile.gate && (row.traderLL || row.traderQuest)) {
+          row._gate = TarkovProfile.gate({
+            trader: row.traderKey || "",
+            minLL: row.traderLL || 0,
+            questLocked: !!row.traderQuest,
+            questName: row.questName || ""
+          });
+          if (
+            TarkovProfile.lockVisibility &&
+            TarkovProfile.lockVisibility(row._gate) === "hide"
+          ) {
+            row._gateHide = true;
+          }
+        }
+        rows.push(row);
+      });
+
+      api.setRows(rows);
+      paintCalibers(rows);
+      var tableCard = document.getElementById("tableCard");
+      if (tableCard) tableCard.style.display = activeCal ? "block" : "none";
+      var title = document.getElementById("tableTitle");
+      if (title && activeCal) {
+        var n = rows.filter(function (r) {
+          return r.cal === activeCal;
+        }).length;
+        title.textContent =
+          caliberLabel(activeCal) +
+          " · " +
+          (t("tool.ammo.ui.caliberRows", { count: n }) || n);
+      }
+      if (status) {
+        status.className = "status ok";
+        status.textContent =
+          t("tool.itemScore.loaded", { count: rows.length }) || "OK · " + rows.length;
+      }
+      if (P) P.done();
+    } catch (e) {
+      console.error(e);
+      if (status) {
+        status.className = "status err";
+        status.textContent = e.message || String(e);
+      }
+      if (P) P.fail(e.message);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  };
 })();

@@ -1,86 +1,98 @@
-
-    function humanize(slug) { return TarkovDicts.humanize(slug); }
-    function formatNum(n) { return TarkovDicts.fmtNum(n); }
-    function esc(s) { return TarkovDicts.esc(s); }
-    document.getElementById('loadBtn').onclick=async()=>{
-      const status=document.getElementById('status'); status.textContent='Гружу…';
-      try{
-        const mode=document.getElementById('gameMode').value||'pve';
-        const items=await TarkovAPI.items(mode);
-        const meds=[];
-        items.forEach(it=>{
-          const p=it.properties||{};
-          if(!['ItemPropertiesMedKit','ItemPropertiesMedicalItem','ItemPropertiesPainkiller'].includes(p.propertiesType)) return;
-          const hp=Number(p.hitpoints)||Number(p.maxHpResource)||Number(p.hpResource)||0;
-          const use=Number(p.useTime)||0;
-          const cells=Math.max(1,(Number(it.height)||1)*(Number(it.width)||1));
-          const avg=Number(it.avg24hPrice)||0;
-          const hpPerCell=hp/cells;
-          const pricePerHp=hp>0&&avg>0?avg/hp:null;
-          let score=hpPerCell*2-use*3;
-          if(pricePerHp!=null) score-=Math.log10(pricePerHp+1);
-          if(p.propertiesType==='ItemPropertiesPainkiller') score+=8;
-          meds.push({slug:it.normalizedName||'',name:humanize(it.normalizedName),icon:it.iconLink||it.gridImageLink||'',avg,hp,use,cells,hpPerCell,pricePerHp,score:Math.round(score*10)/10,type:p.propertiesType.replace('ItemProperties','')});
-        });
-        meds.sort((a,b)=>b.score-a.score);
-        status.className='status ok'; status.textContent='Медов: '+meds.length;
-        const body=document.getElementById('medBody'); body.innerHTML='';
-        meds.forEach(m=>{
-          const tr=document.createElement('tr');
-          tr.innerHTML=`<td class="score">${m.score}</td>
-            <td><div class="name-cell">${m.icon?`<img class="ico" src="${esc(m.icon)}" loading="lazy" alt="">`:''}<div><div class="name">${esc(m.name)}</div><div class="meta">${esc(m.slug)}</div></div></div></td>
-            <td>${esc(m.type)}</td>
-            <td>${m.hp?(m.hpPerCell.toFixed(0)+' ('+m.hp+'/'+m.cells+')'):'—'}</td>
-            <td>${m.use?m.use+'s':'—'}</td>
-            <td>${m.pricePerHp!=null?formatNum(m.pricePerHp):'—'}</td>
-            <td>${m.avg?formatNum(m.avg):'—'}</td>
-            <td><button type="button" class="copy-btn" data-n="${esc(m.slug)}">копир.</button></td>`;
-          body.appendChild(tr);
-        });
-        body.querySelectorAll('.copy-btn').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(b.dataset.n||''));
-      }catch(e){status.className='status err'; status.textContent=e.message}
-    };
-  
-
-
-(function(){
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(window.itemName&&window.itemName!==itemName)return window.itemName(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    var s=(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20,}$/i.test(it.name)?it.name:it.normalizedName)||s;
-    return s||it.id||'';
-  }
-})();
-
-window.render = function () {
-  try {
-    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) { try { console.debug && console.debug("[tt:medkits]", e0); } catch (_tt) { /* ignore */ } }
-  try { if (typeof render === "function") render(); } catch (e1) { try { console.debug && console.debug("[tt:medkits]", e1); } catch (_tt) { /* ignore */ } }
-};
-if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-  TarkovProfile.bindRefresh(function () { window.render(); });
-}
-
-/* R-2: gameMode from profile on load; changes write to profile */
+/*! Medkits table — TarkovTableTool */
 (function () {
-  function __ttBindMode() {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
-        TarkovProfile.wireToolPage();
-      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
-        var el = document.getElementById("gameMode");
-        if (el) el.__ttProfileBound = false;
-        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+  "use strict";
+
+  function cellsOf(it) {
+    return Math.max(1, (Number(it.width) || 1) * (Number(it.height) || 1));
+  }
+
+  TarkovTableTool.create({
+    tbody: "#tbody",
+    thead: "#medHead",
+    status: "#status",
+    loadBtn: "#loadBtn",
+    search: "#q",
+    defaultSort: "score",
+    defaultSortDir: -1,
+    progress: true,
+    columns: [
+      {
+        key: "score",
+        label: "Score",
+        html: function (r) {
+          return "<strong>" + (r.score != null ? r.score : "—") + "</strong>";
+        }
+      },
+      {
+        key: "name",
+        label: "Предмет",
+        html: function (r, h) {
+          return TarkovTableTool.nameCell(r, h);
+        }
+      },
+      { key: "type", label: "Тип" },
+      {
+        key: "hpPerCell",
+        label: "HP/слот",
+        html: function (r) {
+          if (!r.hp) return "—";
+          return r.hpPerCell.toFixed(0) + " (" + r.hp + "/" + r.cells + ")";
+        }
+      },
+      {
+        key: "use",
+        label: "Use",
+        html: function (r) {
+          return r.use ? r.use + "s" : "—";
+        }
+      },
+      { key: "pricePerHp", label: "₽/HP", format: "num" },
+      { key: "avg", label: "Flea", format: "num" },
+      {
+        key: "copy",
+        label: "",
+        sort: false,
+        html: function (r, h) {
+          return TarkovTableTool.copyBtn(r.slug || r.name, h);
+        }
       }
-    } catch (e) { try { console.debug && console.debug("[tt:medkits]", e); } catch (_tt) { /* ignore */ } }
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", __ttBindMode);
-  } else {
-    __ttBindMode();
-  }
+    ],
+    fetch: function (mode, API) {
+      return API.items(mode);
+    },
+    mapItem: function (it) {
+      var p = it.properties || {};
+      var pt = p.propertiesType || "";
+      if (
+        pt !== "ItemPropertiesMedKit" &&
+        pt !== "ItemPropertiesMedicalItem" &&
+        pt !== "ItemPropertiesPainkiller"
+      )
+        return null;
+      var hp = Number(p.hitpoints) || Number(p.hp) || 0;
+      var cells = cellsOf(it);
+      var avg = Number(it.avg24hPrice) || Number(it.lastLowPrice) || 0;
+      var use = Number(p.useTime) || 0;
+      var hpPerCell = cells ? hp / cells : 0;
+      var pricePerHp = hp > 0 && avg > 0 ? avg / hp : null;
+      var score = Math.round(hpPerCell * 10 - (use || 0) - (pricePerHp || 0) / 100);
+      return {
+        id: it.id,
+        name: TarkovTableTool.itemName(it),
+        slug: it.normalizedName || "",
+        icon: it.iconLink || "",
+        type: pt.replace("ItemProperties", ""),
+        hp: hp,
+        cells: cells,
+        hpPerCell: hpPerCell,
+        use: use,
+        avg: avg,
+        pricePerHp: pricePerHp,
+        score: score
+      };
+    },
+    afterPaint: function (list, ctx) {
+      TarkovTableTool.wireCopyButtons(ctx.tbody);
+    }
+  });
 })();

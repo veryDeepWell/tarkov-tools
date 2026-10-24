@@ -274,21 +274,7 @@
       <div class="card-title" id="tableTitle">Моды</div>
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th data-k="name">Мод</th>
-              <th data-k="cat">Слот</th>
-              <th data-k="ergo">Эрга</th>
-              <th data-k="recoil">Отдача</th>
-              <th data-k="acc">Точн.</th>
-              <th data-k="fits">Стволов</th>
-              <th data-k="avg">Flea</th>
-              <th data-k="traderPrice">Торговец</th>
-              <th data-k="quest">Квест</th>
-              <th data-k="rating">Рейтинг</th>
-              <th></th>
-            </tr>
-          </thead>
+          <thead id="modsHead"><tr></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
@@ -311,6 +297,8 @@
   <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
   <script src="../core/tarkov-item-graph.js"></script>
+    <script src="../core/tarkov-item-domain.js"></script>
+  <script src="../core/tarkov-table-tool.js"></script>
   <script src="../js/mods.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>

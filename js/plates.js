@@ -1,181 +1,179 @@
+/*! Plates — TarkovTableTool + ViewModels + armor dialog */
 (function () {
   "use strict";
-
-  var rows = [];
-  var sortKey = "score";
-  var sortDir = -1;
-  var statusState = null;
 
   function t(key, params) {
     return window.TarkovI18n && TarkovI18n.t ? TarkovI18n.t(key, params) : key;
   }
-  function renderStatus() {
-    if (!statusState) return;
-    var status = document.getElementById("status");
-    status.className = "status" + (statusState.tone ? " " + statusState.tone : "");
-    status.textContent = t(statusState.key, statusState.params);
-  }
-  function setStatus(key, params, tone) {
-    statusState = { key: key, params: params, tone: tone };
-    renderStatus();
-  }
-  function esc(value) { return TarkovDicts.esc(value); }
-  function formatNum(value) { return TarkovDicts.fmtNum(value); }
-  function scoreTitle(components, details) {
-    if (!components) return "";
-    var lines = ["quality", "accessibility", "value", "load"].map(function (key) {
-      return t("tool.itemScore.factor." + key) + ": " + components[key];
-    });
-    if (details) {
-      lines.push(t("tool.itemScore.detail.fleaPrice") + ": " + (details.fleaPrice ? formatNum(details.fleaPrice) : "—"));
-      lines.push(t("tool.itemScore.detail.traderPrice") + ": " + (details.traderPrice ? formatNum(details.traderPrice) : "—"));
-      lines.push(t("tool.itemScore.detail.traderLevel") + ": " + (details.traderPrice ? details.traderLevel : "—"));
-      lines.push(t("tool.itemScore.detail.questLocked") + ": " + t(details.questLocked ? "tool.itemScore.yes" : "tool.itemScore.no"));
-      lines.push(t("tool.itemScore.detail.listingCount") + ": " + (details.listingCount || "—"));
-      lines.push(t("tool.itemScore.detail.weightSize") + ": " + details.weight + " / " + details.size);
-    }
-    return lines.join("\n");
+  function esc(s) {
+    return TarkovTableTool.esc(s);
   }
 
   function showArmors(plate) {
     var dialog = document.getElementById("armorDialog");
-    document.getElementById("armorDialogTitle").textContent =
-      plate.name + " — " + t("tool.plates.ui.compatibleArmor");
-    document.getElementById("armorDialogBody").innerHTML = plate.compatibleArmors.length
-      ? plate.compatibleArmors.map(function (armor) {
-        var icon = armor.icon
-          ? '<img class="plate-icon" src="' + esc(armor.icon) + '" alt="' + esc(armor.name) +
-            '" title="' + esc(armor.name) + '" loading="lazy">'
-          : "";
-        return '<div class="plate-option">' + icon + '<span>' + esc(armor.name) + '</span></div>';
-      }).join("")
-      : '<p class="meta">' + esc(t("tool.plates.ui.noCompatibleArmor")) + '</p>';
-    if (typeof dialog.showModal === "function") dialog.showModal();
+    var title = document.getElementById("armorDialogTitle");
+    var body = document.getElementById("armorDialogBody");
+    if (!dialog || !body) return;
+    title.textContent = plate.name + " — " + t("tool.plates.ui.compatibleArmor");
+    body.innerHTML = (plate.compatibleArmors || []).length
+      ? plate.compatibleArmors
+          .map(function (armor) {
+            var icon = armor.icon
+              ? '<img class="plate-icon" src="' + esc(armor.icon) + '" alt="" loading="lazy">'
+              : "";
+            return (
+              '<div class="plate-option">' +
+              icon +
+              "<span>" +
+              esc(armor.name || armor.id) +
+              "</span></div>"
+            );
+          })
+          .join("")
+      : '<p class="meta">' + esc(t("tool.plates.ui.noCompatibleArmor")) + "</p>";
+    dialog.hidden = false;
+    dialog.classList.add("show");
   }
 
-  function render() {
-    var query = (document.getElementById("plateSearch").value || "").trim().toLowerCase();
-    var minClass = Number(document.getElementById("plateClass").value) || 0;
-    var onlyFlea = document.getElementById("plateOnlyFlea").checked;
-    var list = rows.filter(function (row) {
-      if (minClass && row.cls < minClass) return false;
-      if (onlyFlea && !row.onFlea) return false;
-      return !query || (row.name + " " + row.slug + " " + row.compatibleArmors.map(function (a) {
-        return a.name;
-      }).join(" ")).toLowerCase().indexOf(query) >= 0;
-    });
-    list.sort(function (a, b) {
-      var left = a[sortKey];
-      var right = b[sortKey];
-      if (typeof left === "string") return sortDir * String(left).localeCompare(String(right));
-      return sortDir * ((Number(left) || 0) - (Number(right) || 0));
-    });
-    var body = document.getElementById("plateBody");
-    body.innerHTML = list.map(function (plate) {
-      var icon = plate.icon
-        ? '<img class="ico" src="' + esc(plate.icon) + '" loading="lazy" alt="">'
-        : "";
-      var compatibility = plate.compatibleArmors.length
-        ? '<button type="button" class="copy-btn compat-btn" data-id="' + esc(plate.id) + '">' +
-          esc(t("tool.plates.ui.show")) + " (" + plate.compatibleArmors.length + ")</button>"
-        : '<span class="meta">—</span>';
-      return '<tr>' +
-        '<td class="score" title="' + esc(scoreTitle(plate.scoreComponents, plate.scoreDetails)) + '">' + plate.score.toFixed(1) + '</td>' +
-        '<td><div class="name-cell">' + icon + '<div><div class="name">' + esc(plate.name) +
-        '</div><div class="meta">' + esc(plate.slug) + '</div></div></div></td>' +
-        '<td>' + plate.cls + '</td><td>' + plate.dur + '</td><td>' + plate.weight.toFixed(2) + '</td>' +
-        '<td>' + formatNum(plate.repair) + '</td><td>' + plate.pen.toFixed(2) + '</td>' +
-        '<td>' + (plate.avg || plate.low ? formatNum(plate.avg || plate.low) : "—") + '</td>' +
-        '<td>' + compatibility + '</td>' +
-        '<td><button type="button" class="copy-btn" data-name="' + esc(plate.slug) + '">' +
-        esc(t("tool.itemScore.copy")) + '</button></td></tr>';
-    }).join("") || '<tr><td colspan="10" class="meta empty-cell">' + esc(t("common.empty")) + '</td></tr>';
-    body.querySelectorAll(".compat-btn").forEach(function (button) {
-      button.addEventListener("click", function () {
-        var plate = rows.find(function (item) { return item.id === button.dataset.id; });
-        if (plate) showArmors(plate);
-      });
-    });
-    body.querySelectorAll(".copy-btn:not(.compat-btn)").forEach(function (button) {
-      button.addEventListener("click", function () {
-        navigator.clipboard.writeText(button.dataset.name || "").catch(function (error) {
-          console.error(error);
-        });
-      });
-    });
-  }
+  var closeBtn = document.getElementById("armorDialogClose");
+  if (closeBtn)
+    closeBtn.onclick = function () {
+      var d = document.getElementById("armorDialog");
+      if (d) {
+        d.hidden = true;
+        d.classList.remove("show");
+      }
+    };
 
-  document.getElementById("loadBtn").addEventListener("click", async function () {
-    var button = document.getElementById("loadBtn");
-    var progress = window.TarkovUI && TarkovUI.progress;
-    button.disabled = true;
-    setStatus("tool.plates.ui.loading");
-    if (progress) progress.start({ label: t("tool.itemScore.loading"), indeterminate: true });
-    try {
-      var mode = document.getElementById("gameMode").value || "pve";
-      var items = await TarkovAPI.items(mode);
-      rows = TarkovItemViewModels.plates(items);
-      render();
-      setStatus("tool.itemScore.loaded", { count: rows.length }, "ok");
-      if (progress) progress.done(t("tool.itemScore.loaded", { count: rows.length }));
-    } catch (error) {
-      setStatus("tool.itemScore.loadError", { message: error.message }, "err");
-      if (progress) progress.fail(t("tool.itemScore.loadError", { message: error.message }));
-      console.error(error);
-    } finally {
-      button.disabled = false;
+  ["plateSearch", "plateClass", "plateOnlyFlea"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("input", function () {
+      if (window.render) window.render();
+    });
+    el.addEventListener("change", function () {
+      if (window.render) window.render();
+    });
+  });
+
+  var api = TarkovTableTool.create({
+    tbody: "#plateBody",
+    thead: "#plateHead",
+    status: "#status",
+    loadBtn: "#loadBtn",
+    search: "#plateSearch",
+    defaultSort: "score",
+    defaultSortDir: -1,
+    progress: true,
+    filterRow: function (row, q) {
+      var minClass = Number((document.getElementById("plateClass") || {}).value) || 0;
+      if ((row.class || 0) < minClass) return false;
+      var onlyFlea = document.getElementById("plateOnlyFlea");
+      if (onlyFlea && onlyFlea.checked && !(row.avg > 0 || row.onFlea)) return false;
+      if (!q) return true;
+      var hay =
+        (row.name || "") +
+        " " +
+        (row.slug || "") +
+        " " +
+        (row.compatibleArmors || [])
+          .map(function (a) {
+            return a.name || "";
+          })
+          .join(" ");
+      return hay.toLowerCase().indexOf(q) >= 0;
+    },
+    columns: [
+      {
+        key: "name",
+        label: "Плита",
+        html: function (r, h) {
+          return TarkovTableTool.nameCell(r, h);
+        }
+      },
+      { key: "class", label: "Class", format: "num" },
+      { key: "dur", label: "Dur", format: "num" },
+      { key: "material", label: "Mat" },
+      { key: "avg", label: "Flea", format: "num" },
+      {
+        key: "score",
+        label: "Score",
+        html: function (r) {
+          return "<strong>" + (r.score != null ? Number(r.score).toFixed(1) : "—") + "</strong>";
+        }
+      },
+      {
+        key: "compat",
+        label: "Armor",
+        sort: false,
+        html: function (r, h) {
+          var n = (r.compatibleArmors && r.compatibleArmors.length) || 0;
+          if (!n) return "—";
+          return (
+            '<button type="button" class="copy-btn compat-btn" data-id="' +
+            h.esc(r.id) +
+            '">' +
+            t("tool.plates.ui.show") +
+            " (" +
+            n +
+            ")</button>"
+          );
+        }
+      }
+    ],
+    fetch: function () {
+      return Promise.resolve([]);
+    },
+    mapItem: function () {
+      return null;
+    },
+    afterPaint: function (list, ctx) {
+      var byId = {};
+      list.forEach(function (r) {
+        byId[r.id] = r;
+      });
+      (ctx.tbody || document.getElementById("plateBody")).querySelectorAll(".compat-btn").forEach(function (btn) {
+        btn.onclick = function () {
+          var plate = byId[btn.getAttribute("data-id")];
+          if (plate) showArmors(plate);
+        };
+      });
     }
   });
 
-  document.getElementById("plateSearch").addEventListener("input", render);
-  document.getElementById("plateClass").addEventListener("change", render);
-  document.getElementById("plateOnlyFlea").addEventListener("change", render);
-  document.querySelectorAll("#plateTable th[data-k]").forEach(function (header) {
-    header.addEventListener("click", function () {
-      var key = header.dataset.k;
-      if (sortKey === key) sortDir *= -1;
-      else {
-        sortKey = key;
-        sortDir = key === "name" ? 1 : -1;
-      }
-      render();
-    });
-  });
-  document.getElementById("armorDialogClose").addEventListener("click", function () {
-    document.getElementById("armorDialog").close();
-  });
-  window.addEventListener("tt-lang-changed", function () {
-    render();
-    renderStatus();
-  });
-})();
-
-window.render = function () {
-  try {
-    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) { try { console.debug && console.debug("[tt:plates]", e0); } catch (_tt) { /* ignore */ } }
-  try { if (typeof render === "function") render(); } catch (e1) { try { console.debug && console.debug("[tt:plates]", e1); } catch (_tt) { /* ignore */ } }
-};
-if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-  TarkovProfile.bindRefresh(function () { window.render(); });
-}
-
-/* R-2: gameMode from profile on load; changes write to profile */
-(function () {
-  function __ttBindMode() {
+  document.getElementById("loadBtn").onclick = async function () {
+    var button = document.getElementById("loadBtn");
+    var status = document.getElementById("status");
+    if (button) button.disabled = true;
+    var progress = window.TarkovUI && TarkovUI.progress;
     try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
-        TarkovProfile.wireToolPage();
-      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
-        var el = document.getElementById("gameMode");
-        if (el) el.__ttProfileBound = false;
-        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+      if (progress) progress.start({ label: t("tool.itemScore.loading"), indeterminate: true });
+      var mode = (document.getElementById("gameMode") || {}).value || "pve";
+      var rows = TarkovItemViewModels.plates(await TarkovAPI.items(mode));
+      rows.forEach(function (r) {
+        r.name = TarkovTableTool.itemName({
+          id: r.id,
+          name: r.name,
+          normalizedName: r.slug
+        });
+        if (r.dur == null && r.durability != null) r.dur = r.durability;
+        if (r.material == null && r.mat != null) r.material = r.mat;
+        if (r.score != null && typeof r.score === "object") r.score = r.score.score;
+      });
+      api.setRows(rows);
+      if (status) {
+        status.className = "status ok";
+        status.textContent = t("tool.itemScore.loaded", { count: rows.length }) || "OK · " + rows.length;
       }
-    } catch (e) { try { console.debug && console.debug("[tt:plates]", e); } catch (_tt) { /* ignore */ } }
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", __ttBindMode);
-  } else {
-    __ttBindMode();
-  }
+      if (progress) progress.done();
+    } catch (e) {
+      if (status) {
+        status.className = "status err";
+        status.textContent = e.message || String(e);
+      }
+      if (progress) progress.fail(e.message);
+    } finally {
+      if (button) button.disabled = false;
+    }
+  };
 })();

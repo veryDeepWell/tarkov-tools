@@ -1,142 +1,171 @@
-
-    let stims=[], stimCat='all';
-    function humanize(slug) { return TarkovDicts.humanize(slug); }
-    function formatNum(n) { return TarkovDicts.fmtNum(n); }
-    function esc(s) { return TarkovDicts.esc(s); }
-    function effectTags(effects){
-      const good=[],bad=[];
-      (effects||[]).forEach(e=>{
-        const t=e.type||'', skill=e.skill||'', val=e.value, dur=e.duration;
-        let label=skill?(skill+(val?(' '+(val>0?'+':'')+val):'')):t;
-        if(t==='HealthRate'&&val>0) label='HP +'+val+'/s';
-        if(t==='StaminaRate'&&val>0) label='Stam regen +'+val;
-        if(t==='MaxStamina'&&val>0) label='Max stam +'+val;
-        if(t==='WeightLimit') label='Weight +'+val;
-        if(t==='EnergyRate'&&val<0){bad.push('Energy '+val+'/s');return}
-        if(t==='HydrationRate'&&val<0){bad.push('Hydro '+val+'/s');return}
-        if(t==='HealthRate'&&val<0){bad.push('HP '+val+'/s');return}
-        if(t==='HandsTremor'||t==='QuantumTunnelling'){bad.push(t);return}
-        if(t==='Removeallbloodlosses') label='Стоп кровь';
-        if(t==='Antidote') label='Антидот';
-        good.push(label+(dur?(' ('+dur+'s)'):''));
-      });
-      return {good,bad};
-    }
-    function stimRole(slug,effects){
-      const types=(effects||[]).map(e=>e.type+(e.skill||'')).join(' ');
-      if(/mule/.test(slug)||types.includes('WeightLimit')) return 'weight';
-      if(/propital|etg|pnb|zagustin|ahf1|perfotoran/.test(slug)) return 'heal';
-      if(/sj6|trimadol|meldonin/.test(slug)||/MaxStamina|StaminaRate|Endurance/.test(types)) return 'stamina';
-      if(/sj1|sj9|sj12|obdolbos|strength|3-b-tg|2a2|l1|adrenaline/.test(slug+types)) return 'combat';
-      return 'utility';
-    }
-    function stimScore(effects,avg){
-      let sc=0;
-      (effects||[]).forEach(e=>{
-        const t=e.type,v=Number(e.value)||0,d=Number(e.duration)||0;
-        if(t==='Skill'&&v>0) sc+=v*Math.min(d,400)/50;
-        if(t==='HealthRate'&&v>0) sc+=v*d*0.8;
-        if(t==='MaxStamina'&&v>0) sc+=v*2;
-        if(t==='StaminaRate'&&v>0) sc+=v*d/10;
-        if(t==='WeightLimit'&&v>0) sc+=v*8;
-        if(t==='Removeallbloodlosses') sc+=40;
-        if(t==='Antidote') sc+=25;
-        if(t==='EnergyRate'&&v<0) sc-=Math.abs(v)*d/20;
-        if(t==='HydrationRate'&&v<0) sc-=Math.abs(v)*d/20;
-        if(t==='HealthRate'&&v<0) sc-=Math.abs(v)*d;
-        if(t==='HandsTremor') sc-=5;
-      });
-      if(avg>0) sc-=Math.log10(avg+10);
-      return Math.round(sc*10)/10;
-    }
-    document.getElementById('loadBtn').onclick=async()=>{
-      const btn=document.getElementById('loadBtn'), status=document.getElementById('status');
-      btn.disabled=true; status.className='status'; status.textContent='Гружу…';
-      try{
-        const mode=document.getElementById('gameMode').value||'pve';
-        const items=await TarkovAPI.items(mode);
-        stims=[];
-        items.forEach(it=>{
-          const p=it.properties||{};
-          if(p.propertiesType!=='ItemPropertiesStim') return;
-          const slug=it.normalizedName||'';
-          const effects=p.stimEffects||[];
-          const avg=Number(it.avg24hPrice)||0;
-          stims.push({slug,name:humanize(slug),icon:it.iconLink||it.gridImageLink||'',avg,role:stimRole(slug,effects),tags:effectTags(effects),score:stimScore(effects,avg)});
-        });
-        stims.sort((a,b)=>b.score-a.score);
-        status.className='status ok'; status.textContent='Стимов: '+stims.length;
-        try{TarkovStorage.setJson('tarkovtool-stims-settings',{mode});}catch (e) { try { console.debug && console.debug("[tt:stims]", e); } catch (_tt) { /* ignore */ } }
-        render();
-      }catch(e){status.className='status err'; status.textContent='Ошибка: '+e.message}
-      finally{btn.disabled=false}
-    };
-    function render(){
-      const body=document.getElementById('stimBody'); body.innerHTML='';
-      stims.filter(s=>stimCat==='all'||s.role===stimCat).forEach(s=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td class="score">${s.score}</td>
-          <td><div class="name-cell">${s.icon?`<img class="ico" src="${esc(s.icon)}" loading="lazy" alt="">`:''}<div><div class="name">${esc(s.name)}</div><div class="meta">${esc(s.slug)}</div></div></div></td>
-          <td><span class="tag">${esc(s.role)}</span></td>
-          <td>${s.tags.good.map(t=>`<span class="tag good">${esc(t)}</span>`).join(' ')||'—'}</td>
-          <td>${s.tags.bad.map(t=>`<span class="tag bad">${esc(t)}</span>`).join(' ')||'—'}</td>
-          <td>${s.avg?formatNum(s.avg):'—'}</td>
-          <td><button type="button" class="copy-btn" data-n="${esc(s.slug)}">копир.</button></td>`;
-        body.appendChild(tr);
-      });
-      body.querySelectorAll('.copy-btn').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(b.dataset.n||''));
-    }
-    document.getElementById('stimCats').onclick=e=>{
-      const c=e.target.closest('.chip'); if(!c) return;
-      stimCat=c.dataset.v;
-      document.querySelectorAll('#stimCats .chip').forEach(x=>x.classList.toggle('active',x===c));
-      render();
-    };
-
-
-
-(function(){
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    var s=String(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s)) {
-      var n=String(it.name||'').trim();
-      var sl=String(it.normalizedName||'').trim();
-      if(n && !/^[a-f0-9]{20,}$/i.test(n)) s=n;
-      else if(sl) s=sl;
-    }
-    return s||it.id||'';
-  }
-})();
-
-window.render = function () {
-  try {
-    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) { try { console.debug && console.debug("[tt:stims]", e0); } catch (_tt) { /* ignore */ } }
-  try { if (typeof render === "function") render(); } catch (e1) { try { console.debug && console.debug("[tt:stims]", e1); } catch (_tt) { /* ignore */ } }
-};
-if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-  TarkovProfile.bindRefresh(function () { window.render(); });
-}
-
-/* R-2: gameMode from profile on load; changes write to profile */
+/*! Stims table — TarkovTableTool */
 (function () {
-  function __ttBindMode() {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
-        TarkovProfile.wireToolPage();
-      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
-        var el = document.getElementById("gameMode");
-        if (el) el.__ttProfileBound = false;
-        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+  "use strict";
+
+  function effectTags(effects) {
+    var good = [],
+      bad = [];
+    (effects || []).forEach(function (e) {
+      var t = e.type || "",
+        skill = e.skill || "",
+        val = e.value,
+        dur = e.duration;
+      var label = skill ? skill + (val ? " " + (val > 0 ? "+" : "") + val : "") : t;
+      if (t === "HealthRate" && val > 0) label = "HP +" + val + "/s";
+      if (t === "StaminaRate" && val > 0) label = "Stam regen +" + val;
+      if (t === "MaxStamina" && val > 0) label = "Max stam +" + val;
+      if (t === "WeightLimit") label = "Weight +" + val;
+      if (t === "EnergyRate" && val < 0) {
+        bad.push("Energy " + val + "/s");
+        return;
       }
-    } catch (e) { try { console.debug && console.debug("[tt:stims]", e); } catch (_tt) { /* ignore */ } }
+      if (t === "HydrationRate" && val < 0) {
+        bad.push("Hydro " + val + "/s");
+        return;
+      }
+      if (t === "HealthRate" && val < 0) {
+        bad.push("HP " + val + "/s");
+        return;
+      }
+      if (t === "HandsTremor" || t === "QuantumTunnelling") {
+        bad.push(t);
+        return;
+      }
+      if (t === "Removeallbloodlosses") label = "Стоп кровь";
+      if (t === "Antidote") label = "Антидот";
+      good.push(label + (dur ? " (" + dur + "s)" : ""));
+    });
+    return { good: good, bad: bad };
   }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", __ttBindMode);
-  } else {
-    __ttBindMode();
+
+  function stimRole(slug, effects) {
+    var types = (effects || [])
+      .map(function (e) {
+        return e.type + (e.skill || "");
+      })
+      .join(" ");
+    if (/mule/.test(slug) || types.indexOf("WeightLimit") >= 0) return "weight";
+    if (/propital|etg|pnb|zagustin|ahf1|perfotoran/.test(slug)) return "heal";
+    if (/sj6|trimadol|meldonin/.test(slug) || /MaxStamina|StaminaRate|Endurance/.test(types))
+      return "stamina";
+    if (/sj1|sj9|sj12|obdolbos|strength|3-b-tg|2a2|l1|adrenaline/.test(slug + types))
+      return "combat";
+    return "utility";
   }
+
+  function stimScore(effects, avg) {
+    var sc = 0;
+    (effects || []).forEach(function (e) {
+      var t = e.type,
+        v = Number(e.value) || 0,
+        d = Number(e.duration) || 0;
+      if (t === "Skill" && v > 0) sc += (v * Math.min(d, 400)) / 50;
+      if (t === "HealthRate" && v > 0) sc += v * d * 0.8;
+      if (t === "MaxStamina" && v > 0) sc += v * 2;
+      if (t === "StaminaRate" && v > 0) sc += (v * d) / 10;
+      if (t === "WeightLimit" && v > 0) sc += v * 8;
+      if (t === "Removeallbloodlosses") sc += 40;
+      if (t === "Antidote") sc += 25;
+      if (t === "EnergyRate" && v < 0) sc -= (Math.abs(v) * d) / 20;
+      if (t === "HydrationRate" && v < 0) sc -= (Math.abs(v) * d) / 20;
+      if (t === "HealthRate" && v < 0) sc -= Math.abs(v) * d;
+      if (t === "HandsTremor") sc -= 5;
+    });
+    if (avg > 0) sc -= Math.log10(avg + 10);
+    return Math.round(sc * 10) / 10;
+  }
+
+  var stimCat = "all";
+  var catEl = document.getElementById("stimCat");
+  if (catEl) {
+    catEl.addEventListener("change", function () {
+      stimCat = catEl.value || "all";
+      if (window.render) window.render();
+    });
+  }
+
+  TarkovTableTool.create({
+    tbody: "#tbody",
+    thead: "#stimHead",
+    status: "#status",
+    loadBtn: "#loadBtn",
+    search: "#q",
+    defaultSort: "score",
+    defaultSortDir: -1,
+    progress: true,
+    filterRow: function (row, q) {
+      if (stimCat !== "all" && row.role !== stimCat) return false;
+      if (!q) return true;
+      return ((row.name || "") + " " + (row.slug || "")).toLowerCase().indexOf(q) >= 0;
+    },
+    columns: [
+      {
+        key: "score",
+        label: "Score",
+        html: function (r) {
+          return "<strong>" + (r.score != null ? r.score : "—") + "</strong>";
+        }
+      },
+      {
+        key: "name",
+        label: "Предмет",
+        html: function (r, h) {
+          return TarkovTableTool.nameCell(r, h);
+        }
+      },
+      { key: "role", label: "Роль" },
+      {
+        key: "good",
+        label: "Эффекты",
+        sort: false,
+        html: function (r, h) {
+          return (r.good || [])
+            .map(function (x) {
+              return '<span class="tag good">' + h.esc(x) + "</span>";
+            })
+            .join(" ");
+        }
+      },
+      {
+        key: "bad",
+        label: "Минусы",
+        sort: false,
+        html: function (r, h) {
+          return (r.bad || [])
+            .map(function (x) {
+              return '<span class="tag bad">' + h.esc(x) + "</span>";
+            })
+            .join(" ");
+        }
+      },
+      { key: "avg", label: "Flea", format: "num" }
+    ],
+    fetch: function (mode, API) {
+      return API.items(mode);
+    },
+    mapItem: function (it) {
+      var p = it.properties || {};
+      if (p.propertiesType !== "ItemPropertiesStimulator" && !(p.stimulatorBuffs || []).length)
+        return null;
+      if (p.propertiesType && p.propertiesType.indexOf("Stim") < 0 && p.propertiesType !== "ItemPropertiesStimulator") {
+        // still allow medical stims with buffs
+        if (!(p.stimulatorBuffs || []).length) return null;
+      }
+      var effects = p.stimulatorBuffs || p.buffs || [];
+      var slug = it.normalizedName || "";
+      var avg = Number(it.avg24hPrice) || Number(it.lastLowPrice) || 0;
+      var tags = effectTags(effects);
+      return {
+        id: it.id,
+        name: TarkovTableTool.itemName(it),
+        slug: slug,
+        icon: it.iconLink || "",
+        role: stimRole(slug, effects),
+        good: tags.good,
+        bad: tags.bad,
+        avg: avg,
+        score: stimScore(effects, avg)
+      };
+    }
+  });
 })();

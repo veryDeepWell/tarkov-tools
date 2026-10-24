@@ -244,21 +244,7 @@
       <div class="card-title" id="tableTitle">Список</div>
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th data-k="name">Название</th>
-              <th data-k="capacity">Слоты</th>
-              <th data-k="weight">Вес</th>
-              <th data-k="spk">Слот/кг</th>
-              <th data-k="grids">Сегм.</th>
-              <th>Сетка</th>
-              <th data-k="avg">Flea</th>
-              <th data-k="traderPrice">Торговец</th>
-              <th data-k="quest">Квест</th>
-              <th data-k="rating">Рейтинг</th>
-              <th></th>
-            </tr>
-          </thead>
+          <thead id="contHead"><tr></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
@@ -279,6 +265,8 @@
   <script type="module" src="../core/tarkov-ui.js"></script>
   <script type="module" src="../core/tarkov-state.js"></script>
   <script type="module" src="../core/tarkov-common.js"></script>
+    <script src="../core/tarkov-item-domain.js"></script>
+  <script src="../core/tarkov-table-tool.js"></script>
   <script type="module" src="../js/containers.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>

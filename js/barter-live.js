@@ -420,7 +420,15 @@
     }
 
     async function fetchCatalog() {
-      const mode = document.getElementById('gameMode').value || 'regular';
+      var mode = 'pve';
+      try {
+        if (window.TarkovProfile && typeof TarkovProfile.gameMode === 'function')
+          mode = TarkovProfile.gameMode() || mode;
+        else if (document.getElementById('gameMode'))
+          mode = document.getElementById('gameMode').value || mode;
+      } catch (eMode) {
+        mode = (document.getElementById('gameMode') || {}).value || 'pve';
+      }
       let itemsData = [];
       if (window.TarkovAPI && typeof TarkovAPI.items === 'function') {
         itemsData = await TarkovAPI.items(mode);
@@ -440,6 +448,8 @@
       btn.disabled = true;
       setStatus('loading');
       setProgress(10, t('tool.barter-live.ui.loadingItems'), true);
+      var __P = window.TarkovUI && TarkovUI.progress;
+      try { if (__P) __P.start({ label: t('tool.barter-live.ui.loadingItems'), indeterminate: true }); } catch (eP) {}
 
       try {
         await fetchCatalog();
@@ -471,6 +481,9 @@
           item.match = hit;
           item.buyDetail = '';
           if (hit) {
+            try {
+              if (window.TarkovNames && TarkovNames.display) item.name = TarkovNames.display(hit);
+            } catch (eN) {}
             const est = estimateBuyCost(hit, item.qty);
             // в поле «цена за шт» кладём эффективную среднюю за N штук
             if (est.unit > 0) item.price = Math.round(est.unit);
@@ -483,6 +496,7 @@
         });
 
         setProgress(100, t('tool.barter-live.ui.done'), false);
+        try { if (__P) __P.done(); } catch (eP2) {}
         setStatus('updated', { found, missed }, 'ok');
         renderItems();
         recalculate();
@@ -491,6 +505,7 @@
       } catch (err) {
         console.error(err);
         setStatus('loadError', { message: err.message || err }, 'err');
+        try { if (typeof __P !== 'undefined' && __P) __P.fail(err.message || String(err)); } catch (eP3) {}
         hideProgress();
       } finally {
         btn.disabled = false;

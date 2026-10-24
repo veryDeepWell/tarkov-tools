@@ -81,21 +81,7 @@
       </div>
       <div class="table-wrap">
         <table id="tbl">
-          <thead>
-            <tr>
-              <th data-k="score" class="sorted">Score</th>
-              <th data-k="name">Название</th>
-              <th data-k="dist">Distance</th>
-              <th data-k="distort">Distort</th>
-              <th data-k="ambient">Ambient</th>
-              <th data-k="dry">Dry</th>
-              <th data-k="weight">Вес</th>
-              <th data-k="slots">Слоты</th>
-              <th data-k="avg">avg 24ч</th>
-              <th data-k="trader">Торговец</th>
-              <th></th>
-            </tr>
-          </thead>
+          <thead id="hpHead"><tr></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
@@ -112,6 +98,7 @@
   <script type="module" src="../core/tarkov-ui.js"></script>
   <script type="module" src="../core/tarkov-state.js"></script>
   <script type="module" src="../core/tarkov-common.js"></script>
+    <script src="../core/tarkov-table-tool.js"></script>
   <script type="module" src="../js/headphones.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>

@@ -1,13 +1,8 @@
+/*! Scopes — TarkovTableTool */
+(function () {
+  "use strict";
 
-    /**
-     * Кураторские данные: match — подстрока normalizedName (lowercase).
-     * tier: S A B C D
-     * nvg: good | ok | bad | unknown
-     * scroll: smooth | stepped | fixed
-     * role: lpvo | sniper | assault | any
-     * note: кратко
-     */
-    const COMMUNITY = [
+  const COMMUNITY = [
       { match: 'vortex-razor-hd-gen-ii-1-6x24', tier: 'S', nvg: 'good', scroll: 'smooth', role: 'lpvo', note: 'Часто #1 meta LPVO; тонкая сетка, мало bloom в ПНВ' },
       { match: 'eotech-vudu-1-6x24', tier: 'S', nvg: 'ok', scroll: 'smooth', role: 'lpvo', note: 'Красная сетка, любимчик многих; чуть ярче Razor в ПНВ' },
       { match: 'sig-sauer-tango6t-1-6x24', tier: 'S', nvg: 'ok', scroll: 'smooth', role: 'lpvo', note: '1–6 meta, рядом с Razor/Vudu' },
@@ -41,241 +36,166 @@
       { match: 'vulcan-mg', tier: 'B', nvg: 'good', scroll: 'fixed', role: 'sniper', note: 'ПНВ-прицел' }
     ];
 
-    const TIER_SCORE = { S: 100, A: 80, B: 60, C: 40, D: 20, '?': 0 };
+  const TIER_SCORE = { S: 100, A: 80, B: 60, C: 40, D: 20, '?': 0 };
 
-    let rows = [];
-    let role = 'sniper';
-    let sortKey = 'tierScore';
-    let sortDir = -1;
+  function parseZoom(p) {
+    var min = Number(p.zoomMin != null ? p.zoomMin : p.magnification) || 0;
+    var max = Number(p.zoomMax != null ? p.zoomMax : p.magnification) || min;
+    if (!min && p.zoomLevels && p.zoomLevels.length) {
+      min = Number(p.zoomLevels[0]) || 0;
+      max = Number(p.zoomLevels[p.zoomLevels.length - 1]) || min;
+    }
+    var label = min && max && min !== max ? min + "–" + max + "×" : min ? min + "×" : "—";
+    return { min: min, max: max, label: label };
+  }
 
-    function humanize(slug) { return TarkovDicts.humanize(slug); }
-    function formatNum(n) { return TarkovDicts.fmtNum(n); }
-    function esc(s) { return TarkovDicts.esc(s); }
+  function findCommunity(slug) {
+    slug = String(slug || "").toLowerCase();
+    for (var i = 0; i < COMMUNITY.length; i++) {
+      if (slug.indexOf(COMMUNITY[i].match) >= 0) return COMMUNITY[i];
+    }
+    return null;
+  }
 
-    function findCommunity(slug) {
-      const s = (slug || '').toLowerCase();
-      let best = null;
-      for (const c of COMMUNITY) {
-        if (s.includes(c.match)) {
-          if (!best || c.match.length > best.match.length) best = c;
+  function guessRole(zoom, range) {
+    if (zoom.max != null && zoom.min != null && zoom.min <= 1.5 && zoom.max >= 4) return "lpvo";
+    if (zoom.max != null && zoom.max >= 8) return "sniper";
+    if (range >= 800 && zoom.max >= 3) return "sniper";
+    return "assault";
+  }
+
+  var roleFilter = "all";
+  var onlyMeta = false;
+  var nvgOk = false;
+
+  function wireFilters(api) {
+    var chips = document.getElementById("roleChips");
+    if (chips) {
+      chips.addEventListener("click", function (e) {
+        var t = e.target;
+        if (!t || !t.getAttribute) return;
+        var role = t.getAttribute("data-role");
+        if (!role) return;
+        roleFilter = role;
+        chips.querySelectorAll("[data-role]").forEach(function (el) {
+          el.classList.toggle("on", el.getAttribute("data-role") === role);
+        });
+        if (window.render) window.render();
+      });
+    }
+    ["onlyMeta", "nvgOk"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("change", function () {
+        onlyMeta = !!(document.getElementById("onlyMeta") || {}).checked;
+        nvgOk = !!(document.getElementById("nvgOk") || {}).checked;
+        if (window.render) window.render();
+      });
+    });
+    // search field id is #search on scopes page
+    var search = document.getElementById("search");
+    if (search) {
+      search.addEventListener("input", function () {
+        if (window.render) window.render();
+      });
+    }
+  }
+
+  var api = TarkovTableTool.create({
+    tbody: "#tbody",
+    thead: "#scopesHead",
+    status: "#status",
+    loadBtn: "#loadBtn",
+    search: "#search",
+    defaultSort: "tierScore",
+    defaultSortDir: -1,
+    progress: true,
+    filterRow: function (row, q) {
+      if (roleFilter !== "all" && row.role !== roleFilter) return false;
+      if (onlyMeta && !row.hasMeta) return false;
+      if (nvgOk && row.nvg !== "good" && row.nvg !== "ok") return false;
+      if (!q) return true;
+      return ((row.name || "") + " " + (row.slug || "")).toLowerCase().indexOf(q) >= 0;
+    },
+    columns: [
+      {
+        key: "name",
+        label: "Прицел",
+        html: function (r, h) {
+          return TarkovTableTool.nameCell(r, h);
+        }
+      },
+      { key: "zoomLabel", label: "Zoom" },
+      { key: "range", label: "Range", format: "num" },
+      { key: "ergo", label: "Ergo", format: "num" },
+      {
+        key: "tier",
+        label: "Tier",
+        html: function (r, h) {
+          return "<strong>" + h.esc(r.tier || "?") + "</strong>";
+        }
+      },
+      {
+        key: "nvg",
+        label: "ПНВ",
+        html: function (r) {
+          if (r.nvg === "good") return '<span class="tag ok">ПНВ+</span>';
+          if (r.nvg === "ok") return '<span class="tag warn">ПНВ~</span>';
+          if (r.nvg === "bad") return '<span class="tag bad">ПНВ−</span>';
+          return '<span class="tag">ПНВ?</span>';
+        }
+      },
+      { key: "role", label: "Role" },
+      { key: "avg", label: "avg 24ч", format: "num" },
+      {
+        key: "note",
+        label: "Note",
+        sort: false,
+        html: function (r, h) {
+          return h.esc(r.note || "");
         }
       }
-      return best;
-    }
-
-    function parseZoom(p) {
-      // zoomLevels: [[1,6]] or [[4]] or nested
-      const zl = p.zoomLevels;
-      let vals = [];
-      function walk(x) {
-        if (Array.isArray(x)) x.forEach(walk);
-        else if (typeof x === 'number') vals.push(x);
-      }
-      walk(zl);
-      vals = vals.filter(v => v > 0);
-      if (!vals.length) return { min: null, max: null, label: '—' };
-      const min = Math.min(...vals);
-      const max = Math.max(...vals);
-      const label = min === max ? (min + 'x') : (min + '–' + max + 'x');
-      return { min, max, label };
-    }
-
-    document.getElementById('loadBtn').onclick = async () => {
-      const btn = document.getElementById('loadBtn');
-      const status = document.getElementById('status');
-      btn.disabled = true;
-      status.className = 'status';
-      status.textContent = 'Гружу…';
-      try {
-        const mode = document.getElementById('gameMode').value || 'regular';
-        const items = await TarkovAPI.items(mode);
-
-        rows = [];
-        items.forEach(it => {
-          const p = it.properties || {};
-          if (p.propertiesType !== 'ItemPropertiesScope') return;
-          const zoom = parseZoom(p);
-          // skip pure 1x red dots if max < 1.5? keep for "all"
-          const range = Number(p.sightingRange) || 0;
-          const ergo = Number(p.ergonomics) || 0;
-          const avg = Number(it.avg24hPrice) || 0;
-          const slug = it.normalizedName || '';
-          const com = findCommunity(slug);
-          const tier = com ? com.tier : '?';
-          rows.push({
-            id: it.id,
-            slug,
-            name: humanize(slug),
-            icon: it.iconLink || it.gridImageLink || '',
-            zoomMin: zoom.min,
-            zoomMax: zoom.max,
-            zoomLabel: zoom.label,
-            range,
-            ergo,
-            avg,
-            tier,
-            tierScore: TIER_SCORE[tier] != null ? TIER_SCORE[tier] : 0,
-            nvg: com ? com.nvg : 'unknown',
-            scroll: com ? com.scroll : (zoom.min !== zoom.max ? 'smooth?' : 'fixed?'),
-            role: com ? com.role : guessRole(zoom, range),
-            note: com ? com.note : '',
-            hasMeta: !!com
-          });
-        });
-
-        document.getElementById('filters').style.display = 'block';
-        document.getElementById('tableCard').style.display = 'block';
-        status.className = 'status ok';
-        status.textContent = 'Оптических: ' + rows.length + ' · с community-меткой: ' + rows.filter(r => r.hasMeta).length;
-        render();
-      } catch (e) {
-        status.className = 'status err';
-        status.textContent = 'Ошибка: ' + e.message;
-      } finally {
-        btn.disabled = false;
-      }
-    };
-
-    function guessRole(zoom, range) {
-      if (zoom.max != null && zoom.min != null && zoom.min <= 1.5 && zoom.max >= 4) return 'lpvo';
-      if (zoom.max != null && zoom.max >= 8) return 'sniper';
-      if (range >= 800 && zoom.max >= 3) return 'sniper';
-      return 'assault';
-    }
-
-    function render() {
-      const q = (document.getElementById('search').value || '').toLowerCase().trim();
-      const onlyMeta = document.getElementById('onlyMeta').checked;
-      const nvgOk = document.getElementById('nvgOk').checked;
-
-      let list = rows.filter(r => {
-        if (onlyMeta && !r.hasMeta) return false;
-        if (nvgOk && r.nvg !== 'good' && r.nvg !== 'ok') return false;
-        if (role === 'sniper') {
-          // sniper + dmr: max zoom >= 3 or range high, exclude pure 1x
-          if (r.zoomMax != null && r.zoomMax < 2.5) return false;
-          if (r.role === 'assault' && (r.zoomMax || 0) < 4) return false;
-        } else if (role === 'lpvo') {
-          if (!(r.zoomMin != null && r.zoomMin <= 1.5 && r.zoomMax >= 3)) return false;
-        } else if (role === 'assault') {
-          if (r.zoomMax != null && r.zoomMax > 8) return false;
-          if (r.zoomMax != null && r.zoomMax < 1.5) return false;
-        }
-        if (q && !(r.slug.includes(q) || r.name.toLowerCase().includes(q) || (r.note || '').toLowerCase().includes(q))) return false;
-        return true;
-      });
-
-      list.sort((a, b) => {
-        let va = a[sortKey], vb = b[sortKey];
-        if (typeof va === 'string') return sortDir * va.localeCompare(vb, 'ru');
-        return sortDir * ((va ?? -999) - (vb ?? -999));
-      });
-
-      document.getElementById('title').textContent = list.length + ' прицелов';
-      const tbody = document.getElementById('tbody');
-      tbody.innerHTML = '';
-      list.forEach(r => {
-        const nvgTag = r.nvg === 'good' ? '<span class="tag ok">ПНВ+</span>'
-          : r.nvg === 'ok' ? '<span class="tag warn">ПНВ~</span>'
-          : r.nvg === 'bad' ? '<span class="tag bad">ПНВ−</span>'
-          : '<span class="tag">ПНВ?</span>';
-        const scrollTag = String(r.scroll).startsWith('smooth')
-          ? '<span class="tag ok">плавный</span>'
-          : String(r.scroll).startsWith('step')
-            ? '<span class="tag warn">ступени</span>'
-            : '<span class="tag">фикс</span>';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><span class="tier tier-${esc(r.tier)}">${esc(r.tier)}</span></td>
-          <td>
-            <div class="name-cell">
-              ${r.icon ? `<img class="ico" src="${esc(r.icon)}" loading="lazy" alt="">` : ''}
-              <div>
-                <div class="name">${esc(r.name)}</div>
-                <div class="meta">${esc(r.slug)}</div>
-              </div>
-            </div>
-          </td>
-          <td><strong>${esc(r.zoomLabel)}</strong></td>
-          <td>${r.range || '—'}</td>
-          <td>${r.ergo}</td>
-          <td>${r.avg ? formatNum(r.avg) : '—'}</td>
-          <td>${scrollTag}</td>
-          <td>${nvgTag}</td>
-          <td class="meta">${esc(r.note) || '—'}</td>
-          <td><button type="button" class="copy-btn" data-name="${esc(r.slug)}">копир.</button></td>`;
-        tbody.appendChild(tr);
-      });
-      tbody.querySelectorAll('.copy-btn').forEach(btn => {
-        btn.onclick = () => navigator.clipboard.writeText(btn.dataset.name || '').then(() => {
-          const o = btn.textContent; btn.textContent = '✓'; setTimeout(() => btn.textContent = o, 700);
-        });
-      });
-    }
-
-    document.getElementById('roleChips').onclick = e => {
-      const c = e.target.closest('.chip'); if (!c) return;
-      role = c.dataset.v;
-      document.querySelectorAll('#roleChips .chip').forEach(x => x.classList.toggle('active', x.dataset.v === role));
-      render();
-    };
-    document.querySelectorAll('th[data-k]').forEach(th => {
-      th.onclick = () => {
-        const k = th.dataset.k;
-        if (sortKey === k) sortDir *= -1;
-        else { sortKey = k; sortDir = k === 'name' ? 1 : -1; }
-        render();
+    ],
+    fetch: function (mode, API) {
+      return API.items(mode);
+    },
+    mapItem: function (it) {
+      var p = it.properties || {};
+      if (p.propertiesType !== "ItemPropertiesScope") return null;
+      var zoom = parseZoom(p);
+      var range = Number(p.sightingRange) || 0;
+      var ergo = Number(p.ergonomics) || 0;
+      var avg = Number(it.avg24hPrice) || 0;
+      var slug = it.normalizedName || "";
+      var com = findCommunity(slug);
+      var tier = com ? com.tier : "?";
+      return {
+        id: it.id,
+        slug: slug,
+        name: TarkovTableTool.itemName(it),
+        icon: it.iconLink || it.gridImageLink || "",
+        zoomMin: zoom.min,
+        zoomMax: zoom.max,
+        zoomLabel: zoom.label,
+        range: range,
+        ergo: ergo,
+        avg: avg,
+        tier: tier,
+        tierScore: TIER_SCORE[tier] != null ? TIER_SCORE[tier] : 0,
+        nvg: com ? com.nvg : "unknown",
+        scroll: com ? com.scroll : zoom.min !== zoom.max ? "smooth?" : "fixed?",
+        role: com ? com.role : guessRole(zoom, range),
+        note: com ? com.note : "",
+        hasMeta: !!com
       };
-    });
-    ['search', 'onlyMeta', 'nvgOk'].forEach(id => {
-      document.getElementById(id).addEventListener('input', render);
-      document.getElementById(id).addEventListener('change', render);
-    });
-  
-
-
-(function(){
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    var s=String(itemName(it)||'').trim();
-    if(/^[a-f0-9]{20,}$/i.test(s)) {
-      var n=String(it.name||'').trim();
-      var sl=String(it.normalizedName||'').trim();
-      if(n && !/^[a-f0-9]{20,}$/i.test(n)) s=n;
-      else if(sl) s=sl;
+    },
+    onLoaded: function () {
+      var f = document.getElementById("filters");
+      var c = document.getElementById("tableCard");
+      if (f) f.style.display = "block";
+      if (c) c.style.display = "block";
     }
-    return s||it.id||'';
-  }
-})();
+  });
 
-window.render = function () {
-  try {
-    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) { try { console.debug && console.debug("[tt:scopes]", e0); } catch (_tt) { /* ignore */ } }
-  try { if (typeof render === "function") render(); } catch (e1) { try { console.debug && console.debug("[tt:scopes]", e1); } catch (_tt) { /* ignore */ } }
-};
-if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-  TarkovProfile.bindRefresh(function () { window.render(); });
-}
-
-/* R-2: gameMode from profile on load; changes write to profile */
-(function () {
-  function __ttBindMode() {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
-        TarkovProfile.wireToolPage();
-      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
-        var el = document.getElementById("gameMode");
-        if (el) el.__ttProfileBound = false;
-        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
-      }
-    } catch (e) { try { console.debug && console.debug("[tt:scopes]", e); } catch (_tt) { /* ignore */ } }
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", __ttBindMode);
-  } else {
-    __ttBindMode();
-  }
+  wireFilters(api);
 })();

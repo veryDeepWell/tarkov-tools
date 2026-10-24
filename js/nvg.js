@@ -1,101 +1,73 @@
-
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    return String(it.shortName||it.name||it.normalizedName||it.id||'').trim();
-  }
-
-    let rows=[], sortKey='score', sortDir=-1;
-    var STORE='tarkovtool-nvg-settings';
-    function esc(s) { return TarkovDicts.esc(s); }
-    function fmt(n){if(!n)return '—'; return Math.round(n).toLocaleString('ru-RU');}
-    function humanize(slug) { return TarkovDicts.humanize(slug).toLowerCase(); }
-    function persist(mode){
-      try{TarkovStorage.setJson(STORE,{mode:mode||((document.getElementById('gameMode')||{}).value)||'pve'});}catch (e) { try { console.debug && console.debug("[tt:nvg]", e); } catch (_tt) { /* ignore */ } }
-    }
-    function render(){
-      const q=(document.getElementById('q').value||'').toLowerCase();
-      let list=rows.filter(r=>!q||(r.name+r.slug).toLowerCase().includes(q));
-      list.sort((a,b)=>{
-        const va=a[sortKey],vb=b[sortKey];
-        if(typeof va==='string') return sortDir*String(va).localeCompare(String(vb));
-        return sortDir*((va||0)-(vb||0));
-      });
-      document.getElementById('tbody').innerHTML=list.map(r=>`<tr>
-        <td><div class="name-cell">${r.icon?`<img class="ico" src="${esc(r.icon)}" loading="lazy">`:''}<div><div class="name">${esc(r.name)}</div><div class="meta">${esc(r.slug)}</div></div></div></td>
-        <td><strong>${r.intensity}</strong></td>
-        <td>${r.noise}</td>
-        <td>${r.noiseScale}</td>
-        <td>${r.diffuse}</td>
-        <td><strong>${r.score.toFixed(2)}</strong></td>
-        <td>${fmt(r.avg)}</td>
-        <td>${r.weight}</td>
-        <td><button type="button" class="copy-btn" data-n="${esc(r.slug)}">копир.</button></td>
-      </tr>`).join('');
-      document.querySelectorAll('.copy-btn').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(b.dataset.n||''));
-    }
-    document.getElementById('loadBtn').onclick=async()=>{
-      const st=document.getElementById('status'), btn=document.getElementById('loadBtn');
-      btn.disabled=true; st.textContent='Гружу…'; st.className='status';
-      try{
-        const mode=document.getElementById('gameMode').value||'pve';
-        const arr=await TarkovAPI.items(mode);
-        rows=[];
-        arr.forEach(it=>{
-          const p=it.properties||{};
-          if(p.propertiesType!=='ItemPropertiesNightVision') return;
-          const intensity=Number(p.intensity)||0;
-          const noise=Number(p.noiseIntensity)||0;
-          const noiseScale=Number(p.noiseScale)||0;
-          const diffuse=Number(p.diffuseIntensity)||0;
-          rows.push({
-            id:it.id, slug:it.normalizedName||'', name:itemName(it)||humanize(it.normalizedName),
-            icon:it.iconLink||it.gridImageLink||'',
-            intensity, noise, noiseScale, diffuse,
-            score: intensity - noise*10 - diffuse*5,
-            avg:Number(it.avg24hPrice)||0,
-            weight:Number(it.weight)||0
-          });
-        });
-        persist(mode);
-        document.getElementById('tableCard').style.display='block';
-        st.className='status ok'; st.textContent='ПНВ: '+rows.length;
-        render();
-      }catch(e){st.className='status err'; st.textContent=e.message;}
-      finally{btn.disabled=false;}
-    };
-    document.getElementById('q').oninput=render;
-    document.querySelectorAll('#tbl th[data-k]').forEach(th=>{
-      th.onclick=()=>{const k=th.dataset.k; if(sortKey===k)sortDir*=-1; else{sortKey=k;sortDir=k==='name'?1:-1;} render();};
-    });
-
-window.render = function () {
-  try {
-    if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-  } catch (e0) { try { console.debug && console.debug("[tt:nvg]", e0); } catch (_tt) { /* ignore */ } }
-  try { if (typeof render === "function") render(); } catch (e1) { try { console.debug && console.debug("[tt:nvg]", e1); } catch (_tt) { /* ignore */ } }
-};
-if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-  TarkovProfile.bindRefresh(function () { window.render(); });
-}
-
-/* R-2: gameMode from profile on load; changes write to profile */
+/*! NVG table — TarkovTableTool */
 (function () {
-  function __ttBindMode() {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
-        TarkovProfile.wireToolPage();
-      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
-        var el = document.getElementById("gameMode");
-        if (el) el.__ttProfileBound = false;
-        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
+  "use strict";
+
+  var api = TarkovTableTool.create({
+    tbody: "#tbody",
+    thead: "#nvgHead",
+    status: "#status",
+    loadBtn: "#loadBtn",
+    search: "#q",
+    defaultSort: "score",
+    defaultSortDir: -1,
+    progress: true,
+    columns: [
+      {
+        key: "name",
+        label: "Название",
+        html: function (r, h) {
+          return TarkovTableTool.nameCell(r, h);
+        }
+      },
+      { key: "intensity", label: "Intensity", format: "fixed2" },
+      { key: "noise", label: "Noise", format: "fixed2" },
+      { key: "noiseScale", label: "Noise scale", format: "fixed2" },
+      { key: "diffuse", label: "Diffuse", format: "fixed2" },
+      {
+        key: "score",
+        label: "Score",
+        html: function (r) {
+          return "<strong>" + (r.score != null ? Number(r.score).toFixed(2) : "—") + "</strong>";
+        }
+      },
+      { key: "avg", label: "avg 24ч", format: "num" },
+      { key: "weight", label: "Вес", format: "fixed2" },
+      {
+        key: "copy",
+        label: "",
+        sort: false,
+        html: function (r, h) {
+          return TarkovTableTool.copyBtn(r.slug || r.name, h);
+        }
       }
-    } catch (e) { try { console.debug && console.debug("[tt:nvg]", e); } catch (_tt) { /* ignore */ } }
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", __ttBindMode);
-  } else {
-    __ttBindMode();
-  }
+    ],
+    fetch: function (mode, API) {
+      return API.items(mode);
+    },
+    mapItem: function (it) {
+      var p = it.properties || {};
+      if (p.propertiesType !== "ItemPropertiesNightVision") return null;
+      var intensity = Number(p.intensity) || 0;
+      var noise = Number(p.noiseIntensity) || 0;
+      var noiseScale = Number(p.noiseScale) || 0;
+      var diffuse = Number(p.diffuseIntensity) || 0;
+      var score = intensity * 10 - noise * 5 - noiseScale * 2 - diffuse * 3;
+      return {
+        id: it.id,
+        name: TarkovTableTool.itemName(it),
+        slug: it.normalizedName || "",
+        icon: it.iconLink || "",
+        intensity: intensity,
+        noise: noise,
+        noiseScale: noiseScale,
+        diffuse: diffuse,
+        score: score,
+        avg: Number(it.avg24hPrice) || 0,
+        weight: Number(it.weight) || 0
+      };
+    },
+    afterPaint: function (list, ctx) {
+      TarkovTableTool.wireCopyButtons(ctx.tbody);
+    }
+  });
 })();
