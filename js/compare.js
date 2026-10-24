@@ -45,15 +45,29 @@
       statusState = { key, params, tone: tone || '' };
       renderStatus();
     }
-    function bestBuy(it){
-      let best=null;
-      (it.buyFromTrader||[]).forEach(o=>{
-        const price=Number(o.priceRUB!=null?o.priceRUB:o.price)||0;
-        if(!price) return;
-        if(!best||price<best.price) best={price,name:TarkovDicts.traderName(o.trader)||t('tool.compare.ui.trader'),ll:Number(o.minTraderLevel)||0,quest:!!o.taskUnlock};
-      });
-      return best;
-    }
+    function bestBuy(it) {
+    try {
+      if (window.TarkovItemDomain && TarkovItemDomain.bestBuy) {
+        var b = TarkovItemDomain.bestBuy(it, { sources: "buyFromTrader", allowQuest: true });
+        if (!b) return null;
+        var name = b.traderName || b.name || "";
+        try {
+          if (!name && window.TarkovDicts && TarkovDicts.traderName)
+            name = TarkovDicts.traderName(b.traderKey || b.trader) || "";
+        } catch (e) {}
+        return {
+          price: Number(b.price != null ? b.price : b.priceRUB) || 0,
+          name: name,
+          ll: Number(b.minLL != null ? b.minLL : b.minTraderLevel) || 0,
+          quest: !!(b.questLocked || b.taskUnlock),
+          traderKey: b.traderKey || "",
+          questName: b.questName || ""
+        };
+      }
+    } catch (e) {}
+    return null;
+  }
+
 
     function buildCompatIndex(){
       modToWeapons = TarkovWeaponDomain.buildCompatibility(allItems).modToWeapons;

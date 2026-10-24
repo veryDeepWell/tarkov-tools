@@ -1,4 +1,22 @@
 
+  function softNotify(msg, tone) {
+    tone = tone || "err";
+    try {
+      if (window.TarkovUI && TarkovUI.toast) {
+        TarkovUI.toast(String(msg), tone);
+        return;
+      }
+    } catch (e) {}
+    var st = document.getElementById("status");
+    if (st) {
+      st.className = "status" + (tone === "ok" ? " ok" : " err");
+      st.textContent = String(msg);
+      return;
+    }
+    try { console.warn("[tt]", msg); } catch (e2) {}
+  }
+
+
     const TRADER_RU = (window.TarkovDicts && TarkovDicts.traders)
       ? TarkovDicts.traders.reduce((acc, t) => { acc[t.id] = t.ru; return acc; }, {})
       : {
@@ -58,35 +76,28 @@
       return progress[id];
     }
     function bestBuy(it) {
-      const offers = (it && it.buyFromTrader) || [];
-      let best = null;
-      offers.forEach(o => {
-        const price = Number(o.priceRUB != null ? o.priceRUB : o.price) || 0;
-        if (!price) return;
-        if (!best || price < best.price) {
-          var tKey = o.trader;
-          if (tKey && typeof tKey === 'object') tKey = tKey.id || tKey.key || '';
-          // map mongo id → key when possible via dicts
-          try {
-            if (window.TarkovDicts && TarkovDicts.traders && tKey && tKey.length > 20) {
-              var hit = TarkovDicts.traders.find(function (x) { return x.id === tKey; });
-              if (hit && hit.key) tKey = hit.key;
-            }
-          } catch (e) { try { console.debug && console.debug("[tt:hideout]", e); } catch (_tt) { /* ignore */ } }
-          var qn = o.taskUnlock;
-          if (qn && typeof qn === 'object') qn = qn.name || qn.id || '';
-          best = {
-            price,
-            name: TRADER_RU[o.trader] || 'Торговец',
-            ll: Number(o.minTraderLevel) || 0,
-            quest: !!o.taskUnlock,
-            questName: qn ? String(qn) : '',
-            traderKey: tKey ? String(tKey) : ''
-          };
-        }
-      });
-      return best;
-    }
+    try {
+      if (window.TarkovItemDomain && TarkovItemDomain.bestBuy) {
+        var b = TarkovItemDomain.bestBuy(it, { sources: "buyFromTrader", allowQuest: true });
+        if (!b) return null;
+        var name = b.traderName || b.name || "";
+        try {
+          if (!name && window.TarkovDicts && TarkovDicts.traderName)
+            name = TarkovDicts.traderName(b.traderKey || b.trader) || "";
+        } catch (e) {}
+        return {
+          price: Number(b.price != null ? b.price : b.priceRUB) || 0,
+          name: name,
+          ll: Number(b.minLL != null ? b.minLL : b.minTraderLevel) || 0,
+          quest: !!(b.questLocked || b.taskUnlock),
+          traderKey: b.traderKey || "",
+          questName: b.questName || ""
+        };
+      }
+    } catch (e) {}
+    return null;
+  }
+
 
     /** Можно ли иметь station at level L given current progress (prereqs of that level met) */
     function canHaveLevel(stationId, level) {
@@ -233,7 +244,7 @@
           const desired = Number(sel.value);
           const clamped = clampLevel(id, desired);
           if (clamped !== desired) {
-            alert('Нельзя: не выполнены требования предыдущих станций/уровней. Установлен уровень ' + clamped);
+            softNotify('Нельзя: не выполнены требования предыдущих станций/уровней. Установлен уровень ' + clamped, 'err');
           }
           getProg(id).level = clamped;
           // cascade: if we lower a station, clamp all that depend on it
@@ -310,7 +321,7 @@
       if (tReqs.length) {
         html += `<div class="req-block"><div class="card-title">Торговцы (УЛ)</div>`;
         tReqs.forEach(r => {
-          const name = TRADER_RU[r.trader] || r.trader;
+          const name = (window.TarkovDicts&&TarkovDicts.traderName?TarkovDicts.traderName(r.trader):r.trader) || r.trader;
           html += `<div class="req-line">
             <span></span>
             <span>${esc(name)} ${r.compareMethod || '≥'} ${r.value}</span>

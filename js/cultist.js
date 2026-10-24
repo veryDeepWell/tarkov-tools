@@ -1,3 +1,21 @@
+
+  function softNotify(msg, tone) {
+    tone = tone || "err";
+    try {
+      if (window.TarkovUI && TarkovUI.toast) {
+        TarkovUI.toast(String(msg), tone);
+        return;
+      }
+    } catch (e) {}
+    var st = document.getElementById("status");
+    if (st) {
+      st.className = "status" + (tone === "ok" ? " ok" : " err");
+      st.textContent = String(msg);
+      return;
+    }
+    try { console.warn("[tt]", msg); } catch (e2) {}
+  }
+
   function itemName(it){
     if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
     if(!it)return '';
@@ -220,7 +238,7 @@ function renderTable(){
 
 function addToSacrifice(id){
   const idx = sacrifice.findIndex(x=>!x);
-  if(idx<0){ alert('Все 5 слотов заняты'); return; }
+  if(idx<0){ softNotify('Все 5 слотов заняты','err'); return; }
   sacrifice[idx]=id; renderSlots();
   if(window.TarkovTools&&TarkovTools.beep) TarkovTools.beep('ok');
 }

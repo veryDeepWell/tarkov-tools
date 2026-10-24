@@ -180,7 +180,7 @@
         var row = {
           id: t.id,
           key: key,
-          name: TRADER_RU[key] || t.name || key,
+          name: (window.TarkovDicts&&TarkovDicts.traderName?TarkovDicts.traderName(key):key) || t.name || key,
           resetAt: resetAt,
           enabled: !!enabled
         };
@@ -502,7 +502,7 @@
           var row = {
             id: s.id,
             key: s.key,
-            name: s.name || TRADER_RU[s.key] || s.key,
+            name: s.name || (window.TarkovDicts&&TarkovDicts.traderName?TarkovDicts.traderName(s.key):s.key) || s.key,
             resetAt: s.resetAt ? new Date(Number(s.resetAt)) : null,
             enabled: !!enabled,
             _prevResetAt: s._prevResetAt || null

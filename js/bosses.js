@@ -1,3 +1,21 @@
+
+  function softNotify(msg, tone) {
+    tone = tone || "err";
+    try {
+      if (window.TarkovUI && TarkovUI.toast) {
+        TarkovUI.toast(String(msg), tone);
+        return;
+      }
+    } catch (e) {}
+    var st = document.getElementById("status");
+    if (st) {
+      st.className = "status" + (tone === "ok" ? " ok" : " err");
+      st.textContent = String(msg);
+      return;
+    }
+    try { console.warn("[tt]", msg); } catch (e2) {}
+  }
+
 const BOSS_RU = {
       bossTagilla:'Тагилла', bossKilla:'Килла', bossBully:'Решала', bossKojaniy:'Штурман',
       bossSanitar:'Санитар', bossGluhar:'Глухарь', bossZryachiy:'Зрячий',
@@ -153,7 +171,7 @@ const BOSS_RU = {
     }
     document.getElementById('loadBtn').onclick=doLoad;
     document.getElementById('refreshGoons').onclick=async()=>{
-      try{await fetchData();renderGoons();render();document.getElementById('status').textContent='Гуны обновлены'}catch(e){alert(e.message)}
+      try{await fetchData();renderGoons();render();document.getElementById('status').textContent='Гуны обновлены'}catch(e){softNotify(e.message||String(e),'err')}
     };
     document.getElementById('filters').onclick=e=>{
       const c=e.target.closest('.chip'); if(!c) return;

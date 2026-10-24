@@ -71,7 +71,7 @@
         </div>
       </div>
       <p class="meta" id="tt-count-placeholder" style="margin-top:8px"></p>
-      <div ><!-- profile filters --><div class="row" style="gap:12px;flex-wrap:wrap;margin:8px 0"><label class="meta"><input type="checkbox" id="onlyAvailable"> доступные по уровню</label> <label class="meta"><input type="checkbox" id="hideProfileDone"> скрыть сданные в профиле</label></div><div id="list" style="margin-top:12px"><table class="data"><thead id="questHead"><tr></tr></thead><tbody id="questBody"></tbody></table></div>
+      <div ><!-- profile filters --><div class="row" style="gap:12px;flex-wrap:wrap;margin:8px 0"><label class="meta"><input type="checkbox" id="onlyAvailable"> доступные по уровню</label> <label class="meta"><input type="checkbox" id="hideProfileDone"> скрыть сданные в профиле</label></div><div id="list" style="margin-top:12px"></div>
       <p class="hint">Шаги внутри квеста — в порядке API (как в цепочке целей). «После квеста X» — taskRequirements. Цели с type taskStatus — явный лок на другой таск.</p>
     </div>
   </div>
@@ -82,12 +82,12 @@
     <script src="../core/tarkov-schema.js"></script>
 <script src="../core/tarkov-profile.js"></script>
   <script src="../core/tarkov-nav.js"></script>
-  <script src="../core/tarkov-api.js"></script>
+    <script src="../core/tarkov-const.js"></script>
+<script src="../core/tarkov-api.js"></script>
   <script src="../core/tarkov-ui.js"></script>
   <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
   <script src="../core/tarkov-item-graph.js"></script>
-    <script src="../core/tarkov-table-tool.js"></script>
   <script src="../js/quests.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>

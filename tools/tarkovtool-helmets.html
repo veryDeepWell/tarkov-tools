@@ -78,7 +78,18 @@
       </div>
       <div class="table-wrap">
         <table id="tbl">
-          <thead id="helmHead"><tr></tr></thead>
+          <thead><tr>
+            <th data-k="name" data-i18n="tool.itemScore.name">Название</th>
+            <th data-k="cls" data-i18n="tool.itemScore.classShort">Класс</th>
+            <th data-k="dur" data-i18n="tool.itemScore.durabilityShort">Прочность</th>
+            <th data-k="mat" data-i18n="tool.itemScore.material">Материал</th>
+            <th data-k="zones" data-i18n="tool.itemScore.zones">Зоны</th>
+            <th data-k="avg" data-i18n="tool.itemScore.flea">Барахолка</th>
+            <th data-k="traderPrice" data-i18n="tool.itemScore.trader">Торговец</th>
+            <th data-k="weight" data-i18n="tool.itemScore.weightSize">Вес / размер</th>
+            <th data-k="score" data-i18n="tool.itemScore.score">Рейтинг</th>
+            <th></th>
+          </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
@@ -92,13 +103,13 @@
     <script src="../core/tarkov-schema.js"></script>
 <script src="../core/tarkov-profile.js"></script>
   <script src="../core/tarkov-nav.js"></script>
-  <script type="module" src="../core/tarkov-api.js"></script>
+    <script src="../core/tarkov-const.js"></script>
+<script type="module" src="../core/tarkov-api.js"></script>
   <script type="module" src="../core/tarkov-item-domain.js"></script>
   <script type="module" src="../core/tarkov-item-view-models.js"></script>
   <script type="module" src="../core/tarkov-ui.js"></script>
   <script type="module" src="../core/tarkov-state.js"></script>
   <script type="module" src="../core/tarkov-common.js"></script>
-    <script src="../core/tarkov-table-tool.js"></script>
   <script type="module" src="../js/helmets.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>
