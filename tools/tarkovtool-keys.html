@@ -227,77 +227,14 @@
 </style>
   <link rel="stylesheet" href="../core/tarkov-common.css">
   <script type="application/json" id="tarkovtool-meta">
-  {"id": "tarkovtool-keys.html", "title": "Ключи", "description": "Ключи по локациям, цена и рейтинг.", "file": "tarkovtool-keys.html"}
+  {"id": "tarkovtool-keys.html", "title": "Ключи", "description": "Ключи по локациям, цена и личный рейтинг (keys-rating).", "file": "tarkovtool-keys.html"}
   </script>
 
 </head>
 <body>
   <div class="container">
     <h1>Ключи — цена и рейтинг</h1>
-    <p class="sub">По локациям · квестовые отдельно занижаются в рейтинге фарма</p>
-
-    <div class="card">
-      <div class="card-title">Данные</div>
-      <div class="row">
-        <div class="field">
-          <label>Режим игры</label>
-          <select id="gameMode">
-            <option value="regular">regular</option>
-            <option value="pvp-season">pvp-season</option>
-            <option value="pve" selected>pve</option>
-          </select>
-        </div>
-        <button type="button" class="btn" id="loadBtn">ЗАГРУЗИТЬ</button>
-      </div>
-      <p class="status" id="status">Загрузка items + tasks (нужные ключи квестов)</p>
-    </div>
-
-    <div class="card" id="mapsCard" style="display:none;">
-      <div class="card-title">Локации</div>
-      <div class="maps" id="maps"></div>
-    </div>
-
-    <div class="card" id="tableCard" style="display:none;">
-      <div class="card-title" id="tableTitle">Ключи</div>
-      <div class="row" style="margin-bottom:12px;">
-        <div>
-          <label class="meta" style="margin-bottom:4px;display:block;">Сортировка</label>
-          <div class="mode-toggle">
-            <button type="button" class="active" data-mode="price" id="modePrice">Стоимость</button>
-            <button type="button" data-mode="rating" id="modeRating">Рейтинг фарма</button>
-          </div>
-        </div>
-        <div class="field" style="flex:1;min-width:180px;">
-          <label>Поиск</label>
-          <input type="text" id="search" placeholder="dorm, marked, 314…">
-        </div>
-        <div class="field">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding-top:18px;">
-            <input type="checkbox" id="hideQuest">
-            Скрыть квестовые
-          </label>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead id="keysHead">
-            <tr>
-              <th data-k="name">Ключ</th>
-              <th data-k="uses">Исп.</th>
-              <th data-k="avg">avg 24ч</th>
-              <th data-k="perUse">₽ / исп.</th>
-              <th data-k="rating">Рейтинг</th>
-              <th data-k="quest">Тип</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
-      <p class="hint">
-        <b>Рейтинг фарма</b> ≈ цена × √использований, квестовые ×0.25 (дорогие из‑за одной сдачи, не из‑за лута).
-        Локация угадана по имени ключа — иногда «прочее».
-      </p>
+    
     </div>
   </div>
 
@@ -313,6 +250,7 @@
   <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
   <script src="../core/tarkov-table-tool.js"></script>
+    <script src="../core/tarkov-keys-rating.js"></script>
   <script src="../js/keys.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>

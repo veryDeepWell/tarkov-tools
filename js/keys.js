@@ -1,4 +1,4 @@
-/*! Keys — TarkovTableTool + map chips */
+/*! Keys — TarkovTableTool + map chips + TarkovKeysRating */
 (function () {
   "use strict";
 
@@ -45,7 +45,6 @@
   ];
 
   var activeMap = "customs";
-  var mode = "rating";
   var tableApi = null;
 
   function detectMap(slug) {
@@ -56,11 +55,16 @@
     return "other";
   }
 
-  function farmScore(avg, uses, isQuest) {
-    if (isQuest) return 0;
-    uses = Math.max(1, uses || 1);
-    if (!avg) return 1;
-    return Math.round((avg / uses / 1000) * 10) / 10;
+  function personalRating(it) {
+    try {
+      if (window.TarkovKeysRating) {
+        var s = TarkovKeysRating.getScore(it.id);
+        if (s == null && it.normalizedName)
+          s = TarkovKeysRating.getScore(it.normalizedName);
+        return s;
+      }
+    } catch (e) {}
+    return null;
   }
 
   function paintMaps(counts) {
@@ -95,16 +99,6 @@
     });
   }
 
-  document.getElementById("modePrice") &&
-    document.getElementById("modePrice").addEventListener("click", function () {
-      mode = "price";
-      if (window.render) window.render();
-    });
-  document.getElementById("modeRating") &&
-    document.getElementById("modeRating").addEventListener("click", function () {
-      mode = "rating";
-      if (window.render) window.render();
-    });
   var hq = document.getElementById("hideQuest");
   if (hq)
     hq.addEventListener("change", function () {
@@ -112,13 +106,12 @@
     });
 
   tableApi = TarkovTableTool.create({
-    autoLoad: false,
     tbody: "#tbody",
     thead: "#keysHead",
     status: "#status",
     loadBtn: "#loadBtn",
     search: "#search",
-    defaultSort: "rating",
+    defaultSort: "score",
     defaultSortDir: -1,
     progress: true,
     filterRow: function (row, q) {
@@ -144,10 +137,11 @@
         format: "num"
       },
       {
-        key: "rating",
-        label: "Farm",
+        key: "score",
+        label: "Score",
         html: function (r, h) {
-          return r.quest ? "quest" : String(r.rating);
+          if (r.score == null) return '<span class="meta">—</span>';
+          return "<strong>" + h.esc(String(r.score)) + "</strong>";
         }
       },
       {
@@ -158,31 +152,24 @@
         }
       }
     ],
-    fetch: async function (modeGame, API) {
-      var items = await API.items(modeGame);
-      var tasks = [];
-      try {
-        tasks = await API.tasks(modeGame);
-      } catch (e) {
-        tasks = [];
-      }
-      return { items: items, tasks: tasks };
+    fetch: function () {
+      return Promise.resolve([]);
     },
     mapItem: function () {
       return null;
-    },
-    onLoaded: function () {}
+    }
   });
 
-  // Override load to expand quest set + flat rows
-  var origLoad = tableApi.load;
-  tableApi.load = async function () {
+  document.getElementById("loadBtn").onclick = async function () {
     var btn = document.getElementById("loadBtn");
     var status = document.getElementById("status");
     if (btn) btn.disabled = true;
     var P = window.TarkovUI && TarkovUI.progress;
     try {
       if (P) P.start({ label: "Keys…" });
+      try {
+        if (window.TarkovKeysRating) await TarkovKeysRating.load();
+      } catch (eR) {}
       var modeGame = (document.getElementById("gameMode") || {}).value || "pve";
       var items = await TarkovAPI.items(modeGame);
       var tasks = [];
@@ -219,6 +206,7 @@
         var isQuest = !!questKeyIds[it.id];
         var slug = it.normalizedName || "";
         var map = detectMap(slug);
+        var score = personalRating(it);
         var row = {
           id: it.id,
           slug: slug,
@@ -227,7 +215,7 @@
           uses: uses,
           avg: avg,
           perUse: uses > 0 ? avg / uses : avg,
-          rating: farmScore(avg, uses, isQuest),
+          score: score,
           quest: isQuest,
           map: map
         };
@@ -258,10 +246,18 @@
     }
   };
 
-  var loadBtn = document.getElementById("loadBtn");
-  if (loadBtn) {
-    loadBtn.onclick = function () {
-      tableApi.load();
-    };
+  window.render = function () {
+    try {
+      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+    } catch (e0) {}
+    try {
+      if (tableApi && tableApi.setRows && tableApi.getRows) tableApi.setRows(tableApi.getRows());
+      else if (tableApi && tableApi.paint) tableApi.paint();
+    } catch (e1) {}
+  };
+  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
+    TarkovProfile.bindRefresh(function () {
+      window.render();
+    });
   }
 })();

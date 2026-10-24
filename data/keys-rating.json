@@ -1,0 +1,9 @@
+{
+  "__v": 1,
+  "schema": {
+    "score": "integer 1..100, higher = better for YOU (loot/quest/meta personal)",
+    "note": "optional short note"
+  },
+  "comment": "Fill later. Tools read via TarkovKeysRating; empty map = no personal scores yet.",
+  "ratings": {}
+}

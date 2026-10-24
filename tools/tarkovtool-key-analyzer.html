@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Оценщик ключей — Tarkov Tools</title>
+  <link rel="stylesheet" href="../styles.css">
+  <script type="application/json" id="tarkovtool-meta">
+  {"id":"tarkovtool-key-analyzer.html","title":"Оценщик ключей","description":"Скрин ключницы → распознавание, квесты, личный рейтинг, сумма комплекта.","file":"tarkovtool-key-analyzer.html","icon":"keys","cat":"other"}
+  </script>
+  <style>
+    .drop {
+      border: 2px dashed var(--border, #444);
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+      margin: 12px 0;
+      background: rgba(0,0,0,.15);
+    }
+    .drop.drag { border-color: #6af; }
+    .drop input[type=file] { max-width: 100%; }
+    #preview { max-width: 100%; max-height: 240px; margin-top: 8px; display: none; }
+    .quest-panel { margin-top: 16px; }
+    .quest-panel li { margin: 4px 0; }
+    .sum-box { font-size: 1.15rem; font-weight: 600; margin: 12px 0; }
+    textarea#ocrText { width: 100%; min-height: 100px; font-family: inherit; }
+  </style>
+</head>
+<body>
+  <div class="wrap tool-page">
+    <h1>Оценщик ключей</h1>
+    <p class="subtitle">Скриншот ключницы / документницы / SICC → список ключей, квесты, личный score, сумма</p>
+
+    <div class="card">
+      <label class="meta">Режим</label>
+      <select id="gameMode">
+        <option value="pve">PVE</option>
+        <option value="regular">PVP</option>
+      </select>
+      <button type="button" class="btn" id="loadCatalogBtn">Загрузить каталог ключей</button>
+      <span id="status" class="status"></span>
+    </div>
+
+    <div class="card">
+      <h2>1. Изображение</h2>
+      <div class="drop" id="drop">
+        <p>Перетащи скрин сюда, вставь из буфера (Ctrl+V) или выбери файл</p>
+        <input type="file" id="file" accept="image/*">
+        <img id="preview" alt="">
+      </div>
+      <button type="button" class="btn" id="ocrBtn" disabled>Распознать (OCR)</button>
+      <p class="meta">OCR через Tesseract в браузере (подгружается по кнопке). Если не сработает — вставь текст вручную ниже.</p>
+      <label>Текст с ключами (ручной / OCR)</label>
+      <textarea id="ocrText" placeholder="Dorm room 114 key&#10;Cottage back door key&#10;…"></textarea>
+      <button type="button" class="btn" id="matchBtn">Сопоставить с каталогом</button>
+    </div>
+
+    <div class="card" id="resultsCard" style="display:none">
+      <h2>2. Найденные ключи</h2>
+      <div class="sum-box">Сумма комплекта (flea): <span id="totalSum">—</span></div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead id="kaHead"><tr></tr></thead>
+          <tbody id="kaBody"></tbody>
+        </table>
+      </div>
+      <div class="quest-panel">
+        <h3>Квесты на скрине</h3>
+        <ul id="questList"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-schema.js"></script>
+  <script src="../core/tarkov-profile.js"></script>
+  <script src="../core/tarkov-nav.js"></script>
+  <script src="../core/tarkov-const.js"></script>
+  <script src="../core/tarkov-dicts.js"></script>
+  <script src="../core/tarkov-names.js"></script>
+  <script src="../core/tarkov-api.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-keys-rating.js"></script>
+  <script src="../core/tarkov-table-tool.js"></script>
+  <script src="../js/key-analyzer.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>
