@@ -70,7 +70,10 @@
     var v = parseFloat(get(KEYS.volume, get("tarkovSoundVol", "0.5")));
     return isNaN(v) ? 0.5 : Math.min(1, Math.max(0, v));
   }
-  function preferredMode() { return get(KEYS.mode, "pve") || "pve"; }
+  function preferredMode() {
+    if (global.TarkovProfile && TarkovProfile.preferredGameMode) return TarkovProfile.preferredGameMode();
+    return get(KEYS.mode, "pve") || "pve";
+  }
   function tipsEnabled() { return get(KEYS.tips, get("tarkovToolTips", "1")) !== "0"; }
 
   function applyTheme() {

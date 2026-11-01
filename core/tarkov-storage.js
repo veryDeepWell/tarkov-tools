@@ -149,7 +149,7 @@
     }
   }
 
-  function set(key, val) {
+  function set(key, val, opts) {
     try {
       var name = String(key);
       var physical = canonicalKey(name);
@@ -160,8 +160,10 @@
         localStorage.setItem(physical, String(val));
         if (name !== physical) localStorage.removeItem(name);
       }
+      return true;
     } catch (e) {
-      console.error("Unable to write TarkovStorage key", key, e);
+      if (!opts || !opts.quiet) console.error("Unable to write TarkovStorage key", key, e);
+      return false;
     }
   }
 

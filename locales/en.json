@@ -76,7 +76,10 @@
     "needOneMap": "At least one map is required",
     "saved": "Saved",
     "goonsUpdated": "Goons updated",
-    "prereqFail": "Requirements not met. Level set to {level}"
+    "prereqFail": "Requirements not met. Level set to {level}",
+    "data": "Data",
+    "gameMode": "Game mode",
+    "load": "Load"
   },
   "hub": {
     "title": "Tarkov Tools",
@@ -182,13 +185,13 @@
     },
     "drip-builder": {
       "title": "Drip builder",
-      "description": "Build a drip set",
-      "help": "Build a drip set"
+      "description": "Not implemented yet: this page is a placeholder.",
+      "help": "Not implemented yet: this page is a placeholder."
     },
     "loadout-budget": {
       "title": "Loadout budget",
-      "description": "Loadout within a budget",
-      "help": "Loadout within a budget"
+      "description": "Not implemented yet: this page is a placeholder.",
+      "help": "Not implemented yet: this page is a placeholder."
     },
     "loadout-builder": {
       "title": "Loadout builder",
@@ -970,7 +973,8 @@
       "minDist": "Min distance",
       "maxDistort": "Max distortion",
       "maxPrice": "Max price",
-      "help": "Higher score ≈ better hearing per ruble (heuristic). Quest = trader task unlock."
+      "help": "Higher score ≈ better hearing per ruble (heuristic). Quest = trader task unlock.",
+      "description": "Explore this tool using the filters and controls on the page."
     },
     "challenge": {
       "title": "Challenge",
@@ -982,7 +986,8 @@
       "skip": "Skip",
       "hint": "Hit New challenge. Item pool loads from API when available.",
       "history": "History",
-      "help": "Local XP only — no leaderboard. Specials (~18%) like Zero-to-Hero rewrite gear."
+      "help": "Local XP only — no leaderboard. Specials (~18%) like Zero-to-Hero rewrite gear.",
+      "description": "Explore this tool using the filters and controls on the page."
     },
     "itemScore": {
       "load": "Load",
@@ -1040,6 +1045,121 @@
         "abdomen": "Abdomen",
         "legs": "Legs"
       }
+    },
+    "barter-opt": {
+      "title": "Barter optimizer",
+      "description": "Compare barter ingredient costs and trader requirements.",
+      "help": "Compare barter ingredient costs and trader requirements. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "battle-pass": {
+      "title": "Battle pass",
+      "description": "Track pages, documents and rewards locally.",
+      "help": "Track pages, documents and rewards locally. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "cases": {
+      "title": "Cases",
+      "description": "Compare case capacity, dimensions and item restrictions.",
+      "help": "Compare case capacity, dimensions and item restrictions. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "effects": {
+      "title": "Effects",
+      "description": "Inspect item effects, their values, duration and source.",
+      "help": "Inspect item effects, their values, duration and source. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "events": {
+      "title": "Events",
+      "description": "Browse manually authored event descriptions, dates and sources. An empty catalogue does not confirm there are no events.",
+      "help": "Browse manually authored event descriptions, dates and sources. An empty catalogue does not confirm there are no events. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "gun-rating": {
+      "title": "Weapon rating",
+      "description": "Compare weapons by their characteristics and ammunition.",
+      "help": "Compare weapons by their characteristics and ammunition. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "hitboxes": {
+      "title": "Hitboxes and damage",
+      "description": "Inspect body zones and damage distribution.",
+      "help": "Inspect body zones and damage distribution. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "item-card": {
+      "title": "Item card",
+      "description": "Explore stats, prices, traders, quests, crafts, barters, containers and related items.",
+      "help": "Explore stats, prices, traders, quests, crafts, barters, containers and related items. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "key-analyzer": {
+      "title": "Key analyzer",
+      "description": "Recognize key names from a screenshot or text, review quest links and total cost. Market demand is an estimate, not room loot value.",
+      "help": "Recognize key names from a screenshot or text, review quest links and total cost. Market demand is an estimate, not room loot value. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "map-admin": {
+      "title": "Map editor",
+      "description": "Edit local marker overrides and import or export them.",
+      "help": "Edit local marker overrides and import or export them. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "map": {
+      "title": "Map",
+      "description": "Explore location maps, floors, exits and marker filters.",
+      "help": "Explore location maps, floors, exits and marker filters. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "marathon": {
+      "title": "Marathon",
+      "description": "Plan transitions between locations and raid supplies.",
+      "help": "Plan transitions between locations and raid supplies. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "names": {
+      "title": "Bot names",
+      "description": "Browse factions and generate names in ordered or mixed groups.",
+      "help": "Browse factions and generate names in ordered or mixed groups. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "prestige": {
+      "title": "Prestige planner",
+      "description": "Plan the items and value to carry through prestige.",
+      "help": "Plan the items and value to carry through prestige. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "quest-cheese": {
+      "title": "Quest alternatives",
+      "description": "Find crafting and reward routes for quest items.",
+      "help": "Find crafting and reward routes for quest items. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "random-fact": {
+      "title": "Random fact",
+      "description": "Read editorial facts or update counts from the selected profile mode.",
+      "help": "Read editorial facts or update counts from the selected profile mode. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "repair": {
+      "title": "Repair",
+      "description": "Estimate weapon and armor repair costs.",
+      "help": "Estimate weapon and armor repair costs. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "seasons": {
+      "title": "Seasons",
+      "description": "Browse manually maintained season descriptions and modifiers.",
+      "help": "Browse manually maintained season descriptions and modifiers. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "shopping-list": {
+      "title": "Shopping list",
+      "description": "Maintain a shared shopping checklist and copy item names.",
+      "help": "Maintain a shared shopping checklist and copy item names. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "sources": {
+      "title": "Sources",
+      "description": "Browse reference sources and community resources.",
+      "help": "Browse reference sources and community resources. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "stash-packer": {
+      "title": "Stash packer",
+      "description": "Choose containers and quantities, set grid size and packing strategy, and review items that do not fit.",
+      "help": "Choose containers and quantities, set grid size and packing strategy, and review items that do not fit. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "strength-calc": {
+      "title": "Strength calculator",
+      "description": "Compare approximate weight thresholds and temporary Strength buffs.",
+      "help": "Compare approximate weight thresholds and temporary Strength buffs. Data and preferences are saved in this browser. API-backed tools require a network connection."
+    },
+    "xp": {
+      "title": "Experience",
+      "description": "Estimate experience and inspect the level table.",
+      "help": "Estimate experience and inspect the level table. Data and preferences are saved in this browser. API-backed tools require a network connection."
     }
   },
   "poll": {

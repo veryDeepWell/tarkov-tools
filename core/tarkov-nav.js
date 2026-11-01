@@ -5,6 +5,23 @@
 
   var KEY = "tt:nav:context";
   var CHANNEL = "tarkov-tools-nav";
+  var pageContext = null;
+
+  function href(file, type, id) {
+    return file + (file.indexOf("?") >= 0 ? "&" : "?") + "ttType=" + encodeURIComponent(type) + "&ttId=" + encodeURIComponent(id);
+  }
+
+  function current(type) { return pageContext && (!type || pageContext.type === type) ? pageContext : null; }
+
+  function matches(row) {
+    var ctx = current();
+    if (!ctx) return true;
+    if (ctx.type === "quest") return row.id === ctx.id;
+    if (ctx.type === "craft") return row.craftKey === ctx.id;
+    if (ctx.type === "barter") return row.barterKey === ctx.id;
+    if (ctx.type === "item") return [row.id, row.itemId, row.productId].indexOf(ctx.id) >= 0;
+    return true;
+  }
 
   function storage() {
     try {
@@ -73,6 +90,12 @@
   }
 
   function clear() {
+    pageContext = null;
+    try {
+      var url = new URL(location.href);
+      url.searchParams.delete("ttType"); url.searchParams.delete("ttId");
+      history.replaceState({}, "", url.pathname + url.search + url.hash);
+    } catch (eUrl) {}
     write(null);
     try { sessionStorage.removeItem(KEY); } catch (e) { try { console.debug && console.debug("[tt:nav]", e); } catch (_tt) { /* ignore */ } }
   }
@@ -87,7 +110,10 @@
     }
     try {
       if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: "tt-open-tool", file: file, context: partial || null }, "*");
+        if (window.parent.__ttHubFrames) {
+          window.parent.postMessage({ type: "tt-open-tool", file: href, context: partial || null }, location.origin);
+          return;
+        }
       }
     } catch (e) { try { console.debug && console.debug("[tt:nav]", e); } catch (_tt) { /* ignore */ } }
     location.href = href;
@@ -100,10 +126,7 @@
       var type = u.searchParams.get("ttType");
       var id = u.searchParams.get("ttId");
       if (type && id) {
-        set({ type: type, id: id, from: "query" });
-        u.searchParams.delete("ttType");
-        u.searchParams.delete("ttId");
-        history.replaceState({}, "", u.pathname + u.search + u.hash);
+        pageContext = set({ type: type, id: id, from: "query" });
       }
     } catch (e) { try { console.debug && console.debug("[tt:nav]", e); } catch (_tt) { /* ignore */ } }
   }
@@ -116,6 +139,26 @@
     get: get,
     consume: consume,
     clear: clear,
-    openTool: openTool
+    openTool: openTool,
+    href: href, current: current, matches: matches
   };
+  document.addEventListener("click", function (event) {
+    if (event.defaultPrevented || event.button > 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    var a = event.target.closest && event.target.closest("a[href]");
+    if (!a) return;
+    var u = new URL(a.href, location.href);
+    if (u.origin !== location.origin || !u.searchParams.get("ttId")) return;
+    event.preventDefault();
+    openTool(a.getAttribute("href"));
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!current()) return;
+    var button = document.createElement("button");
+    button.type = "button"; button.className = "btn-ghost";
+    button.textContent = "Показать всё — убрать фильтр перехода";
+    button.addEventListener("click", function () { clear(); button.remove(); if (typeof window.render === "function") window.render(); });
+    document.body.prepend(button);
+    var load = document.getElementById("loadBtn");
+    if (load) load.click();
+  });
 })(typeof window !== "undefined" ? window : globalThis);

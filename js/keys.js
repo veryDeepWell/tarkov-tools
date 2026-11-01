@@ -35,7 +35,7 @@
     ["labyrinth", /labyrinth/],
     ["factory", /factory/],
     ["ground-zero", /ground-zero|groundzero|science-campus|nexus/],
-    ["customs", /customs|customs-/],
+    ["customs", /customs|dorm|machinery|portable-bunkhouse|trailer-park/],
     ["woods", /woods|sawmill|scav-house/],
     ["shoreline", /shoreline|health-resort|resort|cottage/],
     ["interchange", /interchange|ultra|oli|idea|goshan/],
@@ -46,6 +46,8 @@
 
   var activeMap = "customs";
   var tableApi = null;
+  var loadedMode = null;
+  var loadVersion = 0;
 
   function detectMap(slug) {
     slug = String(slug || "").toLowerCase();
@@ -53,18 +55,6 @@
       if (MAP_RULES[i][1].test(slug)) return MAP_RULES[i][0];
     }
     return "other";
-  }
-
-  function personalRating(it) {
-    try {
-      if (window.TarkovKeysRating) {
-        var s = TarkovKeysRating.getScore(it.id);
-        if (s == null && it.normalizedName)
-          s = TarkovKeysRating.getScore(it.normalizedName);
-        return s;
-      }
-    } catch (e) {}
-    return null;
   }
 
   function paintMaps(counts) {
@@ -106,6 +96,7 @@
     });
 
   tableApi = TarkovTableTool.create({
+    autoLoad: false,
     tbody: "#tbody",
     thead: "#keysHead",
     status: "#status",
@@ -138,7 +129,7 @@
       },
       {
         key: "score",
-        label: "Score",
+        label: "Спрос / личная оценка",
         html: function (r, h) {
           if (r.score == null) return '<span class="meta">—</span>';
           return "<strong>" + h.esc(String(r.score)) + "</strong>";
@@ -161,6 +152,7 @@
   });
 
   document.getElementById("loadBtn").onclick = async function () {
+    var version = ++loadVersion;
     var btn = document.getElementById("loadBtn");
     var status = document.getElementById("status");
     if (btn) btn.disabled = true;
@@ -171,28 +163,15 @@
         if (window.TarkovKeysRating) await TarkovKeysRating.load();
       } catch (eR) {}
       var modeGame = (document.getElementById("gameMode") || {}).value || "pve";
+      loadedMode = modeGame;
       var items = await TarkovAPI.items(modeGame);
       var tasks = [];
+      var taskWarning = "";
       try {
         tasks = await TarkovAPI.tasks(modeGame);
-      } catch (eT) {}
-      var questKeyIds = {};
-      (tasks || []).forEach(function (t) {
-        (t.neededKeys || []).forEach(function (block) {
-          (block.keys || []).forEach(function (id) {
-            questKeyIds[id] = 1;
-          });
-        });
-        (t.objectives || []).forEach(function (o) {
-          if (o.type === "giveItem" || o.type === "findItem") {
-            if (typeof o.item === "string") questKeyIds[o.item] = 1;
-            (o.items || []).forEach(function (x) {
-              if (typeof x === "string") questKeyIds[x] = 1;
-              else if (x && x.id) questKeyIds[x.id] = 1;
-            });
-          }
-        });
-      });
+      } catch (eT) { taskWarning = " · Квесты не загружены"; }
+      if (version !== loadVersion) return;
+      var questKeyIds = TarkovKeysRating.questIndex(tasks);
       var rows = [];
       var counts = {};
       MAP_ORDER.forEach(function (m) {
@@ -203,10 +182,10 @@
         var p = it.properties || {};
         var uses = Number(p.uses) || 1;
         var avg = Number(it.avg24hPrice) || 0;
-        var isQuest = !!questKeyIds[it.id];
+        var isQuest = !!(questKeyIds[it.id] && questKeyIds[it.id].length);
         var slug = it.normalizedName || "";
         var map = detectMap(slug);
-        var score = personalRating(it);
+        var score = TarkovKeysRating.assessment(it, (questKeyIds[it.id] || []).length).score;
         var row = {
           id: it.id,
           slug: slug,
@@ -222,8 +201,9 @@
         rows.push(row);
         counts[map] = (counts[map] || 0) + 1;
       });
-      tableApi.setRows(rows);
+      if (!counts[activeMap]) activeMap = MAP_ORDER.find(function (map) { return counts[map] > 0; }) || "other";
       paintMaps(counts);
+      tableApi.setRows(rows);
       var mapsCard = document.getElementById("mapsCard");
       var tableCard = document.getElementById("tableCard");
       if (mapsCard) mapsCard.style.display = "block";
@@ -232,7 +212,7 @@
       if (title) title.textContent = MAP_RU[activeMap] || activeMap;
       if (status) {
         status.className = "status ok";
-        status.textContent = "Ключей: " + rows.length;
+        status.textContent = "Ключей: " + rows.length + taskWarning;
       }
       if (P) P.done("OK");
     } catch (e) {
@@ -242,13 +222,14 @@
       }
       if (P) P.fail(e.message);
     } finally {
-      if (btn) btn.disabled = false;
+      if (btn && version === loadVersion) btn.disabled = false;
     }
   };
 
   window.render = function () {
     try {
       if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+      if (loadedMode && loadedMode !== document.getElementById("gameMode").value) { tableApi.setRows([]); document.getElementById("loadBtn").onclick(); return; }
     } catch (e0) {}
     try {
       if (tableApi && tableApi.setRows && tableApi.getRows) tableApi.setRows(tableApi.getRows());

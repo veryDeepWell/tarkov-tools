@@ -234,7 +234,21 @@
 <body>
   <div class="container">
     <h1>Ключи — цена и рейтинг</h1>
-    
+    <p class="sub">Ключи по локациям, квесты, цена и оценка. Открой оценщик для анализа скриншота.</p>
+    <div class="card">
+      <div class="row">
+        <label class="field">Режим<select id="gameMode"><option value="pve">PVE</option><option value="regular">PVP</option></select></label>
+        <button type="button" class="btn" id="loadBtn">Загрузить ключи</button>
+        <a href="tarkovtool-key-analyzer.html">Оценщик ключей</a>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+    <div id="mapsCard" class="card" style="display:none"><div id="maps" class="maps"></div></div>
+    <div id="tableCard" class="card" style="display:none">
+      <h2 id="tableTitle">Ключи</h2>
+      <input id="search" type="text" placeholder="Поиск ключа">
+      <label><input id="hideQuest" type="checkbox"> Скрыть квестовые ключи</label>
+      <div class="table-wrap"><table><thead id="keysHead"><tr></tr></thead><tbody id="tbody"></tbody></table></div>
     </div>
   </div>
 

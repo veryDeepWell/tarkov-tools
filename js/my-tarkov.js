@@ -10,6 +10,22 @@
   }
 
   var PROFILE_ICONS = ["util", "loadout", "flea", "hideout", "quests", "med", "other"];
+  var contentRows = null, contentMode = "", contentVersion = 0;
+  var unlockBaseline = Object.create(null), newUnlocks = Object.create(null);
+  var SKILLS = { strength: "Сила", endurance: "Выносливость", metabolism: "Метаболизм", health: "Здоровье", vitality: "Жизнеспособность", stress: "Стрессоустойчивость", attention: "Внимательность", perception: "Восприятие", search: "Поиск", crafting: "Крафт", hidemgmt: "Управление убежищем" };
+  async function loadContent() {
+    var token = ++contentVersion;
+    var status = document.getElementById("contentStatus");
+    status.textContent = "Загрузка контента…";
+    try {
+      var loaded = await TarkovContent.load();
+      if (!loaded || token !== contentVersion) return;
+      contentMode = TarkovProfile.preferredGameMode();
+      contentRows = TarkovContent.available();
+      status.textContent = "Доступность по прогрессу. Наличие расходников и денег не учитывается. Следующий УЛ рассчитывается только при введённой репутации и обороте в валюте торговца.";
+      paint();
+    } catch (e) { status.textContent = "Не удалось загрузить контент: " + e.message; }
+  }
   function iconUrl(id) {
     return "../assets/icons/" + id + ".svg";
   }
@@ -47,6 +63,18 @@
     document.getElementById("gameMode").value = p.gameMode || "pve";
     document.getElementById("prestigeLevel").value = (p.prestige && p.prestige.level) || 0;
     document.getElementById("hideoutNotes").value = (p.notes && p.notes.hideout) || "";
+    var skillBox = document.getElementById("profileSkills");
+    var skillNames = Object.assign({}, SKILLS);
+    Object.keys(p.skills || {}).forEach(function (k) { if (!skillNames[k]) skillNames[k] = k; });
+    skillBox.innerHTML = Object.keys(skillNames).map(function (key) {
+      return '<label class="field">' + esc(skillNames[key]) + '<input type="number" min="0" max="51" step="0.01" data-skill="' + esc(key) + '" value="' + (Number(p.skills[key]) || 0) + '"></label>';
+    }).join("");
+    skillBox.querySelectorAll("[data-skill]").forEach(function (input) {
+      input.addEventListener("change", function () {
+        var patch = {}; patch[input.dataset.skill] = Math.max(0, Math.min(51, Number(input.value) || 0));
+        TarkovProfile.update({ skills: patch });
+      });
+    });
 
     var ico = p.icon || "util";
     var iconHidden = document.getElementById("pmcIcon");
@@ -79,16 +107,32 @@
     var tradersEl = document.getElementById("traders");
     tradersEl.innerHTML = TarkovProfile.TRADER_KEYS.map(function (k) {
       var ll = (p.traders && p.traders[k]) || 1;
-      return '<label class="trader-row"><span>' + esc(traderLabel(k)) + '</span>' +
+      return '<div class="trader-row"><span>' + esc(traderLabel(k)) + '</span>' +
         '<select data-trader="' + esc(k) + '">' +
         [1, 2, 3, 4].map(function (n) {
           return '<option value="' + n + '"' + (n === ll ? " selected" : "") + ">УЛ " + n + "</option>";
         }).join("") +
-        "</select></label>";
+        "</select></div>";
     }).join("");
     try {
       if (TarkovProfile.bindTraderLL) TarkovProfile.bindTraderLL(tradersEl);
     } catch (eBind) { try { console.debug && console.debug("[tt:my-tarkov]", eBind); } catch (_tt) { /* ignore */ } }
+    tradersEl.querySelectorAll("select[data-trader]").forEach(function (select) {
+      var key = select.dataset.trader, stats = p.traderStats[key] || {};
+      ["reputation", "spent"].forEach(function (field) {
+        var label = document.createElement("label"), input = document.createElement("input");
+        label.textContent = field === "reputation" ? "Репутация" : "Оборот (валюта торговца)";
+        input.type = "number"; input.step = field === "reputation" ? "0.01" : "1";
+        input.value = stats[field] == null ? "" : stats[field];
+        input.addEventListener("change", function () {
+          var patch = {}, updated = Object.assign({}, TarkovProfile.getActive().traderStats[key] || {});
+          updated[field] = input.value === "" ? null : Number(input.value);
+          if (updated[field] != null && !Number.isFinite(updated[field])) return;
+          patch[key] = updated; TarkovProfile.update({ traderStats: patch });
+        });
+        label.appendChild(input); select.parentNode.appendChild(label);
+      });
+    });
 
     var completed = (p.quests && p.quests.completed) || [];
     var active = (p.quests && p.quests.active) || [];
@@ -110,7 +154,7 @@
       var line = typeof a === "string" ? a : (a.text || "");
       var extra = "";
       if (a && a.kind === "quest" && a.quest) {
-        extra = ' <a class="link" data-nav-type="quest" data-nav-id="' + esc(a.quest) + '" href="tarkovtool-quests.html">→ квесты</a>';
+        extra = ' <a class="link" data-nav-type="quest" data-nav-id="' + esc(a.quest) + '" href="' + esc(TarkovNav.href("tarkovtool-quests.html", "quest", a.quest)) + '">→ квесты</a>';
       } else if (a && a.kind === "prestige") {
         extra = ' <a class="link" href="tarkovtool-prestige.html">→ престиж</a>';
       } else if (a && a.kind === "trader") {
@@ -122,6 +166,27 @@
       }
       return "<li>" + esc(line) + extra + "</li>";
     }).join("") || "<li class=\"meta\">Пока пусто</li>";
+    if (contentRows && contentMode === p.gameMode) {
+      contentRows = TarkovContent.available();
+      var keys = contentRows.map(function (row) { return row.key; });
+      var before = unlockBaseline[p.id];
+      var signature = JSON.stringify([p.level, p.gameMode, p.traders, p.traderStats, p.quests, p.skills, p.hideout]);
+      if (before && before.signature !== signature) newUnlocks[p.id] = contentRows.filter(function (row) { return before.keys.indexOf(row.key) < 0; });
+      unlockBaseline[p.id] = { keys: keys, signature: signature };
+      function contentLi(row) {
+        var entityId = row.type === "station" ? row.id.split(":")[0] : row.id;
+        return '<li><a href="' + esc(TarkovNav.href(row.file, row.type, entityId)) + '">' + esc(row.kind + " · " + row.text) + '</a></li>';
+      }
+      var query = document.getElementById("contentSearch").value.toLowerCase();
+      var matching = contentRows.filter(function (row) { return (row.kind + " " + row.text + " " + row.id).toLowerCase().includes(query); });
+      document.getElementById("contentCount").textContent = "Найдено: " + matching.length + ". Показано первых " + Math.min(100, matching.length) + ".";
+      document.getElementById("canDo").innerHTML = matching.slice(0, 100).map(contentLi).join("") || '<li>Нет доступного контента по введённому прогрессу</li>';
+      var discoveries = newUnlocks[p.id] || [];
+      document.getElementById("newUnlocks").innerHTML = discoveries.slice(0, 100).map(contentLi).join("") || '<li class="meta">Новых открытий нет</li>';
+      if (discoveries.length > 100) document.getElementById("newUnlocks").innerHTML += '<li>Всего новых открытий: ' + discoveries.length + '. Используй поиск доступного контента.</li>';
+    } else {
+      document.getElementById("newUnlocks").innerHTML = "";
+    }
     document.querySelectorAll("#canDo [data-nav-type]").forEach(function (a) {
       a.addEventListener("click", function () {
         if (!window.TarkovNav) return;
@@ -136,20 +201,17 @@
 
     var st = null;
     try { st = TarkovState.get(); } catch (e) { try { console.debug && console.debug("[tt:my-tarkov]", e); } catch (_tt) { /* ignore */ } }
-    var alerts = (st && st.alerts && st.alerts.prices) || [];
+    var alerts = TarkovAlerts.read();
     document.getElementById("alertList").innerHTML = alerts.length ? alerts.map(function (a, i) {
       return '<div class="meta" style="padding:4px 0;display:flex;justify-content:space-between;gap:8px">' +
-        "<span>" + esc(a.slug) + " " + (a.dir === "above" ? "≥" : "≤") + " " +
-        Number(a.target).toLocaleString("ru-RU") + " ₽</span>" +
+        "<span>" + esc(a.q || a.id) + " " + (a.op === ">=" ? "≥" : "≤") + " " +
+        Number(a.threshold).toLocaleString("ru-RU") + " ₽</span>" +
         '<button type="button" class="btn-ghost" data-i="' + i + '" style="min-height:28px!important;min-width:auto!important">×</button></div>';
     }).join("") : '<span class="meta">Нет алертов</span>';
 
     document.querySelectorAll("#alertList button").forEach(function (b) {
       b.onclick = function () {
-        var st2 = TarkovState.get();
-        var arr = ((st2.alerts && st2.alerts.prices) || []).slice();
-        arr.splice(+b.dataset.i, 1);
-        TarkovState.set({ alerts: { prices: arr } });
+        TarkovAlerts.remove(alerts[+b.dataset.i].ruleId);
         paint();
       };
     });
@@ -196,6 +258,12 @@
   }
 
   function bind() {
+    window.addEventListener("tt-alerts-changed", paint);
+    window.addEventListener("storage", function (event) {
+      if (event.key === TarkovStorage.canonicalKey("tarkovPriceAlarmRules")) paint();
+    });
+    document.getElementById("loadContent").onclick = loadContent;
+    document.getElementById("contentSearch").addEventListener("input", paint);
     document.getElementById("saveProfile").onclick = saveMain;
     document.getElementById("saveNotes").onclick = saveMain;
 
@@ -257,10 +325,7 @@
       var slug = (document.getElementById("alertSlug").value || "").trim();
       var target = Number(document.getElementById("alertTarget").value);
       if (!slug || !target) return;
-      var st = TarkovState.get();
-      var arr = ((st.alerts && st.alerts.prices) || []).slice();
-      arr.push({ slug: slug, target: target, dir: document.getElementById("alertDir").value });
-      TarkovState.set({ alerts: { prices: arr } });
+      TarkovAlerts.add({ q: slug, id: "", threshold: target, metric: "avg", op: document.getElementById("alertDir").value === "above" ? ">=" : "<=" });
       document.getElementById("alertSlug").value = "";
       document.getElementById("alertTarget").value = "";
       paint();
@@ -270,11 +335,13 @@
       paint();
     };
 
-    TarkovProfile.subscribe(function () { paint(); });
   window.render = paint;
   window.paint = paint;
   if (TarkovProfile.bindRefresh) {
-    TarkovProfile.bindRefresh(function () { paint(); });
+      TarkovProfile.bindRefresh(function () {
+        paint();
+        if (contentRows && contentMode !== TarkovProfile.preferredGameMode()) loadContent();
+      });
   }
     paint();
   }

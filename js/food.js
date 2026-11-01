@@ -38,7 +38,7 @@
         label: "name",
         html: function (r, h) {
           return TarkovTableTool.nameCell(
-            { name: r.name, slug: r.full || r.slug, icon: r.icon },
+            { id: r.id, name: r.name, slug: r.full || r.slug, icon: r.icon },
             h
           );
         }

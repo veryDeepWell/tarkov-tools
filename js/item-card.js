@@ -5,6 +5,8 @@
   var items = [];
   var selectedId = "";
   var graphReady = false;
+  var loadedMode = null;
+  var loadVersion = 0;
 
   function esc(s) {
     return window.TarkovDicts && TarkovDicts.esc ? TarkovDicts.esc(s) : String(s || "")
@@ -147,6 +149,14 @@
     }
   }
 
+    function itemLabel(iid) {
+      var it = TarkovItemGraph.get(iid);
+      if (!it) return iid;
+      try { if (window.TarkovItemMedia && TarkovItemMedia.name) return TarkovItemMedia.name(it); } catch (e) {}
+      try { if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it); } catch (e2) {}
+      return it.shortName || it.name || it.normalizedName || iid;
+    }
+
   function showCard(itemId) {
     if (!window.TarkovItemGraph || !graphReady) {
       setStatus("Сначала загрузи базу", "err");
@@ -208,6 +218,7 @@
       return (window.TarkovItemGraph && TarkovItemGraph.craftLabel)
         ? TarkovItemGraph.craftLabel(ck) : ck;
     }
+    function entityHref(file, type, id) { return window.TarkovNav ? TarkovNav.href(file, type, id) : file + "?ttType=" + type + "&ttId=" + encodeURIComponent(id); }
     var questsHref = "tarkovtool-quests.html";
     var craftsHref = "tarkovtool-crafts.html";
     var hideoutHref = "tarkovtool-hideout.html";
@@ -216,52 +227,46 @@
     fillList("listQuestUse", L.questsUsing, function (o) {
       var taskId = String(o.taskId || "");
       var name = taskLabel(taskId);
-      return '<li><a class="item-link" href="' + questsHref + '">' + esc(name) + '</a>' +
+      return '<li><a class="item-link" href="' + entityHref(questsHref, 'quest', taskId) + '">' + esc(name) + '</a>' +
         ' <code>' + esc(taskId.slice(0, 8)) + (taskId.length > 8 ? "…" : "") + '</code> · ' +
         esc(o.objectiveType || "") + (o.count ? " ×" + esc(o.count) : "") + "</li>";
     });
     fillList("listQuestReward", L.questsRewarding, function (tid) {
       tid = String(tid || "");
-      return '<li><a class="item-link" href="' + questsHref + '">' + esc(taskLabel(tid)) +
+      return '<li><a class="item-link" href="' + entityHref(questsHref, 'quest', tid) + '">' + esc(taskLabel(tid)) +
         '</a> <code>' + esc(tid.slice(0, 8)) + (tid.length > 8 ? "…" : "") + "</code></li>";
     });
     fillList("listCraftIn", L.craftsAsInput, function (o) {
-      return '<li><a class="item-link" href="' + craftsHref + '">' + esc(craftLab(o.craftKey)) +
+      return '<li><a class="item-link" href="' + entityHref(craftsHref, 'craft', o.craftKey) + '">' + esc(craftLab(o.craftKey)) +
         '</a> · требуется ×' + esc(o.count || 1) + '</li>';
     });
     fillList("listCraftOut", L.craftsAsProduct, function (o) {
-      return '<li><a class="item-link" href="' + craftsHref + '">' + esc(craftLab(o.craftKey)) +
+      return '<li><a class="item-link" href="' + entityHref(craftsHref, 'craft', o.craftKey) + '">' + esc(craftLab(o.craftKey)) +
         '</a> · результат ×' + esc(o.count || 1) + '</li>';
     });
     fillList("listBarterIn", L.bartersAsInput, function (o) {
       var tr = o.trader ? (window.TarkovDicts && TarkovDicts.traderName ? TarkovDicts.traderName(o.trader) : o.trader) : "";
-      return '<li><a class="item-link" href="' + barterHref + '">' + esc(tr || "Обмен") +
+      return '<li><a class="item-link" href="' + entityHref(barterHref, 'barter', o.barterKey) + '">' + esc(tr || "Обмен") +
         '</a> · требуется ×' + esc(o.count || 1) + ' <code>' + esc(String(o.barterKey || "").slice(0, 12)) + '</code></li>';
     });
     fillList("listBarterOut", L.bartersAsReward, function (o) {
       var tr = o.trader ? (window.TarkovDicts && TarkovDicts.traderName ? TarkovDicts.traderName(o.trader) : o.trader) : "";
-      return '<li><a class="item-link" href="' + barterHref + '">' + esc(tr || "Обмен") +
+      return '<li><a class="item-link" href="' + entityHref(barterHref, 'barter', o.barterKey) + '">' + esc(tr || "Обмен") +
         '</a> · награда ×' + esc(o.count || 1) + ' <code>' + esc(String(o.barterKey || "").slice(0, 12)) + '</code></li>';
     });
     fillList("listHideout", L.hideoutRequiring, function (o) {
       var label = (o.stationName || o.stationId || "Убежище") + (o.level != null ? " · уровень " + o.level : "");
-      return '<li><a class="item-link" href="' + hideoutHref + '">' + esc(label) +
+      return '<li><a class="item-link" href="' + entityHref(hideoutHref, 'station', o.stationId) + '">' + esc(label) +
         '</a> · требуется ×' + esc(o.count || 1) + "</li>";
     });
 
-    function itemLabel(iid) {
-      var it = TarkovItemGraph.get(iid);
-      if (!it) return iid;
-      try { if (window.TarkovItemMedia && TarkovItemMedia.name) return TarkovItemMedia.name(it); } catch (e) {}
-      try { if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it); } catch (e2) {}
-      return it.shortName || it.name || it.normalizedName || iid;
-    }
     function itemLi(iid) {
       var href = TarkovItemGraph.href(iid);
       return '<li><a class="item-link" href="' + href + '">' + esc(itemLabel(iid)) +
         '</a> <code>' + esc(String(iid).slice(0, 8)) + '…</code></li>';
     }
 
+    fillList("listContainers", L.usedInContainers || [], itemLi);
     fillList("listFamily", (L.family || []).slice(0, 30), function (iid) { return itemLi(iid); });
     fillList("listAmmo", (L.ammoFor || []).slice(0, 25), function (iid) { return itemLi(iid); });
     fillList("listMags", (L.magsFor || []).slice(0, 25), function (iid) { return itemLi(iid); });
@@ -302,6 +307,7 @@
   }
 
   async function loadBase() {
+    var version = ++loadVersion;
     var btn = document.getElementById("loadBtn");
     if (btn) btn.disabled = true;
     var __ttProgress = window.TarkovUI && TarkovUI.progress;
@@ -313,6 +319,8 @@
     setStatus("Загрузка items / tasks / crafts…");
     try {
       var m = mode();
+      loadedMode = m;
+      graphReady = false;
       var pack = await Promise.all([
         TarkovAPI.items(m),
         TarkovAPI.tasks(m),
@@ -320,6 +328,8 @@
         TarkovAPI.barters ? TarkovAPI.barters(m) : Promise.resolve([]),
         TarkovAPI.hideout ? TarkovAPI.hideout(m) : Promise.resolve([])
       ]);
+      if (version !== loadVersion) return;
+      loadedMode = m;
       items = Array.isArray(pack[0]) ? pack[0] : [];
       TarkovItemGraph.build({
         items: items,
@@ -331,13 +341,14 @@
       graphReady = true;
       if (__ttProgress) try { __ttProgress.done("OK"); } catch (e1) {}
       setStatus("База: " + items.length + " items", "ok");
-      var fromUrl = queryItemId();
+      var fromUrl = queryItemId() || (window.TarkovNav && TarkovNav.current("item") || {}).id;
       if (fromUrl) showCard(fromUrl);
+      else if (selectedId) showCard(selectedId);
     } catch (e) {
       try { if (__ttProgress) __ttProgress.fail(e && e.message ? e.message : "Error"); } catch (e2) {}
       setStatus("Ошибка: " + (e && e.message ? e.message : e), "err");
     } finally {
-      if (btn) btn.disabled = false;
+      if (btn && version === loadVersion) btn.disabled = false;
     }
   }
 
@@ -360,6 +371,7 @@
     try {
       if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
     } catch (e0) {}
+    if (loadedMode && loadedMode !== mode()) { graphReady = false; loadBase().then(function () { if (selectedId && graphReady) showCard(selectedId); }); return; }
     if (selectedId && graphReady) {
       try { showCard(selectedId); } catch (e1) {}
     }

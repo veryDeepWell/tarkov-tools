@@ -6,16 +6,16 @@
   /** Default trader restock period (EFT: most traders every 3h) */
   var DEFAULT_CYCLE_MS = 3 * 60 * 60 * 1000;
   var TRADER_RU = {
-    prapor: "ÐŸÑ€Ð°Ð¿Ð¾Ñ€",
-    therapist: "Ð¢ÐµÑ€Ð°Ð¿ÐµÐ²Ñ‚",
-    fence: "Ð¡ÐºÑƒÐ¿Ñ‰Ð¸Ðº",
-    skier: "Ð›Ñ‹Ð¶Ð½Ð¸Ðº",
-    peacekeeper: "ÐœÐ¸Ñ€Ð¾Ñ‚Ð²Ð¾Ñ€ÐµÑ†",
-    mechanic: "ÐœÐµÑ…Ð°Ð½Ð¸Ðº",
-    ragman: "Ð‘Ð°Ñ€Ð°Ñ…Ð¾Ð»ÑŒÑ‰Ð¸Ðº",
-    jaeger: "Ð•Ð³ÐµÑ€ÑŒ",
-    ref: "Ð ÐµÑ„",
-    lightkeeper: "Ð¡Ð¼Ð¾Ñ‚Ñ€Ð¸Ñ‚ÐµÐ»ÑŒ"
+    prapor: "Прапор",
+    therapist: "Терапевт",
+    fence: "Скупщик",
+    skier: "Лыжник",
+    peacekeeper: "Миротворец",
+    mechanic: "Механик",
+    ragman: "Барахольщик",
+    jaeger: "Егерь",
+    ref: "Реф",
+    lightkeeper: "Смотритель"
   };
   var ORDER = [
     "prapor",
@@ -86,14 +86,14 @@
   }
 
   function formatRemain(ms) {
-    if (ms <= 0) return "0Ñ";
+    if (ms <= 0) return "0с";
     var s = Math.floor(ms / 1000);
     var h = Math.floor(s / 3600);
     var m = Math.floor((s % 3600) / 60);
     var sec = s % 60;
-    if (h > 0) return h + "Ñ‡ " + String(m).padStart(2, "0") + "Ð¼";
-    if (m > 0) return m + "Ð¼ " + String(sec).padStart(2, "0") + "Ñ";
-    return sec + "Ñ";
+    if (h > 0) return h + "ч " + String(m).padStart(2, "0") + "м";
+    if (m > 0) return m + "м " + String(sec).padStart(2, "0") + "с";
+    return sec + "с";
   }
   function formatAbs(d) {
     try {
@@ -109,11 +109,11 @@
   }
   function formatAgo(ms) {
     var m = Math.floor(ms / 60000);
-    if (m < 1) return "Ñ‚Ð¾Ð»ÑŒÐºÐ¾ Ñ‡Ñ‚Ð¾";
-    if (m < 60) return m + " Ð¼Ð¸Ð½ Ð½Ð°Ð·Ð°Ð´";
+    if (m < 1) return "только что";
+    if (m < 60) return m + " мин назад";
     var h = Math.floor(m / 60);
-    if (h < 24) return h + " Ñ‡ Ð½Ð°Ð·Ð°Ð´";
-    return Math.floor(h / 24) + " Ð´Ð½ Ð½Ð°Ð·Ð°Ð´";
+    if (h < 24) return h + " ч назад";
+    return Math.floor(h / 24) + " дн назад";
   }
 
   function reportMini(running, label) {
@@ -196,7 +196,7 @@
             }
           }
         }
-        // API still past? roll locally so UI never sticks on Â«ÑÐµÐ¹Ñ‡Ð°ÑÂ»
+        // API still past? roll locally so UI never sticks on «сейчас»
         if (row.resetAt && row.resetAt.getTime() <= now) {
           rollForward(row, now);
         }
@@ -286,7 +286,7 @@
         if (statusEl) {
           statusEl.className = "status ok";
           statusEl.textContent =
-            "ÐÐ¾Ð²Ñ‹Ðµ Ð²Ñ€ÐµÐ¼ÐµÐ½Ð° Â· " + new Date().toLocaleTimeString("ru-RU");
+            "Новые времена · " + new Date().toLocaleTimeString("ru-RU");
         }
         render();
       } catch (e) {
@@ -302,7 +302,7 @@
     var now = Date.now();
     if (!listEl) return;
     if (!traders.length) {
-      listEl.innerHTML = '<p class="status">ÐÐµÑ‚ Ð´Ð°Ð½Ð½Ñ‹Ñ…</p>';
+      listEl.innerHTML = '<p class="status">Нет данных</p>';
       renderHistory();
       return;
     }
@@ -310,7 +310,7 @@
     traders.forEach(function (t) {
       var remain = t.resetAt.getTime() - now;
 
-      // Hit zero â†’ notify once, immediately start next cycle countdown
+      // Hit zero → notify once, immediately start next cycle countdown
       if (remain <= 0) {
         if (t.enabled) onRestock(t);
         rollForward(t, now);
@@ -322,7 +322,7 @@
         restockHistory[t.key] &&
         now - restockHistory[t.key].happenedAt < 8000;
       var badge = justFired
-        ? ' <span style="color:var(--green)">Ð¾Ð±Ð½Ð¾Ð²Ð»Ñ‘Ð½</span>'
+        ? ' <span style="color:var(--green)">обновлён</span>'
         : "";
 
       var div = document.createElement("div");
@@ -372,7 +372,7 @@
       return b.happenedAt - a.happenedAt;
     });
     if (!entries.length) {
-      el.innerHTML = '<p class="status">ÐŸÐ¾ÐºÐ° Ð¿ÑƒÑÑ‚Ð¾</p>';
+      el.innerHTML = '<p class="status">Пока пусто</p>';
       return;
     }
     el.innerHTML = entries
@@ -380,7 +380,7 @@
         return (
           '<div style="padding:8px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px"><b>' +
           h.name +
-          "</b> Â· " +
+          "</b> · " +
           formatAgo(now - h.happenedAt) +
           "</div>"
         );
@@ -411,13 +411,13 @@
     if (loadBtn) loadBtn.disabled = true;
     if (statusEl) {
       statusEl.className = "status";
-      statusEl.textContent = "Ð“Ñ€ÑƒÐ¶Ñƒâ€¦";
+      statusEl.textContent = "Гружу…";
     }
     try {
       await fetchTraders();
       if (statusEl) {
         statusEl.className = "status ok";
-        statusEl.textContent = "Ð—Ð°Ð³Ñ€ÑƒÐ¶ÐµÐ½Ð¾ " + traders.length;
+        statusEl.textContent = "Загружено " + traders.length;
       }
       if (refreshBtn) refreshBtn.disabled = false;
       render();
@@ -442,7 +442,7 @@
         await fetchTraders();
         if (statusEl) {
           statusEl.className = "status ok";
-          statusEl.textContent = "ÐžÐ±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¾";
+          statusEl.textContent = "Обновлено";
         }
         render();
       } catch (e) {
@@ -534,20 +534,20 @@
       if (refreshBtn) refreshBtn.disabled = false;
       if (statusEl) {
         statusEl.className = "status ok";
-        statusEl.textContent = "Ð’Ð¾ÑÑÑ‚Ð°Ð½Ð¾Ð²Ð»ÐµÐ½Ð¾ " + traders.length + " (Ñ„Ð¾Ð½)";
+        statusEl.textContent = "Восстановлено " + traders.length + " (фон)";
       }
     } else if (st && st.on) {
-      // Poll marked on but no snapshot â€” soft resume marker for mini
+      // Poll marked on but no snapshot — soft resume marker for mini
       reportMini(true, "watching");
     }
   } catch (eBoot) { try { console.debug && console.debug("[tt:restock]", eBoot); } catch (_tt) { /* ignore */ } }
-  // Do NOT stop poll / uiTick on pagehide â€” hub used to move iframes (reload)
+  // Do NOT stop poll / uiTick on pagehide — hub used to move iframes (reload)
   // and pagehide would kill background restock. Live tools must keep running.
   window.addEventListener("message", function (ev) {
     if (ev.origin !== location.origin) return;
     var d = ev.data;
     if (!d || typeof d !== "object") return;
-    // Parent hub heartbeat â€” keep countdown/notify alive when iframe is under another tool
+    // Parent hub heartbeat — keep countdown/notify alive when iframe is under another tool
     if (d.type === "tt-tick") {
       if (traders.length) {
         try {

@@ -76,7 +76,7 @@
         label: "Предмет",
         html: function (r, h) {
           return TarkovTableTool.nameCell(
-            { name: r.name, slug: r.normalizedName || r.shortName, icon: r.icon },
+            { id: r.id, name: r.name, slug: r.normalizedName || r.shortName, icon: r.icon },
             h
           );
         }

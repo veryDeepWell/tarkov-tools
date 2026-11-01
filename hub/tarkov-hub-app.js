@@ -70,6 +70,20 @@ var miniTabs = window.TarkovHubMiniTabs.create({
   esc: esc
 });
 window.openToolAsMini = miniTabs.open;
+window.addEventListener("message", function (event) {
+  if (event.origin !== location.origin || !event.data || event.data.type !== "tt-open-tool") return;
+  var knownSource = Object.keys(window.__ttHubFrames || {}).some(function (key) {
+    return window.__ttHubFrames[key].contentWindow === event.source;
+  });
+  if (!knownSource) return;
+  var requested = new URL(event.data.file, location.href.replace(/[^/]*$/, "tools/"));
+  var base = requested.pathname.split("/").pop();
+  var entry = getCatalog().find(function (t) { return toolKey(t.file) === base; });
+  if (requested.origin !== location.origin || !entry) return;
+  miniTabs.open(entry.file);
+  var frame = window.__ttHubFrames[entry.file];
+  if (frame) frame.src = entry.file + requested.search + requested.hash;
+});
 
 var PINS_KEY = "tarkovHubPins";
 function loadPins() { return window.TarkovStorage ? TarkovStorage.getJson(PINS_KEY, []) || [] : []; }

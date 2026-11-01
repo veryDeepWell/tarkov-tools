@@ -6,6 +6,7 @@
   var catalog = [];
   var catalogReady = false;
   var catalogLoading = null;
+  var catalogVersion = 0;
   var fired = {};
   var openSuggestIdx = -1;
 
@@ -27,13 +28,16 @@
     el.textContent = msg || '';
   }
 
-  /** Rules schema v1: { _v: 1, rules: [...] } â€” bare array migrated once */
+  /** Rules schema v1: { _v: 1, rules: [...] } — bare array migrated once */
   function loadRules() {
+    if (window.TarkovAlerts) return TarkovAlerts.read();
     var doc = TarkovSchema.readJson(RULES_KEY, 1, { listKey: "rules" });
     return TarkovSchema.listOf(doc, "rules");
   }
 
   function saveRules(rules) {
+    fired = {};
+    if (window.TarkovAlerts) { TarkovAlerts.save(rules); return; }
     var doc = { _v: 1, rules: Array.isArray(rules) ? rules : [] };
     TarkovSchema.writeJson(RULES_KEY, doc);
   }
@@ -61,8 +65,8 @@
     if (catalogReady && catalog.length) return Promise.resolve(catalog);
     if (catalogLoading) return catalogLoading;
     catalogLoading = loadCatalog()
-      .then(function () {
-        catalogReady = true;
+      .then(function (loaded) {
+        if (loaded !== false) catalogReady = true;
         catalogLoading = null;
         return catalog;
       })
@@ -73,11 +77,14 @@
     return catalogLoading;
   }
 
-  async function loadCatalog() {
+  async function loadCatalog(fresh) {
+    var version = ++catalogVersion;
     var mode = (document.getElementById('gameMode') || {}).value || 'pve';
     if (!window.TarkovAPI || !TarkovAPI.items) throw new Error('TarkovAPI missing');
-    catalog = await TarkovAPI.items(mode);
-    if (!Array.isArray(catalog)) catalog = [];
+    var result = await TarkovAPI.items(mode, fresh ? { noCache: true, httpCache: "no-store" } : undefined);
+    if (version !== catalogVersion || mode !== ((document.getElementById('gameMode') || {}).value || 'pve')) return false;
+    catalog = Array.isArray(result) ? result : [];
+    return true;
   }
 
   function priceOf(it) {
@@ -153,18 +160,20 @@
     var val =
       rule.metric === 'low' ? p.low : rule.metric === 'offers' ? p.offers : p.avg;
     var thr = Number(rule.threshold) || 0;
+    if (rule.metric !== 'offers' && val <= 0) return false;
     if (rule.op === '>=') return val >= thr;
     return val <= thr;
   }
 
   function notifyHit(h) {
-    var title = 'Ð¡Ð¸Ñ€ÐµÐ½Ð° Ñ†ÐµÐ½';
+    var title = 'Сирена цен';
     try {
       if (window.TarkovI18n && TarkovI18n.t) {
         var t = TarkovI18n.t('priceAlarm.notifTitle');
         if (t && t !== 'priceAlarm.notifTitle') title = t;
       }
     } catch (e) { try { console.debug && console.debug("[tt:price-alarm]", e); } catch (_tt) { /* ignore */ } }
+    var i18nParams = { name: itemName(h.it), threshold: h.rule.threshold, op: h.rule.op || "<=", value: h.p ? h.p.avg : 0 };
     var p = h.p || priceOf(h.it);
     var val =
       h.rule.metric === 'low'
@@ -172,24 +181,27 @@
         : h.rule.metric === 'offers'
           ? p.offers
           : p.avg;
+    i18nParams.value = val;
     var body =
       itemName(h.it) +
       ' ' +
       (h.rule.op || '<=') +
       ' ' +
       h.rule.threshold +
-      ' (ÑÐµÐ¹Ñ‡Ð°Ñ ' +
+      ' (сейчас ' +
       (h.rule.metric === 'offers' ? val : fmtRub(val)) +
       ')';
     try {
       if (typeof Notify === 'function') {
         Notify({ title: title, body: body, tool: TOOL, kind: 'alarm', i18nTitle: 'priceAlarm.notifTitle', i18nBody: 'priceAlarm.notifBody', i18nParams: i18nParams });
-        return;
+        return true;
       }
       if (window.TarkovTools && TarkovTools.Notify) {
         TarkovTools.Notify({ title: title, body: body, tool: TOOL, kind: 'alarm', i18nTitle: 'priceAlarm.notifTitle', i18nBody: 'priceAlarm.notifBody', i18nParams: i18nParams });
+        return true;
       }
     } catch (e) { try { console.debug && console.debug("[tt:price-alarm]", e); } catch (_tt) { /* ignore */ } }
+    return false;
   }
 
   async function checkOnce() {
@@ -197,7 +209,8 @@
     try {
       if (P && P.start) P.start({ label: '...' });
       if (P && P.set) P.set(10, '...');
-      await ensureCatalog();
+      if (await loadCatalog(true) === false) return [];
+      catalogReady = true;
       if (P && P.set) P.set(55, String(catalog.length));
       var rules = loadRules();
       var hits = [];
@@ -207,13 +220,13 @@
         var it = matchItem(rule);
         if (!it) return;
         if (evalRule(rule, it)) {
-          var key = idx + ':' + (it.id || rule.q);
+          var key = (rule.ruleId || idx) + ':' + (it.id || rule.q);
           if (!fired[key]) {
             fired[key] = true;
-            hits.push({ rule: rule, it: it, p: priceOf(it) });
+            hits.push({ rule: rule, it: it, p: priceOf(it), key: key });
           }
         } else {
-          delete fired[idx + ':' + (it.id || rule.q)];
+          delete fired[(rule.ruleId || idx) + ':' + (it.id || rule.q)];
         }
         if (P && P.set) {
           var pct = 55 + Math.floor(((idx + 1) / n) * 40);
@@ -221,9 +234,9 @@
           P.set(pct);
         }
       });
-      hits.forEach(notifyHit);
+      hits.forEach(function (hit) { if (!notifyHit(hit)) delete fired[hit.key]; });
       if (P && P.done) P.done();
-      status('ÐŸÑ€Ð¾Ð²ÐµÑ€ÐºÐ°: ' + catalog.length + ' Ð¿Ñ€ÐµÐ´Ð¼ÐµÑ‚Ð¾Ð², ÑÑ€Ð°Ð±Ð°Ñ‚Ñ‹Ð²Ð°Ð½Ð¸Ð¹ ' + hits.length, true);
+      status('Проверка: ' + catalog.length + ' предметов, срабатываний ' + hits.length, true);
       var st = window.TarkovPoll ? TarkovPoll.status(POLL_ID) : { on: false };
       if (st.on) reportMini(true, hits.length ? 'hits ' + hits.length : 'ok');
       else reportMini(false, 'idle');
@@ -251,13 +264,13 @@
     var q = input.value || '';
     if (!catalogReady) {
       box.hidden = false;
-      box.innerHTML = '<div class="suggest-item" style="cursor:default;color:var(--muted)">Ð—Ð°Ð³Ñ€ÑƒÐ·ÐºÐ° ÐºÐ°Ñ‚Ð°Ð»Ð¾Ð³Ð°â€¦</div>';
+      box.innerHTML = '<div class="suggest-item" style="cursor:default;color:var(--muted)">Загрузка каталога…</div>';
       ensureCatalog()
         .then(function () {
           if (openSuggestIdx === idx) showSuggest(idx, input, box);
         })
         .catch(function () {
-          box.innerHTML = '<div class="suggest-item" style="cursor:default;color:var(--muted)">ÐÐµ ÑƒÐ´Ð°Ð»Ð¾ÑÑŒ Ð·Ð°Ð³Ñ€ÑƒÐ·Ð¸Ñ‚ÑŒ</div>';
+          box.innerHTML = '<div class="suggest-item" style="cursor:default;color:var(--muted)">Не удалось загрузить</div>';
         });
       return;
     }
@@ -270,7 +283,7 @@
       }
       box.hidden = false;
       box.innerHTML =
-        '<div class="suggest-item" style="cursor:default;color:var(--muted)">ÐÐ¸Ñ‡ÐµÐ³Ð¾ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½Ð¾</div>';
+        '<div class="suggest-item" style="cursor:default;color:var(--muted)">Ничего не найдено</div>';
       return;
     }
     openSuggestIdx = idx;
@@ -322,7 +335,7 @@
     if (!box) return;
     var rules = loadRules();
     if (!rules.length) {
-      box.innerHTML = '<p class="meta">ÐŸÐ¾ÐºÐ° Ð½ÐµÑ‚ Ð¿Ñ€Ð°Ð²Ð¸Ð». ÐÐ°Ð¶Ð¼Ð¸Ñ‚Ðµ Â«+ ÐŸÑ€Ð°Ð²Ð¸Ð»Ð¾Â».</p>';
+      box.innerHTML = '<p class="meta">Пока нет правил. Нажмите «+ Правило».</p>';
       return;
     }
     box.innerHTML = rules
@@ -331,7 +344,7 @@
         var p = it ? priceOf(it) : null;
         var meta = '';
         if (!catalogReady) {
-          meta = '<span class="meta">ÐšÐ°Ñ‚Ð°Ð»Ð¾Ð³â€¦</span>';
+          meta = '<span class="meta">Каталог…</span>';
         } else if (it && p) {
           var cur =
             r.metric === 'low'
@@ -352,12 +365,12 @@
             '<span>low ' +
             esc(fmtRub(p.low)) +
             '</span>' +
-            '<span>Ð¾Ñ„Ñ„ÐµÑ€Ñ‹ ' +
+            '<span>офферы ' +
             esc(String(p.offers)) +
             '</span>' +
-            (hit ? '<span class="ok">ÑÑ€Ð°Ð±Ð¾Ñ‚Ð°ÐµÑ‚</span>' : '');
+            (hit ? '<span class="ok">сработает</span>' : '');
         } else if (r.q || r.id) {
-          meta = '<span class="miss">Ð¿Ñ€ÐµÐ´Ð¼ÐµÑ‚ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½</span>';
+          meta = '<span class="miss">предмет не найден</span>';
         }
         var mAvg = r.metric !== 'low' && r.metric !== 'offers' ? ' selected' : '';
         var mLow = r.metric === 'low' ? ' selected' : '';
@@ -370,19 +383,19 @@
           '">' +
           '<div class="rule-top">' +
           '<div class="field" style="flex:2;min-width:180px">' +
-          '<label>ÐŸÑ€ÐµÐ´Ð¼ÐµÑ‚</label>' +
+          '<label>Предмет</label>' +
           '<div class="rule-search-wrap">' +
           '<input type="search" autocomplete="off" data-i="' +
           i +
           '" data-k="q" value="' +
           esc(r.q || '') +
-          '" placeholder="ÐÐ°Ñ‡Ð½Ð¸Ñ‚Ðµ Ð²Ð²Ð¾Ð´Ð¸Ñ‚ÑŒ Ð½Ð°Ð·Ð²Ð°Ð½Ð¸Ðµâ€¦">' +
+          '" placeholder="Начните вводить название…">' +
           '<div class="suggest" data-suggest="' +
           i +
           '" hidden></div>' +
           '</div></div>' +
           '<div class="field narrow">' +
-          '<label>ÐœÐµÑ‚Ñ€Ð¸ÐºÐ°</label>' +
+          '<label>Метрика</label>' +
           '<select data-i="' +
           i +
           '" data-k="metric">' +
@@ -394,10 +407,10 @@
           '>low</option>' +
           '<option value="offers"' +
           mOff +
-          '>Ð¾Ñ„Ñ„ÐµÑ€Ñ‹</option>' +
+          '>офферы</option>' +
           '</select></div>' +
           '<div class="field narrow">' +
-          '<label>Ð£ÑÐ»Ð¾Ð²Ð¸Ðµ</label>' +
+          '<label>Условие</label>' +
           '<select data-i="' +
           i +
           '" data-k="op">' +
@@ -409,7 +422,7 @@
           '>' + String.fromCharCode(62) + '=</option>' +
           '</select></div>' +
           '<div class="field narrow">' +
-          '<label>ÐŸÐ¾Ñ€Ð¾Ð³</label>' +
+          '<label>Порог</label>' +
           '<input type="number" data-i="' +
           i +
           '" data-k="threshold" value="' +
@@ -419,7 +432,7 @@
           '<div class="rule-actions">' +
           '<button type="button" class="btn-ghost" data-del="' +
           i +
-          '" title="Ð£Ð´Ð°Ð»Ð¸Ñ‚ÑŒ">' +
+          '" title="Удалить">' +
           String.fromCharCode(0xd7) +
           '</button>' +
           '</div></div>' +
@@ -501,17 +514,19 @@
     );
     var cd = document.getElementById('countdown');
     if (cd) TarkovPoll.bindCountdown(cd, POLL_ID);
-    status('Ð¤Ð¾Ð½ ÐºÐ°Ð¶Ð´Ñ‹Ðµ ' + mins + ' Ð¼Ð¸Ð½', true);
+    status('Фон каждые ' + mins + ' мин', true);
     reportMini(true, 'every ' + mins + 'm');
   }
 
   function stopBg() {
     if (window.TarkovPoll) TarkovPoll.stop(POLL_ID);
-    status('ÐžÑÑ‚Ð°Ð½Ð¾Ð²Ð»ÐµÐ½Ð¾', true);
+    status('Остановлено', true);
     reportMini(false, 'idle');
   }
 
   function boot() {
+    if (window.TarkovProfile) TarkovProfile.wireToolPage();
+    loadedMode = (document.getElementById('gameMode') || {}).value || 'pve';
     renderRules();
     ensureCatalog()
       .then(function () {
@@ -549,15 +564,7 @@
     }
     var modeEl = document.getElementById('gameMode');
     if (modeEl) {
-      modeEl.onchange = function () {
-        catalogReady = false;
-        catalog = [];
-        ensureCatalog()
-          .then(function () {
-            renderRules();
-          })
-          .catch(function () {});
-      };
+      modeEl.onchange = function () { window.render(); };
     }
     window.addEventListener('message', function (ev) {
       if (ev.origin !== location.origin) return;
@@ -574,7 +581,7 @@
       var st = window.TarkovPoll ? TarkovPoll.status(POLL_ID) : null;
       if (st && st.mins && document.getElementById('interval'))
         document.getElementById('interval').value = st.mins;
-      if (st && st.mode && document.getElementById('gameMode'))
+      if (!window.TarkovProfile && st && st.mode && document.getElementById('gameMode'))
         document.getElementById('gameMode').value = st.mode;
       if (st && st.on) startBg();
       else reportMini(false, 'idle');
@@ -583,38 +590,23 @@
     }
   }
 
+  var loadedMode = '';
+  window.render = function () {
+    if (window.TarkovProfile) TarkovProfile.wireToolPage();
+    var mode = (document.getElementById('gameMode') || {}).value || 'pve';
+    if (loadedMode !== mode) {
+      loadedMode = mode;
+      catalogVersion++; catalogLoading = null;
+      catalogReady = false; catalog = []; fired = {};
+      ensureCatalog().then(renderRules).catch(function (e) { status(e.message, false); });
+    } else renderRules();
+  };
+  if (window.TarkovProfile && TarkovProfile.bindRefresh) TarkovProfile.bindRefresh(window.render);
+  window.addEventListener('tt-alerts-changed', function () { fired = {}; renderRules(); });
+  window.addEventListener('storage', function (event) {
+    var key = window.TarkovStorage && TarkovStorage.canonicalKey ? TarkovStorage.canonicalKey(RULES_KEY) : RULES_KEY;
+    if (event.key === key) { fired = {}; renderRules(); }
+  });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
-})();
-
-/* R-2: gameMode from profile on load; changes write to profile */
-(function () {
-  function __ttBindMode() {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) {
-        TarkovProfile.wireToolPage();
-      } else if (window.TarkovProfile && TarkovProfile.bindGameMode) {
-        var el = document.getElementById("gameMode");
-        if (el) el.__ttProfileBound = false;
-        TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
-      }
-    } catch (e) { try { console.debug && console.debug("[tt:price-alarm]", e); } catch (_tt) { /* ignore */ } }
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", __ttBindMode);
-  } else {
-    __ttBindMode();
-  }
-
-  window.render = function () {
-    try {
-      if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
-    } catch (e0) {}
-    try {
-      if (typeof renderRules === 'function') renderRules();
-    } catch (e1) {}
-  };
-  if (window.TarkovProfile && TarkovProfile.bindRefresh) {
-    TarkovProfile.bindRefresh(function () { window.render(); });
-  }
 })();

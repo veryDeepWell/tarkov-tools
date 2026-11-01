@@ -37,15 +37,16 @@
     // progress: { [stationId]: { level: number, want: bool, collected: { [reqKey]: bool } } }
     let progress = {};
     let selectedId = null;
+    let loadedMode = null, loadVersion = 0;
 
     function loadSettings(key, defaults) { return TarkovUI.loadSettings(key, defaults); }
     function saveSettings(key, obj) { TarkovUI.saveSettings(key, obj); }
     function loadProgress() {
-      try { progress = TarkovStorage.getJson('tarkovHideoutProgress', {}); }
+      try { progress = TarkovProfile.hideoutProgress(); }
       catch { progress = {}; }
     }
     function saveProgress() {
-      try { TarkovStorage.setJson('tarkovHideoutProgress', progress); } catch (e) { try { console.debug && console.debug("[tt:hideout]", e); } catch (_tt) { /* ignore */ } }
+      try { TarkovProfile.update({ hideout: progress }); } catch (e) { try { console.debug && console.debug("[tt:hideout]", e); } catch (_tt) { /* ignore */ } }
     }
     function humanize(slug) { return TarkovDicts.humanize(slug); }
     function formatNum(n) { return TarkovDicts.fmtNum(n); }
@@ -137,18 +138,21 @@
       return { st, next, lv, blocked: !canHaveLevel(stationId, next) };
     }
 
-    document.getElementById('loadBtn').addEventListener('click', async () => {
+    async function loadHideout() {
+      const version = ++loadVersion;
       const btn = document.getElementById('loadBtn');
       const status = document.getElementById('status');
       btn.disabled = true;
       status.className = 'status';
       const mode = document.getElementById('gameMode').value || 'regular';
+      loadedMode = mode;
       status.textContent = 'Гружу hideout + items…';
       try {
         const [stationList, items] = await Promise.all([
           TarkovAPI.hideout(mode),
           TarkovAPI.items(mode)
         ]);
+        if (version !== loadVersion) return;
         const hData = {};
         (Array.isArray(stationList) ? stationList : []).forEach(s => {
           if (s && s.id) hData[s.id] = s;
@@ -167,7 +171,7 @@
           const st = {
             id: raw.id,
             normalizedName: raw.normalizedName || raw.id,
-            name: humanize(raw.normalizedName || raw.id),
+            name: raw.name && !/^hideout_area_/i.test(raw.name) ? raw.name : humanize(raw.normalizedName || raw.id),
             levels,
             maxLevel: levels.reduce((m, l) => Math.max(m, l.level || 0), 0)
           };
@@ -187,6 +191,8 @@
         status.className = 'status ok';
         status.textContent = `Станций: ${stations.length} · предметы: ${items.length}`;
         renderStations();
+        var navStation = window.TarkovNav && TarkovNav.current("station");
+        if (navStation && stationById[navStation.id]) selectedId = navStation.id;
         if (!selectedId && stations.length) selectedId = stations[0].id;
         renderDetail();
         renderShop();
@@ -195,9 +201,10 @@
         status.className = 'status err';
         status.textContent = 'Ошибка: ' + e.message;
       } finally {
-        btn.disabled = false;
+        if (version === loadVersion) btn.disabled = false;
       }
-    });
+    }
+    document.getElementById('loadBtn').addEventListener('click', loadHideout);
 
     function renderStations() {
       const q = (document.getElementById('stationSearch').value || '').toLowerCase().trim();
@@ -523,7 +530,7 @@
     if(window.itemName&&window.itemName!==itemName)return window.itemName(it);
     if(!it)return '';
     if(typeof it==='string')return it;
-    var s=(itemName(it)||'').trim();
+    var s=String(it.shortName || it.name || it.normalizedName || it.id || '').trim();
     if(/^[a-f0-9]{20}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20}$/i.test(it.name)?it.name:it.normalizedName)||s;
     return s||it.id||'';
   }
@@ -535,6 +542,8 @@
 window.render = function () {
   try {
     if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+    loadProgress();
+    if (loadedMode && loadedMode !== document.getElementById("gameMode").value) { loadHideout(); return; }
     if (typeof renderStations === "function") renderStations();
     if (typeof renderDetail === "function") renderDetail();
     if (typeof renderShop === "function") renderShop();

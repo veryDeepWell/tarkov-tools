@@ -187,7 +187,7 @@
         label: "Предмет",
         html: function (r, h) {
           return TarkovTableTool.nameCell(
-            { name: r.itemName, slug: (r.slugs && r.slugs[0]) || "", icon: r.icon },
+            { id: r.itemId, name: r.itemName, slug: (r.slugs && r.slugs[0]) || "", icon: r.icon },
             h
           );
         }
@@ -207,7 +207,9 @@
           return r.fir ? "FIR" : "";
         }
       },
-      { key: "questName", label: "Квест" },
+      { key: "questName", label: "Квест", html: function (r, h) {
+        return '<a href="' + h.esc(TarkovNav.href("tarkovtool-quests.html", "quest", r.taskId)) + '">' + h.esc(r.questName) + '</a>';
+      } },
       { key: "trader", label: "Торговец" },
       { key: "minLvl", label: "Lvl", format: "num" },
       {
@@ -324,6 +326,7 @@
             locked = !TarkovProfile.meetsLevel(minLvl);
           }
           rows.push({
+            itemId: ids[0],
             key: key,
             taskId: task.id,
             objId: o.id,

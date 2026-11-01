@@ -1,6 +1,7 @@
 /*! Crafts — TarkovTableTool */
 (function () {
   "use strict";
+  var loadedMode = null, loadVersion = 0;
 
   var activeStations = null;
 
@@ -113,7 +114,7 @@
         label: "Продукт",
         html: function (r, h) {
           return TarkovTableTool.nameCell(
-            { name: r.product, slug: r.productSlug, icon: r.productIcon },
+            { id: r.productId, name: r.product, slug: r.productSlug, icon: r.productIcon },
             h
           );
         }
@@ -188,6 +189,7 @@
   });
 
   document.getElementById("loadBtn").onclick = async function () {
+    var version = ++loadVersion;
     var btn = document.getElementById("loadBtn");
     var status = document.getElementById("status");
     if (btn) btn.disabled = true;
@@ -195,6 +197,7 @@
     try {
       if (P) P.start({ label: t("common.loading") || "Loading…", indeterminate: true });
       var mode = (document.getElementById("gameMode") || {}).value || "pve";
+      loadedMode = mode;
       var priceIn = (document.getElementById("priceIn") || {}).value || "avg24h";
       var priceOut = (document.getElementById("priceOut") || {}).value || "avg24h";
       var intel3 = !!(document.getElementById("intel3") || {}).checked;
@@ -208,6 +211,7 @@
         stationList = await TarkovAPI.hideout(mode);
       } catch (eH) {}
 
+      if (version !== loadVersion) return;
       var itemsMap = {};
       (items || []).forEach(function (it) {
         if (it && it.id) itemsMap[it.id] = it;
@@ -286,6 +290,7 @@
           productSlug: (prodItem && prodItem.normalizedName) || "",
           productIcon: (prodItem && (prodItem.iconLink || prodItem.gridImageLink)) || "",
           productId: prodId,
+          craftKey: c.id || String(c.station && (c.station.id || c.station) || "st") + ":" + (c.level || 0) + ":" + prodId + ":" + crafts.indexOf(c),
           prodCount: prodCount,
           station: stationName(stId),
           stationSlug: stSlug,
@@ -325,7 +330,7 @@
       }
       if (P) P.fail(e.message);
     } finally {
-      if (btn) btn.disabled = false;
+      if (btn && version === loadVersion) btn.disabled = false;
     }
   };
 
@@ -333,6 +338,7 @@
   window.render = function () {
     try {
       if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+      if (loadedMode && loadedMode !== document.getElementById("gameMode").value) { api.setRows([]); document.getElementById("loadBtn").onclick(); return; }
     } catch (e0) {}
     try {
       if (typeof api !== "undefined" && api && typeof api.setRows === "function") {

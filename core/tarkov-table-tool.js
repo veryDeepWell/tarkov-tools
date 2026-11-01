@@ -134,6 +134,8 @@
       var q = (search && search.value ? search.value : "").toLowerCase().trim();
       var filterFn = opts.filterRow || defaultFilter;
       var list = rows.filter(function (r) {
+        if (window.TarkovNav && TarkovNav.current && TarkovNav.current() &&
+            ["item", "quest", "craft", "barter"].includes(TarkovNav.current().type)) return TarkovNav.matches(r);
         return filterFn(r, q);
       });
       list.sort(function (a, b) {
@@ -328,11 +330,14 @@
       (global.TarkovItemMedia && TarkovItemMedia.name ? TarkovItemMedia.name(raw) : "") || "";
     var itemAttr = itemId ? ' data-item-id="' + e(itemId) + '" data-item-name="' + e(itemNameValue) + '"' : "";
     var meta = row.slug || row.normalizedName || row.id || "";
+    var cardHref = (global.location && String(location.pathname).indexOf("/tools/") >= 0 ? "" : "tools/") +
+      "tarkovtool-item-card.html?item=" + encodeURIComponent(itemId) + "&ttType=item&ttId=" + encodeURIComponent(itemId);
+    var cardLink = itemId ? ' <a class="item-details-link" href="' + e(cardHref) + '" aria-label="Карточка: ' + e(itemNameValue) + '" title="Открыть карточку предмета">↗</a>' : "";
     return (
       '<div class="name-cell tt-inspectable-item"' + itemAttr +
       ' title="Двойной клик — карточка предмета · Alt+I — режим инспектора">' +
       '<img class="ico" src="' + e(iconUrl) + '" data-fallback="' + e(fallbackIcon) + '" loading="lazy" alt="" onerror="this.onerror=null;this.src=this.dataset.fallback">' +
-      '<div><div class="name">' + e(itemNameValue) + '</div><div class="meta">' + e(meta) + '</div></div></div>'
+      '<div><div class="name">' + e(itemNameValue) + cardLink + '</div><div class="meta">' + e(meta) + '</div></div></div>'
     );
   }
 

@@ -3,11 +3,9 @@
   "use strict";
   if (global.TarkovKeysRating && global.TarkovKeysRating.__v >= 1) return;
 
-  var PATHS = [
-    "data/keys-rating.json",
-    "../data/keys-rating.json",
-    "/data/keys-rating.json"
-  ];
+  var PATHS = [typeof document !== "undefined" && document.currentScript && document.currentScript.src
+    ? new URL("../data/keys-rating.json", document.currentScript.src).href
+    : (global.location && /\/tools\//.test(global.location.pathname) ? "../data/keys-rating.json" : "data/keys-rating.json")];
   var state = {
     loaded: false,
     loading: null,
@@ -101,6 +99,36 @@
     return s != null ? s : fallback;
   }
 
+  function assessment(item, questCount) {
+    var personal = getScore(item.id) || getScore(item.normalizedName);
+    if (personal != null) return { score: personal, label: "Личная оценка", basis: "keys-rating" };
+    var price = Number(item.avg24hPrice || item.lastLowPrice) || 0;
+    var uses = Math.max(1, Number((item.properties || {}).uses) || 1);
+    // Explicit market proxy, never presented as measured room loot/ROI.
+    var score = price > 0 ? Math.max(1, Math.min(100, Math.round(Math.log10(1 + price / uses) * 15))) : null;
+    return { score: score, label: "Рыночный спрос (оценка)",
+      basis: price > 0 ? "Цена за использование; не доход комнаты. Квестов: " + (questCount || 0) : "Нет цены для оценки" };
+  }
+
+  function questIndex(tasks) {
+    var index = Object.create(null);
+    (tasks || []).forEach(function (task) {
+      function add(ref) {
+        var key = typeof ref === "string" ? ref : ref && (ref.id || ref.item && (ref.item.id || ref.item));
+        if (!key) return;
+        var rows = index[key] || (index[key] = []);
+        if (!rows.some(function (r) { return r.taskId === task.id; })) rows.push({ taskId: task.id, name: task.name || task.normalizedName || task.id });
+      }
+      (task.neededKeys || []).forEach(function (block) { (block.keys || []).forEach(add); });
+      (task.objectives || []).forEach(function (objective) {
+        if (!["giveItem", "findItem", "plantItem"].includes(objective.type)) return;
+        if (objective.item) add(objective.item);
+        (objective.items || []).forEach(add);
+      });
+    });
+    return index;
+  }
+
   var api = {
     __v: 1,
     load: load,
@@ -110,6 +138,8 @@
     getScore: getScore,
     getScoreOr: getScoreOr,
     getMeta: lookup,
+    assessment: assessment,
+    questIndex: questIndex,
     isLoaded: function () {
       return state.loaded;
     },

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ивенты — Tarkov Tools</title>
+  <link rel="stylesheet" href="../core/tarkov-common.css">
+  <script type="application/json" id="tarkovtool-meta">{"title":"Ивенты","description":"Редакционная база текущих и прошлых ивентов с датами и источниками.","cat":"util","kind":"static","icon":"util"}</script>
+</head>
+<body>
+  <main class="container">
+    <h1>Ивенты</h1>
+    <p>Описания добавляются вручную. Статус определяется датами записей, информация не запрашивается у игрового API.</p>
+    <label>Поиск <input id="eventSearch" type="search"></label>
+    <label>Показать <select id="eventFilter"><option value="all">Все</option><option value="active">Текущие</option><option value="past">Прошедшие</option><option value="upcoming">Будущие</option></select></label>
+    <p id="status" class="status"></p><div id="eventList"></div>
+  </main>
+  <script src="../core/tarkov-storage.js"></script>
+  <script src="../core/tarkov-schema.js"></script>
+  <script src="../core/tarkov-profile.js"></script>
+  <script src="../core/tarkov-ui.js"></script>
+  <script src="../core/tarkov-common.js"></script>
+  <script src="../js/events.js"></script>
+  <script src="../core/tarkov-tool-shell.js"></script>
+</body>
+</html>

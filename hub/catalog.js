@@ -166,6 +166,14 @@ window.__TT_CATALOG_DATA = {
       "kind": "static"
     },
     {
+      "file": "tools/tarkovtool-events.html",
+      "title": "Ивенты",
+      "description": "Редакционная база текущих и прошлых ивентов с датами и источниками.",
+      "icon": "util",
+      "cat": "util",
+      "kind": "static"
+    },
+    {
       "file": "tools/tarkovtool-food.html",
       "title": "Еда и вода",
       "description": "Пища / вода: energy, hydration, цена, рейтинг ₽/очко.",
@@ -246,9 +254,17 @@ window.__TT_CATALOG_DATA = {
       "kind": "static"
     },
     {
+      "file": "tools/tarkovtool-key-analyzer.html",
+      "title": "Оценщик ключей",
+      "description": "Скрин ключницы → распознавание, квесты, личный рейтинг, сумма комплекта.",
+      "icon": "other",
+      "cat": "other",
+      "kind": "static"
+    },
+    {
       "file": "tools/tarkovtool-keys.html",
       "title": "Ключи",
-      "description": "Ключи по локациям, цена и рейтинг.",
+      "description": "Ключи по локациям, цена и личный рейтинг (keys-rating).",
       "icon": "other",
       "cat": "other",
       "kind": "static"

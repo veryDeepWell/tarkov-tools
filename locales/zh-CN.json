@@ -76,7 +76,10 @@
     "needOneMap": "至少需要一张地图",
     "saved": "已保存",
     "goonsUpdated": "Goons 已更新",
-    "prereqFail": "未满足条件。等级：{level}"
+    "prereqFail": "未满足条件。等级：{level}",
+    "data": "数据",
+    "gameMode": "游戏模式",
+    "load": "加载"
   },
   "hub": {
     "title": "Tarkov Tools",
@@ -108,5 +111,15 @@
     "med": "医疗 / 食物",
     "util": "实用",
     "other": "其他"
+  },
+  "tool": {
+    "drip-builder": {
+      "description": "尚未实现：此页面为占位页面。",
+      "help": "尚未实现：此页面为占位页面。"
+    },
+    "loadout-budget": {
+      "description": "尚未实现：此页面为占位页面。",
+      "help": "尚未实现：此页面为占位页面。"
+    }
   }
 }

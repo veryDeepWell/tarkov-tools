@@ -76,7 +76,10 @@
     "needOneMap": "Mindestens eine Karte nötig",
     "saved": "Gespeichert",
     "goonsUpdated": "Goons aktualisiert",
-    "prereqFail": "Voraussetzungen fehlen. Stufe: {level}"
+    "prereqFail": "Voraussetzungen fehlen. Stufe: {level}",
+    "data": "Daten",
+    "gameMode": "Spielmodus",
+    "load": "Laden"
   },
   "hub": {
     "title": "Tarkov Tools",
@@ -108,5 +111,15 @@
     "med": "Med / Essen",
     "util": "Werkzeuge",
     "other": "Sonstiges"
+  },
+  "tool": {
+    "drip-builder": {
+      "description": "Noch nicht implementiert: diese Seite ist ein Platzhalter.",
+      "help": "Noch nicht implementiert: diese Seite ist ein Platzhalter."
+    },
+    "loadout-budget": {
+      "description": "Noch nicht implementiert: diese Seite ist ein Platzhalter.",
+      "help": "Noch nicht implementiert: diese Seite ist ein Platzhalter."
+    }
   }
 }

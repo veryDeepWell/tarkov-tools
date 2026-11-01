@@ -30,6 +30,19 @@
     return o;
   }
 
+  // Profile vocabulary is pve/pvp; the data API calls PvP "regular".
+  function normalizeMode(value) {
+    return /^(pvp|regular|pvp-season)$/.test(String(value)) ? "pvp" : "pve";
+  }
+
+  function apiMode(value) { return normalizeMode(value) === "pvp" ? "regular" : "pve"; }
+
+  function skillKey(ref) {
+    var name = typeof ref === "object" && ref ? ref.normalizedName || ref.name || ref.id : ref;
+    var key = String(name || "").replace(/[^a-z0-9]/gi, "").toLowerCase();
+    return ({ hideoutmanagement: "hidemgmt", stressresistance: "stress", magazinedrills: "magdrills", covertmovement: "covert", aimdrills: "aim", recoilcontrol: "recoil" })[key] || key;
+  }
+
   function emptyProfile(name) {
     var now = Date.now();
     return {
@@ -39,7 +52,9 @@
       level: 1,
       gameMode: "pve",
       traders: defaultTraders(),
+      traderStats: {},
       skills: {},
+      hideout: {},
       quests: { completed: [], active: [], itemDone: {} },
       prestige: { level: 0, carried: [] },
       notes: { hideout: "" },
@@ -59,7 +74,11 @@
       if (n > 4) n = 4;
       out.traders[k] = n | 0;
     });
-    out.skills = p.skills && typeof p.skills === "object" ? p.skills : {};
+    out.skills = {};
+    Object.keys(p.skills || {}).forEach(function (key) {
+      var value = Number(p.skills[key]);
+      if (isFinite(value)) out.skills[skillKey(key)] = Math.max(0, Math.min(51, value));
+    });
     out.quests = {
       completed: Array.isArray(p.quests && p.quests.completed) ? p.quests.completed.slice() : [],
       active: Array.isArray(p.quests && p.quests.active) ? p.quests.active.slice() : [],
@@ -73,7 +92,9 @@
     out.notes = Object.assign({ hideout: "" }, p.notes || {});
     out.icon = (p.icon && String(p.icon).trim()) || "util";
     out.level = Math.max(1, Math.min(79, Number(out.level) || 1)) | 0;
-    out.gameMode = out.gameMode === "pvp" || out.gameMode === "pve" ? out.gameMode : "pve";
+    out.gameMode = normalizeMode(out.gameMode);
+    out.hideout = p.hideout && typeof p.hideout === "object" ? p.hideout : {};
+    out.traderStats = p.traderStats && typeof p.traderStats === "object" ? p.traderStats : {};
     out.meta = Object.assign({ createdAt: Date.now(), updatedAt: Date.now() }, p.meta || {});
     return out;
   }
@@ -229,6 +250,7 @@
     if (patch && patch.skills) {
       next.skills = Object.assign({}, cur.skills, patch.skills);
     }
+    if (patch && patch.traderStats) next.traderStats = Object.assign({}, cur.traderStats, patch.traderStats);
     next = writeData(next);
 
     var fields = [];
@@ -432,8 +454,9 @@
     opts = opts || {};
     var data = typeof json === "string" ? JSON.parse(json) : json;
     var arr = (data && data.profiles) || (Array.isArray(data) ? data : null);
-    if (!arr || !arr.length) throw new Error("no profiles");
+    if (!Array.isArray(arr) || !arr.length || arr.some(function (p) { return !p || typeof p !== "object" || Array.isArray(p); })) throw new Error("Invalid profiles");
     var firstId = null;
+    var selectedId = null;
     arr.forEach(function (raw, i) {
       var p = normalize(raw);
       p.id = uid();
@@ -442,8 +465,9 @@
       p.meta.updatedAt = Date.now();
       writeData(p);
       if (i === 0) firstId = p.id;
+      if (raw.id === data.activeId) selectedId = p.id;
     });
-    if (opts.activate !== false && firstId) setActiveId(firstId);
+    if (opts.activate !== false && firstId) setActiveId(selectedId || firstId);
     emit("import", { count: arr.length });
     emit("change", { profile: getActive(), fields: ["*"] });
     return list();
@@ -462,8 +486,7 @@
       for (var i = 0; i < el.options.length; i++) values.push(el.options[i].value);
     }
     if (values.length && values.indexOf(mode) < 0) {
-      if (mode === "pve" && values.indexOf("regular") >= 0) mode = "regular";
-      else if ((mode === "regular" || mode === "pve") && values.indexOf("pve") >= 0) mode = "pve";
+      if (mode === "pvp" && values.indexOf("regular") >= 0) mode = "regular";
       else if (values.indexOf(fallback) >= 0) mode = fallback;
       else mode = values[0];
     }
@@ -472,8 +495,7 @@
     el.__ttProfileBound = true;
     el.addEventListener("change", function () {
       var v = el.value;
-      if (v === "regular") v = "pve";
-      try { update({ gameMode: v === "pvp" ? "pvp" : "pve" }); } catch (err) { try { console.debug && console.debug("[tt:profile]", err); } catch (_tt) { /* ignore */ } }
+      try { update({ gameMode: normalizeMode(v) }); } catch (err) { try { console.debug && console.debug("[tt:profile]", err); } catch (_tt) { /* ignore */ } }
     });
     return el;
   }
@@ -544,6 +566,11 @@
       // #level only when not My Tarkov full form — still OK to bind
       if (document.getElementById("level") && !document.getElementById("pmcName")) bindLevel("level");
       if (document.getElementById("prestige")) bindPrestige("prestige");
+      [["strLevel", "strength"], ["hmLvl", "hidemgmt"], ["hm", "hidemgmt"]].forEach(function (pair) {
+        bindNumberInput(pair[0], function () { return Number(getActive().skills[pair[1]]) || 0; }, function (value) {
+          var patch = {}; patch[pair[1]] = Math.max(0, Math.min(51, value)); update({ skills: patch });
+        }, { bindKey: "skill:" + pair[1] });
+      });
       // R2.4: trader LL selects anywhere on page
       if (document.querySelector("select[data-trader]")) bindTraderLL(document);
       if (typeof context === "function") {
@@ -623,7 +650,7 @@
     offer = offer || {};
     var traderRaw = offer.trader != null ? offer.trader : offer.vendor;
     if (traderRaw && typeof traderRaw === "object") {
-      traderRaw = traderRaw.id || traderRaw.key || traderRaw.normalizedName || "";
+      traderRaw = traderRaw.id || traderRaw.key || traderRaw.normalizedName || traderRaw.name || "";
     }
     var traderKey = traderRaw != null ? String(traderRaw) : "";
     try {
@@ -654,10 +681,13 @@
 
     var questLocked = !!(offer.taskUnlock || offer.quest || offer.questLocked);
     var questName = "";
+    var questId = "";
     var tu = offer.taskUnlock;
     if (tu && typeof tu === "object") {
+      questId = String(tu.id || "");
       questName = String(tu.name || tu.normalizedName || tu.id || "");
     } else if (tu != null && tu !== false) {
+      if (typeof tu === "string") questId = tu;
       questName = String(tu);
     }
     if (!questName && offer.questName) questName = String(offer.questName);
@@ -666,6 +696,8 @@
       traderKey: traderKey,
       minLL: minLL,
       questLocked: questLocked,
+      questId: questId || offer.questId || "",
+      flea: /flea|ragfair/i.test(traderKey),
       questName: questName
     };
   }
@@ -677,7 +709,9 @@
       trader: m.traderKey,
       minLL: m.minLL,
       questLocked: m.questLocked,
-      questName: m.questName
+      questId: m.questId,
+      questName: m.questName,
+      fleaLevel: m.flea ? 15 : null
     });
   }
 
@@ -702,7 +736,7 @@
         reasons.push("УЛ " + req.trader + " " + traderLL(req.trader) + " < " + (needLL | 0));
       }
     }
-    if (req.questLocked) {
+    if (req.questLocked && !isQuestCompleted(req.questId) && !isQuestCompleted(req.questName)) {
       locked = true;
       var qn = req.questName || req.questId || "?";
       reasons.push("Квест: " + qn);
@@ -716,19 +750,54 @@
     return { locked: !!locked, reasons: reasons, reason: reasons.join("; ") };
   }
 
+  function taskGate(task) {
+    task = task || {};
+    var result = gate({ minLevel: task.minPlayerLevel });
+    (task.taskRequirements || []).forEach(function (r) {
+      var ref = r.task || r;
+      var id = typeof ref === "object" ? ref.id : ref;
+      var states = r.status || r.statuses || ["complete"];
+      if (!Array.isArray(states)) states = [states];
+      var done = isQuestCompleted(id) || isQuestCompleted(ref && ref.name);
+      var active = isQuestActive(id);
+      var met = states.some(function (s) {
+        s = String(s).toLowerCase();
+        if (/complete|success|finished/.test(s)) return done;
+        if (/active|started/.test(s)) return active;
+        if (/available/.test(s)) return active || done;
+        return false;
+      });
+      if (!met) result.reasons.push("Предшествующий квест: " + (ref && ref.name || id || "?"));
+    });
+    (task.traderRequirements || []).forEach(function (r) {
+      var m = offerMeta({ trader: r.trader, minTraderLevel: r.level || r.minTraderLevel });
+      var g = gate({ trader: m.traderKey, minLL: m.minLL });
+      result.reasons = result.reasons.concat(g.reasons);
+    });
+    result.locked = result.reasons.length > 0;
+    result.reason = result.reasons.join("; ");
+    return result;
+  }
+
+  // Migrate legacy hideout progress to one owner, never to every new profile.
+  function hideoutProgress() {
+    var p = getActive();
+    var legacy = storage().getJson("tarkovHideoutProgress", null);
+    if (legacy && typeof legacy === "object") {
+      var progress = Object.keys(p.hideout || {}).length ? p.hideout : legacy;
+      storage().remove("tarkovHideoutProgress");
+      try { p = update({ hideout: progress }); }
+      catch (e) { storage().setJson("tarkovHideoutProgress", legacy); throw e; }
+    }
+    return JSON.parse(JSON.stringify(p.hideout || {}));
+  }
+
   /** Suggestions for «Что я могу» based on profile only (no API). */
   function suggestActions() {
     var p = getActive();
     var out = [];
     var lvl = p.level || 1;
-    TRADER_KEYS.forEach(function (k) {
-      var ll = traderLL(k);
-      if (ll < 4) out.push({ kind: "trader", text: "УЛ " + k + " → " + (ll + 1), trader: k, next: ll + 1 });
-    });
-    if (lvl < 15) out.push({ kind: "level", text: "До 15 ур. — новые квесты и торговцы", level: 15 });
-    else if (lvl < 20) out.push({ kind: "level", text: "До 20 ур. — flea / расширенный контент", level: 20 });
-    else if (lvl < 40) out.push({ kind: "level", text: "Кач до 40 — mid-game прогресс", level: 40 });
-    else if (lvl < 55) out.push({ kind: "level", text: "Кач до 55 — поздние квесты", level: 55 });
+    out.push({ kind: "hint", text: "Загрузи доступный контент для проверки квестов, бартеров, крафтов и улучшений по профилю" });
     var active = (p.quests && p.quests.active) || [];
     active.slice(0, 8).forEach(function (q) {
       out.push({ kind: "quest", text: "Активно: " + q, quest: q });
@@ -938,22 +1007,36 @@
     if (opts.exportGlobal !== false) {
       try { window.onProfileRefresh = fn; } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } }
     }
-    var unsub = subscribe(function (ev) {
-      try { fn(ev); } catch (err) { try { console.debug && console.debug("[tt:profile]", err); } catch (_tt) { /* ignore */ } }
-    });
-    function onEvt() { try { fn({ type: "dom-event" }); } catch (e) { try { console.debug && console.debug("[tt:profile]", e); } catch (_tt) { /* ignore */ } } }
+    var queued = false, disposed = false, latest;
+    function schedule(ev) {
+      latest = ev;
+      if (queued || disposed) return;
+      queued = true;
+      Promise.resolve().then(function () {
+        queued = false;
+        if (!disposed) try { fn(latest); } catch (err) { console.debug && console.debug("[tt:profile]", err); }
+      });
+    }
+    var unsub = subscribe(schedule);
+    function onEvt() { schedule({ type: "dom-event" }); }
+    function onMessage(ev) {
+      if (ev.origin !== location.origin || ev.source !== window.parent || !ev.data) return;
+      if (["tt-profile-changed", "tt-profile-filter", "tt-profile-refresh"].includes(ev.data.type)) onEvt();
+    }
     try {
       window.addEventListener("tt-profile-changed", onEvt);
       window.addEventListener("tt-profile-filter", onEvt);
       window.addEventListener("tt-profile-refresh", onEvt);
-      window.addEventListener("message", function (ev) {
-        if (!ev.data || !ev.data.type) return;
-        if (ev.data.type === "tt-profile-changed" || ev.data.type === "tt-profile-filter" || ev.data.type === "tt-profile-refresh") {
-          onEvt();
-        }
-      });
+      window.addEventListener("message", onMessage);
     } catch (e2) { try { console.debug && console.debug("[tt:profile]", e2); } catch (_tt) { /* ignore */ } }
-    return unsub;
+    return function () {
+      disposed = true; unsub();
+      window.removeEventListener("tt-profile-changed", onEvt);
+      window.removeEventListener("tt-profile-filter", onEvt);
+      window.removeEventListener("tt-profile-refresh", onEvt);
+      window.removeEventListener("message", onMessage);
+      if (window.onProfileRefresh === fn) delete window.onProfileRefresh;
+    };
   }
 
   function flushRefresh(detail) {
@@ -987,6 +1070,8 @@
     ensureMigrated: ensureMigrated,
     syncLegacyState: syncLegacyState,
     preferredGameMode: preferredGameMode,
+    normalizeMode: normalizeMode,
+    apiMode: apiMode,
     context: context,
     bindGameMode: bindGameMode,
     bindLevel: bindLevel,
@@ -1000,6 +1085,9 @@
     meetsLevel: meetsLevel,
     meetsTraderLL: meetsTraderLL,
     gate: gate,
+    taskGate: taskGate,
+    skillKey: skillKey,
+    hideoutProgress: hideoutProgress,
     offerMeta: offerMeta,
     offerGate: offerGate,
     suggestActions: suggestActions,

@@ -22,6 +22,42 @@
     return storage().get("tarkovPreferredGameMode", "pve") || "pve";
   }
 
+  function apiMode(value) {
+    var requested = value || mode();
+    if (global.TarkovProfile && TarkovProfile.apiMode) return TarkovProfile.apiMode(requested);
+    return /^(pvp|regular|pvp-season)$/.test(requested) ? "regular" : "pve";
+  }
+
+  async function locale(kind, gameMode, language) {
+    var lang = language || (global.TarkovI18n && TarkovI18n.lang ? TarkovI18n.lang() : storage().get("tarkovLang", "en"));
+    if (!/^[a-z]{2}(?:-[A-Za-z]{2})?$/.test(lang)) lang = "en";
+    var pack = await getJson("/" + apiMode(gameMode) + "/" + kind + "_" + lang, { ttl: 24 * 60 * 60 * 1000 });
+    return pack.data || pack;
+  }
+
+  async function translated(json, kind, gameMode) {
+    if (!Array.isArray(json && json.translations) || !json.translations.length) return json;
+    var pack;
+    try { pack = await locale(kind, gameMode); } catch (e) { return json; }
+    var copy = JSON.parse(JSON.stringify(json));
+    json.translations.forEach(function (field) {
+      // Localize presentation fields only. Slot names, effect types, zones and
+      // other enums remain stable inputs to compatibility and scoring logic.
+      if (!/\.(name|shortName|description|exitName)$/.test(field) || /\.properties\.|\.bonuses\[/.test(field)) return;
+      var parts = field.replace(/^\$\./, "").replace(/\[\*\]/g, ".*").split(".");
+      function visit(parent, index) {
+        if (!parent || typeof parent !== "object") return;
+        var keys = parts[index] === "*" ? Object.keys(parent) : [parts[index]];
+        keys.forEach(function (key) {
+          if (index < parts.length - 1) visit(parent[key], index + 1);
+          else if (typeof parent[key] === "string" && typeof pack[parent[key]] === "string") parent[key] = pack[parent[key]];
+        });
+      }
+      visit(copy, 0);
+    });
+    return copy;
+  }
+
   function lsGet(key) {
     try {
       var raw = storage().get(LS_PREFIX + key, null);
@@ -33,19 +69,27 @@
   }
   function lsSet(key, data) {
     try {
-      storage().set(LS_PREFIX + key, JSON.stringify({ ts: clock().now(), data: data }));
-    } catch (e) {
-      try {
-        var keys = storage().keys(LS_PREFIX);
-        keys.sort();
-        for (var j = 0; j < Math.min(3, keys.length); j++) storage().remove(keys[j]);
-        storage().set(LS_PREFIX + key, JSON.stringify({ ts: clock().now(), data: data }));
-      } catch (e2) { try { console.debug && console.debug("[tt:api]", e2); } catch (_tt) { /* ignore */ } }
-    }
+      var value = JSON.stringify({ ts: clock().now(), data: data });
+      // Full item/map snapshots exceed localStorage's entire quota. Keep them in memory.
+      if (value.length > 500000) return;
+      var keys = storage().keys(LS_PREFIX).filter(function (k) { return k !== LS_PREFIX + key; });
+      keys.sort(function (a, b) {
+        return (storage().getJson(a, {}).ts || 0) - (storage().getJson(b, {}).ts || 0);
+      });
+      var total = keys.reduce(function (n, k) { return n + String(storage().get(k, "")).length; }, value.length);
+      while (total > 1000000 && keys.length) {
+        var old = keys.shift(); total -= String(storage().get(old, "")).length; storage().remove(old);
+      }
+      if (storage().set(LS_PREFIX + key, value, { quiet: true }) === false) {
+        keys.forEach(function (k) { storage().remove(k); });
+        storage().set(LS_PREFIX + key, value, { quiet: true });
+      }
+    } catch (e) { /* Optional cache must never interrupt the tool or evict user documents. */ }
   }
 
   async function getJson(path, opts) {
     opts = opts || {};
+    path = path.replace(/^\/(pvp|pvp-season)(?=\/)/, "/regular");
     const url = path.indexOf("http") === 0 ? path : (BASE + path);
     const key = url + "|" + (opts.cacheKey || "");
     const ttl = opts.ttl != null ? opts.ttl : DEFAULT_TTL;
@@ -110,15 +154,18 @@
     return [];
   }
 
-  async function items(gameMode) {
-    var m = gameMode || mode();
-    var json = await getJson("/" + m + "/items");
+  async function items(gameMode, opts) {
+    var m = apiMode(gameMode);
+    var json = await translated(await getJson("/" + m + "/items", opts), "items", m);
     var list = asArray(json && json.data && json.data.items != null ? json.data.items : (json && json.data) || json);
     // Normalize display fields in one place. API payloads remain cached untouched; callers
     // receive shallow copies so UI changes never mutate the shared cache.
     var media = global.TarkovItemMedia;
     var normalized = list.map(function (item) {
       if (!item || typeof item !== "object") return item;
+      if (item.properties && item.properties.stimEffects && !item.properties.stimulatorBuffs) {
+        item = Object.assign({}, item, { properties: Object.assign({}, item.properties, { stimulatorBuffs: item.properties.stimEffects }) });
+      }
       if (media && media.decorate) return media.decorate(item);
       var p = item.properties || {};
       var types = Array.isArray(item.types) ? item.types : (item.types ? [item.types] : []);
@@ -137,44 +184,45 @@
     var byId = Object.create(null);
     normalized.forEach(function (item) { if (item && item.id) byId[String(item.id)] = item; });
     global.TarkovItemCatalog[m] = byId;
+    if (m === "regular") global.TarkovItemCatalog.pvp = byId;
     return normalized;
   }
 
   async function barters(gameMode) {
-    var m = gameMode || mode();
+    var m = apiMode(gameMode);
     var json = await getJson("/" + m + "/barters");
     return asArray(json && json.data && json.data.barters != null ? json.data.barters : (json && json.data) || json);
   }
 
   async function traders(gameMode) {
-    var m = gameMode || mode();
-    var json = await getJson("/" + m + "/traders");
+    var m = apiMode(gameMode);
+    var json = await translated(await getJson("/" + m + "/traders"), "traders", m);
     return asArray(json && json.data && json.data.traders != null ? json.data.traders : (json && json.data) || json);
   }
 
   async function tasks(gameMode) {
-    var m = gameMode || mode();
-    var json = await getJson("/" + m + "/tasks");
+    var m = apiMode(gameMode);
+    var json = await translated(await getJson("/" + m + "/tasks"), "tasks", m);
     return asArray(json && json.data && json.data.tasks != null ? json.data.tasks : (json && json.data) || json);
   }
 
   async function maps(gameMode) {
-    var m = gameMode || mode();
-    var json = await getJson("/" + m + "/maps");
+    var m = apiMode(gameMode);
+    var json = await translated(await getJson("/" + m + "/maps"), "maps", m);
     var data = json && json.data ? json.data : json;
     if (data && data.maps != null) return asArray(data.maps);
     return asArray(data);
   }
 
   async function goonReports(gameMode) {
-    var m = gameMode || mode();
+    var m = apiMode(gameMode);
     var json = await getJson("/" + m + "/maps");
     var data = json && json.data ? json.data : json;
     return asArray(data && data.goonReports != null ? data.goonReports : []);
   }
 
   async function crafts(gameMode) {
-    var m = gameMode || mode();
+    var m = apiMode(gameMode);
     var json = await getJson("/" + m + "/crafts");
     return asArray(json && json.data || json);
   }
@@ -184,8 +232,8 @@
   }
 
   async function hideout(gameMode) {
-    var m = gameMode || mode();
-    var json = await getJson("/" + m + "/hideout");
+    var m = apiMode(gameMode);
+    var json = await translated(await getJson("/" + m + "/hideout"), "hideout", m);
     return asArray(json && json.data || json);
   }
 
@@ -212,6 +260,7 @@
     crafts: crafts,
     hideout: hideout,
     asArray: asArray,
+    locale: locale,
     clearCache: clearCache
   };
 })(window);

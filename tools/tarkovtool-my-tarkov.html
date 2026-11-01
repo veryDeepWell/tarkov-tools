@@ -78,7 +78,8 @@
 
       <div class="card">
         <h3>Навыки</h3>
-        <p class="meta" id="skillsDeferred">Отложено (R2.4): модель <code>profile.skills</code> есть, полноценный UI — после стабилизации gate/фильтров. Пока правь через экспорт/импорт JSON при необходимости.</p>
+        <div id="profileSkills"></div>
+        <p class="meta">Уровни навыков сохраняются в выбранном профиле. Максимум — 51.</p>
       </div>
 
       <div class="card">
@@ -94,13 +95,17 @@
 
       <div class="card">
         <h3>Что можно делать</h3>
+        <label>Поиск контента <input id="contentSearch" type="search" placeholder="Квест, предмет, станция…"></label>
+        <p id="contentCount" class="meta"></p>
         <ul id="canDo"></ul>
-        <p class="meta">Черновой список по уровню и УЛ. Полная матрица контента — в следующих патчах.</p>
+        <button type="button" class="btn-ghost" id="loadContent">Обновить доступный контент</button>
+        <p class="meta" id="contentStatus">Загрузи базу для расчёта доступных заданий, бартеров, крафтов и улучшений. Неизвестные требования отмечаются отдельно.</p>
+        <h4>Новые открытия после изменения профиля</h4><ul id="newUnlocks"></ul>
       </div>
 
       <div class="card">
         <h3>Убежище</h3>
-        <p class="meta">Заметки профиля (не путать с глобальным трекером станций).</p>
+        <p class="meta">Уровни станций и собранные требования хранятся отдельно для каждого ЧВК.</p>
         <div class="field"><label>Заметки</label>
           <textarea id="hideoutNotes" placeholder="Что качать дальше…"></textarea>
         </div>
@@ -150,6 +155,8 @@
   <script src="../core/tarkov-ui.js"></script>
   <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
+  <script src="../core/tarkov-alerts.js"></script>
+  <script src="../core/tarkov-content.js"></script>
   <script src="../js/my-tarkov.js"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>

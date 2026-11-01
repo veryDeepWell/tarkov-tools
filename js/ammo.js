@@ -92,7 +92,7 @@
         label: "Патрон",
         html: function (r, h) {
           return TarkovTableTool.nameCell(
-            { name: r.name, slug: r.full || r.slug, icon: r.icon },
+            { id: r.id, name: r.name, slug: r.full || r.slug, icon: r.icon },
             h
           );
         }
@@ -271,8 +271,8 @@
         rows.push(row);
       });
 
-      api.setRows(rows);
       paintCalibers(rows);
+      api.setRows(rows);
       var tableCard = document.getElementById("tableCard");
       if (tableCard) tableCard.style.display = activeCal ? "block" : "none";
       var title = document.getElementById("tableTitle");

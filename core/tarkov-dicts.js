@@ -196,6 +196,10 @@ function fmtNum(n, digits) {
 
     var selects = document.querySelectorAll('select#gameMode, select[id*="gameMode"], select[id*="GameMode"]');
     selects.forEach(function (sel) {
+        if (global.TarkovProfile && TarkovProfile.bindGameMode) {
+          TarkovProfile.bindGameMode(sel);
+          return;
+        }
       var options = Array.prototype.slice.call(sel.options);
       if (options.some(function (o) { return o.value === current; })) {
         sel.value = current;

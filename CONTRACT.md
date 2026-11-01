@@ -8,7 +8,7 @@ Every tool (new or migrated) must follow this contract so the hub, live runtime,
 |------|------|
 | `tools/tarkovtool-<id>.html` | Page shell, meta JSON, script tags |
 | `js/<id>.js` | Tool logic (optional for stubs) |
-| `locales/{lang}.json` | `tool.<id>.title`, `tool.<id>.desc`, `tool.<id>.help` |
+| `locales/{lang}.json` | `tool.<id>.title`, `tool.<id>.description`, `tool.<id>.help` |
 | `hub/catalog.js` | Generated catalog: `file`, `kind`, `cat`, `icon` |
 
 ## 2. Meta (`#tarkovtool-meta`)
@@ -147,8 +147,7 @@ Tools should consume normalized domain APIs instead of duplicating calculations 
   bidirectional armor↔plate compatibility, flea tax/profit calculations, and
   `scoreItems(items)`. Scores are keyed by item ID and contain `score`,
   `components`, `price`, `availability`, and source `details`.
-- The shared score is relative within an item category: quality 50%, accessibility
-  20%, price efficiency 15%, and weight/grid burden 15%. Accessibility uses the
+- The shared score is relative within an item category: quality 85% and weight/grid burden 15%. Price and accessibility are separate meta components, not part of the ordinary score. Accessibility uses the
   best trader offer, trader level, quest unlock, flea availability, and listing
   count as a liquidity proxy. Listing count is not a measure of trader stock.
 - `TarkovItemViewModels.armor/plates/helmets/food` adapts API items for those

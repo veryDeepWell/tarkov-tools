@@ -27,3 +27,5 @@ jobs:
         run: python scripts/ux-contract-check.py
       - name: Smoke-test standard item imagery
         run: node scripts/item-media-smoke-test.js
+      - name: Check release behavior without browser or network
+        run: node scripts/release-audit-repro.cjs

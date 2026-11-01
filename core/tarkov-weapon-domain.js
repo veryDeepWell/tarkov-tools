@@ -46,18 +46,22 @@
       if (weaponId && modToWeapons[modId].indexOf(weaponId) < 0) modToWeapons[modId].push(weaponId);
       if (modToSlots[modId].indexOf(slot) < 0) modToSlots[modId].push(slot);
     }
-    function walk(parent, weaponId, depth) {
-      if (!parent || depth > 1) return;
+    function walk(parent, weaponId, visited) {
+      if (!parent || visited.has(parent.id)) return;
+      visited.add(parent.id);
       props(parent).slots && props(parent).slots.forEach(function (slot) {
         var slotName = normalizeSlot(slot.nameId || slot.name || slot.id);
         var allowed = slot.filters && slot.filters.allowedItems || [];
-        allowed.forEach(function (modId) {
+        var excluded = slot.filters && slot.filters.excludedItems || [];
+        allowed.forEach(function (ref) {
+          var modId = typeof ref === "object" ? ref.id : ref;
+          if (excluded.some(function (x) { return (typeof x === "object" ? x.id : x) === modId; })) return;
           add(modId, slotName, weaponId);
-          if (depth < 1) walk(byId[modId], weaponId, depth + 1);
+          walk(byId[modId], weaponId, visited);
         });
       });
     }
-    (items || []).filter(isWeapon).forEach(function (weapon) { walk(weapon, weapon.id, 0); });
+    (items || []).filter(isWeapon).forEach(function (weapon) { walk(weapon, weapon.id, new Set()); });
     compatibilityIndex = { byId: byId, modToWeapons: modToWeapons, modToSlots: modToSlots };
     return compatibilityIndex;
   }

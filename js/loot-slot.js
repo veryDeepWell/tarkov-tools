@@ -45,7 +45,7 @@ let items=[], byId={}, questItemIds=new Set();
       return best;
     }
 
-    function render(){
+    function renderLoot(){
       const list=findItems(document.getElementById('q').value);
       const el=document.getElementById('out');
       if(!list.length){el.innerHTML=''; return}
@@ -74,19 +74,19 @@ let items=[], byId={}, questItemIds=new Set();
     document.getElementById('q').addEventListener('input', ()=>{
       // suggest single
       const q=document.getElementById('q').value;
-      if(q.includes(',')) {render(); document.getElementById('suggest').style.display='none'; return}
+      if(q.includes(',')) {renderLoot(); document.getElementById('suggest').style.display='none'; return}
       const qq=q.toLowerCase().trim();
       const box=document.getElementById('suggest');
-      if(qq.length<2){box.style.display='none'; render(); return}
+      if(qq.length<2){box.style.display='none'; renderLoot(); return}
       const list=items.filter(i=>(i.normalizedName||'').toLowerCase().includes(qq)).slice(0,15);
       box.style.display=list.length?'block':'none';
       box.innerHTML=list.map(i=>`<div data-n="${esc(i.normalizedName)}">${i.iconLink?`<img class="ico" src="${esc(i.iconLink)}">`:''}<span>${esc(humanize(i.normalizedName))}</span></div>`).join('');
       box.querySelectorAll('div').forEach(d=>d.onclick=()=>{
         document.getElementById('q').value=d.dataset.n;
         box.style.display='none';
-        render();
+        renderLoot();
       });
-      render();
+      renderLoot();
     });
 
 /* R-2: gameMode from profile on load; changes write to profile */
@@ -113,7 +113,7 @@ let items=[], byId={}, questItemIds=new Set();
       if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
     } catch (e0) {}
     try {
-      if (typeof render === 'function') render();
+      if (typeof renderLoot === 'function') renderLoot();
     } catch (e1) {}
   };
   if (window.TarkovProfile && TarkovProfile.bindRefresh) {

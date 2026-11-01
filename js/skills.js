@@ -123,8 +123,13 @@
 
   function load() {
     try {
-      if (window.TarkovStorage && TarkovStorage.getJson)
-        return TarkovStorage.getJson("tarkovSkillLevels", {}) || {};
+      var p = TarkovProfile.getActive();
+      var legacy = TarkovStorage.getJson("tarkovSkillLevels", null);
+      if (legacy) {
+        TarkovStorage.remove("tarkovSkillLevels");
+        p = TarkovProfile.update({ skills: Object.assign({}, legacy, p.skills) });
+      }
+      return p.skills || {};
     } catch (e) { try { console.debug && console.debug("[tt:skills]", e); } catch (_tt) { /* ignore */ } }
     return {};
   }
@@ -165,7 +170,7 @@
         document.querySelectorAll("#skillList input[data-id]").forEach(function (inp) {
           st[inp.dataset.id] = Number(inp.value) || 0;
         });
-        if (window.TarkovStorage) TarkovStorage.setJson("tarkovSkillLevels", st);
+        TarkovProfile.update({ skills: st });
         (window.TarkovUI && TarkovUI.softAlert ? TarkovUI.softAlert.bind(TarkovUI) : function(m){ var el=document.getElementById("status"); if(el){el.textContent=m;el.className="status err";}})(null, { key: "common.saved", tone: "ok" });
       };
 
@@ -173,7 +178,9 @@
     if (resetBtn)
       resetBtn.onclick = function () {
         if (!confirm("Сбросить все уровни?")) return;
-        if (window.TarkovStorage) TarkovStorage.remove("tarkovSkillLevels");
+        var reset = {};
+        Object.keys(TarkovProfile.getActive().skills).forEach(function (key) { reset[key] = 0; });
+        TarkovProfile.update({ skills: reset });
         render();
       };
   }
@@ -181,6 +188,8 @@
   function init() {
     render();
     bind();
+    window.render = render;
+    if (TarkovProfile.bindRefresh) TarkovProfile.bindRefresh(render);
   }
 
   if (document.readyState === "loading")

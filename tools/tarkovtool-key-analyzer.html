@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Оценщик ключей — Tarkov Tools</title>
-  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../core/tarkov-common.css">
   <script type="application/json" id="tarkovtool-meta">
   {"id":"tarkovtool-key-analyzer.html","title":"Оценщик ключей","description":"Скрин ключницы → распознавание, квесты, личный рейтинг, сумма комплекта.","file":"tarkovtool-key-analyzer.html","icon":"keys","cat":"other"}
   </script>
@@ -53,6 +53,12 @@
       <label>Текст с ключами (ручной / OCR)</label>
       <textarea id="ocrText" placeholder="Dorm room 114 key&#10;Cottage back door key&#10;…"></textarea>
       <button type="button" class="btn" id="matchBtn">Сопоставить с каталогом</button>
+      <p class="meta">Каждая строка — один экземпляр. Для количества: полное название ×2. Повторные строки OCR могут дублировать одну ячейку — исправь их вручную. Оценка спроса по цене за использование не равна доходу комнаты.</p>
+      <div><label>Добавить ключ вручную <input id="manualKey" list="keyOptions" placeholder="Полное название из каталога"></label>
+        <datalist id="keyOptions"></datalist>
+        <label>Количество <input id="manualQty" type="number" min="1" max="100" value="1"></label>
+        <button id="addManualKey" type="button" class="btn">Добавить</button>
+      </div>
     </div>
 
     <div class="card" id="resultsCard" style="display:none">

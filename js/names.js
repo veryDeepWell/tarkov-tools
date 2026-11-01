@@ -83,11 +83,11 @@
       factions.forEach(function (f) {
         all = all.concat(genList(f, per, false));
       });
-      all = all.slice(0, count);
       for (var i = all.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
         var tmp = all[i]; all[i] = all[j]; all[j] = tmp;
       }
+      all = all.slice(0, count);
     } else {
       factions.forEach(function (f) {
         all.push("--- " + f + " ---");

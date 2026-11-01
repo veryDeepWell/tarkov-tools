@@ -1,6 +1,7 @@
 /*! Barter optimizer — TarkovTableTool */
 (function () {
   "use strict";
+  var loadedMode = null, loadVersion = 0;
 
   var itemsById = {};
   var barters = [];
@@ -80,6 +81,7 @@
         html: function (r, h) {
           return TarkovTableTool.nameCell(
             {
+              id: r.id,
               name: r.name,
               slug: r.slug,
               icon: r.icon
@@ -191,6 +193,8 @@
         });
       }
       rows.push({
+        id: offeredItem.id,
+        barterKey: b.id || "barter:" + barters.indexOf(b),
         name: TarkovTableTool.itemName(offeredItem),
         slug: offeredItem.normalizedName || "",
         icon: offeredItem.iconLink || offeredItem.gridImageLink || "",
@@ -212,6 +216,7 @@
   }
 
   document.getElementById("loadBtn").onclick = async function () {
+    var version = ++loadVersion;
     var btn = document.getElementById("loadBtn");
     var status = document.getElementById("status");
     if (btn) btn.disabled = true;
@@ -219,13 +224,17 @@
     try {
       if (P) P.start({ label: "Barters…" });
       var mode = (document.getElementById("gameMode") || {}).value || "pve";
+      loadedMode = mode;
       var items = asArray(await TarkovAPI.items(mode));
+      if (version !== loadVersion) return;
       itemsById = {};
       items.forEach(function (it) {
         if (it && it.id) itemsById[it.id] = it;
       });
       if (P) P.set(55, "Barters…");
-      barters = asArray(await TarkovAPI.barters(mode));
+      var loadedBarters = asArray(await TarkovAPI.barters(mode));
+      if (version !== loadVersion) return;
+      barters = loadedBarters;
       var fc = document.getElementById("filterCard");
       if (fc) fc.hidden = false;
       // ensure table host
@@ -248,7 +257,7 @@
       }
       if (P) P.fail(e.message);
     } finally {
-      if (btn) btn.disabled = false;
+      if (btn && version === loadVersion) btn.disabled = false;
     }
   };
 
@@ -256,6 +265,7 @@
   window.render = function () {
     try {
       if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+      if (loadedMode && loadedMode !== document.getElementById("gameMode").value) { api.setRows([]); document.getElementById("loadBtn").onclick(); return; }
     } catch (e0) {}
     try {
       if (typeof api !== "undefined" && api && typeof api.setRows === "function") {

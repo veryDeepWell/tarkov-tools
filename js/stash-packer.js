@@ -3,6 +3,7 @@
   "use strict";
   var pool = [];
   var selectedIds = new Set();
+  var quantities = Object.create(null);
   var hasLoaded = false;
   var lastResult = null;
 
@@ -77,13 +78,20 @@
         (c.icon ? '<img src="' + esc(c.icon) + '" alt="" loading="lazy" data-item-id="' + esc(c.id) + '" data-item-name="' + esc(c.name) + '" onerror="this.hidden=true">' : "") +
         '<span style="min-width:0;flex:1"><span class="container-name">' + esc(c.name) + '</span>' +
         '<span class="container-meta" style="display:block">' + c.w + "×" + c.h + " снаружи · " +
-        (c.kind === "case" ? "кейс" : "рюкзак/разгрузка") + " · " + c.interior + " внутренних слотов</span></span></label>";
+        (c.kind === "case" ? "кейс" : "рюкзак/разгрузка") + " · " + c.interior + " внутренних слотов</span></span>" +
+        '<input type="number" class="container-quantity" data-id="' + esc(c.id) + '" min="1" max="20" aria-label="Количество экземпляров" value="' + (quantities[c.id] || 1) + '" style="width:70px"></label>';
     }).join("") || '<div class="meta">Подходящие контейнеры не найдены.</div>';
     list.querySelectorAll(".container-check").forEach(function (input) {
       input.addEventListener("change", function () {
         if (input.checked) selectedIds.add(input.value);
         else selectedIds.delete(input.value);
         updateSelectedCount();
+      });
+    });
+    list.querySelectorAll(".container-quantity").forEach(function (input) {
+      input.addEventListener("change", function () {
+        quantities[input.dataset.id] = Math.max(1, Math.min(20, Math.floor(Number(input.value) || 1)));
+        input.value = quantities[input.dataset.id];
       });
     });
     filterOptions(); updateSelectedCount();
@@ -199,8 +207,9 @@
       $("count").value = String(count);
       var items = [];
       chosen.forEach(function (c) {
-        for (var i = 0; i < count; i++) {
-          items.push({ uid: c.id + "#" + i, id: c.id + "#" + i, itemId: c.id, name: c.name + (count > 1 ? " #" + (i + 1) : ""),
+        var copies = quantities[c.id] || count;
+        for (var i = 0; i < copies; i++) {
+          items.push({ uid: c.id + "#" + i, id: c.id + "#" + i, itemId: c.id, name: c.name + (copies > 1 ? " #" + (i + 1) : ""),
             w: c.w, h: c.h, kind: c.kind, icon: c.icon, raw: c.raw });
         }
       });

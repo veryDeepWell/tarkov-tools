@@ -25,14 +25,19 @@
       out.push({
         effect: b.buffType || b.type || b.name || "buff",
         value: b.value != null ? b.value : b.absolute != null ? b.absolute : "",
-        duration: b.duration != null ? b.duration : b.delay != null ? b.delay : "",
+        duration: b.duration != null ? b.duration : "не указана",
+        delay: b.delay != null ? b.delay : "не указана",
+        description: b.description || (b.skillName || b.skill ? "Изменяет навык: " + (b.skillName || b.skill) : "Изменение параметра " + (b.buffType || b.type || b.name || "не указан") + "; знак значения указан отдельно"),
         chance: b.chance,
         skill: b.skillName || b.skill || ""
       });
     });
     // generic food/med effects
-    if (p.energy) out.push({ effect: "Energy", value: p.energy, duration: p.useTime || "", skill: "" });
-    if (p.hydration) out.push({ effect: "Hydration", value: p.hydration, duration: p.useTime || "", skill: "" });
+    if (p.energy) out.push({ effect: "Energy", value: p.energy, duration: "разово", description: "Изменение энергии после употребления", skill: "" });
+    if (p.hydration) out.push({ effect: "Hydration", value: p.hydration, duration: "разово", description: "Изменение гидратации после употребления", skill: "" });
+    (Array.isArray(p.cures) ? p.cures : []).forEach(function (effect) {
+      out.push({ effect: "Снимает: " + (typeof effect === "string" ? effect : effect.name || effect.type), value: "", duration: "разово", description: "Лечебный эффект предмета по данным API", skill: "" });
+    });
     return out;
   }
   function paint() {
@@ -50,7 +55,10 @@
         "<td><a class=\"item-link\" href=\"" + href + "\">" + esc(r.itemName) + "</a></td>" +
         "<td>" + esc(r.effect) + (r.skill ? " <span class=\"tag\">" + esc(r.skill) + "</span>" : "") + "</td>" +
         "<td>" + esc(String(r.value)) + "</td>" +
-        "<td>" + esc(String(r.duration)) + "</td>";
+        "<td>" + esc(String(r.duration)) + "</td>" +
+        "<td>" + esc(r.delay == null ? "—" : String(r.delay)) + "</td>" +
+        "<td>" + esc(r.chance == null ? "—" : String(r.chance)) + "</td>" +
+        "<td>" + esc(r.description || "Описание не предоставлено API") + "</td>";
       tbody.appendChild(tr);
     });
     setStatus("Показано " + n + " / " + rows.length, "ok");
@@ -74,6 +82,9 @@
             effect: b.effect,
             value: b.value,
             duration: b.duration,
+            delay: b.delay,
+            chance: b.chance,
+            description: b.description,
             skill: b.skill
           });
         });

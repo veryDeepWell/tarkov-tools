@@ -1,12 +1,51 @@
 /*! Quests — TarkovTableTool (table view) */
 (function () {
   "use strict";
+  var loadedMode = null, loadVersion = 0;
 
-  var LOCALE_EN = "https://api.tarkov.dev/locale/en";
-  var LOCALE_RU = "https://api.tarkov.dev/locale/ru";
   var enLoc = {};
   var ruLoc = {};
   var mapName = {};
+  var itemsById = {}, selectedQuest = null;
+  function itemId(ref) { return typeof ref === "string" ? ref : ref && (ref.id || itemId(ref.item)) || ""; }
+  function showQuest(task) {
+    selectedQuest = task;
+    var panel = document.getElementById("questDetail");
+    if (!panel) return;
+    panel.hidden = false;
+    document.getElementById("questDetailTitle").textContent = task.name || task.normalizedName || task.id;
+    var links = Object.create(null);
+    function add(ref, reason) {
+      var id = itemId(ref); if (!id) return;
+      if (!links[id]) links[id] = [];
+      if (!links[id].includes(reason)) links[id].push(reason);
+    }
+    (task.objectives || []).forEach(function (o) {
+      if (o.item) add(o.item, "Цель задания");
+      (o.items || []).forEach(function (r) { add(r, "Цель задания"); });
+    });
+    (task.neededKeys || []).forEach(function (b) { (b.keys || []).forEach(function (r) { add(r, "Ключ для задания"); }); });
+    [task.startRewards, task.finishRewards].forEach(function (reward, i) {
+      (reward && reward.items || []).forEach(function (r) { add(r, i ? "Награда" : "Выдаётся для задания"); });
+    });
+    document.getElementById("questObjectives").innerHTML = (task.objectives || []).map(function (o) {
+      return '<li>' + esc(o.description || o.type || "Цель") + (o.count ? " ×" + Number(o.count) : "") + '</li>';
+    }).join("");
+    document.getElementById("questItemLinks").innerHTML = Object.keys(links).map(function (id) {
+      var item = itemsById[id];
+      var name = item ? TarkovTableTool.itemName(item) : id;
+      return '<li><a class="item-link" data-item-id="' + esc(id) + '" href="' + esc(TarkovNav.href("tarkovtool-item-card.html", "item", id)) + '">' + esc(name) + '</a> · ' + esc(links[id].join(", ")) + '</li>';
+    }).join("") || '<li>Связанных предметов в данных API нет</li>';
+    var prerequisites = (task.taskRequirements || []).map(function (r) {
+      var ref = r.task || r, id = itemId(ref);
+      return '<li><a href="' + esc(TarkovNav.href("tarkovtool-quests.html", "quest", id)) + '">' + esc(typeof ref === "object" ? ref.name || id : id) + '</a></li>';
+    });
+    document.getElementById("questPrerequisites").innerHTML = prerequisites.join("") || '<li>Нет предшествующих заданий</li>';
+    var button = document.getElementById("questDone");
+    var done = TarkovProfile.isQuestCompleted(task.id);
+    button.textContent = done ? "Снять отметку выполнения" : "Отметить выполненным";
+    button.onclick = function () { TarkovProfile.markQuestComplete(task.id, !TarkovProfile.isQuestCompleted(task.id)); };
+  }
 
   function esc(s) {
     return TarkovTableTool.esc(s);
@@ -14,6 +53,7 @@
   function tName(id, slug) {
     try {
       if (enLoc && enLoc[id]) return enLoc[id];
+      if (enLoc && enLoc[id + " name"]) return enLoc[id + " name"];
       if (enLoc && slug && enLoc[slug]) return enLoc[slug];
     } catch (e) {}
     return (
@@ -25,6 +65,7 @@
   function tNameRu(id, slug) {
     try {
       if (ruLoc && ruLoc[id]) return ruLoc[id];
+      if (ruLoc && ruLoc[id + " name"]) return ruLoc[id + " name"];
       if (ruLoc && slug && ruLoc[slug]) return ruLoc[slug];
     } catch (e) {}
     return tName(id, slug);
@@ -90,7 +131,7 @@
             TarkovProfile.isQuestCompleted(row.name))
         )
           return false;
-        if (onlyAvail && TarkovProfile.meetsLevel && !TarkovProfile.meetsLevel(row.minLevel))
+        if (onlyAvail && (TarkovProfile.isQuestCompleted(row.id) || TarkovProfile.taskGate(row.task).locked))
           return false;
       }
       if (!q) return true;
@@ -107,7 +148,7 @@
             h.esc(r.name) +
             '</div><div class="meta">' +
             h.esc(r.nameRu || r.slug || "") +
-            "</div></div>"
+            '</div><button type="button" class="btn-ghost" data-quest-detail="' + h.esc(r.id) + '">Цели и предметы</button></div>'
           );
         }
       },
@@ -139,11 +180,17 @@
     afterPaint: function (list, ctx) {
       var tb = ctx.tbody;
       if (!tb || !window.TarkovProfile || !TarkovProfile.gate) return;
+      tb.querySelectorAll("[data-quest-detail]").forEach(function (button) {
+        button.onclick = function () { var row = list.find(function (r) { return r.id === button.dataset.questDetail; }); if (row) showQuest(row.task); };
+      });
+      var navQuest = window.TarkovNav && TarkovNav.current("quest");
+      var selected = list.find(function (r) { return r.id === (navQuest ? navQuest.id : selectedQuest && selectedQuest.id); });
+      if (selected) showQuest(selected.task);
       list.forEach(function (r, i) {
         var tr = tb.querySelectorAll("tr")[i];
         if (!tr) return;
         try {
-          var g = TarkovProfile.gate({ minLevel: r.minLevel });
+          var g = TarkovProfile.taskGate(r.task);
           TarkovProfile.applyLockToElement(tr, g);
         } catch (e) {}
       });
@@ -153,6 +200,7 @@
   });
 
   document.getElementById("loadBtn").onclick = async function () {
+    var version = ++loadVersion;
     var st = document.getElementById("status");
     var btn = document.getElementById("loadBtn");
     if (btn) btn.disabled = true;
@@ -164,18 +212,23 @@
         st.textContent = "Гружу…";
       }
       var mode = (document.getElementById("gameMode") || {}).value || "pve";
-      var jt = await TarkovAPI.tasks(mode);
+      loadedMode = mode;
+      var dataPack = await Promise.all([TarkovAPI.tasks(mode), TarkovAPI.items(mode)]);
+      var jt = dataPack[0];
       var jm = [];
       try {
         jm = await TarkovAPI.maps(mode);
       } catch (eM) {}
       try {
-        enLoc = (await TarkovAPI.getJson(LOCALE_EN, { ttl: 24 * 60 * 60 * 1000 })) || {};
-        ruLoc = (await TarkovAPI.getJson(LOCALE_RU, { ttl: 24 * 60 * 60 * 1000 })) || {};
+        enLoc = await TarkovAPI.locale("tasks", mode, "en");
+        ruLoc = await TarkovAPI.locale("tasks", mode, "ru");
       } catch (eL) {
         enLoc = {};
         ruLoc = {};
       }
+      if (version !== loadVersion) return;
+      itemsById = {};
+      dataPack[1].forEach(function (item) { itemsById[item.id] = item; });
       mapName = {};
       (jm || []).forEach(function (m) {
         if (m && m.id)
@@ -215,6 +268,7 @@
         var maps = mapsOfTask(task);
         return {
           id: task.id,
+          task: task,
           slug: slug,
           name: name,
           nameRu: nameRu,
@@ -265,7 +319,7 @@
       }
       if (P) P.fail(e.message);
     } finally {
-      if (btn) btn.disabled = false;
+      if (btn && version === loadVersion) btn.disabled = false;
     }
   };
 
@@ -273,6 +327,7 @@
   window.render = function () {
     try {
       if (window.TarkovProfile && TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
+      if (loadedMode && loadedMode !== document.getElementById("gameMode").value) { api.setRows([]); document.getElementById("loadBtn").onclick(); return; }
     } catch (e0) {}
     try {
       if (typeof api !== "undefined" && api && typeof api.setRows === "function") {

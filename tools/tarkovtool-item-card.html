@@ -105,7 +105,7 @@
 <body>
   <div class="container">
     <h1>Карточка предмета</h1>
-    <p class="sub">связи по ID (квесты, крафты, торговцы). Полные секции — в следующих PR.</p>
+    <p class="sub">Характеристики, цены и связи предмета: задания, крафты, бартеры, убежище и совместимость.</p>
 
     <div class="card">
       <div class="row">
@@ -181,12 +181,13 @@
         <ul class="link-list" id="listBarterOut"></ul>
       </div>
       <div class="section">
+        <h3>Подходящие контейнеры</h3><ul class="link-list" id="listContainers"></ul>
         <h3>Семейство</h3>
         <ul class="link-list" id="listFamily"></ul>
       </div>
       <div class="section">
         <h3>Оружейная цепочка</h3>
-        <div class="meta" style="margin-bottom:6px">Боеприпасы / магазины / моды (по калибру и family-key)</div>
+        <div class="meta" style="margin-bottom:6px">Боеприпасы / магазины / моды (патроны по калибру; магазины и моды по слотам совместимости)</div>
         <h4 class="meta">Ammo</h4>
         <ul class="link-list" id="listAmmo"></ul>
         <h4 class="meta">Mags</h4>
@@ -214,6 +215,7 @@
   <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
   <script src="../core/tarkov-item-domain.js"></script>
+  <script src="../core/tarkov-weapon-domain.js"></script>
   <script src="../core/tarkov-item-graph.js"></script>
   <script src="../core/tarkov-item-card.js"></script>
   <script src="../js/item-card.js"></script>

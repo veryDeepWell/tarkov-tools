@@ -38,7 +38,7 @@
     if (ref == null) return "";
     if (typeof ref === "string" || typeof ref === "number") return String(ref);
     if (typeof ref === "object") {
-      return String(ref.id || ref.item || ref.itemId || (ref.item && ref.item.id) || "");
+      return ref.id ? String(ref.id) : itemIdOf(ref.item || ref.itemId);
     }
     return "";
   }
@@ -98,6 +98,11 @@
       var tid = taskIdOf(task);
       if (!tid) continue;
       state.taskById[tid] = task;
+      (task.neededKeys || []).forEach(function (block) {
+        (block.keys || []).forEach(function (key) {
+          push(state.questsUsing, itemIdOf(key), { taskId: tid, objectiveType: "neededKey", count: 1 });
+        });
+      });
       var objs = task.objectives || [];
       for (j = 0; j < objs.length; j++) {
         var o = objs[j];
@@ -170,12 +175,13 @@
       var bReq = (b && (b.requiredItems || b.requirements)) || [];
       for (j = 0; j < bReq.length; j++) {
         var bi = itemIdOf(bReq[j] && (bReq[j].item || bReq[j]));
-        if (bi) push(state.bartersAsInput, bi, { barterKey: bk, trader: b.trader });
+        if (bi) push(state.bartersAsInput, bi, { barterKey: bk, trader: b.trader, count: bReq[j].count || 1 });
       }
       var bRew = (b && (b.rewardItems || b.rewards)) || [];
+      if (b && b.offeredItem) bRew = bRew.concat([b.offeredItem]);
       for (j = 0; j < bRew.length; j++) {
         var br = itemIdOf(bRew[j] && (bRew[j].item || bRew[j]));
-        if (br) push(state.bartersAsReward, br, { barterKey: bk, trader: b.trader });
+        if (br) push(state.bartersAsReward, br, { barterKey: bk, trader: b.trader, count: bRew[j].count || 1 });
       }
     }
 
@@ -314,7 +320,7 @@
       for (j = 0; j < gList.length; j++) {
         var gid = gList[j];
         for (var ai = 0; ai < aList.length; ai++) push(state.ammoFor, gid, aList[ai]);
-        for (var mi = 0; mi < mList.length; mi++) push(state.magsFor, gid, mList[mi]);
+        // Same caliber is not evidence that a magazine fits this platform.
       }
       // reverse: ammo -> guns
       for (ai = 0; ai < aList.length; ai++) {
@@ -322,19 +328,43 @@
       }
     }
 
-    // modsFor: lightweight — same family key as gun when mod name shares platform token
-    for (i = 0; i < items.length; i++) {
-      it = items[i];
-      if (!it || !isModItem(it)) continue;
-      var mfk = familyKey(it);
-      if (!mfk || !familyBuckets[mfk]) continue;
-      var sibs = familyBuckets[mfk];
-      for (j = 0; j < sibs.length; j++) {
-        var sib = state.byId[sibs[j]];
-        if (sib && isGun(sib)) push(state.modsFor, sibs[j], String(it.id));
-      }
+    if (global.TarkovWeaponDomain) {
+      var compatibility = TarkovWeaponDomain.buildCompatibility(items);
+      items.forEach(function (candidate) {
+        if (!isMag(candidate) && !isModItem(candidate)) return;
+        (compatibility.modToWeapons[candidate.id] || []).forEach(function (gunId) {
+          var index = isMag(candidate) ? state.magsFor : state.modsFor;
+          push(index, gunId, candidate.id);
+          push(index, candidate.id, gunId);
+        });
+      });
     }
 
+    items.forEach(function (container) {
+      var grids = container.properties && container.properties.grids;
+      if (!grids) return;
+      if (!Array.isArray(grids)) grids = Object.values(grids);
+      items.forEach(function (candidate) {
+        if (candidate.id === container.id) return;
+        var fits = grids.some(function (g) {
+          var filters = g.filters || {};
+          var allowed = filters.allowedItems || [];
+          var excluded = filters.excludedItems || [];
+          var categories = filters.allowedCategories || [];
+          var excludedCategories = filters.excludedCategories || [];
+          var ids = (candidate.categories || []).map(itemIdOf);
+          if (excluded.some(function (r) { return itemIdOf(r) === candidate.id; })) return false;
+          if (excludedCategories.some(function (r) { return ids.includes(itemIdOf(r)); })) return false;
+          if (allowed.length || categories.length) {
+            if (!allowed.some(function (r) { return itemIdOf(r) === candidate.id; }) &&
+                !categories.some(function (r) { return ids.includes(itemIdOf(r)); })) return false;
+          }
+          var w = Number(candidate.width), h = Number(candidate.height);
+          return w > 0 && h > 0 && ((w <= g.width && h <= g.height) || (h <= g.width && w <= g.height));
+        });
+        if (fits) push(state.usedInContainers, candidate.id, container.id);
+      });
+    });
 
     built = true;
     return state;
@@ -354,7 +384,8 @@
       family: state.family[itemId] || [],
       ammoFor: state.ammoFor[itemId] || [],
       magsFor: state.magsFor[itemId] || [],
-      modsFor: state.modsFor[itemId] || []
+      modsFor: state.modsFor[itemId] || [],
+      usedInContainers: state.usedInContainers[itemId] || []
     };
   }
 
@@ -414,7 +445,7 @@
   function href(itemId, opts) {
     opts = opts || {};
     var base = opts.base != null ? opts.base : "tarkovtool-item-card.html";
-    return base + "?item=" + encodeURIComponent(String(itemId || ""));
+    return base + "?item=" + encodeURIComponent(String(itemId || "")) + "&ttType=item&ttId=" + encodeURIComponent(String(itemId || ""));
   }
 
   /** Absolute-ish path from repo root / hub */

@@ -352,6 +352,8 @@
     var card = document.getElementById("summaryCard");
     var tips = document.getElementById("tipsCard");
     if (!route.length) {
+      document.getElementById("sMaps").textContent = "0";
+      document.getElementById("sHops").textContent = "0";
       card.hidden = true;
       tips.hidden = true;
       return;
@@ -570,6 +572,7 @@
   document.getElementById("clearBtn").onclick = function () {
     route = [];
     refresh();
+    setStatus("Маршрут очищен", true);
   };
   document.getElementById("superBtn").onclick = superRoute;
 })();

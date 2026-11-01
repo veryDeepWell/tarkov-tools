@@ -4,6 +4,6 @@
     "score": "integer 1..100, higher = better for YOU (loot/quest/meta personal)",
     "note": "optional short note"
   },
-  "comment": "Fill later. Tools read via TarkovKeysRating; empty map = no personal scores yet.",
+  "comment": "Optional personal overrides. Without an override tools display a labelled market-price-per-use estimate; this is not measured loot value.",
   "ratings": {}
 }
