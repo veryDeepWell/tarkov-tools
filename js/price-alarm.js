@@ -12,14 +12,7 @@
 
   function esc(s) { return TarkovDicts.esc(s); }
 
-  function itemName(it) {
-    try {
-      if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-    } catch (e) { try { console.debug && console.debug("[tt:price-alarm]", e); } catch (_tt) { /* ignore */ } }
-    if (!it) return '';
-    if (typeof it === 'string') return it;
-    return it.shortName || it.name || it.normalizedName || it.id || '';
-  }
+  function itemName(it) { return TarkovNames.display(it); }
 
   function status(msg, ok) {
     var el = document.getElementById('status');

@@ -63,7 +63,7 @@ let items=[], byId={}, questItemIds=new Set();
           <td>${cells}</td>
           <td>${avg?formatNum(avg):'—'}</td>
           <td><b>${avg?formatNum(avg/cells):'—'}</b></td>
-          <td>${tr?formatNum(tr.price)+' ('+esc(String(tr.trader))+')':'—'}</td>
+          <td>${tr?formatNum(tr.price)+' ('+esc(TarkovDicts.traderName(tr.trader))+')':'—'}</td>
           <td>${tr?formatNum(tr.price/cells):'—'}</td>
           <td>${quest?'<span class="tag quest">квест</span>':'—'}</td>
         </tr>`;

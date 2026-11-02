@@ -41,9 +41,20 @@ function environment() {
   };
   ctx.window = ctx; ctx.globalThis = ctx;
   vm.createContext(ctx);
+  vm.runInContext(read('core/tarkov-data.js'), ctx, { filename: 'core/tarkov-data.js' });
+  vm.runInContext(read('core/tarkov-names.js'), ctx, { filename: 'core/tarkov-names.js' });
+  vm.runInContext(read('core/tarkov-item-media.js'), ctx, { filename: 'core/tarkov-item-media.js' });
   return { ctx, element, run(file) { vm.runInContext(read(file), ctx, { filename: file }); } };
 }
 (async () => {
+  await probe('Display: trader references resolve to labels, including current and legacy IDs', () => {
+    const e = environment(); e.run('core/tarkov-dicts.js');
+    const d = e.ctx.TarkovDicts;
+    expect(d.traderName('638f541a29ffd1183d187f57', 'ru') === 'Смотритель', 'Lightkeeper ID unresolved');
+    expect(d.traderName('656f0f98d80a697f855d34b1', 'ru') === 'Водитель БТР', 'BTR ID unresolved');
+    expect(d.traderName('65649eb400d4d9189309ec99', 'ru') === 'Водитель БТР', 'legacy BTR reference lost');
+    for (const t of d.traders) expect(!/[a-f0-9]{24}/i.test(d.traderName(t.id, 'ru')), 'Raw trader ID displayed');
+  });
   await probe('API: translation paths localize labels without changing entity IDs; real stim fields normalized', async () => {
     const e = environment(); e.ctx.TarkovStorage.set('tarkovLang', 'ru');
     const raw = { data: { items: { stim: { id: 'stim', name: 'stim Name', shortName: 'stim ShortName', properties: { stimEffects: [{ type: 'HealthRate', value: 1 }] } } } }, translations: ['$.data.items.*.name', '$.data.items.*.shortName', '$.data.items.*.properties.stimEffects[*].type'] };

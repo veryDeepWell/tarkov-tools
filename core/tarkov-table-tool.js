@@ -27,12 +27,7 @@
   }
 
   function itemName(it) {
-    try {
-      if (global.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-    } catch (e) {}
-    if (!it) return "";
-    if (typeof it === "string") return it;
-    return String(it.shortName || it.name || it.normalizedName || it.id || "").trim();
+    return TarkovNames.display(it);
   }
 
   function modeValue(sel) {
@@ -77,6 +72,8 @@
     var loadBtn = $(opts.loadBtn || "#loadBtn");
     var search = $(opts.search || "#q");
     var modeSel = opts.modeSelect || "#gameMode";
+    var loads = TarkovData.latest();
+    var loadedScope = null;
 
     function paintHead() {
       if (!thead || !columns.length) return;
@@ -176,6 +173,10 @@
         return;
       }
       if (loadBtn) loadBtn.disabled = true;
+      var mode = modeValue(modeSel);
+      var ticket = loads.begin({ mode: mode });
+      loadedScope = ticket.context;
+      function current() { return ticket.current({ mode: modeValue(modeSel) }); }
       var progress = opts.progress !== false && global.TarkovUI && TarkovUI.progress;
       if (progress) {
         try {
@@ -190,8 +191,8 @@
       }
       setStatus(status, "…");
       try {
-        var mode = modeValue(modeSel);
         var data = await opts.fetch(mode, global.TarkovAPI);
+        if (!current()) return;
         rows = [];
         var list = Array.isArray(data) ? data : data && data.items ? data.items : [];
         var ctx = { mode: mode };
@@ -199,6 +200,7 @@
           var row = opts.mapItem(it, ctx);
           if (row) rows.push(row);
         });
+        loadedScope = ticket.context;
         if (progress) {
           try {
             progress.done("OK");
@@ -208,6 +210,7 @@
         if (typeof opts.onLoaded === "function") opts.onLoaded({ rows: rows, mode: mode });
         paint();
       } catch (e) {
+        if (!current()) return;
         if (progress) {
           try {
             progress.fail(e && e.message ? e.message : "Error");
@@ -215,7 +218,7 @@
         }
         setStatus(status, e && e.message ? e.message : String(e), "err");
       } finally {
-        if (loadBtn) loadBtn.disabled = false;
+        if (ticket.active() && loadBtn) loadBtn.disabled = false;
       }
     }
 
@@ -260,6 +263,10 @@
     };
     if (global.TarkovProfile && TarkovProfile.bindRefresh) {
       TarkovProfile.bindRefresh(function () {
+        var context = TarkovData.scope({ mode: modeValue(modeSel) });
+        if (opts.autoLoad !== false && loadedScope && (context.mode !== loadedScope.mode || context.lang !== loadedScope.lang)) {
+          load(); return;
+        }
         global.render();
       });
     }
@@ -288,20 +295,10 @@
     var raw = row.item || row.rawItem || row.raw || row;
     var itemId = String((raw && raw.id) || row.itemId || row.id || "");
     var catalogueItem = null;
-    try {
-      var catalogue = global.TarkovItemCatalog || {};
-      var modeEl = document.getElementById("gameMode");
-      var selectedMode = modeEl && modeEl.value || (global.TarkovProfile && TarkovProfile.preferredMode ? TarkovProfile.preferredMode() : "pve");
-      var modeOrder = [selectedMode, "pve", "regular", "pvp-season"];
-      var ids = [String((raw && raw.id) || ""), String(row.itemId || ""), String(row.id || "")].filter(Boolean);
-      for (var mi = 0; mi < modeOrder.length && !catalogueItem; mi++) {
-        var map = catalogue[modeOrder[mi]];
-        if (!map) continue;
-        for (var ii = 0; ii < ids.length; ii++) {
-          if (map[ids[ii]]) { catalogueItem = map[ids[ii]]; break; }
-        }
-      }
-    } catch (eLookup) {}
+    var modeEl = document.getElementById("gameMode");
+    var selectedMode = modeEl && modeEl.value;
+    var ids = [String((raw && raw.id) || ""), String(row.itemId || ""), String(row.id || "")].filter(Boolean);
+    for (var i = 0; i < ids.length && !catalogueItem; i++) catalogueItem = TarkovData.get("item", ids[i], { mode: selectedMode });
     var imageSource = raw;
     var sourcePreset = imageSource && imageSource.properties && imageSource.properties.defaultPreset;
     var cataloguePreset = catalogueItem && catalogueItem.properties && catalogueItem.properties.defaultPreset;
@@ -329,9 +326,9 @@
     var itemNameValue = canonicalName || row.name ||
       (global.TarkovItemMedia && TarkovItemMedia.name ? TarkovItemMedia.name(raw) : "") || "";
     var itemAttr = itemId ? ' data-item-id="' + e(itemId) + '" data-item-name="' + e(itemNameValue) + '"' : "";
-    var meta = row.slug || row.normalizedName || row.id || "";
-    var cardHref = (global.location && String(location.pathname).indexOf("/tools/") >= 0 ? "" : "tools/") +
-      "tarkovtool-item-card.html?item=" + encodeURIComponent(itemId) + "&ttType=item&ttId=" + encodeURIComponent(itemId);
+    var meta = row.slug || row.normalizedName || "";
+    if (TarkovData.technical(meta)) meta = "";
+    var cardHref = itemId ? TarkovNav.entityHref("item", itemId) : "";
     var cardLink = itemId ? ' <a class="item-details-link" href="' + e(cardHref) + '" aria-label="Карточка: ' + e(itemNameValue) + '" title="Открыть карточку предмета">↗</a>' : "";
     return (
       '<div class="name-cell tt-inspectable-item"' + itemAttr +

@@ -107,18 +107,6 @@
     }
     syncChips();
   }
-  async function fetchJson(url) {
-    if (window.TarkovAPI && typeof TarkovAPI.getJson === "function") {
-      try {
-        if (url.indexOf("json.tarkov.dev") >= 0 || url.charAt(0) === "/") {
-          return await TarkovAPI.getJson(url, { httpCache: "force-cache", ttl: 10 * 60 * 1000 });
-        }
-      } catch (e) { /* fall through */ }
-    }
-    var res = await TarkovAPI.request(url, { httpCache: "force-cache" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    return res.json();
-  }
   function resolve(pack, id, kind) {
     if (!pack) return "";
     if (kind === "short") return pack[id + " ShortName"] || pack[id + " shortName"] || "";
@@ -184,9 +172,9 @@
       var packs = {};
       var tpacks = {};
       await Promise.all(selected.map(async function (lang) {
-        packs[lang] = (await fetchJson(API + "/" + mode + "/items_" + lang)).data || {};
+        packs[lang] = await TarkovAPI.locale("items", mode, lang);
         try {
-          tpacks[lang] = (await fetchJson(API + "/" + mode + "/tasks_" + lang)).data || {};
+          tpacks[lang] = await TarkovAPI.locale("tasks", mode, lang);
         } catch (e) {
           tpacks[lang] = {};
         }
@@ -194,11 +182,9 @@
       itemPacks = packs;
       taskPacks = tpacks;
       setStatus("", "Indexing items...");
-      var itemsJson = await fetchJson(API + "/" + mode + "/items");
-      itemMeta = indexItems((itemsJson.data && itemsJson.data.items) || itemsJson.data || itemsJson);
+      itemMeta = indexItems(await TarkovAPI.items(mode));
       setStatus("", "Indexing quests...");
-      var tasksJson = await fetchJson(API + "/" + mode + "/tasks");
-      questMeta = indexTasks((tasksJson.data && (tasksJson.data.tasks || tasksJson.data.quests)) || tasksJson.data || tasksJson);
+      questMeta = indexTasks(await TarkovAPI.tasks(mode));
       loaded = true;
       setStatus("ok", "OK: " + itemMeta.size + " items, " + questMeta.size + " quests | " + selected.join(", "));
       document.getElementById("searchCard").hidden = false;

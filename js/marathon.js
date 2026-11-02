@@ -541,7 +541,7 @@
     try {
       if (P) P.start({ label: "Maps…" });
       var mode = document.getElementById("gameMode").value || "pve";
-      var raw = await (TarkovAPI.maps ? TarkovAPI.maps(mode) : TarkovAPI.getJson("/" + mode + "/maps"));
+      var raw = await TarkovAPI.maps(mode);
       if (P) P.set(50);
       var maps = asArray(raw);
       if (raw && raw.maps) maps = asArray(raw.maps);

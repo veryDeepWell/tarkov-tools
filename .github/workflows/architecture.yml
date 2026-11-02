@@ -29,3 +29,5 @@ jobs:
         run: node scripts/item-media-smoke-test.js
       - name: Check release behavior without browser or network
         run: node scripts/release-audit-repro.cjs
+      - name: Check application data contracts
+        run: node scripts/data-contract-test.cjs

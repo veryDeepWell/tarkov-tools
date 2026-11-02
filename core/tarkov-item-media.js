@@ -45,11 +45,7 @@
   }
 
   function name(item) {
-    try {
-      if (global.TarkovNames && TarkovNames.display) return TarkovNames.display(item);
-    } catch (e) {}
-    if (!item || typeof item !== "object") return String(item || "?");
-    return String(item.shortName || item.name || item.localizedName || item.normalizedName || item.id || "?");
+    return global.TarkovNames ? TarkovNames.display(item) : TarkovData.label("item", item);
   }
 
   function decorate(item) {

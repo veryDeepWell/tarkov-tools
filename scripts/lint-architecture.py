@@ -102,6 +102,7 @@ def main() -> int:
                 fail(errors, f"{page.relative_to(ROOT)} has unsupported kind={meta.get('kind')!r}")
 
         scripts: list[str] = []
+        application_scripts: list[str] = []
         tool_scripts: list[tuple[str, Path]] = []
         for match in SCRIPT_SRC.finditer(html):
             src = match.group(1)
@@ -113,10 +114,20 @@ def main() -> int:
                 continue
             name = path.name
             scripts.append(name)
+            if path.parent in (ROOT / "core", ROOT / "js", TOOLS):
+                application_scripts.append(name)
             if path.parent == ROOT / "js" or path.is_relative_to(TOOLS):
                 tool_scripts.append((name, path))
 
         rel_page = f"tools/{page.name}"
+        for dependency in ("tarkov-data.js", "tarkov-names.js", "tarkov-item-media.js"):
+            if scripts and scripts.count(dependency) != 1:
+                fail(errors, f"{rel_page} must explicitly load {dependency} exactly once")
+        if scripts and application_scripts[:2] != ["tarkov-data.js", "tarkov-names.js"]:
+            fail(errors, f"{rel_page}: data and names must load before other core/tool scripts")
+        for tag in re.findall(r"<script\b[^>]*>", html, re.I):
+            if re.search(r"tarkov-(data|names)\.js", tag) and re.search(r"\b(?:async|defer|type\s*=)", tag):
+                fail(errors, f"{rel_page}: data/name contracts must load synchronously")
         if rel_page in LIVE_FILES and "tarkov-poll.js" not in scripts:
             fail(errors, f"{rel_page} is live but does not load tarkov-poll.js")
         if tool_scripts and "tarkov-tool-shell.js" in scripts:
@@ -145,6 +156,10 @@ def main() -> int:
             fail(errors, f"{rel_page} must load API before domain modules")
 
         source = "\n".join(path.read_text(encoding="utf-8", errors="replace") for _, path in tool_scripts)
+        if re.search(r"\bTarkovAPI\s*\.\s*(?:getJson|request)\s*\(", source):
+            fail(errors, f"{rel_page} bypasses the normalized data boundary")
+        if re.search(r"function\s+itemName\([^)]*\)\s*\{(?:(?!\n\s*\}).)*?(?:shortName\s*\|\||\.slice\()", source, re.S):
+            fail(errors, f"{rel_page} duplicates the item naming policy")
         if "TarkovSchema." in source and not ordered(scripts, "tarkov-schema.js", tool_scripts[0][0] if tool_scripts else ""):
             fail(errors, f"{rel_page} must load schema before tool logic")
         if "TarkovPoll." in source and not ordered(scripts, "tarkov-poll.js", tool_scripts[0][0] if tool_scripts else ""):

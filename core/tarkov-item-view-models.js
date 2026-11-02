@@ -5,11 +5,7 @@
 
   function domain() { return global.TarkovItemDomain; }
   function displayName(item, fallback) {
-    try {
-      if (global.TarkovItemMedia && TarkovItemMedia.name) return TarkovItemMedia.name(item);
-      if (global.TarkovNames && TarkovNames.display) return TarkovNames.display(item);
-    } catch (e) {}
-    return String((item && (item.shortName || item.name || item.normalizedName || item.id)) || fallback || "?");
+    return TarkovNames.display(item || fallback);
   }
   function displayIcon(item) {
     try { if (global.TarkovItemMedia && TarkovItemMedia.icon) return TarkovItemMedia.icon(item); } catch (e) {}

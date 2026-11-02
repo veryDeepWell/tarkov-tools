@@ -24,14 +24,14 @@ def require(rel: str, pattern: str, why: str, flags: int = re.I | re.S) -> None:
         errors.append(f"{rel}: {why}")
 
 # Shared item identity/media and inspector availability.
-require("core/tarkov-api.js", r"TarkovItemCatalog\[m\]\s*=\s*byId", "API items must populate the per-mode lookup index")
-require("core/tarkov-table-tool.js", r"TarkovItemCatalog", "table name cells must resolve media through the shared item catalogue")
+require("core/tarkov-api.js", r"TarkovData\.ingest\(kind, json", "API collections must pass through the application data contract")
+require("core/tarkov-table-tool.js", r'TarkovData\.get\("item"', "table name cells must resolve media through the scoped entity registry")
 require("core/tarkov-table-tool.js", r"data-item-id", "table name cells must expose item IDs for inspection")
 require("core/tarkov-item-media.js", r"defaultPreset[\s\S]{0,300}image512pxLink", "weapon media must prefer the standard/default preset")
 require("core/tarkov-tool-shell.js", r"ensureItemInspectorJs\(\)", "shared shell must load the item inspector")
 require("core/tarkov-item-inspector.js", r"Alt\+I", "inspector must expose the keyboard toggle")
 require("core/tarkov-item-inspector.js", r"addEventListener\(\s*['\"]dblclick['\"]", "double-click must open item details")
-require("core/tarkov-item-inspector.js", r"function fullCardUrl[\s\S]{0,500}tarkovtool-item-card\.html", "inspector must resolve the full item-card URL")
+require("core/tarkov-item-inspector.js", r'function fullCardUrl[\s\S]{0,500}TarkovNav\.entityHref\("item"', "inspector must resolve the full item-card URL through canonical navigation")
 
 # Known regressions from the reported UI.
 require("js/nvg.js", r"id\s*=\s*['\"]tableCard['\"]|getElementById\(['\"]tableCard['\"]\)[\s\S]{0,240}display\s*=\s*['\"]block", "NVG results table must be revealed after loading")

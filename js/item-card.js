@@ -218,7 +218,7 @@
       return (window.TarkovItemGraph && TarkovItemGraph.craftLabel)
         ? TarkovItemGraph.craftLabel(ck) : ck;
     }
-    function entityHref(file, type, id) { return window.TarkovNav ? TarkovNav.href(file, type, id) : file + "?ttType=" + type + "&ttId=" + encodeURIComponent(id); }
+    function entityHref(file, type, id) { return TarkovNav.entityHref(type, id); }
     var questsHref = "tarkovtool-quests.html";
     var craftsHref = "tarkovtool-crafts.html";
     var hideoutHref = "tarkovtool-hideout.html";

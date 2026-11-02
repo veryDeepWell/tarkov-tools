@@ -34,12 +34,7 @@
     return Math.round(Number(n) || 0).toLocaleString("ru-RU");
   }
 
-  function itemName(it) {
-    try {
-      if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-    } catch (e) { try { console.debug && console.debug("[tt:repair]", e); } catch (_tt) { /* ignore */ } }
-    return (it && (it.shortName || it.name || it.normalizedName)) || "?";
-  }
+  function itemName(it) { return TarkovNames.display(it); }
 
   function priceOf(it) {
     if (!it) return 0;

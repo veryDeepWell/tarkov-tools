@@ -4,6 +4,10 @@
 (function (global) {
   const BASE = "https://json.tarkov.dev";
   const mem = new Map();
+  const pending = new Map();
+  const revisions = new Map();
+  const collections = new Map();
+  let cacheGeneration = 0;
   const DEFAULT_TTL = (global.TarkovConst && TarkovConst.API_MEMORY_TTL_MS) || (90 * 1000);
   const LS_TTL = (global.TarkovConst && TarkovConst.API_LS_TTL_MS) || (5 * 60 * 1000);
   const LS_PREFIX = "tt:api:";
@@ -35,10 +39,10 @@
     return pack.data || pack;
   }
 
-  async function translated(json, kind, gameMode) {
+  async function translated(json, kind, gameMode, language) {
     if (!Array.isArray(json && json.translations) || !json.translations.length) return json;
-    var pack;
-    try { pack = await locale(kind, gameMode); } catch (e) { return json; }
+    var pack = {};
+    try { pack = await locale(kind, gameMode, language); } catch (e) { /* Keep human source text; reject technical placeholders below. */ }
     var copy = JSON.parse(JSON.stringify(json));
     json.translations.forEach(function (field) {
       // Localize presentation fields only. Slot names, effect types, zones and
@@ -50,7 +54,10 @@
         var keys = parts[index] === "*" ? Object.keys(parent) : [parts[index]];
         keys.forEach(function (key) {
           if (index < parts.length - 1) visit(parent[key], index + 1);
-          else if (typeof parent[key] === "string" && typeof pack[parent[key]] === "string") parent[key] = pack[parent[key]];
+          else if (typeof parent[key] === "string") {
+            if (typeof pack[parent[key]] === "string") parent[key] = pack[parent[key]];
+            else if ((key === "description" || key === "exitName") && global.TarkovData && TarkovData.technical(parent[key])) parent[key] = "";
+          }
         });
       }
       visit(copy, 0);
@@ -106,12 +113,23 @@
       }
     }
 
-    const res = await fetch(url, { cache: opts.httpCache || "default" });
-    if (!res.ok) throw new Error("HTTP " + res.status + " " + url);
-    const data = await res.json();
-    mem.set(key, { ts: clock().now(), data: data });
-    if (!opts.noLs) lsSet(key, data);
-    return data;
+    const requestKey = key + "|" + !!opts.noCache + "|" + !!opts.noLs + "|" + (opts.httpCache || "default");
+    if (pending.has(requestKey)) return pending.get(requestKey);
+    const generation = cacheGeneration;
+    const revision = (revisions.get(key) || 0) + 1;
+    revisions.set(key, revision);
+    const task = (async function () {
+      const res = await fetch(url, { cache: opts.httpCache || "default" });
+      if (!res.ok) throw new Error("HTTP " + res.status + " " + url);
+      const data = await res.json();
+      if (generation === cacheGeneration && revisions.get(key) === revision) {
+        mem.set(key, { ts: clock().now(), data: data });
+        if (!opts.noLs) lsSet(key, data);
+      }
+      return data;
+    })();
+    pending.set(requestKey, task);
+    try { return await task; } finally { if (pending.get(requestKey) === task) pending.delete(requestKey); }
   }
 
   function request(path, opts) {
@@ -156,62 +174,25 @@
 
   async function items(gameMode, opts) {
     var m = apiMode(gameMode);
-    var json = await translated(await getJson("/" + m + "/items", opts), "items", m);
-    var list = asArray(json && json.data && json.data.items != null ? json.data.items : (json && json.data) || json);
-    // Normalize display fields in one place. API payloads remain cached untouched; callers
-    // receive shallow copies so UI changes never mutate the shared cache.
-    var media = global.TarkovItemMedia;
-    var normalized = list.map(function (item) {
-      if (!item || typeof item !== "object") return item;
-      if (item.properties && item.properties.stimEffects && !item.properties.stimulatorBuffs) {
-        item = Object.assign({}, item, { properties: Object.assign({}, item.properties, { stimulatorBuffs: item.properties.stimEffects }) });
-      }
-      if (media && media.decorate) return media.decorate(item);
-      var p = item.properties || {};
-      var types = Array.isArray(item.types) ? item.types : (item.types ? [item.types] : []);
-      var weapon = p.propertiesType === "ItemPropertiesWeapon" || types.indexOf("gun") >= 0 || types.indexOf("weapon") >= 0;
-      var preset = p.defaultPreset && typeof p.defaultPreset === "object" ? p.defaultPreset : null;
-      var icon = weapon && preset && (preset.image512pxLink || preset.baseImageLink || preset.imageLink || preset.gridImageLink || preset.iconLink);
-      icon = icon || item.iconLink || item.gridImageLink || item.image512pxLink || item.imageLink || item.baseImageLink || "";
-      var clone = Object.assign({}, item, { displayIconLink: icon, displayName: item.shortName || item.name || item.normalizedName || item.id });
-      if (weapon && icon && icon !== item.iconLink) clone.sourceIconLink = item.iconLink || "";
-      if (icon) clone.iconLink = icon;
-      return clone;
-    });
-    // A mode-scoped catalogue lets lightweight table rows resolve their item image/name
-    // without having to duplicate the full API object into every view model.
-    if (!global.TarkovItemCatalog) global.TarkovItemCatalog = Object.create(null);
-    var byId = Object.create(null);
-    normalized.forEach(function (item) { if (item && item.id) byId[String(item.id)] = item; });
-    global.TarkovItemCatalog[m] = byId;
-    if (m === "regular") global.TarkovItemCatalog.pvp = byId;
-    return normalized;
+    var list = await collection("items", m, opts);
+    if (!global.TarkovItemMedia) throw Error("TarkovItemMedia must load before TarkovAPI");
+    return list.map(function (item) { return TarkovItemMedia.decorate(item); });
   }
 
   async function barters(gameMode) {
-    var m = apiMode(gameMode);
-    var json = await getJson("/" + m + "/barters");
-    return asArray(json && json.data && json.data.barters != null ? json.data.barters : (json && json.data) || json);
+    return collection("barters", gameMode);
   }
 
   async function traders(gameMode) {
-    var m = apiMode(gameMode);
-    var json = await translated(await getJson("/" + m + "/traders"), "traders", m);
-    return asArray(json && json.data && json.data.traders != null ? json.data.traders : (json && json.data) || json);
+    return collection("traders", gameMode);
   }
 
   async function tasks(gameMode) {
-    var m = apiMode(gameMode);
-    var json = await translated(await getJson("/" + m + "/tasks"), "tasks", m);
-    return asArray(json && json.data && json.data.tasks != null ? json.data.tasks : (json && json.data) || json);
+    return collection("tasks", gameMode);
   }
 
   async function maps(gameMode) {
-    var m = apiMode(gameMode);
-    var json = await translated(await getJson("/" + m + "/maps"), "maps", m);
-    var data = json && json.data ? json.data : json;
-    if (data && data.maps != null) return asArray(data.maps);
-    return asArray(data);
+    return collection("maps", gameMode);
   }
 
   async function goonReports(gameMode) {
@@ -222,9 +203,7 @@
   }
 
   async function crafts(gameMode) {
-    var m = apiMode(gameMode);
-    var json = await getJson("/" + m + "/crafts");
-    return asArray(json && json.data || json);
+    return collection("crafts", gameMode);
   }
 
   async function quests(gameMode) {
@@ -232,13 +211,34 @@
   }
 
   async function hideout(gameMode) {
-    var m = apiMode(gameMode);
-    var json = await translated(await getJson("/" + m + "/hideout"), "hideout", m);
-    return asArray(json && json.data || json);
+    return collection("hideout", gameMode);
+  }
+
+  async function collection(kind, gameMode, opts) {
+    if (!global.TarkovData) throw Error("TarkovData must load before TarkovAPI");
+    var context = TarkovData.scope({ mode: apiMode(gameMode) });
+    var key = context.mode + ":" + context.lang + ":" + kind;
+    var version = (collections.get(key) || 0) + 1, generation = cacheGeneration;
+    collections.set(key, version);
+    function current() { return collections.get(key) === version && cacheGeneration === generation; }
+    TarkovData.setStatus(kind, "loading", context);
+    try {
+      var json = await getJson("/" + context.mode + "/" + kind, opts);
+      json = await translated(json, kind, context.mode, context.lang);
+      return TarkovData.ingest(kind, json, Object.assign({}, context, { publish: current() }));
+    } catch (error) {
+      if (current()) TarkovData.setStatus(kind, "error", context, error);
+      throw error;
+    }
   }
 
   function clearCache() {
+    cacheGeneration++;
+    pending.clear();
+    revisions.clear();
+    collections.clear();
     mem.clear();
+    if (global.TarkovData) TarkovData.clear();
     try {
       var kill = [];
       storage().keys(LS_PREFIX).forEach(function (k) { storage().remove(k); });

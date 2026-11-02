@@ -91,6 +91,9 @@ async function inspectTools() {
         await pause(350);
       }
       const checks = phase === 'exercise' || phase === 'all' ? await exerciseTool(page, file) : [];
+      const hashLabels = await page.locator('tbody').evaluateAll(tables => tables
+        .filter(t => t.offsetParent).flatMap(t => (t.innerText.match(/\b[a-f0-9]{24}\b/gi) || [])));
+      assert(!hashLabels.length, 'Raw entity IDs in visible table labels: ' + [...new Set(hashLabels)].join(', '));
       const detail = await page.evaluate(() => ({
         status: [...document.querySelectorAll('.status')].filter(e => e.offsetParent).map(e => e.textContent.trim()).filter(Boolean),
         rows: [...document.querySelectorAll('tbody')].map(e => ({ id: e.id, rows: e.querySelectorAll('tr').length, visible: !!e.offsetParent })),

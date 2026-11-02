@@ -60,12 +60,7 @@
     if (typeof x === "object") return Object.values(x);
     return [];
   }
-  function itemName(it) {
-    if (!it) return "?";
-    try { if (window.TarkovItemMedia && TarkovItemMedia.name) return TarkovItemMedia.name(it); } catch (e) {}
-    try { if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it); } catch (e2) {}
-    return it.shortName || it.name || it.normalizedName || it.id || "?";
-  }
+  function itemName(it) { return TarkovNames.display(it); }
   function itemIcon(it) {
     try { if (window.TarkovItemMedia && TarkovItemMedia.icon) return TarkovItemMedia.icon(it); } catch (e) {}
     return it && (it.displayIconLink || it.iconLink || it.gridImageLink || it.image512pxLink) || "";

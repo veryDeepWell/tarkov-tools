@@ -13,8 +13,13 @@
     { id: "5ac3b934156ae10c4430e83c", key: "ragman", name: "Ragman", ru: "Барахольщик", cultistMult: 0.62 },
     { id: "5c0647fdd443bc2504c2d371", key: "jaeger", name: "Jaeger", ru: "Егерь", cultistMult: 0.60 },
     { id: "6617beeaa9cfa777ca915b7c", key: "ref", name: "Ref", ru: "Реф", cultistMult: 0.60 },
-    { id: "638b0f368010941e6201b109", key: "lightkeeper", name: "Lightkeeper", ru: "Смотритель", cultistMult: 0.50 },
-    { id: "65649eb400d4d9189309ec99", key: "btr", name: "BTR Driver", ru: "БТР", cultistMult: 0.50 }
+    { id: "638f541a29ffd1183d187f57", key: "lightkeeper", name: "Lightkeeper", ru: "Смотритель", cultistMult: 0.50 },
+    { id: "656f0f98d80a697f855d34b1", key: "btr", name: "BTR Driver", ru: "Водитель БТР", cultistMult: 0.50 },
+    { id: "68fe15910f29ba3fdbba9d54", key: "taran", name: "Taran", ru: "Таран", cultistMult: 0.50 },
+    { id: "68fe15990f29ba3fdbba9d55", key: "radio-station", name: "Radio Station", ru: "Радиостанция", cultistMult: 0.50 },
+    { id: "688246518448b05efd61d461", key: "mr-kerman", name: "Mr. Kerman", ru: "Мистер Керман", cultistMult: 0.50 },
+    { id: "688246958448b05efd61d462", key: "voevoda", name: "Voevoda", ru: "Воевода", cultistMult: 0.50 },
+    { id: "69e0d6cc77b63940375b9173", key: "survivor", name: "Survivor", ru: "Выживший", cultistMult: 0.50 }
   ];
 
   var TRADER_BY_ID = Object.create(null);
@@ -24,6 +29,10 @@
     TRADER_BY_ID[t.id] = t;
     TRADER_BY_KEY[t.key] = t;
   });
+  // Retain compatibility with previously stored references.
+  TRADER_BY_ID["638b0f368010941e6201b109"] = TRADER_BY_KEY.lightkeeper;
+  TRADER_BY_ID["65649eb400d4d9189309ec99"] = TRADER_BY_KEY.btr;
+  TRADER_BY_KEY["btr-driver"] = TRADER_BY_KEY.btr;
 
   var CALIBERS = {
     Caliber9x18PM: { key: "Caliber9x18PM", label: "9×18 ПМ", en: "9x18 PM" },
@@ -81,8 +90,13 @@
   }
 
   function traderName(idOrKey, lang) {
-    var t = trader(idOrKey);
-    if (!t) return String(idOrKey || "");
+    var reference = typeof idOrKey === "object" && idOrKey ? idOrKey.id || idOrKey.normalizedName : idOrKey;
+    if (global.TarkovData) {
+      var resolved = TarkovData.resolve("trader", reference, { lang: lang });
+      if (resolved.resolved && resolved.source !== "literal") return resolved.label;
+    }
+    var t = trader(reference);
+    if (!t) return global.TarkovData ? TarkovData.label("trader", idOrKey, { lang: lang }) : "Unknown trader";
     var l = lang || currentLang();
     return (l === "en" ? t.name : t.ru) || t.name;
   }
@@ -144,30 +158,7 @@
       .replace(/'/g, "&#39;");
   }
 
-    function humanize(slug) {
-    if (slug && typeof slug === "object") {
-      try {
-        if (global.TarkovNames && TarkovNames.display) return TarkovNames.display(slug) || "?";
-      } catch (e0) {}
-      slug = slug.normalizedName || slug.shortName || slug.name || slug.id || "";
-    }
-    if (!slug) return "?";
-    var s = String(slug).trim();
-    // mongo / uuid-like — do not title-case into garbage
-    if (/^[a-f0-9]{20,}$/i.test(s) || /^[a-f0-9]{24}$/i.test(s)) {
-      return s.length > 8 ? ("…" + s.slice(-6)) : s;
-    }
-    try {
-      if (global.TarkovNames && TarkovNames.display && s.indexOf(" ") < 0 && s.indexOf("-") >= 0) {
-        /* slug path still humanize below */
-      }
-    } catch (e1) {}
-    return s
-      .replace(/[-_]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });
-  }
+  function humanize(value) { return TarkovData.label("entity", value); }
 
 function fmtNum(n, digits) {
     var x = Number(n);

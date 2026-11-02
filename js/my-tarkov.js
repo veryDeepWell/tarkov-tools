@@ -154,7 +154,7 @@
       var line = typeof a === "string" ? a : (a.text || "");
       var extra = "";
       if (a && a.kind === "quest" && a.quest) {
-        extra = ' <a class="link" data-nav-type="quest" data-nav-id="' + esc(a.quest) + '" href="' + esc(TarkovNav.href("tarkovtool-quests.html", "quest", a.quest)) + '">→ квесты</a>';
+        extra = ' <a class="link" data-nav-type="quest" data-nav-id="' + esc(a.quest) + '" href="' + esc(TarkovNav.entityHref("quest", a.quest)) + '">→ квесты</a>';
       } else if (a && a.kind === "prestige") {
         extra = ' <a class="link" href="tarkovtool-prestige.html">→ престиж</a>';
       } else if (a && a.kind === "trader") {
@@ -175,7 +175,7 @@
       unlockBaseline[p.id] = { keys: keys, signature: signature };
       function contentLi(row) {
         var entityId = row.type === "station" ? row.id.split(":")[0] : row.id;
-        return '<li><a href="' + esc(TarkovNav.href(row.file, row.type, entityId)) + '">' + esc(row.kind + " · " + row.text) + '</a></li>';
+        return '<li><a href="' + esc(TarkovNav.entityHref(row.type, entityId)) + '">' + esc(row.kind + " · " + row.text) + '</a></li>';
       }
       var query = document.getElementById("contentSearch").value.toLowerCase();
       var matching = contentRows.filter(function (row) { return (row.kind + " " + row.text + " " + row.id).toLowerCase().includes(query); });

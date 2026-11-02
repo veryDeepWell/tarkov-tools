@@ -20,13 +20,7 @@
       .replace(/>/g, "&gt;");
   }
 
-  function itemName(it) {
-    if (!it) return "";
-    try {
-      if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-    } catch (e) { try { console.debug && console.debug("[tt:quest-cheese]", e); } catch (_tt) { /* ignore */ } }
-    return it.shortName || it.name || it.normalizedName || it.id || "";
-  }
+  function itemName(it) { return TarkovNames.display(it); }
 
   function taskName(t) {
     if (!t) return "";
@@ -296,8 +290,8 @@
     try {
       if (P) P.start({ label: "Tasks / crafts / items…" });
       var mode = document.getElementById("gameMode").value || "pve";
-      var tasksP = TarkovAPI.tasks ? TarkovAPI.tasks(mode) : TarkovAPI.getJson("/" + mode + "/tasks");
-      var craftsP = TarkovAPI.crafts ? TarkovAPI.crafts(mode) : TarkovAPI.getJson("/" + mode + "/crafts");
+      var tasksP = TarkovAPI.tasks(mode);
+      var craftsP = TarkovAPI.crafts(mode);
       var itemsP = TarkovAPI.items(mode);
       var pack = await Promise.all([tasksP, craftsP, itemsP]);
       if (P) P.set(50);

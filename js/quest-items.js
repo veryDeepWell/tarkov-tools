@@ -208,7 +208,7 @@
         }
       },
       { key: "questName", label: "Квест", html: function (r, h) {
-        return '<a href="' + h.esc(TarkovNav.href("tarkovtool-quests.html", "quest", r.taskId)) + '">' + h.esc(r.questName) + '</a>';
+        return '<a href="' + h.esc(TarkovNav.entityHref("quest", r.taskId)) + '">' + h.esc(r.questName) + '</a>';
       } },
       { key: "trader", label: "Торговец" },
       { key: "minLvl", label: "Lvl", format: "num" },

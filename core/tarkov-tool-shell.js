@@ -12,16 +12,6 @@
   }
 
 
-  function ensureNamesJs() {
-    if (window.TarkovNames || document.getElementById("tt-names-js")) return;
-    var path = location.pathname || "";
-    var s = document.createElement("script");
-    s.id = "tt-names-js";
-    s.src = (path.indexOf("/tools/") >= 0 ? "../core/" : "core/") + "tarkov-names.js";
-    s.async = false;
-    (document.head || document.documentElement).appendChild(s);
-  }
-
   function ensureUiJs() {
     if (window.TarkovUI) return;
     if (document.getElementById("tt-ui-js")) return;
@@ -544,6 +534,7 @@
 
   function boot() {
     ensureCss();
+    bindShellRefresh();
     ensureUiJs();
     ensureStorageJs();
     ensureProfileJs();
@@ -589,33 +580,18 @@
     if (window.TarkovDicts && TarkovDicts.syncGameMode) TarkovDicts.syncGameMode();
   } catch (ePre) { try { console.debug && console.debug("[tt:tool-shell]", ePre); } catch (_tt) { /* ignore */ } }
 
-  window.addEventListener("tt-profile-changed", function () {
-    try { wireProfileGameMode(); } catch (e) { try { console.debug && console.debug("[tt:tool-shell]", e); } catch (_tt) { /* ignore */ } }
-    try {
-      if (typeof window.onProfileRefresh === "function") window.onProfileRefresh();
-      else if (typeof window.render === "function") window.render();
+  // Profile owns event coalescing, cross-tab messages and subscription lifetime.
+  // Tools with their own subscriber render themselves; shell only supplies a fallback.
+  function bindShellRefresh() {
+    if (!window.TarkovProfile || !TarkovProfile.bindRefresh) return;
+    var dispose = TarkovProfile.bindRefresh(function () {
+      wireProfileGameMode();
+      if (typeof window.onProfileRefresh === "function") return;
+      if (typeof window.render === "function") window.render();
       else if (typeof window.paint === "function") window.paint();
-    } catch (eRef) { try { console.debug && console.debug("[tt:tool-shell]", eRef); } catch (_tt) { /* ignore */ } }
-  });
-  window.addEventListener("tt-profile-refresh", function () {
-    try { wireProfileGameMode(); } catch (e) { try { console.debug && console.debug("[tt:tool-shell]", e); } catch (_tt) { /* ignore */ } }
-    try {
-      if (typeof window.onProfileRefresh === "function") window.onProfileRefresh();
-      else if (typeof window.render === "function") window.render();
-      else if (typeof window.paint === "function") window.paint();
-    } catch (eRef) { try { console.debug && console.debug("[tt:tool-shell]", eRef); } catch (_tt) { /* ignore */ } }
-  });
-  window.addEventListener("message", function (ev) {
-    if (!ev.data || !ev.data.type) return;
-    if (ev.data.type === "tt-profile-changed" || ev.data.type === "tt-profile-filter" || ev.data.type === "tt-profile-refresh") {
-      try { wireProfileGameMode(); } catch (e) { try { console.debug && console.debug("[tt:tool-shell]", e); } catch (_tt) { /* ignore */ } }
-      try {
-        if (typeof window.onProfileRefresh === "function") window.onProfileRefresh();
-        else if (typeof window.render === "function") window.render();
-        else if (typeof window.paint === "function") window.paint();
-      } catch (eRef) { try { console.debug && console.debug("[tt:tool-shell]", eRef); } catch (_tt) { /* ignore */ } }
-    }
-  });
+    }, { exportGlobal: false });
+    window.addEventListener("pagehide", function (event) { if (!event.persisted) dispose(); });
+  }
   /* tt-profile-changed-listener */
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();

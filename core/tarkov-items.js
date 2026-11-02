@@ -3,7 +3,6 @@
   "use strict";
   if (global.TarkovItems) return;
 
-  var cache = Object.create(null);
 
   function normalize(items) {
     var list = Array.isArray(items) ? items : [];
@@ -35,16 +34,14 @@
 
   function load(gameMode) {
     var mode = gameMode || (global.TarkovAPI && TarkovAPI.mode ? TarkovAPI.mode() : "pve");
-    if (cache[mode]) return Promise.resolve(cache[mode]);
     if (!global.TarkovAPI || !TarkovAPI.items) return Promise.reject(new Error("TarkovAPI.items missing"));
     return TarkovAPI.items(mode).then(function (items) {
       var data = index(normalize(items));
-      cache[mode] = data;
       return data;
     });
   }
 
-  function clear() { cache = Object.create(null); }
+  function clear() { if (global.TarkovAPI) TarkovAPI.clearCache(); }
 
   function snapshot(value, mode) {
     if (value && value.byId && value.all) return Promise.resolve(value);

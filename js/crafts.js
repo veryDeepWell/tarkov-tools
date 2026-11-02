@@ -223,8 +223,7 @@
 
       function itemName(id) {
         var it = itemsMap[id];
-        if (!it) return String(id).slice(0, 8) + "…";
-        return TarkovTableTool.itemName(it);
+        return TarkovNames.display(it || id);
       }
       function stationName(idOrSlug) {
         var s = stationsMap[idOrSlug];

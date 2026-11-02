@@ -107,10 +107,7 @@
   }
 
   function fullCardUrl(id) {
-    var path = location.pathname || "";
-    var base = path.indexOf("/tools/") >= 0 ? "tarkovtool-item-card.html" : "tools/tarkovtool-item-card.html";
-    var qs = "?item=" + encodeURIComponent(id) + "&mode=" + encodeURIComponent(mode());
-    return base + qs;
+    return TarkovNav.entityHref("item", id);
   }
 
   function injectCss() {

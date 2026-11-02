@@ -35,76 +35,20 @@
     return load()[id] || "";
   }
 
-  function isHashLike(s) {
-    if (!s || typeof s !== "string") return true;
-    s = s.trim();
-    if (!s) return true;
-    if (/^[a-f0-9]{20,}$/i.test(s)) return true;
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(s)) return true;
-    if (/^[a-f0-9]{24}$/i.test(s)) return true;
-    if (s.length >= 16 && !/[a-z]/i.test(s)) return true;
-    return false;
-  }
-
-  /** API placeholder: "<id> Name" / "<id> ShortName" */
-  function isPlaceholderName(s, id) {
-    if (!s || typeof s !== "string") return true;
-    s = s.trim();
-    if (!s) return true;
-    if (isHashLike(s)) return true;
-    if (/\s(Name|ShortName)$/i.test(s)) return true;
-    if (id && s.indexOf(String(id)) === 0) return true;
-    return false;
-  }
-
-  function humanizeSlug(slug) {
-    if (!slug) return "";
-    return String(slug)
-      .replace(/[-_]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });
-  }
+  function isHashLike(s) { return TarkovData.technical(s); }
+  function isPlaceholderName(s) { return TarkovData.technical(s); }
+  function humanizeSlug(slug) { return TarkovData.humanize(slug); }
 
   function display(item) {
-    if (item == null) return "";
-    if (typeof item === "string") {
-      const custom = getShort(item);
-      if (custom) return custom;
-      if (isPlaceholderName(item) || isHashLike(item)) {
-        var h = humanizeSlug(item);
-        if (h && !isHashLike(h) && h !== item) return h;
-        return item.length > 8 ? ("…" + item.slice(-6)) : item;
-      }
-      return item;
-    }
-    const id = item.id || item.itemId || "";
-    const custom = id ? getShort(id) : "";
-    if (custom) return custom;
-
-    const gameShort = String(item.shortName || "").trim();
-    const apiName = String(item.name || item.localizedName || "").trim();
-    const slug = String(item.normalizedName || item.slug || "").trim();
-
-    if (gameShort && !isPlaceholderName(gameShort, id)) return gameShort;
-    if (apiName && !isPlaceholderName(apiName, id)) return apiName;
-    if (slug && !isHashLike(slug) && !isPlaceholderName(slug, id)) return humanizeSlug(slug);
-    if (slug) {
-      var hum = humanizeSlug(slug);
-      if (hum && !isHashLike(hum)) return hum;
-    }
-    if (gameShort && !isHashLike(gameShort)) return gameShort;
-    if (apiName && !isHashLike(apiName)) return apiName;
-    if (id && id.length > 8) return "…" + id.slice(-6);
-    return id || "?";
+    const custom = getShort(TarkovData.id(item));
+    if (custom && !TarkovData.technical(custom)) return custom;
+    return TarkovData.label("item", item);
   }
 
   function displayFull(item) {
-    if (!item || typeof item === "string") return display(item);
     const short = display(item);
-    const full = String(item.name || item.localizedName || "").trim();
-    const id = item.id || item.itemId || "";
-    if (full && full !== short && !isPlaceholderName(full, id)) return short + " · " + full;
+    const full = TarkovData.resolve("item", item, { full: true });
+    if (full.resolved && full.label !== short) return short + " · " + full.label;
     return short;
   }
 

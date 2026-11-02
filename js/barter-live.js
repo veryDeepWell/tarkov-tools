@@ -429,16 +429,7 @@
       } catch (eMode) {
         mode = (document.getElementById('gameMode') || {}).value || 'pve';
       }
-      let itemsData = [];
-      if (window.TarkovAPI && typeof TarkovAPI.items === 'function') {
-        itemsData = await TarkovAPI.items(mode);
-      } else if (window.TarkovAPI && typeof TarkovAPI.getJson === 'function') {
-        const json = await TarkovAPI.getJson(`/${mode}/items`);
-        itemsData = TarkovAPI.asArray ? TarkovAPI.asArray(json) : (json?.data?.items || json || []);
-      } else {
-        throw new Error(t('tool.barter-live.ui.apiUnavailable'));
-      }
-      if (!Array.isArray(itemsData)) itemsData = Object.values(itemsData);
+      const itemsData = await TarkovAPI.items(mode);
       catalog = itemsData;
       return catalog;
     }
@@ -585,15 +576,7 @@
     }
   
     (function() {
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(window.itemName&&window.itemName!==itemName)return window.itemName(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    var s=String(it.shortName || it.name || it.normalizedName || it.id || '').trim();
-    if(/^[a-f0-9]{20}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20}$/i.test(it.name)?it.name:it.normalizedName)||s;
-    return s||it.id||'';
-  }
+  function itemName(it) { return TarkovNames.display(it); }
 
       const SKEY = 'tarkovBarterLiveSettings';
       const s = loadSettings(SKEY, {  priceMode: 'buyN', commission: 0, intel3: '0', hmLvl: 0 });

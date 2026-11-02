@@ -53,13 +53,7 @@ function fmt(n) {
 return Math.round(Number(n) || 0).toLocaleString("ru-RU");
 }
 
-function itemName(it) {
-if (!it) return "?";
-try {
-if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-} catch (e) { try { console.debug && console.debug("[tt:gun-builder]", e); } catch (_tt) { /* ignore */ } }
-return it.shortName || it.name || it.normalizedName || it.id || "?";
-}
+function itemName(it) { return TarkovNames.display(it); }
 
 function humanize(slug) {
 try {

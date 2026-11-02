@@ -1,5 +1,6 @@
 /* Small, dependency-free behavior tests for the centralized item-media resolver. */
 const assert = require('node:assert/strict');
+require('../core/tarkov-data.js');
 require('../core/tarkov-item-media.js');
 
 const media = globalThis.TarkovItemMedia;

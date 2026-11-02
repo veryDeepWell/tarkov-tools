@@ -6,6 +6,16 @@
   var KEY = "tt:nav:context";
   var CHANNEL = "tarkov-tools-nav";
   var pageContext = null;
+  var routes = Object.freeze({ item: "tarkovtool-item-card.html", quest: "tarkovtool-quests.html", craft: "tarkovtool-crafts.html", barter: "tarkovtool-barter-opt.html", station: "tarkovtool-hideout.html", map: "tarkovtool-map.html", trader: "tarkovtool-trader-flip.html" });
+
+  function entityHref(type, reference) {
+    if (!routes[type]) throw Error("Unsupported navigation entity: " + type);
+    var entityId = global.TarkovData ? TarkovData.id(reference) : String(reference || "");
+    if (!entityId) throw Error("Navigation requires an entity ID");
+    var prefix = /\/tools\//.test(location.pathname) ? "" : "tools/";
+    var url = href(prefix + routes[type], type, entityId);
+    return type === "item" ? url + "&item=" + encodeURIComponent(entityId) : url;
+  }
 
   function href(file, type, id) {
     return file + (file.indexOf("?") >= 0 ? "&" : "?") + "ttType=" + encodeURIComponent(type) + "&ttId=" + encodeURIComponent(id);
@@ -140,7 +150,7 @@
     consume: consume,
     clear: clear,
     openTool: openTool,
-    href: href, current: current, matches: matches
+    href: href, entityHref: entityHref, current: current, matches: matches
   };
   document.addEventListener("click", function (event) {
     if (event.defaultPrevented || event.button > 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;

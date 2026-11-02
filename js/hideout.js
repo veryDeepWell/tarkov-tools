@@ -61,8 +61,7 @@
     function esc(s) { return TarkovDicts.esc(s); }
     function itemName(id) {
       const it = itemsById[id];
-      if (!it) return id.slice(0, 8) + '…';
-      return humanize(it.normalizedName || it.id);
+      return TarkovNames.display(it || id);
     }
     function itemSlug(id) {
       const it = itemsById[id];
@@ -70,7 +69,7 @@
     }
     function stationName(id) {
       const st = stationById[id];
-      return st ? humanize(st.normalizedName) : id.slice(0, 8);
+      return TarkovData.label("station", st || id);
     }
     function getProg(id) {
       if (!progress[id]) progress[id] = { level: 0, want: false, collected: {} };
@@ -525,16 +524,6 @@
 
     loadProgress();
     (function() {
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(window.itemName&&window.itemName!==itemName)return window.itemName(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    var s=String(it.shortName || it.name || it.normalizedName || it.id || '').trim();
-    if(/^[a-f0-9]{20}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20}$/i.test(it.name)?it.name:it.normalizedName)||s;
-    return s||it.id||'';
-  }
-
       const s = loadSettings('tarkovHideoutSettings', {  shopOnlyMissing: true });
             document.getElementById('shopOnlyMissing').checked = s.shopOnlyMissing !== false;
     })();

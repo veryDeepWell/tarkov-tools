@@ -291,15 +291,7 @@
 
 
 (function(){
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(window.itemName&&window.itemName!==itemName)return window.itemName(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    var s=String(it.shortName || it.name || it.normalizedName || it.id || '').trim();
-    if(/^[a-f0-9]{20}$/i.test(s))s=(it.name&&!/^[a-f0-9]{20}$/i.test(it.name)?it.name:it.normalizedName)||s;
-    return s||it.id||'';
-  }
+  function itemName(it) { return TarkovNames.display(it); }
 })();
 
 /* R-2: gameMode from profile on load; changes write to profile */

@@ -22,26 +22,7 @@
   var listFilter = "";
   var snapInFlight = null;
   function $(id) { return document.getElementById(id); }
-  function itemName(it) {
-    try { if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it); } catch (e) { try { console.debug && console.debug("[tt:price-track]", e); } catch (_tt) { /* ignore */ } }
-    if (!it) return "";
-    if (typeof it === "string") return it;
-    var id = it.id || it.itemId || "";
-    var short = String(it.shortName || "").trim();
-    var name = String(it.name || "").trim();
-    var slug = String(it.normalizedName || it.slug || "").trim();
-    function bad(s) {
-      if (!s) return true;
-      if (/^[a-f0-9]{20}$/i.test(s)) return true;
-      if (id && s.indexOf(id) === 0) return true;
-      if (/\s(Name|ShortName)$/i.test(s)) return true;
-      return false;
-    }
-    if (short && !bad(short)) return short;
-    if (name && !bad(name)) return name;
-    if (slug) return slug.replace(/[-_]+/g, " ").replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });
-    return id || "";
-  }
+  function itemName(it) { return TarkovNames.display(it); }
   function esc(s) { return TarkovDicts.esc(s); }
   function fmtRub(n) { return TarkovDicts.fmtRub(n); }
   function fmtClock(ts) {

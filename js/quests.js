@@ -13,7 +13,7 @@
     var panel = document.getElementById("questDetail");
     if (!panel) return;
     panel.hidden = false;
-    document.getElementById("questDetailTitle").textContent = task.name || task.normalizedName || task.id;
+    document.getElementById("questDetailTitle").textContent = TarkovData.label("quest", task);
     var links = Object.create(null);
     function add(ref, reason) {
       var id = itemId(ref); if (!id) return;
@@ -33,12 +33,12 @@
     }).join("");
     document.getElementById("questItemLinks").innerHTML = Object.keys(links).map(function (id) {
       var item = itemsById[id];
-      var name = item ? TarkovTableTool.itemName(item) : id;
-      return '<li><a class="item-link" data-item-id="' + esc(id) + '" href="' + esc(TarkovNav.href("tarkovtool-item-card.html", "item", id)) + '">' + esc(name) + '</a> · ' + esc(links[id].join(", ")) + '</li>';
+      var name = TarkovNames.display(item || id);
+      return '<li><a class="item-link" data-item-id="' + esc(id) + '" href="' + esc(TarkovNav.entityHref("item", id)) + '">' + esc(name) + '</a> · ' + esc(links[id].join(", ")) + '</li>';
     }).join("") || '<li>Связанных предметов в данных API нет</li>';
     var prerequisites = (task.taskRequirements || []).map(function (r) {
       var ref = r.task || r, id = itemId(ref);
-      return '<li><a href="' + esc(TarkovNav.href("tarkovtool-quests.html", "quest", id)) + '">' + esc(typeof ref === "object" ? ref.name || id : id) + '</a></li>';
+      return '<li><a href="' + esc(TarkovNav.entityHref("quest", id)) + '">' + esc(TarkovData.label("quest", ref)) + '</a></li>';
     });
     document.getElementById("questPrerequisites").innerHTML = prerequisites.join("") || '<li>Нет предшествующих заданий</li>';
     var button = document.getElementById("questDone");

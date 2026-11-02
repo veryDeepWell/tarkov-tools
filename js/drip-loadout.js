@@ -1,11 +1,6 @@
 
   (function () {
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    return String(it.shortName||it.name||it.normalizedName||it.id||'').trim();
-  }
+  function itemName(it) { return TarkovNames.display(it); }
 
     var STYLES = [
       { id:'wild', title:'Дикий хуебес', desc:'чёрный / красный / олив', colors:['black','red','olive','yellow'] },

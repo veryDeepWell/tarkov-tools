@@ -1,17 +1,5 @@
 (function () {
-  function itemName(it){
-    if(window.TarkovNames&&TarkovNames.display)return TarkovNames.display(it);
-    if(!it)return '';
-    if(typeof it==='string')return it;
-    var s=String(it.shortName || it.name || it.normalizedName || it.id || '').trim();
-    if(/^[a-f0-9]{20}$/i.test(s)) {
-      var n=String(it.name||'').trim();
-      var sl=String(it.normalizedName||'').trim();
-      if(n && !/^[a-f0-9]{20}$/i.test(n)) s=n;
-      else if(sl) s=sl;
-    }
-    return s||it.id||'';
-  }
+  function itemName(it) { return TarkovNames.display(it); }
 
   var pool = null;
   function esc(s) { return TarkovDicts.esc(s); }

@@ -43,13 +43,7 @@
       .replace(/>/g, "&" + "gt;");
   }
 
-  function itemName(it) {
-    if (!it) return "?";
-    try {
-      if (window.TarkovNames && TarkovNames.display) return TarkovNames.display(it);
-    } catch (e) { try { console.debug && console.debug("[tt:gun-rating]", e); } catch (_tt) { /* ignore */ } }
-    return it.shortName || it.name || it.normalizedName || it.id || "?";
-  }
+  function itemName(it) { return TarkovNames.display(it); }
 
   function setStatus(msg, ok) {
     var el = document.getElementById("status");

@@ -94,7 +94,7 @@
         key: "trader",
         label: "Торговец",
         html: function (r) {
-          return r.traderKey + (r.ll ? " LL" + r.ll : "");
+          return TarkovDicts.traderName(r.traderKey) + (r.ll ? " LL" + r.ll : "");
         }
       },
       { key: "total", label: "Cost", format: "num" },

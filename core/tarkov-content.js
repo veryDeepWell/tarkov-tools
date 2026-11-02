@@ -3,7 +3,7 @@
   "use strict";
   var pack = null, loadedMode = "", pending = null, generation = 0;
   function id(ref) { return typeof ref === "string" ? ref : ref && (ref.id || id(ref.item)) || ""; }
-  function label(ref) { return typeof ref === "string" ? ref : ref && (ref.name || ref.normalizedName || ref.id) || ""; }
+  function label(ref) { return TarkovData.label("entity", ref); }
   function load() {
     var mode = TarkovProfile.preferredGameMode();
     if (pack && loadedMode === mode) return Promise.resolve(pack);
