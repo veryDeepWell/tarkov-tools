@@ -1,0 +1,16 @@
+{
+  "image": "tests/keyPic.png",
+  "sha256": "0754cb03c6708a1bbdbec34f19567747a5e233c2cfd069afbabd7f1e9f3e2e49",
+  "grid": { "cols": 11, "rows": 7, "occupied": 48 },
+  "minimumResolved": 38,
+  "note": "Manually annotated in visual cell order. null means the truncated label alone is ambiguous. Some legible codes may remain unresolved; incorrect substitutions are never accepted.",
+  "slugs": [
+    "dorm-room-108-key", "portable-bunkhouse-key", "dorm-room-206-key", "missam-forklift-key", "financial-institution-office-key", "concordia-security-room-key", "mvd-academy-entrance-hall-guard-room-key", "dorm-overseer-key", "zb-1013-key", "dorm-room-203-key", "tarcone-directors-office-key",
+    "dorm-room-214-key", "dorm-room-108-key", "operating-room-key", "underground-parking-utility-room-key", "reshalas-bunkhouse-key", "dorm-room-220-key", null, "rogue-usec-stash-key", "operating-room-key", "negotiation-room-key", "dorm-room-214-key",
+    "dorm-guard-desk-key", "terragroup-meeting-room-key", "health-resort-west-wing-office-room-104-key", "terragroup-corporate-apartment-key", "rogue-usec-barrack-key",
+    null, null,
+    "rb-rlsa-key", "rb-rs-key", "rb-ak-key", "rb-ob-key", "cardinal-apartment-key",
+    "rb-psv2-key", "rb-psv1-key", "rb-psp2-key", "rb-psp1-key", "terragroup-labs-keycard-yellow", "terragroup-labs-keycard-black", "object-11sr-keycard", "terragroup-labs-residential-unit-keycard", "terragroup-labs-residential-unit-keycard", "terragroup-labs-residential-unit-keycard", "blank-rfid-keycard",
+    null, null, null
+  ]
+}

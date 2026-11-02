@@ -24,7 +24,7 @@
   function icon(item) {
     if (!item || typeof item !== "object") return "";
     var p = asObject(item.properties) || {};
-    var preset = asObject(p.defaultPreset) || asObject(item.defaultPreset);
+    var preset = defaultPreset(item);
     if (isWeapon(item)) {
       // Prefer the default preset so base weapons look like the standard playable gun,
       // not the bare receiver/base item supplied as the small icon.
@@ -47,11 +47,17 @@
   function name(item) {
     return global.TarkovNames ? TarkovNames.display(item) : TarkovData.label("item", item);
   }
+  function defaultPreset(item) {
+    var ref = item && ((item.properties || {}).defaultPreset || item.defaultPreset);
+    return asObject(ref) || (ref && global.TarkovData && TarkovData.get("item",ref)) || null;
+  }
 
   function decorate(item) {
     if (!item || typeof item !== "object") return item;
     var copy = Object.assign({}, item);
     var iconUrl = icon(item);
+    var preset = isWeapon(item) && defaultPreset(item);
+    if (preset) { copy.displayWidth=preset.width||item.width;copy.displayHeight=preset.height||item.height; }
     if (iconUrl) {
       copy.displayIconLink = iconUrl;
       // This project historically renders iconLink throughout its UI. Keep that contract,
@@ -68,6 +74,7 @@
     isWeapon: isWeapon,
     icon: icon,
     name: name,
+    defaultPreset: defaultPreset,
     decorate: decorate
   };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -15,19 +15,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Validate architecture and generated catalog
-        run: python scripts/lint-architecture.py
-      - name: Check static project integrity
-        run: python scripts/static-integrity-check.py
-      - name: Check domain contract
-        run: bash scripts/domain-contract-check.sh
-      - name: Check storage/tool contract
-        run: bash scripts/tool-contract-check.sh
-      - name: Check R3.21 UX integration contracts
-        run: python scripts/ux-contract-check.py
-      - name: Smoke-test standard item imagery
-        run: node scripts/item-media-smoke-test.js
-      - name: Check release behavior without browser or network
-        run: node scripts/release-audit-repro.cjs
-      - name: Check application data contracts
-        run: node scripts/data-contract-test.cjs
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - name: Install pinned test dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install browser
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Validate project and run offline fixture tests
+        run: pnpm check
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-test-results
+          path: artifacts/tests/

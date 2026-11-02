@@ -1,0 +1,3 @@
+allowBuilds:
+  # Optional donation banner; the distributed browser/worker/WASM files are prebuilt.
+  tesseract.js: false

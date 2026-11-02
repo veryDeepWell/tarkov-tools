@@ -214,7 +214,7 @@
     return collection("hideout", gameMode);
   }
 
-  async function collection(kind, gameMode, opts) {
+  async function collection(kind, gameMode, opts, endpoint) {
     if (!global.TarkovData) throw Error("TarkovData must load before TarkovAPI");
     var context = TarkovData.scope({ mode: apiMode(gameMode) });
     var key = context.mode + ":" + context.lang + ":" + kind;
@@ -223,8 +223,8 @@
     function current() { return collections.get(key) === version && cacheGeneration === generation; }
     TarkovData.setStatus(kind, "loading", context);
     try {
-      var json = await getJson("/" + context.mode + "/" + kind, opts);
-      json = await translated(json, kind, context.mode, context.lang);
+      var json = await getJson("/" + context.mode + "/" + (endpoint || kind), opts);
+      json = await translated(json, endpoint || kind, context.mode, context.lang);
       return TarkovData.ingest(kind, json, Object.assign({}, context, { publish: current() }));
     } catch (error) {
       if (current()) TarkovData.setStatus(kind, "error", context, error);
@@ -254,6 +254,7 @@
     barters: barters,
     traders: traders,
     tasks: tasks,
+    prestige: function (gameMode) { return collection("prestige", gameMode, null, "tasks"); },
     quests: quests,
     maps: maps,
     goonReports: goonReports,

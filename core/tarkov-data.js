@@ -2,7 +2,7 @@
 (function (global) {
   "use strict";
   var stores = new Map();
-  var kinds = { items: "item", questItems: "questItem", tasks: "quest", traders: "trader", maps: "map", hideout: "station", crafts: "craft", barters: "barter" };
+  var kinds = { items: "item", questItems: "questItem", tasks: "quest", prestige: "prestige", traders: "trader", maps: "map", hideout: "station", crafts: "craft", barters: "barter" };
   var missing = {
     ru: { item: "Неизвестный предмет", quest: "Неизвестное задание", trader: "Неизвестный торговец", map: "Неизвестная карта", station: "Неизвестная станция", craft: "Рецепт", barter: "Бартер", entity: "Название недоступно" },
     en: { item: "Unknown item", quest: "Unknown task", trader: "Unknown trader", map: "Unknown map", station: "Unknown station", craft: "Craft", barter: "Barter", entity: "Name unavailable" }

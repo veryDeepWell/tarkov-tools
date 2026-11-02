@@ -16,3 +16,6 @@ __pycache__/
 _archive/
 patches/
 artifacts/browser-audit/
+artifacts/tests/
+node_modules/
+.pnpm-store/

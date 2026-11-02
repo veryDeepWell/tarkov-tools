@@ -35,14 +35,14 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]), select, textarea 
   font-size: 1rem !important; outline: none; min-height: var(--btn-h); font-family: inherit;
 }
 input[type=checkbox], input[type=radio] { width: auto; min-height: auto; accent-color: var(--accent); }
-button, .btn, .btn-ghost, .btn-raid, .btn-primary, input[type=button], input[type=submit] {
+button:not([data-tt-compact]), .btn, .btn-ghost, .btn-raid, .btn-primary, input[type=button], input[type=submit] {
   display: inline-flex !important; align-items: center !important; justify-content: center !important;
   min-height: var(--btn-h) !important; min-width: var(--btn-min-w) !important; padding: 0 16px !important;
   border-radius: 8px !important; font-weight: 700 !important; font-size: .92rem !important;
   font-family: inherit !important; line-height: 1.2 !important; cursor: pointer;
   box-sizing: border-box !important; border: 1px solid transparent; text-decoration: none; white-space: nowrap;
 }
-button:not(.btn-ghost):not(.del):not(.copy-btn):not(.map-chip):not(.chip):not(.tab):not(.handle):not(.tt-accent-swatch):not(.mini-chip):not(.tool-pin):not(.tool-help):not(.tt-set-tab),
+button:not([data-tt-compact]):not(.btn-ghost):not(.del):not(.copy-btn):not(.map-chip):not(.chip):not(.tab):not(.handle):not(.tt-accent-swatch):not(.mini-chip):not(.tool-pin):not(.tool-help):not(.tt-set-tab),
 .btn, .btn-raid, .btn-primary, input[type=button], input[type=submit] {
   background: var(--accent) !important; color: #111 !important; border-color: var(--accent) !important;
 }
@@ -70,6 +70,10 @@ th { position: sticky; top: 0; background: var(--input-bg) !important; color: va
 .modal-bg.show { display: flex; }
 .modal { background: var(--card); border: 1px solid var(--border); border-radius: 12px; max-width: 480px; width: 100%; padding: 20px; max-height: 90vh; overflow: auto; color: var(--text); }
 .ico, img.ico { width: 48px; height: 48px; object-fit: contain; border-radius: 6px; background: var(--input-bg); }
+.name-cell { display: flex; align-items: center; gap: 10px; }
+.name-cell > img { flex-shrink: 0; }
+.name-cell > div { min-width: 0; }
+.name-cell .meta { font-size: .75rem; color: var(--muted); overflow-wrap: anywhere; }
 
 /* Mini-tabs / hub shell */
 .hub-shell { max-width: min(1600px, 96vw); margin: 0 auto; min-height: calc(100vh - 56px); padding: 0 12px 24px; position: relative; }

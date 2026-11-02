@@ -86,6 +86,14 @@
       it.el.style.width = it.w * state.cell - 2 + "px";
       it.el.style.height = it.h * state.cell - 2 + "px";
       it.el.classList.toggle("selected", state.selected === it.uid);
+      it.el.classList.toggle("small", it.w === 1 && it.h === 1);
+      var image = it.el.querySelector(".tt-ig-icon");
+      if (image) {
+        var rotated = it.w !== it.baseW;
+        image.style.width = (rotated ? it.h : it.w) * state.cell - 6 + "px";
+        image.style.height = (rotated ? it.w : it.h) * state.cell - 6 + "px";
+        image.style.transform = rotated ? "rotate(90deg)" : "";
+      }
     }
 
     function occupied(excludeUid) {
@@ -108,6 +116,7 @@
     }
 
     function canPlace(w, h, x, y, excludeUid) {
+      if (![w,h,x,y].every(Number.isInteger) || w < 1 || h < 1) return false;
       if (x < 0 || y < 0 || x + w > state.cols || y + h > state.rows) return false;
       var map = occupied(excludeUid);
       var yy, xx;
@@ -119,14 +128,14 @@
       return true;
     }
 
-    function findSlot(w, h, excludeUid) {
+    function findSlot(w, h, excludeUid, allowRotate) {
       var y, x;
       for (y = 0; y <= state.rows - h; y++) {
         for (x = 0; x <= state.cols - w; x++) {
           if (canPlace(w, h, x, y, excludeUid)) return { x: x, y: y, w: w, h: h };
         }
       }
-      if (w !== h) {
+      if (allowRotate !== false && w !== h) {
         for (y = 0; y <= state.rows - w; y++) {
           for (x = 0; x <= state.cols - h; x++) {
             if (canPlace(h, w, x, y, excludeUid)) return { x: x, y: y, w: h, h: w };
@@ -163,7 +172,7 @@
     function select(uid) {
       state.selected = uid;
       state.items.forEach(positionEl);
-      try { board.focus(); } catch (e) { try { console.debug && console.debug("[tt:item-grid]", e); } catch (_tt) { /* ignore */ } }
+      try { board.focus({ preventScroll: true }); } catch (e) { try { console.debug && console.debug("[tt:item-grid]", e); } catch (_tt) { /* ignore */ } }
     }
 
     function rotateItem(it) {
@@ -177,7 +186,7 @@
       if (canPlace(nw, nh, sx, sy, it.uid)) {
         it.w = nw; it.h = nh; it.x = sx; it.y = sy; positionEl(it); emit(); return true;
       }
-      var slot = findSlot(nw, nh, it.uid);
+      var slot = findSlot(nw, nh, it.uid, false);
       if (slot) {
         it.w = slot.w; it.h = slot.h; it.x = slot.x; it.y = slot.y; positionEl(it); emit(); return true;
       }
@@ -186,9 +195,10 @@
 
     function clientToCell(clientX, clientY) {
       var rect = board.getBoundingClientRect();
+      var scale = rect.width / board.offsetWidth;
       return {
-        x: clamp(Math.floor((clientX - rect.left) / state.cell), 0, state.cols - 1),
-        y: clamp(Math.floor((clientY - rect.top) / state.cell), 0, state.rows - 1)
+        x: Math.floor((clientX - rect.left - board.clientLeft * scale) / (state.cell * scale)),
+        y: Math.floor((clientY - rect.top - board.clientTop * scale) / (state.cell * scale))
       };
     }
 
@@ -204,17 +214,18 @@
       el.setAttribute("data-uid", it.uid);
       if (it.id && !/^demo-/i.test(String(it.id))) el.setAttribute("data-item-id", String(it.id));
       if (it.name) el.setAttribute("data-item-name", String(it.name));
+      el.title = (it.name || "") + " · " + it.w + "×" + it.h + (it.meta ? " · " + it.meta : "");
       el.innerHTML =
         '<div class="tt-ig-btns">' +
-        '<button type="button" class="tt-ig-rot" title="Повернуть (R)" tabindex="-1">⟳</button>' +
-        '<button type="button" class="tt-ig-x" title="Убрать" tabindex="-1">×</button></div>' +
+        '<button type="button" data-tt-compact class="tt-ig-rot" aria-label="Повернуть" title="Повернуть (R)" tabindex="-1">⟳</button>' +
+        '<button type="button" data-tt-compact class="tt-ig-x" aria-label="Убрать" title="Убрать" tabindex="-1">×</button></div>' +
         '<div class="tt-ig-art"></div><div class="tt-ig-name"></div><div class="tt-ig-meta"></div>';
       if (it.icon) {
         var img = document.createElement("img");
         img.className = "tt-ig-icon";
         img.alt = "";
         img.loading = "lazy";
-        img.onerror = function () { img.remove(); };
+        img.onerror = function () { if (!img.dataset.fallback) { img.dataset.fallback="1"; img.src=(/\/tools\//.test(location.pathname)?"../":"")+"assets/icons/other.svg"; } };
         img.src = it.icon;
         el.querySelector(".tt-ig-art").appendChild(img);
       }
@@ -246,7 +257,7 @@
         select(it.uid);
         var cell = clientToCell(ev.clientX, ev.clientY);
         state.drag = {
-          uid: it.uid, ox: it.x, oy: it.y, ow: it.w, oh: it.h,
+          uid: it.uid, x: it.x, y: it.y, w: it.w, h: it.h,
           grabX: cell.x - it.x, grabY: cell.y - it.y
         };
         el.classList.add("is-dragging");
@@ -255,21 +266,22 @@
       function onMove(ev) {
         if (!state.drag || state.drag.uid !== it.uid) return;
         var cell = clientToCell(ev.clientX, ev.clientY);
-        var nx = clamp(cell.x - state.drag.grabX, 0, state.cols - it.w);
-        var ny = clamp(cell.y - state.drag.grabY, 0, state.rows - it.h);
-        var ok = canPlace(it.w, it.h, nx, ny, it.uid);
-        it.x = nx; it.y = ny; positionEl(it);
-        showGhost(it.w, it.h, nx, ny, ok);
+        var drag = state.drag;
+        drag.x = cell.x - drag.grabX; drag.y = cell.y - drag.grabY;
+        var ok = canPlace(drag.w, drag.h, drag.x, drag.y, it.uid);
+        positionEl(Object.assign({},it,drag));
+        showGhost(drag.w, drag.h, drag.x, drag.y, ok);
       }
       function onUp(ev) {
         if (!state.drag || state.drag.uid !== it.uid) return;
         el.classList.remove("is-dragging");
         hideGhost();
-        if (!canPlace(it.w, it.h, it.x, it.y, it.uid)) {
-          it.x = state.drag.ox; it.y = state.drag.oy; it.w = state.drag.ow; it.h = state.drag.oh;
-          positionEl(it); syncMeta(it);
+        var drag = state.drag;
+        if (ev.type !== "pointercancel" && canPlace(drag.w, drag.h, drag.x, drag.y, it.uid)) {
+          it.x=drag.x;it.y=drag.y;it.w=drag.w;it.h=drag.h;
         }
         state.drag = null;
+        positionEl(it);syncMeta(it);
         emit();
         try { el.releasePointerCapture(ev.pointerId); } catch (e) { try { console.debug && console.debug("[tt:item-grid]", e); } catch (_tt) { /* ignore */ } }
       }
@@ -280,7 +292,7 @@
     }
 
     board.addEventListener("keydown", function (e) {
-      if (e.key !== "r" && e.key !== "R") return;
+      if (state.readonly || e.ctrlKey || e.metaKey || e.altKey || !(e.code === "KeyR" || /^(r|R|к|К)$/.test(e.key))) return;
       var it = null;
       if (state.drag) {
         it = state.items.find(function (x) { return x.uid === state.drag.uid; });
@@ -290,14 +302,12 @@
       if (!it) return;
       e.preventDefault();
       if (state.drag) {
-        var nw = it.h, nh = it.w;
-        it.w = nw; it.h = nh;
-        it.x = clamp(it.x, 0, state.cols - nw);
-        it.y = clamp(it.y, 0, state.rows - nh);
+        var drag = state.drag, nw = drag.h, nh = drag.w;
+        drag.w = nw; drag.h = nh;
         state.drag.grabX = Math.min(state.drag.grabX, nw - 1);
         state.drag.grabY = Math.min(state.drag.grabY, nh - 1);
-        positionEl(it); syncMeta(it);
-        showGhost(it.w, it.h, it.x, it.y, canPlace(it.w, it.h, it.x, it.y, it.uid));
+        positionEl(Object.assign({},it,drag));
+        showGhost(drag.w, drag.h, drag.x, drag.y, canPlace(drag.w, drag.h, drag.x, drag.y, it.uid));
       } else {
         rotateItem(it); syncMeta(it);
       }
@@ -319,6 +329,7 @@
         name: raw.name || raw.shortName || raw.id || "item",
         icon: raw.icon || raw.displayIconLink || raw.iconLink || "",
         w: pos.w, h: pos.h, x: pos.x, y: pos.y,
+        baseW: raw.baseW || sz.w, baseH: raw.baseH || sz.h,
         meta: raw.meta || "", data: raw.data != null ? raw.data : raw
       };
       it.el = buildItemEl(it);
@@ -358,15 +369,17 @@
     }
 
     function setSize(cols, rows) {
-      var prev = getItems();
-      state.cols = Math.max(1, Math.floor(cols || state.cols));
-      state.rows = Math.max(1, Math.floor(rows || state.rows));
-      clear();
-      layoutBoard();
-      prev.forEach(function (p) {
-        addItem({ id: p.id, name: p.name, icon: p.icon, w: p.w, h: p.h, meta: p.meta, data: p.data }, p.x, p.y);
-      });
-      emit();
+      var original=state.items, oldCols=state.cols, oldRows=state.rows;
+      state.cols=Math.max(1,Math.floor(cols||oldCols));state.rows=Math.max(1,Math.floor(rows||oldRows));state.items=[];
+      var positions=[];
+      for(var i=0;i<original.length;i++){
+        var item=original[i],pos=canPlace(item.w,item.h,item.x,item.y)?{x:item.x,y:item.y,w:item.w,h:item.h}:findSlot(item.w,item.h);
+        if(!pos){state.items=original;state.cols=oldCols;state.rows=oldRows;return false;}
+        positions.push(pos);state.items.push(Object.assign({},item,pos));
+      }
+      state.items=original;state.drag=null;hideGhost();
+      original.forEach(function(item,index){Object.assign(item,positions[index]);item.el.classList.remove("is-dragging");syncMeta(item);});
+      layoutBoard();emit();return true;
     }
 
     function pack(candidates, packOpts) {
@@ -406,8 +419,8 @@
 
   function dimsFromItem(it) {
     if (!it) return { w: 1, h: 1 };
-    var w = Number(it.width) || 0;
-    var h = Number(it.height) || 0;
+    var w = Number(it.displayWidth || it.width) || 0;
+    var h = Number(it.displayHeight || it.height) || 0;
     var p = it.properties || {};
     if (!w && p.width) w = Number(p.width) || 0;
     if (!h && p.height) h = Number(p.height) || 0;

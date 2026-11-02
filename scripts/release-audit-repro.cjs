@@ -44,6 +44,7 @@ function environment() {
   vm.runInContext(read('core/tarkov-data.js'), ctx, { filename: 'core/tarkov-data.js' });
   vm.runInContext(read('core/tarkov-names.js'), ctx, { filename: 'core/tarkov-names.js' });
   vm.runInContext(read('core/tarkov-item-media.js'), ctx, { filename: 'core/tarkov-item-media.js' });
+  vm.runInContext(read('core/tarkov-key-match.js'), ctx, { filename: 'core/tarkov-key-match.js' });
   return { ctx, element, run(file) { vm.runInContext(read(file), ctx, { filename: file }); } };
 }
 (async () => {

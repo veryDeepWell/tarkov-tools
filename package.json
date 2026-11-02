@@ -1,0 +1,17 @@
+{
+  "name": "tarkov-tools-checks",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "test:unit": "node --test tests/unit.test.cjs",
+    "test:browser": "node --test tests/browser.test.cjs",
+    "check": "node tests/check.cjs",
+    "hooks:install": "node tests/install-hooks.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1",
+    "tesseract.js": "7.0.0",
+    "tesseract.js-core": "7.0.0"
+  }
+}

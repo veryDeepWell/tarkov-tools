@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+cd "$(git rev-parse --show-toplevel)"
+if command -v node >/dev/null 2>&1; then
+  exec node tests/check.cjs
+fi
+runtime="$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe"
+if [ -f "$runtime" ]; then
+  exec "$runtime" tests/check.cjs
+fi
+echo "Node.js is required to check changes before push." >&2
+exit 1

@@ -40,6 +40,7 @@
     }
     .suggest button:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
     .suggest .muted { color: var(--muted); font-size: .75rem; }
+    #packHints { max-height: 620px; overflow: auto; }
     .grid-wrap { overflow: auto; padding: 4px 0; }
     .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
     .note { font-size: .8rem; color: var(--muted); line-height: 1.45; margin: 8px 0 0; }
@@ -74,7 +75,7 @@
 <body>
   <div class="container">
     <h1>Престижинатор</h1>
-    <p class="sub">Окно переноса престижа как инвентарь в игре. Клади предметы вручную или нажми «Собрать престиж» — старый оптимизатор с упором на деньги, ранние квесты или каппу.</p>
+    <p class="sub">Окно переноса престижа как инвентарь в игре. Клади предметы вручную или нажми «Собрать престиж» — подбор с упором на деньги, ранние квесты или каппу.</p>
 
     <div class="card">
       <div class="card-title">Данные</div>
@@ -137,7 +138,7 @@
   <div class="opt-panel" id="optPanel" role="dialog" aria-modal="true" hidden>
     <div class="opt-modal">
       <h2>Собрать престиж</h2>
-      <p class="note" style="margin-top:0">Выбери упор — алгоритм заполнит окно (старый оптимизатор + тетра-укладка).</p>
+      <p class="note" style="margin-top:0">Выбери упор — алгоритм учтёт размеры и потребность выбранных квестов. Жетоны добавляются вручную: для них нужны уровень и данные конкретного экземпляра.</p>
       <div class="field" style="margin-top:10px">
         <label>Квесты до уровня PMC</label>
         <input type="number" id="maxLvl" min="1" max="50" value="15">
@@ -180,7 +181,8 @@
   <script src="../core/tarkov-state.js"></script>
   <script src="../core/tarkov-common.js"></script>
   <script src="../core/tarkov-item-grid.js?v=2"></script>
-  <script src="../js/prestige.js?v=2"></script>
+  <script src="../core/tarkov-prestige.js"></script>
+  <script src="../js/prestige.js?v=3"></script>
   <script src="../core/tarkov-tool-shell.js"></script>
 </body>
 </html>

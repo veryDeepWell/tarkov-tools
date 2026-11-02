@@ -103,3 +103,7 @@ Notify({
 - `TarkovNav.entityHref(type, id)` — единый маршрут для item/quest/craft/barter/station/map/trader. Старые ссылки продолжают поддерживаться.
 
 Типы: item, quest, trader, map, station, craft, barter. Квестовые предметы разрешаются в item-ссылках из дополнительного каталога задач. Сырые имена внешнего API и машинные enum не смешиваются: нормализация подписей не меняет slot names, effect types и ID.
+
+`TarkovAPI.prestige(mode)` получает правила переноса из `tasks.data.prestige` через ту же границу данных. `TarkovPrestige.rule/allowed/demands/plan` — чистый сервис ограничений переноса, потребности квестов и геометрической укладки. Престижинатор не использует весь каталог как список разрешённых предметов.
+
+`TarkovItemMedia.defaultPreset` разрешает также строковые ссылки на штатную сборку через реестр предметов. `decorate` предоставляет `displayWidth/displayHeight` этой сборки; исходные ID и размеры базового предмета не переписываются.

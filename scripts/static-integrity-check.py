@@ -9,6 +9,7 @@ import re
 import shutil
 import subprocess
 import sys
+import os
 import tempfile
 from collections import Counter
 from html.parser import HTMLParser
@@ -61,10 +62,12 @@ class HtmlAuditParser(HTMLParser):
 
 
 def project_files() -> list[Path]:
-    return sorted(
-        p for p in ROOT.rglob("*")
-        if p.is_file() and ".git" not in p.parts and "_archive" not in p.parts
-    )
+    excluded = {".git", "_archive", "node_modules", ".pnpm-store", "artifacts", "__pycache__"}
+    files: list[Path] = []
+    for directory, folders, names in os.walk(ROOT):
+        folders[:] = [name for name in folders if name not in excluded]
+        files.extend(Path(directory) / name for name in names)
+    return sorted(files)
 
 
 def check_js(path: Path, node: str) -> str | None:

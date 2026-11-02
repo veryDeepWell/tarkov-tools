@@ -11,6 +11,7 @@
   var requestVersion = 0;
   var questsReady = false;
   var requestedMode = null;
+  var ocrBusy = false, imageVersion = 0, lastOCR = null;
 
   function setStatus(msg, ok) {
     var st = document.getElementById("status");
@@ -19,57 +20,7 @@
     st.textContent = msg || "";
   }
 
-  function norm(s) {
-    return String(s || "")
-      .toLowerCase()
-      .replace(/[-_]+/g, " ")
-      .replace(/[^a-z0-9а-яё\s\-]/gi, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-  }
-
-  function scoreMatch(query, item) {
-    var q = norm(query);
-    if (!q || q.length < 3) return 0;
-    var useful = q.split(" ").filter(function (t) { return !/^(key|keys|room|ключ|ключи|комната|от|the|for|a)$/.test(t); });
-    if (!useful.length) return 0;
-    var slug = norm(item.slug);
-    var name = norm(item.name);
-    var aliases = [slug, name].concat(item.aliases || []).map(norm);
-    if (aliases.indexOf(q) >= 0) return 100;
-    var nums = q.match(/\d+/g) || [];
-    var hay = aliases.join(" ");
-    if (nums.some(function (n) { return !(hay.match(/\d+/g) || []).includes(n); })) return 0;
-    if (useful.some(function (t) { return !hay.split(" ").includes(t); })) return 0;
-    // token overlap
-    var qt = q.split(" ");
-    var ht = (slug + " " + name).split(" ");
-    var hit = 0;
-    qt.forEach(function (t) {
-      if (t.length < 3) return;
-      if (ht.some(function (h) {
-        return h.indexOf(t) >= 0 || t.indexOf(h) >= 0;
-      }))
-        hit++;
-    });
-    if (hit >= 2) return Math.min(90, 60 + hit * 5);
-    return 0;
-  }
-
-  function bestMatch(line) {
-    var best = null;
-    var bestS = 0;
-    var second = 0;
-    catalog.forEach(function (it) {
-      var s = scoreMatch(line, it);
-      if (s > bestS) {
-        second = bestS;
-        bestS = s;
-        best = it;
-      } else if (s > second) second = s;
-    });
-    return bestS >= 70 && bestS - second >= 10 ? { item: best, confidence: bestS } : null;
-  }
+  function bestMatch(line) { return TarkovKeyMatch.best(line, catalog, false); }
 
   async function loadCatalog() {
     var version = ++requestVersion;
@@ -146,13 +97,14 @@
     var rows = [];
     var unmatched = [];
     var quests = Object.create(null);
-    lines.forEach(function (line) {
+    lines.forEach(function (line, index) {
       var quantity = line.match(/\s*[×*]\s*(\d+)\s*$/);
       var count = quantity ? Math.max(1, Math.min(100, Number(quantity[1]))) : 1;
       var inputName = quantity ? line.slice(0, quantity.index) : line;
       var explicitId = inputName.match(/\[([^\]]+)\]\s*$/);
       var chosen = explicitId && catalog.find(function (item) { return item.id === explicitId[1]; });
       var m = chosen ? { item: chosen, confidence: 100 } : bestMatch(inputName);
+      if (m && lastOCR && lastOCR.text === text && lastOCR.evidence[index]) m.confidence = Math.min(m.confidence,lastOCR.evidence[index].confidence);
       if (!m || !m.item) { unmatched.push(line); return; }
       if (seen[m.item.id]) { seen[m.item.id].count += count; return; }
       var score = personalScore(m.item);
@@ -269,13 +221,14 @@
   function setImage(file) {
     if (!file || !file.type || file.type.indexOf("image") !== 0) return;
     lastImage = file;
+    imageVersion++; lastOCR = null;
     if (imageUrl) URL.revokeObjectURL(imageUrl);
     var url = imageUrl = URL.createObjectURL(file);
     if (preview) {
       preview.src = url;
       preview.style.display = "block";
     }
-    if (ocrBtn) ocrBtn.disabled = false;
+    if (ocrBtn) ocrBtn.disabled = ocrBusy;
   }
 
   if (fileInput)
@@ -308,18 +261,22 @@
   });
 
   async function runOcr() {
+    if (ocrBusy) return;
     if (!lastImage) {
       setStatus("Нет изображения", false);
       return;
     }
     setStatus("OCR…");
+    ocrBusy = true;
+    var file = lastImage, version = imageVersion;
+    var capturedMode = (document.getElementById("gameMode") || {}).value || "pve";
     if (ocrBtn) ocrBtn.disabled = true;
     try {
       // dynamic load tesseract from CDN only on demand
       if (!window.Tesseract) {
         await new Promise(function (resolve, reject) {
           var s = document.createElement("script");
-          s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+          s.src = (window.TarkovOCRConfig || {}).script || "https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js";
           s.onload = resolve;
           s.onerror = function () {
             reject(new Error("Не удалось загрузить Tesseract (CDN). Вставь текст вручную."));
@@ -327,19 +284,50 @@
           document.head.appendChild(s);
         });
       }
-      var result = await Tesseract.recognize(lastImage, "eng+rus", {
-        logger: function (m) {
-          if (m.status === "recognizing text" && m.progress != null)
-            setStatus("OCR " + Math.round(m.progress * 100) + "%");
+      if (!catalog.length) await loadCatalog();
+      if (!catalog.length) throw Error("Не удалось загрузить каталог ключей. Повтори загрузку.");
+      var prepared = await TarkovKeyOCR.prepare(file);
+      var worker = await Tesseract.createWorker("rus+eng", 1, Object.assign({}, (window.TarkovOCRConfig || {}).worker, {
+        logger: function (m) { if (m.status === "recognizing text") setStatus("OCR " + Math.round(m.progress * 100) + "%"); }
+      }));
+      var passes = [];
+      try {
+        await worker.setParameters({ tessedit_pageseg_mode: "6", preserve_interword_spaces: "1", user_defined_dpi: "300" });
+        passes.push((await worker.recognize(prepared.canvas)).data.text);
+        if (prepared.grid) {
+          await worker.reinitialize("rus");
+          passes.push((await worker.recognize(prepared.canvas)).data.text);
+          await worker.reinitialize("eng");
+          passes.push((await worker.recognize(prepared.canvas)).data.text);
         }
-      });
-      var text = (result && result.data && result.data.text) || "";
+      } finally { await worker.terminate(); }
+      var lines = passes.map(function (text) { return text.split(/\n/).map(function(l){return l.trim();}).filter(Boolean); });
+      if (version !== imageVersion || capturedMode !== ((document.getElementById("gameMode") || {}).value || "pve")) {
+        setStatus("Изображение или режим изменились — повтори распознавание", false); return;
+      }
+      var rawLines = lines[0], recognized = 0, evidence = [];
+      var text = rawLines.map(function (line, index) {
+        var variants = [line];
+        lines.slice(1).forEach(function(pass){if(pass.length===rawLines.length && (!prepared.grid || rawLines.length===prepared.cells.length))variants.push(pass[index]);});
+        var match = TarkovKeyMatch.best(variants, catalog, true);
+        evidence.push({confidence:match?match.confidence:0});
+        if (!match) return line;
+        recognized++;
+        return match.item.raw.name || match.item.name;
+      }).join("\n");
       var ta = document.getElementById("ocrText");
       if (ta) ta.value = text;
-      setStatus("OCR готово — проверь текст и нажми «Сопоставить»", true);
+      lastOCR={text:text,evidence:evidence};
+      var raw = document.getElementById("ocrRaw"); if (raw) raw.textContent = passes.join("\n---\n");
+      runMatch();
+      setStatus("OCR: " + recognized + " из " + rawLines.length + " подписей сопоставлены" +
+        (prepared.grid ? " · ячейки " + prepared.grid.cols + "×" + prepared.grid.rows : "") +
+        ". Остальные подписи неоднозначны или обрезаны — уточни их вручную.", recognized === rawLines.length ? true : undefined);
+      if (recognized !== rawLines.length) document.getElementById("status").classList.add("warn");
     } catch (e) {
       setStatus(e.message || String(e), false);
     } finally {
+      ocrBusy = false;
       if (ocrBtn) ocrBtn.disabled = false;
     }
   }
