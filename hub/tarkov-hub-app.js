@@ -115,7 +115,7 @@ function cardHtml(t, pinned) {
     '<button type="button" class="tool-pin ' + (pinned ? "on" : "") + '" data-pin="' + esc(t.file) + '" title="' +
     esc(pinned ? tt("hub.unpin", "Unpin") : tt("hub.pin", "Pin")) + '">' + (pinned ? "📌" : "📍") + '</button>' +
     '<div class="tool-head"><div class="tool-ico">' + iconFor(t.file, title) + '</div>' +
-    '<div style="padding-right:56px"><h2>' + esc(title) + '</h2><p>' + esc(desc) + '</p></div></div></div>';
+    '<div class="tool-copy"><h2>' + esc(title) + '</h2><p>' + esc(desc) + '</p></div></div></div>';
 }
 window.cardHtml = cardHtml;
 window.togglePin = togglePin;

@@ -21,10 +21,10 @@
     return "";
   }
 
-  function icon(item) {
+  function icon(item, context, knownPreset) {
     if (!item || typeof item !== "object") return "";
     var p = asObject(item.properties) || {};
-    var preset = defaultPreset(item);
+    var preset = isWeapon(item) && (knownPreset || defaultPreset(item, context));
     if (isWeapon(item)) {
       // Prefer the default preset so base weapons look like the standard playable gun,
       // not the bare receiver/base item supplied as the small icon.
@@ -47,16 +47,16 @@
   function name(item) {
     return global.TarkovNames ? TarkovNames.display(item) : TarkovData.label("item", item);
   }
-  function defaultPreset(item) {
+  function defaultPreset(item, context) {
     var ref = item && ((item.properties || {}).defaultPreset || item.defaultPreset);
-    return asObject(ref) || (ref && global.TarkovData && TarkovData.get("item",ref)) || null;
+    return asObject(ref) || (ref && global.TarkovData && TarkovData.get("item",ref,context)) || null;
   }
 
-  function decorate(item) {
+  function decorate(item, context) {
     if (!item || typeof item !== "object") return item;
     var copy = Object.assign({}, item);
-    var iconUrl = icon(item);
-    var preset = isWeapon(item) && defaultPreset(item);
+    var preset = isWeapon(item) && defaultPreset(item, context);
+    var iconUrl = icon(item, context, preset);
     if (preset) { copy.displayWidth=preset.width||item.width;copy.displayHeight=preset.height||item.height; }
     if (iconUrl) {
       copy.displayIconLink = iconUrl;

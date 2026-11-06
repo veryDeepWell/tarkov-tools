@@ -46,9 +46,12 @@
   }
   function resolve(type, ref, options) {
     type = kind(type);
-    var found = get(type, ref, options);
     var object = ref && typeof ref === "object" ? ref : null;
-    var value = object && object.labelSource !== "missing" && (!technical(object.name) || !technical(object.shortName)) ? object : found || object;
+    // Named records already carry their presentation data. Resolving them must not
+    // re-read/parse the active profile thousands of times during a catalogue load.
+    var named = object && object.labelSource !== "missing" && (!technical(object.name) || !technical(object.shortName));
+    var literal = typeof ref === "string" && !technical(ref);
+    var value = named ? object : (literal && type === "entity" ? null : get(type, ref, options)) || object;
     var fields = options && options.full ? ["name", "shortName", "displayName"] : ["shortName", "name", "displayName"];
     var label = "", source = "missing";
     for (var i = 0; value && value.labelSource !== "missing" && i < fields.length; i++) {

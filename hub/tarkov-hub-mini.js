@@ -83,7 +83,7 @@
         try { renderMiniList(); } catch (e) {}
         try {
           var doc = ifr.contentDocument;
-          if (doc && !doc.getElementById("tt-tool-shell")) {
+          if (doc && !ifr.contentWindow.__ttToolShellLoaded && !doc.querySelector('script[src*="tarkov-tool-shell.js"]')) {
             var script = doc.createElement("script");
             script.id = "tt-tool-shell";
             var base = location.pathname.replace(/\/[^/]*$/, "/");

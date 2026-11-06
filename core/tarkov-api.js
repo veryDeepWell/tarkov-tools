@@ -11,6 +11,13 @@
   const DEFAULT_TTL = (global.TarkovConst && TarkovConst.API_MEMORY_TTL_MS) || (90 * 1000);
   const LS_TTL = (global.TarkovConst && TarkovConst.API_LS_TTL_MS) || (5 * 60 * 1000);
   const LS_PREFIX = "tt:api:";
+  function parentAPI() {
+    try {
+      if (global.parent && global.parent !== global && global.parent.location.origin === global.location.origin)
+        return global.parent.TarkovAPI || null;
+    } catch (_) { /* A cross-origin embedding owns no part of this transport. */ }
+    return null;
+  }
 
   function storage() {
     if (!global.TarkovStorage) throw new Error("TarkovStorage must load before TarkovAPI");
@@ -96,6 +103,10 @@
 
   async function getJson(path, opts) {
     opts = opts || {};
+    // Same-origin tools share the hub's raw transport/cache. Translation and
+    // consumer-owned models remain local to the requesting tool and context.
+    var owner = parentAPI();
+    if (owner) return owner.getJson(path, opts);
     path = path.replace(/^\/(pvp|pvp-season)(?=\/)/, "/regular");
     const url = path.indexOf("http") === 0 ? path : (BASE + path);
     const key = url + "|" + (opts.cacheKey || "");
@@ -174,9 +185,10 @@
 
   async function items(gameMode, opts) {
     var m = apiMode(gameMode);
+    var context = TarkovData.scope({ mode: m });
     var list = await collection("items", m, opts);
     if (!global.TarkovItemMedia) throw Error("TarkovItemMedia must load before TarkovAPI");
-    return list.map(function (item) { return TarkovItemMedia.decorate(item); });
+    return list.map(function (item) { return TarkovItemMedia.decorate(item, context); });
   }
 
   async function barters(gameMode) {
@@ -233,6 +245,8 @@
   }
 
   function clearCache() {
+    var owner = parentAPI();
+    if (owner) owner.clearCache();
     cacheGeneration++;
     pending.clear();
     revisions.clear();

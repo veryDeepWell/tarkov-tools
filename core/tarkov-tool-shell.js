@@ -1,6 +1,8 @@
 /*! Tarkov tool shell — Stage 4: i18n ensure + help from locales */
 (function () {
   "use strict";
+  if (window.__ttToolShellLoaded) return;
+  window.__ttToolShellLoaded = true;
 
   function ensureCss() {
     if (document.querySelector('link[href*="tarkov-ui.css"]')) return;
@@ -354,14 +356,8 @@
     try {
       if (!window.TarkovProfile) return;
       if (TarkovProfile.ensureMigrated) TarkovProfile.ensureMigrated();
-      // clear bind flags so profile switch re-applies
-      ["gameMode", "playerLevel", "level", "prestige"].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        el.__ttProfileBound = false;
-        el.__ttProfileBoundNum = null;
-        el.__ttProfileBoundPrestige = false;
-      });
+      // The bindings re-apply values before their idempotence guard. Resetting
+      // guards here accumulated another change handler on every profile refresh.
       if (TarkovProfile.wireToolPage) TarkovProfile.wireToolPage();
       else if (TarkovProfile.bindGameMode) TarkovProfile.bindGameMode("gameMode", { fallback: "pve" });
       if (TarkovProfile.context) window.__ttProfileContext = TarkovProfile.context();

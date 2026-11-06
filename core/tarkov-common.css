@@ -35,7 +35,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]), select, textarea 
   font-size: 1rem !important; outline: none; min-height: var(--btn-h); font-family: inherit;
 }
 input[type=checkbox], input[type=radio] { width: auto; min-height: auto; accent-color: var(--accent); }
-button:not([data-tt-compact]), .btn, .btn-ghost, .btn-raid, .btn-primary, input[type=button], input[type=submit] {
+button:where(:not([data-tt-compact])), .btn, .btn-ghost, .btn-raid, .btn-primary, input[type=button], input[type=submit] {
   display: inline-flex !important; align-items: center !important; justify-content: center !important;
   min-height: var(--btn-h) !important; min-width: var(--btn-min-w) !important; padding: 0 16px !important;
   border-radius: 8px !important; font-weight: 700 !important; font-size: .92rem !important;
